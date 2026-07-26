@@ -103,6 +103,7 @@ namespace Meditrans.Client.Views
 
             var mainWindow = new MainWindow();
             mainWindow.WindowState = WindowState.Maximized;
+            Application.Current.MainWindow = mainWindow;
             mainWindow.Show();
             this.Close();
         }

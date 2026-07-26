@@ -63,7 +63,9 @@ namespace Meditrans.Client.ViewModels
             var clone = isNew ? new Integrator() : (Integrator)item.Clone();
 
             var vm = new IntegratorEditViewModel(clone);
-            var view = new IntegratorEditView { DataContext = vm, Owner = Application.Current.MainWindow };
+            var view = new IntegratorEditView { DataContext = vm/*, Owner = Application.Current.MainWindow */};
+
+            view.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
             if (view.ShowDialog() == true)
             {

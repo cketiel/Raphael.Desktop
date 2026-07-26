@@ -91,7 +91,19 @@ namespace Meditrans.Client.ViewModels
                 var integrators = await new IntegratorService().GetIntegratorsAsync();
                 var providers = await new ProviderService().GetProvidersAsync();
 
-                var addEditUserView = new AddEditUserView(null, availableRoles, integrators, providers) { Owner = Application.Current.MainWindow };
+                //var addEditUserView = new AddEditUserView(null, availableRoles, integrators, providers) { Owner = Application.Current.MainWindow };
+
+                var addEditUserView = new AddEditUserView(
+                    null,
+                    availableRoles,
+                    integrators,
+                    providers);
+
+                if (Application.Current.MainWindow != addEditUserView)
+                {
+                    addEditUserView.Owner = Application.Current.MainWindow;
+                }
+                addEditUserView.WindowStartupLocation = WindowStartupLocation.CenterScreen;
                 var result = addEditUserView.ShowDialog();
 
                 if (result.HasValue && result.Value)

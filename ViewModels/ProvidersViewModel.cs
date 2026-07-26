@@ -65,7 +65,9 @@ namespace Meditrans.Client.ViewModels
             var clone = isNew ? new Provider() : (Provider)item.Clone();
             var vm = new ProviderEditViewModel(clone);
           
-            var view = new ProviderEditView { DataContext = vm, Owner = Application.Current.MainWindow };
+            var view = new ProviderEditView { DataContext = vm/*, Owner = Application.Current.MainWindow */};
+
+            view.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
             if (view.ShowDialog() == true)
             {
