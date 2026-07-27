@@ -32,6 +32,16 @@
                          Style="{StaticResource MaterialDesignFloatingHintTextBox}" 
                          Margin="0,0,0,20"/>
 
+                <!-- NUEVO: Funding Source -->
+                <ComboBox materialDesign:HintAssist.Hint="Funding Source"
+                      ItemsSource="{Binding FundingSources}"
+                      SelectedValue="{Binding Integrator.FundingSourceId}"
+                      SelectedValuePath="Id"
+                      DisplayMemberPath="Name"
+                      Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                      materialDesign:TextFieldAssist.HasClearButton="True"
+                      Margin="0,0,0,20"/>
+                
                 <!-- Estado -->
                 <CheckBox Content="Is Active" 
                           IsChecked="{Binding Integrator.IsActive}" 

@@ -15,6 +15,9 @@ namespace Meditrans.Client.Models
         public bool IsActive { get; set; } = true;
         public DateTime Created { get; set; } = DateTime.Now;
 
+        public int? FundingSourceId { get; set; }
+        public string? FundingSourceName { get; set; }
+
         //This property is not saved in the DB, it is only used for the API request
         public bool RegenerateApiKey { get; set; }
 
