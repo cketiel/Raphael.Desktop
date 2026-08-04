@@ -1,4 +1,4 @@
-﻿using Meditrans.Client.ViewModels;
+﻿using Raphael.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Models
+namespace Raphael.Desktop.Models
 {
     public class FundingSource: BaseViewModel
     {

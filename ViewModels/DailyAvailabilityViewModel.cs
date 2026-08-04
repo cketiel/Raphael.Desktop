@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     /// <summary>
     /// ViewModel para un item en la lista de Horarios Diarios.

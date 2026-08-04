@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Exceptions
+namespace Raphael.Desktop.Exceptions
 {
     public class ApiException : Exception
     {

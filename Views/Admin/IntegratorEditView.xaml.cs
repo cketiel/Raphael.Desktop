@@ -1,4 +1,4 @@
-﻿using Meditrans.Client.ViewModels;
+﻿using Raphael.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Admin
+namespace Raphael.Desktop.Views.Admin
 {
     /// <summary>
     /// Lógica de interacción para IntegratorEditView.xaml

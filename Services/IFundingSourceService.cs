@@ -1,7 +1,7 @@
-﻿using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
+﻿using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public interface IFundingSourceService
     {

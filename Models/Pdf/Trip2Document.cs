@@ -3,12 +3,12 @@ using System.Threading.Tasks;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Meditrans.Client.DTOs;
+using Raphael.Desktop.DTOs;
 using System.Collections.Generic;
 using System.Linq;
 using System;
 
-namespace Meditrans.Client.Models.Pdf
+namespace Raphael.Desktop.Models.Pdf
 {
     public class Trip2Document : IDocument
     {

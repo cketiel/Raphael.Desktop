@@ -7,7 +7,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class ApiZonitelService
     {

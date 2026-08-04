@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Admin
+namespace Raphael.Desktop.Views.Admin
 {
     /// <summary>
     /// Lógica de interacción para Billing.xaml

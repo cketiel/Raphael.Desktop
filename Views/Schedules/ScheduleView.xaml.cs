@@ -12,12 +12,12 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Meditrans.Client.Services;
-using Meditrans.Client.ViewModels;
-using Meditrans.Client.Models; 
+using Raphael.Desktop.Services;
+using Raphael.Desktop.ViewModels;
+using Raphael.Desktop.Models; 
 using GMap.NET;
 
-namespace Meditrans.Client.Views.Schedules
+namespace Raphael.Desktop.Views.Schedules
 {
     /// <summary>
     /// Lógica de interacción para ScheduleView.xaml

@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views
+namespace Raphael.Desktop.Views
 {
     /// <summary>
     /// Lógica de interacción para ReportsView.xaml

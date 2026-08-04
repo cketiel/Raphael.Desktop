@@ -1,8 +1,8 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using System;
 using System.Linq;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     // This ViewModel wraps the VehicleRoute model to add presentation logic.
     public class VehicleRouteViewModel : BaseViewModel

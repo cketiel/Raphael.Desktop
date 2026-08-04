@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Data.Scheduling
+namespace Raphael.Desktop.Views.Data.Scheduling
 {
     /// <summary>
     /// Lógica de interacción para ViolationSetsView.xaml

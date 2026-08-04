@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 using System.Windows.Input;
 using System.Windows;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Services;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class AddEditRoleViewModel : BaseViewModel
     {      

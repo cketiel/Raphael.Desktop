@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35913.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meditrans.Client", "Meditrans.Client.csproj", "{E8338DAB-139B-4616-BF39-838C07190348}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Raphael.Desktop", "Raphael.Desktop.csproj", "{E8338DAB-139B-4616-BF39-838C07190348}"
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Raphael.Setup", "..\Raphael.Setup\Raphael.Setup.vdproj", "{CE50EE4D-953D-3782-D4A2-9EE621A862CF}"
 EndProject

@@ -12,11 +12,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using MaterialDesignColors;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Models;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class TripService
     {

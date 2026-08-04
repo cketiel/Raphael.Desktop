@@ -6,11 +6,11 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using GMap.NET;
 using GMap.NET.WindowsPresentation;
 using GongSolutions.Wpf.DragDrop;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Dispatch;
-using Meditrans.Client.Views.Schedules;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Dispatch;
+using Raphael.Desktop.Views.Schedules;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
@@ -21,7 +21,7 @@ using System.Windows.Threading;
 using System.Linq;
 
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class SchedulesViewModel : ObservableObject, IDragSource, IDropTarget
     {      

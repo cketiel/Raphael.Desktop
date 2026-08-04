@@ -1,4 +1,4 @@
-﻿using Meditrans.Client.ViewModels;
+﻿using Raphael.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Data.Scheduling.Vehicles
+namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
 {
     /// <summary>
     /// Lógica de interacción para AddSpaceTypeView.xaml

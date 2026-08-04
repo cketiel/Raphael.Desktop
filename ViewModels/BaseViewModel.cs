@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Services;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public abstract class BaseViewModel : INotifyPropertyChanged
     {

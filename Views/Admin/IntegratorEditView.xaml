@@ -1,4 +1,4 @@
-﻿<Window x:Class="Meditrans.Client.Views.Admin.IntegratorEditView"
+﻿<Window x:Class="Raphael.Desktop.Views.Admin.IntegratorEditView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"

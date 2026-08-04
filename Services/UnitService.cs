@@ -1,10 +1,10 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class UnitService : IUnitService
     {

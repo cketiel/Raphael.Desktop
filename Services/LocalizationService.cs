@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class LocalizationService
     {

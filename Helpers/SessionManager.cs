@@ -1,7 +1,7 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using Newtonsoft.Json.Linq;
 
-namespace Meditrans.Client.Helpers
+namespace Raphael.Desktop.Helpers
 {
     public static class SessionManager
     {

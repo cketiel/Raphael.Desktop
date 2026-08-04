@@ -8,7 +8,7 @@ using CsvHelper;
 using System.Globalization;
 using System.Reflection;
 
-namespace Meditrans.Client.Models.Csv
+namespace Raphael.Desktop.Models.Csv
 {
 
 

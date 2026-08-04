@@ -1,4 +1,4 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 
 using System.Collections.Generic;
 using System.Net.Http;
@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using System;
 using System.Windows;
 using System.Windows.Xps;
-using Meditrans.Client.Exceptions;
+using Raphael.Desktop.Exceptions;
 using Newtonsoft.Json.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class CustomerService : ICustomerService
     {

@@ -2,9 +2,9 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     public class StatusToVisibilityConverter : IValueConverter
     {

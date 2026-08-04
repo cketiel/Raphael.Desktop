@@ -1,12 +1,12 @@
-﻿using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
+﻿using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel; 
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class RunItemViewModel : ObservableObject
     {

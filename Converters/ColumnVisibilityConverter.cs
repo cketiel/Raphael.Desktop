@@ -1,4 +1,4 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     public class ColumnVisibilityConverter : IValueConverter
     {

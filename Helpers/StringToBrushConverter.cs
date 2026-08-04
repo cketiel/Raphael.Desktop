@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace Meditrans.Client.Helpers
+namespace Raphael.Desktop.Helpers
 {
     public class StringToBrushConverter : IValueConverter
     {

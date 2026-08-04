@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Meditrans.Client.Helpers
+namespace Raphael.Desktop.Helpers
 {
     public class BindingProxy : Freezable
     {

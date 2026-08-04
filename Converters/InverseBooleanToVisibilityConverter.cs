@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     public class InverseBooleanToVisibilityConverter : IValueConverter
     {

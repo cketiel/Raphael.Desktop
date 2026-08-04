@@ -1,14 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Data.Scheduling.Vehicles;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Data.Scheduling.Vehicles;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows; // Para MessageBox, aunque es mejor usar un servicio de diálogo
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     // Heredamos de ObservableObject y marcamos como partial
     public partial class SpaceTypesViewModel : ObservableObject

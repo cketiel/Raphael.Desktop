@@ -1,6 +1,6 @@
-﻿using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Data.Scheduling;
+﻿using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Data.Scheduling;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -9,10 +9,10 @@ using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows;
 using System.Windows.Input;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Exceptions;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Exceptions;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class RunsViewModel : BaseViewModel
     {

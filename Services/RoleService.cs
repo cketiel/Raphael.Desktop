@@ -1,10 +1,10 @@
 ﻿
 using System.Net.Http;
 using System.Net.Http.Json;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class RoleService : IRoleService
     {

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public interface IProviderService
     {

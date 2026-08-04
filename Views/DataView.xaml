@@ -1,9 +1,9 @@
-﻿<UserControl x:Class="Meditrans.Client.Views.DataView"
+﻿<UserControl x:Class="Raphael.Desktop.Views.DataView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Meditrans.Client.ViewModels"
-                xmlns:views="clr-namespace:Meditrans.Client.Views.Data"
+             xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
+                xmlns:views="clr-namespace:Raphael.Desktop.Views.Data"
              Height="Auto" Width="Auto">
 
 

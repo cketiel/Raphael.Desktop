@@ -4,10 +4,10 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 using Newtonsoft.Json.Linq;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class GoogleMapsService
     {

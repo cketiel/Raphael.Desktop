@@ -2,10 +2,10 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Meditrans.Client.ViewModels;
-using Meditrans.Client.Models;
+using Raphael.Desktop.ViewModels;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Views
+namespace Raphael.Desktop.Views
 {
     /// <summary>
     /// Lógica de interacción para DispatchView.xaml

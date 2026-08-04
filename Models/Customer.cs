@@ -6,7 +6,7 @@ using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Models
+namespace Raphael.Desktop.Models
 {
     public static class Gender
     {

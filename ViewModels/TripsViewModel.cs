@@ -1,10 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GongSolutions.Wpf.DragDrop;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Dispatch;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Dispatch;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class TripsViewModel : ObservableObject
     {

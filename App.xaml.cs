@@ -1,14 +1,14 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
-using Meditrans.Client.Views;
+using Raphael.Desktop.Views;
 using Microsoft.Extensions.Configuration;
 using MaterialDesignThemes.Wpf;
 using MaterialDesignColors;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Services;
 
 
-namespace Meditrans.Client
+namespace Raphael.Desktop
 {
     /// <summary>
     /// Interaction logic for App.xaml
@@ -25,7 +25,7 @@ namespace Meditrans.Client
             login.Show();
 
             // Load saved language in Settings
-            var language = Meditrans.Client.Properties.Settings.Default.Language ?? "en";
+            var language = Raphael.Desktop.Properties.Settings.Default.Language ?? "en";
             //language = "en"; 
             LocalizationService.Instance.LoadLanguage(language);
 

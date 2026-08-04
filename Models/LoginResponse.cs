@@ -1,4 +1,4 @@
-﻿namespace Meditrans.Client.Models
+﻿namespace Raphael.Desktop.Models
 {
     public enum UserRole
     {

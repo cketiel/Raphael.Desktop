@@ -1,5 +1,5 @@
-﻿using Meditrans.Client.DTOs;
-using Meditrans.Client.ViewModels;
+﻿using Raphael.Desktop.DTOs;
+using Raphael.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Schedules
+namespace Raphael.Desktop.Views.Schedules
 {
     /// <summary>
     /// Lógica de interacción para TripsView.xaml

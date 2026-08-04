@@ -1,10 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using System.Collections.ObjectModel;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class TripHistoryViewModel : ObservableObject
     {

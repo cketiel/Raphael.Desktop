@@ -1,12 +1,12 @@
-﻿using Meditrans.Client.Models;
-using Meditrans.Client.Commands;
+﻿using Raphael.Desktop.Models;
+using Raphael.Desktop.Commands;
 using System.Windows.Input;
 using System.ComponentModel;
 using System;
 using System.Windows.Media;
 using System.Diagnostics; 
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class AddEditGroupViewModel : BaseViewModel, IDataErrorInfo
     {

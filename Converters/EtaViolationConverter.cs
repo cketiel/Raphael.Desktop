@@ -1,9 +1,9 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     public class EtaViolationConverter : IMultiValueConverter
     {

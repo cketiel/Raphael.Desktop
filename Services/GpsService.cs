@@ -1,4 +1,4 @@
-﻿using Meditrans.Client.DTOs;
+﻿using Raphael.Desktop.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class GpsService
     {

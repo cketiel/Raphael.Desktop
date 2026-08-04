@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public interface ISpaceTypeService
     {

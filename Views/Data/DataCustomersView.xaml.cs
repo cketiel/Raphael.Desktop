@@ -12,9 +12,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Data
+namespace Raphael.Desktop.Views.Data
 {
     /// <summary>
     /// Lógica de interacción para DataCustomersView.xaml

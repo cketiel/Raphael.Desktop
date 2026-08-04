@@ -6,19 +6,19 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 
 using System.Text.Json;
-using Meditrans.Client.Models.Csv;
-using Meditrans.Client.Helpers;
+using Raphael.Desktop.Models.Csv;
+using Raphael.Desktop.Helpers;
 using System.Collections.ObjectModel;
 using System.Windows;
-using Meditrans.Client.Exceptions;
+using Raphael.Desktop.Exceptions;
 using System.Diagnostics;
-using Meditrans.Client.DTOs;
+using Raphael.Desktop.DTOs;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     /*public static class MobilityType
     {

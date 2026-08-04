@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.DTOs
+namespace Raphael.Desktop.DTOs
 {
     // Una clase simple para deserializar los errores estándar de la API (ProblemDetails)
     public class ProblemDetails

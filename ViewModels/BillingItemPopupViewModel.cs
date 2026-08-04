@@ -1,12 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class BillingItemPopupViewModel : ObservableObject
     {

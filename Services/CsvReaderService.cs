@@ -1,13 +1,13 @@
 ﻿
 using System.Globalization;
 using System.IO;
-using Meditrans.Client.Models.Csv;
+using Raphael.Desktop.Models.Csv;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Newtonsoft.Json;
 
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public enum CsvType
     {

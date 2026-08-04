@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 
 
-namespace Meditrans.Client.Validations
+namespace Raphael.Desktop.Validations
 {
     public class NotEmptyValidationRule : ValidationRule
     {

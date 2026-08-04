@@ -11,12 +11,12 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using MaterialDesignThemes.Wpf;
-using Meditrans.Client.Helpers;
-using Meditrans.Client.Services;
-using Meditrans.Client.ViewModels;
-using Meditrans.Client.Views;
+using Raphael.Desktop.Helpers;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.ViewModels;
+using Raphael.Desktop.Views;
 
-namespace Meditrans.Client
+namespace Raphael.Desktop
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

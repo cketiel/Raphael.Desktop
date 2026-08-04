@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Models.Csv
+namespace Raphael.Desktop.Models.Csv
 {
     // Relationship, interaction between classes:
     // CsvTripRawModel: Contains all the raw data from the CSV as strongly typed properties.

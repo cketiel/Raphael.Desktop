@@ -1,11 +1,11 @@
-﻿using Meditrans.Client.DTOs;
+﻿using Raphael.Desktop.DTOs;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
 
-namespace Meditrans.Client.Models.Pdf
+namespace Raphael.Desktop.Models.Pdf
 {
     public class ProductionDocument : IDocument
     {

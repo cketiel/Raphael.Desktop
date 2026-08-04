@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Helpers;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Dispatch;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Helpers;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Dispatch;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -24,7 +24,7 @@ using System.Xml.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class HomeViewModel : ObservableObject // BaseViewModel
     {
@@ -963,7 +963,7 @@ namespace Meditrans.Client.ViewModels
         #region Class Methods
         private async void InitializeData()
         {
-            TripType = Meditrans.Client.Models.TripType.Appointment;
+            TripType = Raphael.Desktop.Models.TripType.Appointment;
         }
         private void LoadData()
         {

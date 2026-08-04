@@ -1,14 +1,14 @@
-﻿// Meditrans.Client/ViewModels/FundingSourcePopupViewModel.cs
+﻿// Raphael.Desktop/ViewModels/FundingSourcePopupViewModel.cs
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class FundingSourcePopupViewModel : ObservableObject
     {

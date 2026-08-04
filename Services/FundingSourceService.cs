@@ -1,7 +1,7 @@
 ﻿
 
-using Meditrans.Client.DTOs; 
-using Meditrans.Client.Models;
+using Raphael.Desktop.DTOs; 
+using Raphael.Desktop.Models;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using ClosedXML.Excel; 
 using System.IO;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class FundingSourceService : IFundingSourceService
     {

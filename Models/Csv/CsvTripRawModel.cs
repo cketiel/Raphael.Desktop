@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MaterialDesignColors;
 
-namespace Meditrans.Client.Models.Csv
+namespace Raphael.Desktop.Models.Csv
 {
     public class CsvTripRawModel
     {

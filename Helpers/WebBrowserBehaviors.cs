@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace Meditrans.Client.Helpers
+namespace Raphael.Desktop.Helpers
 {
     public static class WebBrowserBehaviors
     {

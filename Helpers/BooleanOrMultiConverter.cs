@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Helpers
+namespace Raphael.Desktop.Helpers
 {
     public class BooleanOrMultiConverter : IMultiValueConverter
     {

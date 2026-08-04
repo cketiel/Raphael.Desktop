@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     // Custom converter to hide the placeholder when the report is ready
     public class AviataInverseVisibilityConverter : IValueConverter

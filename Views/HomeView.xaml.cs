@@ -13,24 +13,24 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Meditrans.Client.ViewModels;
-using Meditrans.Client.Models;
+using Raphael.Desktop.ViewModels;
+using Raphael.Desktop.Models;
 using System.Collections.ObjectModel;
 using Microsoft.Web.WebView2.Core;
 using System.Text.Json;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Services;
 using System.Configuration;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Globalization;
-using Meditrans.Client.Helpers;
+using Raphael.Desktop.Helpers;
 using System.Windows.Media.Animation;
 using MaterialDesignColors;
 using System.Windows.Media.Media3D;
-using Meditrans.Client.Exceptions;
+using Raphael.Desktop.Exceptions;
 using CsvHelper.Configuration;
 using CsvHelper;
-using Meditrans.Client.Models.Csv;
+using Raphael.Desktop.Models.Csv;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -40,10 +40,10 @@ using System.Collections.Generic;
 
 using System.Linq;
 using System.Diagnostics;
-using Meditrans.Client.DTOs;
+using Raphael.Desktop.DTOs;
 using static MaterialDesignThemes.Wpf.Theme;
 
-namespace Meditrans.Client.Views
+namespace Raphael.Desktop.Views
 {
     /// <summary>
     /// Lógica de interacción para HomeView.xaml

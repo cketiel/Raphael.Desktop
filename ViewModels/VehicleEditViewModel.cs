@@ -1,13 +1,13 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Meditrans.Client.Helpers;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Helpers;
+using Raphael.Desktop.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Services;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class VehicleEditViewModel : BaseViewModel
     {

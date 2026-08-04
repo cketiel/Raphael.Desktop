@@ -1,7 +1,7 @@
 ﻿
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Models
+namespace Raphael.Desktop.Models
 {
     public class LanguageOption : BaseViewModel
     {

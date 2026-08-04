@@ -1,12 +1,12 @@
 ﻿using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Meditrans.Client.DTOs;
+using Raphael.Desktop.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Meditrans.Client.Models.Pdf
+namespace Raphael.Desktop.Models.Pdf
 {
     public class AviataDocument : IDocument
     {

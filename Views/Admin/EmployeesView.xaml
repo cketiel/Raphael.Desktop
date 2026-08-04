@@ -1,10 +1,10 @@
-﻿<UserControl x:Class="Meditrans.Client.Views.Admin.EmployeesView"
+﻿<UserControl x:Class="Raphael.Desktop.Views.Admin.EmployeesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Meditrans.Client.Views.Admin"
-             xmlns:views="clr-namespace:Meditrans.Client.Views.Admin.Employees"
+             xmlns:local="clr-namespace:Raphael.Desktop.Views.Admin"
+             xmlns:views="clr-namespace:Raphael.Desktop.Views.Admin.Employees"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Border BorderThickness="1,1,1,1"

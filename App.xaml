@@ -1,8 +1,8 @@
-﻿<Application x:Class="Meditrans.Client.App"
+﻿<Application x:Class="Raphael.Desktop.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:local="clr-namespace:Meditrans.Client"
+             xmlns:local="clr-namespace:Raphael.Desktop"
              Startup="Application_Startup">
     <Application.Resources>
         <ResourceDictionary>

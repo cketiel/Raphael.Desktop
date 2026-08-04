@@ -1,10 +1,10 @@
-﻿using Meditrans.Client.Models;
-using Meditrans.Client.Commands;
+﻿using Raphael.Desktop.Models;
+using Raphael.Desktop.Commands;
 using System.Windows;
 using System.Windows.Input;
 using System;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class ProviderEditViewModel : BaseViewModel
     {

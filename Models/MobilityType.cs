@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Models
+namespace Raphael.Desktop.Models
 {
     public class MobilityType
     {

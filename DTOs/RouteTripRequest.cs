@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.DTOs
+namespace Raphael.Desktop.DTOs
 {
     // For routing request
     public class RouteTripRequest

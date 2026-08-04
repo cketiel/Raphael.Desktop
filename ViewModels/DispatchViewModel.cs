@@ -1,23 +1,23 @@
 ﻿using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Spreadsheet;
 using MaterialDesignThemes.Wpf;
-using Meditrans.Client.Commands;
-using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Dispatch;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Dispatch;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using Meditrans.Client.Views.Schedules;
+using Raphael.Desktop.Views.Schedules;
 
 using GMap.NET;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
 
     public partial class DispatchViewModel : ObservableObject

@@ -1,7 +1,7 @@
 ﻿
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace Meditrans.Client.Models
+namespace Raphael.Desktop.Models
 {
     public partial class ColumnConfig : ObservableObject
     {

@@ -1,10 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Models;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public partial class ScheduleColumnSelectorViewModel : ObservableObject
     {

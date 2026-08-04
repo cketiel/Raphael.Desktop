@@ -1,10 +1,10 @@
-﻿using Meditrans.Client.ViewModels;
+﻿using Raphael.Desktop.ViewModels;
 using System.Windows;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Controls; 
 
-namespace Meditrans.Client.Views.Data.Scheduling.Vehicles
+namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
 {
     public partial class AddEditGroupWindow : Window
     {

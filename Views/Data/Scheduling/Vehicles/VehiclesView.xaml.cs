@@ -1,9 +1,9 @@
 ﻿
 using System.Windows.Controls;
 
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Data.Scheduling.Vehicles
+namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
 {
     /// <summary>
     /// Lógica de interacción para VehiclesView.xaml

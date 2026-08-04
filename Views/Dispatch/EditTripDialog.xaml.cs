@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Dispatch
+namespace Raphael.Desktop.Views.Dispatch
 {
     /// <summary>
     /// Lógica de interacción para EditTripDialog.xaml

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     [ValueConversion(typeof(bool), typeof(Brush))]
     public class BooleanToColorConverter : IValueConverter

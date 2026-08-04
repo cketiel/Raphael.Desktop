@@ -3,12 +3,12 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Views.Admin;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Views.Admin;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class ProvidersViewModel : BaseViewModel
     {

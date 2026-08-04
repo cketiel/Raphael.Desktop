@@ -1,7 +1,7 @@
 ﻿
 using DocumentFormat.OpenXml.Vml.Spreadsheet;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Models;
 using System;
 using System.Net;
 using System.Net.Http;
@@ -9,7 +9,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class AuthService : IDisposable
     {
@@ -168,10 +168,10 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class AuthService
     {

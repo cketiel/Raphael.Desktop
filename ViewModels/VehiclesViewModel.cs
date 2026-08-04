@@ -5,16 +5,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Helpers;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Helpers;
 using Microsoft.Win32;
 using ClosedXML.Excel;
 using System.IO;
-using Meditrans.Client.Views.Data.Scheduling.Vehicles;
-using Meditrans.Client.Commands;
+using Raphael.Desktop.Views.Data.Scheduling.Vehicles;
+using Raphael.Desktop.Commands;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class VehiclesViewModel : BaseViewModel
     {

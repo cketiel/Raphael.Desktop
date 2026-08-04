@@ -6,7 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     /// <summary>
     /// Convert geographic coordinates (Latitude/Longitude) to an on-screen position (X or Y)

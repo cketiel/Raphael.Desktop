@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Reflection.Metadata;
 using System.Windows.Data;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     public class DirectionToAngleConverter : IValueConverter
     {

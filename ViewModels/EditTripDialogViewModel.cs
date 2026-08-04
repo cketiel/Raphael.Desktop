@@ -1,8 +1,8 @@
-﻿using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
+﻿using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
 using System;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class EditTripDialogViewModel : BaseViewModel
     {     

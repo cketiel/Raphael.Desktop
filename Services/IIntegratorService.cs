@@ -1,11 +1,11 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public interface IIntegratorService
     {

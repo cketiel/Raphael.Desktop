@@ -1,10 +1,10 @@
-﻿using Meditrans.Client.Models;
+﻿using Raphael.Desktop.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class UserConfigService
     {

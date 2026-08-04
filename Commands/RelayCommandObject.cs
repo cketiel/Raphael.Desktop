@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace Meditrans.Client.Commands
+namespace Raphael.Desktop.Commands
 {
     public class RelayCommandObject: ICommand
     {

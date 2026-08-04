@@ -11,10 +11,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Meditrans.Client.Models;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Admin.Employees
+namespace Raphael.Desktop.Views.Admin.Employees
 {
     /// <summary>
     /// Lógica de interacción para AddEditRoleView.xaml

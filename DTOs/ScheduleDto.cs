@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using DocumentFormat.OpenXml.Wordprocessing;
-using Meditrans.Client.Models; 
+using Raphael.Desktop.Models; 
 using System;
 
-namespace Meditrans.Client.DTOs
+namespace Raphael.Desktop.DTOs
 {
     public partial class ScheduleDto : ObservableObject
     {

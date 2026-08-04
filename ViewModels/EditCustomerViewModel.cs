@@ -1,6 +1,6 @@
-﻿using Meditrans.Client.Commands; 
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
+﻿using Raphael.Desktop.Commands; 
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq; 
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input; 
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {    
     public class EditCustomerViewModel : BaseViewModel
     {

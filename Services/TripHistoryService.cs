@@ -1,5 +1,5 @@
-﻿using Meditrans.Client.DTOs;
-using Meditrans.Client.Helpers;
+﻿using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public class TripHistoryService
     {

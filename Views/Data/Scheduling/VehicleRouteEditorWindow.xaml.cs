@@ -13,9 +13,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Data.Scheduling
+namespace Raphael.Desktop.Views.Data.Scheduling
 {
     /// <summary>
     /// Lógica de interacción para VehicleRouteEditorWindow.xaml

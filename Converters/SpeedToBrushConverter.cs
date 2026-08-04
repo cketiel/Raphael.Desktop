@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     // We inherit from Freezable so we can instantiate it and configure it in the XAML resources.
     public class SpeedToBrushConverter : Freezable, IValueConverter

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Models.Csv
+namespace Raphael.Desktop.Models.Csv
 {
     public static class MappingTemplateLoader
     {

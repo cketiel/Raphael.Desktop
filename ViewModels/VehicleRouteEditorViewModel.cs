@@ -1,9 +1,9 @@
 ﻿using DocumentFormat.OpenXml.Drawing.ChartDrawing;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Exceptions;
-using Meditrans.Client.Mappers;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Exceptions;
+using Raphael.Desktop.Mappers;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,7 +13,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class VehicleRouteEditorViewModel : BaseViewModel
     {

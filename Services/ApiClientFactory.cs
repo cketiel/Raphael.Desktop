@@ -5,11 +5,11 @@ using System.Net.Http.Headers;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Meditrans.Client.Helpers;
-using Meditrans.Client.Views;
+using Raphael.Desktop.Helpers;
+using Raphael.Desktop.Views;
 using System.Windows;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public static class ApiClientFactory
     {

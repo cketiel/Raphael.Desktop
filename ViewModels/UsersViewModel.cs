@@ -1,14 +1,14 @@
-﻿using Meditrans.Client.Commands;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
-using Meditrans.Client.Views.Admin.Employees; 
+﻿using Raphael.Desktop.Commands;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Views.Admin.Employees; 
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class UsersViewModel : BaseViewModel
     {

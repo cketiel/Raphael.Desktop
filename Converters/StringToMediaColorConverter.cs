@@ -1,10 +1,10 @@
-﻿// Meditrans.Client/Converters/StringToMediaColorConverter.cs
+﻿// Raphael.Desktop/Converters/StringToMediaColorConverter.cs
 using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace Meditrans.Client.Converters
+namespace Raphael.Desktop.Converters
 {
     public class StringToMediaColorConverter : IValueConverter
     {

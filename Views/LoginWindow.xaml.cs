@@ -1,11 +1,11 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Services;
 using System.Threading.Tasks;
-using Meditrans.Client.Helpers;
-using Meditrans.Client.Models;
+using Raphael.Desktop.Helpers;
+using Raphael.Desktop.Models;
 
-namespace Meditrans.Client.Views
+namespace Raphael.Desktop.Views
 {
     public partial class LoginWindow : Window
     {

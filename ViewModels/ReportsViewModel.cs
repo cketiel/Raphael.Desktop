@@ -1,8 +1,8 @@
 ﻿using ClosedXML.Excel;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Models;
-using Meditrans.Client.Models.Pdf;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Models.Pdf;
+using Raphael.Desktop.Services;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using System.ComponentModel;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class ReportsViewModel : BaseViewModel
     {

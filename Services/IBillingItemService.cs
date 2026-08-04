@@ -1,9 +1,9 @@
-﻿using Meditrans.Client.DTOs;
-using Meditrans.Client.Models;
+﻿using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Services
+namespace Raphael.Desktop.Services
 {
     public interface IBillingItemService
     {

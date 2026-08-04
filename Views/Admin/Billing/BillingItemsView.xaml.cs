@@ -1,9 +1,9 @@
 ﻿using System.Windows.Controls;
 
-using Meditrans.Client.Services;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Admin.Billing
+namespace Raphael.Desktop.Views.Admin.Billing
 {
     /// <summary>
     /// Lógica de interacción para BillingItemsView.xaml

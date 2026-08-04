@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Schedules
+namespace Raphael.Desktop.Views.Schedules
 {
     /// <summary>
     /// Lógica de interacción para GraphsView.xaml

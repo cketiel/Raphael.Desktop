@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Meditrans.Client.Models.Zonitel
+namespace Raphael.Desktop.Models.Zonitel
 {
     public class SmsRequest
     {

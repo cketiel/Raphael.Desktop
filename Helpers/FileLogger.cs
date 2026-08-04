@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Meditrans.Client.Helpers
+namespace Raphael.Desktop.Helpers
 {
     public static class FileLogger
     {

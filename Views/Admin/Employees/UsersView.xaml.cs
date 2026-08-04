@@ -2,7 +2,7 @@
 using System.Windows.Controls;
 
 
-namespace Meditrans.Client.Views.Admin.Employees
+namespace Raphael.Desktop.Views.Admin.Employees
 {
     /// <summary>
     /// Lógica de interacción para UsersView.xaml

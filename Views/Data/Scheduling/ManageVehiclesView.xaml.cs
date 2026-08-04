@@ -11,10 +11,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.ViewModels;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Data.Scheduling
+namespace Raphael.Desktop.Views.Data.Scheduling
 {
     /// <summary>
     /// Lógica de interacción para ManageVehiclesView.xaml

@@ -12,10 +12,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Meditrans.Client.Models;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Schedules
+namespace Raphael.Desktop.Views.Schedules
 {
     /// <summary>
     /// Lógica de interacción para ColumnSelectorView.xaml

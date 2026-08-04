@@ -12,10 +12,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Meditrans.Client.Services;
-using Meditrans.Client.ViewModels;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.ViewModels;
 
-namespace Meditrans.Client.Views.Data.Scheduling
+namespace Raphael.Desktop.Views.Data.Scheduling
 {
     /// <summary>
     /// Lógica de interacción para RunsView.xaml

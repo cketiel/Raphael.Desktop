@@ -3,19 +3,19 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Windows.Input;
-using Meditrans.Client.Models;
-using Meditrans.Client.Services;
+using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using System.Threading.Tasks;
-using Meditrans.Client.Commands;
-using Meditrans.Client.Helpers;
+using Raphael.Desktop.Commands;
+using Raphael.Desktop.Helpers;
 using System.Windows;
-using Meditrans.Client.Views.Data;
+using Raphael.Desktop.Views.Data;
 using ClosedXML.Excel;
 using Microsoft.Win32;
 using System;
-using Meditrans.Client.Exceptions;
+using Raphael.Desktop.Exceptions;
 
-namespace Meditrans.Client.ViewModels
+namespace Raphael.Desktop.ViewModels
 {
     public class CustomersViewModel : BaseViewModel
     {

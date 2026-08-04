@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Meditrans.Client.Views.Data.Scheduling.Vehicles
+namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
 {
     /// <summary>
     /// Lógica de interacción para SpeedsView.xaml
