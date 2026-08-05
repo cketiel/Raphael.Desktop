@@ -17,6 +17,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Logo -->
@@ -58,6 +59,7 @@
                      TextChanged="Credentials_TextChanged" />
 
             <ToggleButton x:Name="TogglePasswordVisibility"
+                          ToolTip="Show password"
                           Grid.Column="1"
                           Margin="5,0,0,0"
                           VerticalAlignment="Center"
@@ -66,7 +68,7 @@
                           Style="{StaticResource MaterialDesignIconButton}"
                           Checked="TogglePasswordVisibility_Checked"
                           Unchecked="TogglePasswordVisibility_Unchecked">
-                <materialDesign:PackIcon Kind="Eye" />
+                <materialDesign:PackIcon x:Name="PasswordVisibilityIcon" Kind="Eye" />
             </ToggleButton>
         </Grid>
 
@@ -97,5 +99,23 @@
                 Width="100"
                 Click="LoginButton_Click"
                 Style="{StaticResource MaterialDesignRaisedButton}" />
+
+        <!-- Application Version -->
+        <TextBlock
+            x:Name="VersionTextBlock"
+            Grid.Row="6"
+            Margin="0,20,0,0"
+            HorizontalAlignment="Center"
+            TextAlignment="Center"
+            FontSize="11"
+            Foreground="Gray">
+
+            <Run Text="Version "/>
+            <Run x:Name="VersionRun"/>
+            <LineBreak/>
+            <Run x:Name="BuildRun"/>
+            <LineBreak/>
+            <Run Text="© Raphael Ecosystem"/>   
+        </TextBlock>
     </Grid>
 </Window>

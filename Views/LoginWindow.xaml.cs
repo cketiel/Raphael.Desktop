@@ -1,18 +1,25 @@
-﻿using System.Windows;
-using System.Windows.Controls;
-using Raphael.Desktop.Services;
-using System.Threading.Tasks;
+﻿using MaterialDesignThemes.Wpf;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace Raphael.Desktop.Views
 {
     public partial class LoginWindow : Window
     {
+        private string version;
         public LoginWindow()
         {
             InitializeComponent();
-            UpdateLoginButtonState();
+
+            Title = VersionHelper.WindowTitle;
+            VersionRun.Text = VersionHelper.Version;
+            BuildRun.Text = VersionHelper.Build;
+
+            UpdateLoginButtonState();           
         }
 
         private void UpdateLoginButtonState()
@@ -41,6 +48,8 @@ namespace Raphael.Desktop.Views
             PasswordVisibleBox.Text = PasswordBox.Password;
             PasswordBox.Visibility = Visibility.Collapsed;
             PasswordVisibleBox.Visibility = Visibility.Visible;
+            PasswordVisibilityIcon.Kind = PackIconKind.EyeOff;
+            TogglePasswordVisibility.ToolTip = "Hide password";
         }
 
         private void TogglePasswordVisibility_Unchecked(object sender, RoutedEventArgs e)
@@ -48,6 +57,8 @@ namespace Raphael.Desktop.Views
             PasswordBox.Password = PasswordVisibleBox.Text;
             PasswordVisibleBox.Visibility = Visibility.Collapsed;
             PasswordBox.Visibility = Visibility.Visible;
+            PasswordVisibilityIcon.Kind = PackIconKind.Eye;
+            TogglePasswordVisibility.ToolTip = "Show password";
         }
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)

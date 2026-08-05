@@ -22,12 +22,13 @@ namespace Raphael.Desktop
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {
+    {       
         private readonly DispatcherTimer themeTimer;
         private int tabCounter = 1;
         public MainWindow()
         {
             InitializeComponent();
+            Title = VersionHelper.WindowTitle;
             this.DataContext = new MainWindowViewModel();
 
             OpenHomeView(null, null); // Load HomeView by default
