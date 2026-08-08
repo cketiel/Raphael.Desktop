@@ -22,17 +22,52 @@ namespace Raphael.Desktop
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {       
+    {
         private readonly DispatcherTimer themeTimer;
         private int tabCounter = 1;
+
+        private readonly NotificationApiClient _notificationApiClient;
+        private readonly NotificationSignalRService _notificationSignalRService;
+
+        private readonly MainWindowViewModel _viewModel;
+
+        private DispatcherTimer? _notificationToastTimer;
+
         public MainWindow()
         {
             InitializeComponent();
+
             Title = VersionHelper.WindowTitle;
-            this.DataContext = new MainWindowViewModel();
+
+            _viewModel = new MainWindowViewModel();
+            DataContext = _viewModel;
+
+            _notificationApiClient = new NotificationApiClient();
+            _notificationSignalRService = new NotificationSignalRService();
+
+            _notificationSignalRService.NotificationReceived +=
+                NotificationSignalRService_NotificationReceived;
+
+            _notificationSignalRService.NotificationsRefreshRequested +=
+                NotificationSignalRService_NotificationsRefreshRequested;
+
+            _notificationSignalRService.NotificationViewed +=
+                NotificationSignalRService_NotificationViewed;
+
+            _notificationSignalRService.NotificationAcknowledged +=
+                NotificationSignalRService_NotificationAcknowledged;
+
+            _notificationSignalRService.ConnectionError +=
+                NotificationSignalRService_ConnectionError;
+
+            _viewModel.InitializeNotifications(
+                _notificationApiClient,
+                _notificationSignalRService,
+                ShowNotificationToastAsync);
 
             OpenHomeView(null, null); // Load HomeView by default
             this.Loaded += MainWindow_Loaded;
+            this.Closed += MainWindow_Closed;
 
             /*UpdateTheme();
 
@@ -44,7 +79,9 @@ namespace Raphael.Desktop
             themeTimer.Start();*/
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private async void MainWindow_Loaded(
+            object sender,
+            RoutedEventArgs e)
         {
             // Set to full screen
             this.WindowState = WindowState.Maximized;
@@ -52,9 +89,156 @@ namespace Raphael.Desktop
             //this.Topmost = true; // To keep the window always in front
 
             UserNameTextBlock.Text = SessionManager.Username;
+
+            await _viewModel.StartNotificationsAsync();
         }
 
-        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private async void MainWindow_Closed(
+            object? sender,
+            EventArgs e)
+        {
+            try
+            {
+                await _notificationSignalRService.StopAsync();
+                await _notificationSignalRService.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore errors while closing the application.
+            }
+        }
+
+        private async void NotificationSignalRService_NotificationReceived(
+            object? sender,
+            Models.NotificationDto notification)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                await Dispatcher.InvokeAsync(
+                    () => NotificationSignalRService_NotificationReceived(
+                        sender,
+                        notification));
+
+                return;
+            }
+
+            await _viewModel.HandleNotificationReceivedAsync(
+                notification);
+        }
+
+        private async void NotificationSignalRService_NotificationsRefreshRequested(
+            object? sender,
+            EventArgs e)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                await Dispatcher.InvokeAsync(
+                    () => NotificationSignalRService_NotificationsRefreshRequested(
+                        sender,
+                        e));
+
+                return;
+            }
+
+            await _viewModel.RefreshNotificationsAsync();
+        }
+
+        private void NotificationSignalRService_NotificationViewed(
+            object? sender,
+            Guid notificationRecipientId)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(
+                    () => NotificationSignalRService_NotificationViewed(
+                        sender,
+                        notificationRecipientId));
+
+                return;
+            }
+
+            _viewModel.HandleNotificationViewed(
+                notificationRecipientId);
+        }
+
+        private void NotificationSignalRService_NotificationAcknowledged(
+            object? sender,
+            Guid notificationRecipientId)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(
+                    () => NotificationSignalRService_NotificationAcknowledged(
+                        sender,
+                        notificationRecipientId));
+
+                return;
+            }
+
+            _viewModel.HandleNotificationAcknowledged(
+                notificationRecipientId);
+        }
+
+        private void NotificationSignalRService_ConnectionError(
+            object? sender,
+            Exception exception)
+        {
+            // Do not display connection errors to the user.
+            // Automatic reconnect is handled by SignalR.
+        }
+
+        private async Task ShowNotificationToastAsync(
+            Models.NotificationDto notification)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                await Dispatcher.InvokeAsync(
+                    () => ShowNotificationToastAsync(notification));
+
+                return;
+            }
+
+            NotificationToastTitle.Text =
+                notification.Title;
+
+            NotificationToastMessage.Text =
+                notification.Message;
+
+            NotificationToast.Visibility =
+                Visibility.Visible;
+
+            _notificationToastTimer?.Stop();
+
+            _notificationToastTimer =
+                new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(7)
+                };
+
+            _notificationToastTimer.Tick +=
+                (sender, args) =>
+                {
+                    _notificationToastTimer?.Stop();
+                    NotificationToast.Visibility =
+                        Visibility.Collapsed;
+                };
+
+            _notificationToastTimer.Start();
+        }
+
+        private void CloseNotificationToast(
+            object sender,
+            RoutedEventArgs e)
+        {
+            _notificationToastTimer?.Stop();
+
+            NotificationToast.Visibility =
+                Visibility.Collapsed;
+        }
+
+        private void Window_KeyDown(
+            object sender,
+            System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == System.Windows.Input.Key.F11)  // Use F11 to toggle mode
             {
@@ -75,23 +259,23 @@ namespace Raphael.Desktop
         {
             //MainContent.Content = new HomeView();
             OpenTab(LocalizationService.Instance["Home"], new HomeView(), PackIconKind.HomeOutline);
-            
+
             //SetActiveMenu(btnHome);
             CloseAllTabsOfType("Admin");
-
-
         }
 
         private void OpenAdminView(object sender, RoutedEventArgs e)
         {
-            //MainContent.Content = new AdminView(); 
+            //MainContent.Content = new AdminView();
             OpenTab("Admin", new AdminView(), PackIconKind.AccountBoxOutline);
-            
-            //SetActiveMenu(btnAdmin);
 
+            //SetActiveMenu(btnAdmin);
         }
 
-        private void OpenTab(string title, UserControl content, PackIconKind iconKind)
+        private void OpenTab(
+            string title,
+            UserControl content,
+            PackIconKind iconKind)
         {
             var tabItem = new TabItem
             {
@@ -99,13 +283,22 @@ namespace Raphael.Desktop
             };
 
             // --- ANIMACIÓN de aparición del contenido ---
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
+            var fadeIn = new DoubleAnimation(
+                0,
+                1,
+                TimeSpan.FromMilliseconds(300));
+
             var contentGrid = new Grid();
             contentGrid.Children.Add(content);
-            contentGrid.BeginAnimation(OpacityProperty, fadeIn);
+            contentGrid.BeginAnimation(
+                OpacityProperty,
+                fadeIn);
 
             // --- HEADER con icono y botón cerrar ---
-            var dockPanel = new DockPanel { LastChildFill = false };
+            var dockPanel = new DockPanel
+            {
+                LastChildFill = false
+            };
 
             var icon = new PackIcon
             {
@@ -127,6 +320,7 @@ namespace Raphael.Desktop
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
             };
+
             contentStack.Children.Add(icon);
             contentStack.Children.Add(text);
 
@@ -154,10 +348,14 @@ namespace Raphael.Desktop
                 Height = 22
             };
 
-            closeBtn.MouseEnter += (s, e) => closeIcon.Foreground = Brushes.Red;
-            closeBtn.MouseLeave += (s, e) => closeIcon.Foreground = Brushes.Gray;
+            closeBtn.MouseEnter +=
+                (s, e) => closeIcon.Foreground = Brushes.Red;
 
-            closeBtn.Click += (s, e) => CloseTabWithAnimation(tabItem);
+            closeBtn.MouseLeave +=
+                (s, e) => closeIcon.Foreground = Brushes.Gray;
+
+            closeBtn.Click +=
+                (s, e) => CloseTabWithAnimation(tabItem);
 
             DockPanel.SetDock(closeBtn, Dock.Right);
             dockPanel.Children.Add(closeBtn);
@@ -168,34 +366,68 @@ namespace Raphael.Desktop
             // --- CONTEXT MENU ---
             var contextMenu = new ContextMenu();
 
-            var closeThis = new MenuItem { Header = "Close this tab" };
-            closeThis.Click += (s, e) => CloseTabWithAnimation(tabItem);
-
-            var closeOthers = new MenuItem { Header = "Close all except this one" };
-            closeOthers.Click += (s, e) =>
+            var closeThis = new MenuItem
             {
-                var others = MainTabControl.Items.Cast<TabItem>().Where(t => t != tabItem).ToList();
-                foreach (var tab in others)
-                    CloseTabWithAnimation(tab);
+                Header = "Close this tab"
             };
 
-            var closeAll = new MenuItem { Header = "Close all" };
-            closeAll.Click += (s, e) =>
+            closeThis.Click +=
+                (s, e) => CloseTabWithAnimation(tabItem);
+
+            var closeOthers = new MenuItem
             {
-                var allTabs = MainTabControl.Items.Cast<TabItem>().ToList();
-                foreach (var tab in allTabs)
-                    CloseTabWithAnimation(tab);
+                Header = "Close all except this one"
             };
 
-            var closeSameType = new MenuItem { Header = $"Close all '{title}'" };
-            closeSameType.Click += (s, e) =>
-            {
-                var sameTabs = MainTabControl.Items.Cast<TabItem>()
-                    .Where(t => t.Tag?.ToString() == title && t != tabItem).ToList();
+            closeOthers.Click +=
+                (s, e) =>
+                {
+                    var others =
+                        MainTabControl.Items
+                            .Cast<TabItem>()
+                            .Where(t => t != tabItem)
+                            .ToList();
 
-                foreach (var tab in sameTabs)
-                    CloseTabWithAnimation(tab);
+                    foreach (var tab in others)
+                        CloseTabWithAnimation(tab);
+                };
+
+            var closeAll = new MenuItem
+            {
+                Header = "Close all"
             };
+
+            closeAll.Click +=
+                (s, e) =>
+                {
+                    var allTabs =
+                        MainTabControl.Items
+                            .Cast<TabItem>()
+                            .ToList();
+
+                    foreach (var tab in allTabs)
+                        CloseTabWithAnimation(tab);
+                };
+
+            var closeSameType = new MenuItem
+            {
+                Header = $"Close all '{title}'"
+            };
+
+            closeSameType.Click +=
+                (s, e) =>
+                {
+                    var sameTabs =
+                        MainTabControl.Items
+                            .Cast<TabItem>()
+                            .Where(t =>
+                                t.Tag?.ToString() == title &&
+                                t != tabItem)
+                            .ToList();
+
+                    foreach (var tab in sameTabs)
+                        CloseTabWithAnimation(tab);
+                };
 
             contextMenu.Items.Add(closeThis);
             contextMenu.Items.Add(closeOthers);
@@ -207,22 +439,32 @@ namespace Raphael.Desktop
 
             MainTabControl.Items.Add(tabItem);
             MainTabControl.SelectedItem = tabItem;
-            MainTabControl.HorizontalContentAlignment = HorizontalAlignment.Left;
+            MainTabControl.HorizontalContentAlignment =
+                HorizontalAlignment.Left;
+
             /*MainTabControl.TabStripPlacement = Dock.Bottom;
             var style = this.FindResource("MaterialDesignFilledTabControl") as Style;
             if (style != null)
             {
                 MainTabControl.Style = style;
             }*/
-
         }
+
         private void CloseTabWithAnimation(TabItem tabItem)
         {
             if (tabItem.Content is Grid grid)
             {
-                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(200));
-                fadeOut.Completed += (s, e) => MainTabControl.Items.Remove(tabItem);
-                grid.BeginAnimation(OpacityProperty, fadeOut);
+                var fadeOut = new DoubleAnimation(
+                    1,
+                    0,
+                    TimeSpan.FromMilliseconds(200));
+
+                fadeOut.Completed +=
+                    (s, e) => MainTabControl.Items.Remove(tabItem);
+
+                grid.BeginAnimation(
+                    OpacityProperty,
+                    fadeOut);
             }
             else
             {
@@ -231,12 +473,18 @@ namespace Raphael.Desktop
         }
 
 
-
-        private void OpenTab2(string title, UserControl content, PackIconKind iconKind)
+        private void OpenTab2(
+            string title,
+            UserControl content,
+            PackIconKind iconKind)
         {
             var tabItem = new TabItem();
 
-            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            var headerPanel =
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
 
             var icon = new PackIcon
             {
@@ -274,20 +522,26 @@ namespace Raphael.Desktop
                 Height = 24
             };
 
-            closeBtn.Click += (s, e) => MainTabControl.Items.Remove(tabItem);
+            closeBtn.Click +=
+                (s, e) => MainTabControl.Items.Remove(tabItem);
 
-            var headerStack = new StackPanel { Orientation = Orientation.Horizontal };
+            var headerStack =
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
+
             headerStack.Children.Add(icon);
             headerStack.Children.Add(text);
             headerStack.Children.Add(closeBtn);
 
             tabItem.Header = headerStack;
             tabItem.Content = content;
-           
 
             MainTabControl.Items.Add(tabItem);
             MainTabControl.SelectedItem = tabItem;
         }
+
         /*private void SetActiveMenu(Button activeButton)
         {
             if (activeButton == null) return;
@@ -304,8 +558,11 @@ namespace Raphael.Desktop
         {
             var tabsToRemove = MainTabControl.Items
                 .OfType<TabItem>()
-                .Where(tab => tab.Header is StackPanel stack &&
-                              stack.Children.OfType<TextBlock>().Any(t => t.Text == headerText))
+                .Where(tab =>
+                    tab.Header is StackPanel stack &&
+                    stack.Children
+                        .OfType<TextBlock>()
+                        .Any(t => t.Text == headerText))
                 .ToList();
 
             foreach (var tab in tabsToRemove)
@@ -314,10 +571,15 @@ namespace Raphael.Desktop
 
         private void UpdateTheme()
         {
-            ResourceDictionary themeResourceDictionary = GetThemeResourceDictionary();
-            Theme theme = themeResourceDictionary.GetTheme();
+            ResourceDictionary themeResourceDictionary =
+                GetThemeResourceDictionary();
 
-            BaseTheme currentTheme = theme.GetBaseTheme();
+            Theme theme =
+                themeResourceDictionary.GetTheme();
+
+            BaseTheme currentTheme =
+                theme.GetBaseTheme();
+
             /*BaseTheme newTheme = currentTheme switch
             {
                 BaseTheme.Light => BaseTheme.Dark,
@@ -328,7 +590,6 @@ namespace Raphael.Desktop
             theme.SetBaseTheme(BaseTheme.Light);
 
             themeResourceDictionary.SetTheme(theme);
-
 
 
             /*var paletteHelper = new PaletteHelper();
@@ -346,85 +607,143 @@ namespace Raphael.Desktop
             //We can't use PaletteHelper here because it will try to use Application.Current.Resource
             //Instead we need to give it the resource dictionary that contains the material design theme dictionaries.
             //In this case that is the theme dictionary inside of this Window's Resources.
-            return Resources.MergedDictionaries.Single(x => x is IMaterialDesignThemeDictionary);
+            return Resources.MergedDictionaries
+                .Single(x => x is IMaterialDesignThemeDictionary);
         }
 
-        private void Logout() {
+        private void Logout()
+        {
             SessionManager.Clear();
+
             var loginWindow = new LoginWindow();
             loginWindow.Show();
-            this.Close();
 
+            this.Close();
         }
 
         // If you click twice on the same tab, this event is not fired.
         // This peculiarity does not allow you to open 2 tabs of the same type if you click twice in a row on the same tab.
         // The solution is to use the event instead: PreviewMouseLeftButtonUp
-        private void MenuTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void MenuTabControl_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
         {
-            if (MenuTabControl.SelectedItem is TabItem selectedTab && selectedTab.Tag is MENU menu)
+            if (MenuTabControl.SelectedItem is TabItem selectedTab &&
+                selectedTab.Tag is MENU menu)
             {
                 switch (menu)
                 {
                     case MENU.Home:
-                        OpenTab("Home", new HomeView(), PackIconKind.HomeOutline);
+                        OpenTab(
+                            "Home",
+                            new HomeView(),
+                            PackIconKind.HomeOutline);
                         break;
+
                     case MENU.Admin:
-                        OpenTab("Admin", new AdminView(), PackIconKind.AccountBoxOutline);
+                        OpenTab(
+                            "Admin",
+                            new AdminView(),
+                            PackIconKind.AccountBoxOutline);
                         break;
                 }
-
             }
         }
 
-        private void MenuTabControl_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void MenuTabControl_PreviewMouseLeftButtonUp(
+            object sender,
+            MouseButtonEventArgs e)
         {
-            var clickedElement = e.OriginalSource as DependencyObject;
-            var tabItem = FindParent<TabItem>(clickedElement);
+            var clickedElement =
+                e.OriginalSource as DependencyObject;
 
-            if (tabItem != null && tabItem.Tag is MENU selectedMenu)
+            var tabItem =
+                FindParent<TabItem>(clickedElement);
+
+            if (tabItem != null &&
+                tabItem.Tag is MENU selectedMenu)
             {
                 // Validate if the user has permission before opening the tab
                 string role = SessionManager.Role;
 
-                if (selectedMenu == MENU.Admin && role != "1") return;
-                if ((selectedMenu == MENU.Data || selectedMenu == MENU.Schedules ||
-                     selectedMenu == MENU.Dispatch || selectedMenu == MENU.Reports)
-                     && (role != "1" && role != "3")) return;
+                if (selectedMenu == MENU.Admin &&
+                    role != "1")
+                    return;
+
+                if ((selectedMenu == MENU.Data ||
+                     selectedMenu == MENU.Schedules ||
+                     selectedMenu == MENU.Dispatch ||
+                     selectedMenu == MENU.Reports)
+                     &&
+                     (role != "1" && role != "3"))
+                    return;
 
                 switch (selectedMenu)
                 {
                     case MENU.Home:
-                        OpenTab(LocalizationService.Instance["Home"], new HomeView(), PackIconKind.HomeOutline);
+                        OpenTab(
+                            LocalizationService.Instance["Home"],
+                            new HomeView(),
+                            PackIconKind.HomeOutline);
                         break;
+
                     case MENU.Data:
-                        OpenTab(LocalizationService.Instance["Data"], new DataView(), PackIconKind.Database);
+                        OpenTab(
+                            LocalizationService.Instance["Data"],
+                            new DataView(),
+                            PackIconKind.Database);
                         break;
+
                     case MENU.Schedules:
-                        OpenTab(LocalizationService.Instance["Schedules"], new SchedulesView(), PackIconKind.TableClock);
+                        OpenTab(
+                            LocalizationService.Instance["Schedules"],
+                            new SchedulesView(),
+                            PackIconKind.TableClock);
                         break;
+
                     case MENU.Dispatch:
-                        OpenTab(LocalizationService.Instance["Dispatch"], new DispatchView(), PackIconKind.WrenchClock);
+                        OpenTab(
+                            LocalizationService.Instance["Dispatch"],
+                            new DispatchView(),
+                            PackIconKind.WrenchClock);
                         break;
+
                     case MENU.Reports:
-                        OpenTab(LocalizationService.Instance["Reports"], new ReportsView(), PackIconKind.FileChart);
+                        OpenTab(
+                            LocalizationService.Instance["Reports"],
+                            new ReportsView(),
+                            PackIconKind.FileChart);
                         break;
+
                     case MENU.Admin:
-                        OpenTab(LocalizationService.Instance["Admin"], new AdminView(), PackIconKind.Security);
+                        OpenTab(
+                            LocalizationService.Instance["Admin"],
+                            new AdminView(),
+                            PackIconKind.Security);
                         break;
                 }
             }
         }
 
         // Utilidad para encontrar el padre del tipo especificado
-        private T FindParent<T>(DependencyObject child) where T : DependencyObject
+        private T FindParent<T>(
+            DependencyObject child)
+            where T : DependencyObject
         {
-            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
-            if (parentObject == null) return null;
-            if (parentObject is T parent) return parent;
+            if (child == null)
+                return null;
+
+            DependencyObject parentObject =
+                VisualTreeHelper.GetParent(child);
+
+            if (parentObject == null)
+                return null;
+
+            if (parentObject is T parent)
+                return parent;
+
             return FindParent<T>(parentObject);
         }
-
     }
 
     public enum MENU
@@ -436,5 +755,4 @@ namespace Raphael.Desktop
         Reports,
         Admin
     }
-
 }

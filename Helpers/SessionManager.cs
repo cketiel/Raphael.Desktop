@@ -20,6 +20,8 @@ namespace Raphael.Desktop.Helpers
             Username = null;
             UserId = null;
             Role = null;
+            IntegratorId = null;
+            ProviderId = null;
         }
     }
 }

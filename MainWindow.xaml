@@ -8,214 +8,388 @@
         xmlns:materialDesignIcons="http://materialdesigninxaml.net/winfx/xaml/shared"
         xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
         xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
-
         mc:Ignorable="d"
-        Title="Raphael" Height="600" Width="800"
-        Icon="/Assets/logo.png">
+        Title="Raphael"
+        Height="600"
+        Width="800"
+        Icon="/Assets/logo.png"
+        KeyDown="Window_KeyDown">
 
     <Window.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+
+        <Style x:Key="NotificationButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource MaterialDesignFloatingActionMiniButton}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
     </Window.Resources>
-    
 
-    <DockPanel Background="Transparent">
+    <Grid Background="Transparent">
 
-        <!-- Top Menu -->
-        <Border Height="60" DockPanel.Dock="Top" Background="{DynamicResource MaterialDesign.Brush.Primary}">
-            <DockPanel LastChildFill="True">
+        <DockPanel Background="Transparent">
 
-                <!-- Logged in user with icon -->
-                <StackPanel DockPanel.Dock="Left"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Center"
-                            Margin="20,0,0,0"
-                            HorizontalAlignment="Left"
-                            >
+            <!-- Top Menu -->
+            <Border Height="60"
+                    DockPanel.Dock="Top"
+                    Background="{DynamicResource MaterialDesign.Brush.Primary}">
 
-                    <!-- Icon as avatar -->
-                    <Border Width="32" Height="32"
-                            Background="White"
-                            CornerRadius="16"
-                            VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="AccountCircle"
-                                 Width="24" Height="24"
-                                 Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"/>
-                    </Border>
+                <DockPanel LastChildFill="True">
 
-                    <!-- User name -->
-                    <TextBlock x:Name="UserNameTextBlock"
-                               VerticalAlignment="Center"
-                               Foreground="White"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Margin="10,0,0,0"
-                               Text="Hello, User" />
-                   
+                    <!-- Logged in user with icon -->
+                    <StackPanel DockPanel.Dock="Left"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="20,0,0,0"
+                                HorizontalAlignment="Left">
 
-                    <!-- Button with ContextMenu -->
-                    <Button x:Name="UserMenuButton"
-                            VerticalAlignment="Center"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="White"
-                            FontSize="14"
-                            FontWeight="SemiBold"
-                            Margin="10,0,0,0"
-                            
-                            ContextMenuService.IsEnabled="True"
-                            Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
-                            ToolTip="{Binding Settings}">
+                        <!-- Icon as avatar -->
+                        <Border Width="32"
+                                Height="32"
+                                Background="White"
+                                CornerRadius="16"
+                                VerticalAlignment="Center">
 
-                        <materialDesign:PackIcon
-                            Width="30"
-                            Height="30"
-                            Kind="Cog"
-                            />
-                        
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="{Binding MenuChangeLanguage}" >
-                                    <MenuItem.Icon>
-                                        <materialDesign:PackIcon Kind="Translate"/>
-                                    </MenuItem.Icon>
-                                    <MenuItem Command="{Binding ChangeLanguageCommand}" CommandParameter="en">
-                                        <MenuItem.Header>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Image Source="/Assets/icons/en.png" Width="20" Height="15" Margin="0,0,5,0"/>
-                                                <TextBlock Text="{Binding MenuEnglishLanguage}"/>
-                                                <materialDesign:PackIcon Kind="CheckBold" Foreground="Green" Margin="5,0,0,0"  Visibility="{Binding EnglishCheckVisibility}" />
-                                            </StackPanel>
-                                        </MenuItem.Header>
-                                        
+                            <materialDesign:PackIcon Kind="AccountCircle"
+                                                     Width="24"
+                                                     Height="24"
+                                                     Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- User name -->
+                        <TextBlock x:Name="UserNameTextBlock"
+                                   VerticalAlignment="Center"
+                                   Foreground="White"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Margin="10,0,0,0"
+                                   Text="Hello, User" />
+
+                        <!-- Button with ContextMenu -->
+                        <Button x:Name="UserMenuButton"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="White"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Margin="10,0,0,0"
+                                ContextMenuService.IsEnabled="True"
+                                Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
+                                ToolTip="{Binding Settings}">
+
+                            <materialDesign:PackIcon
+                                Width="30"
+                                Height="30"
+                                Kind="Cog"/>
+
+                            <Button.ContextMenu>
+                                <ContextMenu>
+
+                                    <MenuItem Header="{Binding MenuChangeLanguage}">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="Translate"/>
+                                        </MenuItem.Icon>
+
+                                        <MenuItem Command="{Binding ChangeLanguageCommand}"
+                                                  CommandParameter="en">
+
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+
+                                                    <Image Source="/Assets/icons/en.png"
+                                                           Width="20"
+                                                           Height="15"
+                                                           Margin="0,0,5,0"/>
+
+                                                    <TextBlock Text="{Binding MenuEnglishLanguage}"/>
+
+                                                    <materialDesign:PackIcon
+                                                        Kind="CheckBold"
+                                                        Foreground="Green"
+                                                        Margin="5,0,0,0"
+                                                        Visibility="{Binding EnglishCheckVisibility}" />
+
+                                                </StackPanel>
+                                            </MenuItem.Header>
+
+                                        </MenuItem>
+
+                                        <MenuItem Command="{Binding ChangeLanguageCommand}"
+                                                  CommandParameter="es">
+
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+
+                                                    <Image Source="/Assets/icons/es.png"
+                                                           Width="20"
+                                                           Height="15"
+                                                           Margin="0,0,5,0"/>
+
+                                                    <TextBlock Text="{Binding MenuSpanishLanguage}"/>
+
+                                                    <materialDesign:PackIcon
+                                                        Kind="CheckBold"
+                                                        Foreground="Green"
+                                                        Margin="5,0,0,0"
+                                                        Visibility="{Binding SpanishCheckVisibility}" />
+
+                                                </StackPanel>
+                                            </MenuItem.Header>
+
+                                        </MenuItem>
+
                                     </MenuItem>
-                                                             
-                                    <MenuItem Command="{Binding ChangeLanguageCommand}" CommandParameter="es">
-                                        <MenuItem.Header>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Image Source="/Assets/icons/es.png" Width="20" Height="15" Margin="0,0,5,0"/>
-                                                <TextBlock Text="{Binding MenuSpanishLanguage}"/>
-                                                <materialDesign:PackIcon Kind="CheckBold" Foreground="Green" Margin="5,0,0,0"  Visibility="{Binding SpanishCheckVisibility}" />
-                                                <!-- <TextBlock Text="✔" Visibility="{Binding SpanishCheckVisibility}" Margin="5,0,0,0" Foreground="Green"/>-->
-                                            </StackPanel>
-                                        </MenuItem.Header>
-                                    </MenuItem>
-                                    
-                                </MenuItem>
-                                <Separator/>
-                                <MenuItem Header="{Binding MenuLogout}" Command="{Binding LogoutCommand}">
-                                    <MenuItem.Icon>
-                                        <materialDesign:PackIcon Kind="LogoutVariant"/>
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
 
+                                    <Separator/>
+
+                                    <MenuItem Header="{Binding MenuLogout}"
+                                              Command="{Binding LogoutCommand}">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="LogoutVariant"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                </ContextMenu>
+                            </Button.ContextMenu>
+
+                        </Button>
+
+                    </StackPanel>
+
+
+                    <!-- Notifications -->
+                    <Grid DockPanel.Dock="Right"
+                          Width="58"
+                          Height="60"
+                          Margin="0,0,10,0">
+
+                        <Button x:Name="NotificationButton"
+                                Command="{Binding OpenNotificationCenterCommand}"
+                                Style="{StaticResource NotificationButtonStyle}"
+                                ToolTip="Notifications"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+
+                            <materialDesign:PackIcon Kind="BellOutline"
+                                                     Width="27"
+                                                     Height="27"/>
+                        </Button>
+
+                        <Border Width="21"
+                                Height="21"
+                                CornerRadius="11"
+                                Background="Red"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,7,2,0"
+                                Visibility="{Binding UnreadNotificationsVisibility}">
+
+                            <TextBlock Text="{Binding UnreadNotificationsCount}"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                    </Grid>
+
+
+                    <!-- Main Menu -->
+                    <TabControl x:Name="MenuTabControl"
+                                HorizontalAlignment="Right"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="10"
+                                Style="{StaticResource MaterialDesignNavigationRailTabControl}"
+                                TabStripPlacement="Top"
+                                materialDesign:ColorZoneAssist.Mode="PrimaryMid"
+                                materialDesign:NavigationRailAssist.SelectionCornerRadius="50 10 10 10"
+                                materialDesign:NavigationRailAssist.ShowSelectionBackground="True"
+                                PreviewMouseLeftButtonUp="MenuTabControl_PreviewMouseLeftButtonUp">
+
+                        <!-- Home: Always visible, no visibility binding required -->
+                        <TabItem x:Name="HomeTabMenu"
+                                 Tag="{x:Static local:MENU.Home}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="HomeOutline"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuHome}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
+                        <!-- Data: Visible for Role 1 and 3 -->
+                        <TabItem x:Name="DataTabMenu"
+                                 Tag="{x:Static local:MENU.Data}"
+                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="Database"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuData}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
+                        <!-- Schedules: Visible for Role 1 and 3 -->
+                        <TabItem x:Name="SchedulesTabMenu"
+                                 Tag="{x:Static local:MENU.Schedules}"
+                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="TableClock"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuSchedules}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
+                        <!-- Dispatch: Visible for Role 1 and 3 -->
+                        <TabItem x:Name="DispatchTabMenu"
+                                 Tag="{x:Static local:MENU.Dispatch}"
+                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="WrenchClock"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuDispatch}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
+                        <!-- Reports: Visible for Role 1 and 3 -->
+                        <TabItem x:Name="ReportsTabMenu"
+                                 Tag="{x:Static local:MENU.Reports}"
+                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="FileChart"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuReports}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
+                        <!-- Admin: Only visible for Role 1 -->
+                        <TabItem x:Name="AdminTabMenu"
+                                 Tag="{x:Static local:MENU.Admin}"
+                                 Visibility="{Binding IsAdmin, Converter={StaticResource BoolToVisConverter}}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="Security"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuAdmin}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
+                    </TabControl>
+
+                </DockPanel>
+
+            </Border>
+
+
+            <!-- Main content -->
+            <TabControl x:Name="MainTabControl"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"/>
+
+        </DockPanel>
+
+
+        <!-- Notification Toast -->
+        <Border x:Name="NotificationToast"
+                Width="380"
+                MinHeight="100"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,25,25"
+                Background="White"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15"
+                Visibility="Collapsed"
+                Panel.ZIndex="1000">
+
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="30"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+
+                    <TextBlock x:Name="NotificationToastTitle"
+                               FontWeight="Bold"
+                               FontSize="15"
+                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
+                               Margin="0,0,0,5"/>
+
+                    <TextBlock x:Name="NotificationToastMessage"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               Foreground="Black"/>
 
                 </StackPanel>
 
-                <!-- Main Menu -->
-                <TabControl x:Name="MenuTabControl" 
-                        HorizontalAlignment="Right"
+                <Button Grid.Column="1"
+                        Width="25"
+                        Height="25"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="10"
-                        Style="{StaticResource MaterialDesignNavigationRailTabControl}"
-                        TabStripPlacement="Top"
-                        materialDesign:ColorZoneAssist.Mode="PrimaryMid"
-                        materialDesign:NavigationRailAssist.SelectionCornerRadius="50 10 10 10"
-                        materialDesign:NavigationRailAssist.ShowSelectionBackground="True" PreviewMouseLeftButtonUp="MenuTabControl_PreviewMouseLeftButtonUp">
+                        Click="CloseNotificationToast">
 
-                    <!-- Home: Always visible, no visibility binding required -->
-                    <TabItem x:Name="HomeTabMenu" Tag="{x:Static local:MENU.Home}">
-                        <TabItem.Header>
-                        
-                            <StackPanel>
-                                <materialDesign:PackIcon Kind="HomeOutline" Width="24" Height="24" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding MainMenuHome}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        
-                        </TabItem.Header>
-                    </TabItem>
+                    <materialDesign:PackIcon Kind="Close"/>
 
-                    <!-- Data: Visible for Role 1 and 3 -->
-                    <TabItem x:Name="DataTabMenu" Tag="{x:Static local:MENU.Data}" Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
-                        <TabItem.Header>
-                        
-                            <StackPanel>
-                                <materialDesign:PackIcon Kind="Database" Width="24" Height="24" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding MainMenuData}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        
-                        </TabItem.Header>
-                    </TabItem>
+                </Button>
 
-                    <!-- Schedules: Visible for Role 1 and 3 -->
-                    <TabItem x:Name="SchedulesTabMenu" Tag="{x:Static local:MENU.Schedules}" Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
-                        <TabItem.Header>
+            </Grid>
 
-                            <StackPanel>
-                                <materialDesign:PackIcon Kind="TableClock" Width="24" Height="24" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding MainMenuSchedules}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                        </TabItem.Header>
-                    </TabItem>
-
-                    <!-- Dispatch: Visible for Role 1 and 3 -->
-                    <TabItem x:Name="DispatchTabMenu" Tag="{x:Static local:MENU.Dispatch}" Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
-                        <TabItem.Header>
-
-                            <StackPanel>
-                                <materialDesign:PackIcon Kind="WrenchClock" Width="24" Height="24" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding MainMenuDispatch}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                        </TabItem.Header>
-                    </TabItem>
-
-                    <!-- Reports: Visible for Role 1 and 3 -->
-                    <TabItem x:Name="ReportsTabMenu" Tag="{x:Static local:MENU.Reports}" Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
-                        <TabItem.Header>
-
-                            <StackPanel>
-                                <materialDesign:PackIcon Kind="FileChart" Width="24" Height="24" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding MainMenuReports}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                        </TabItem.Header>
-                    </TabItem>
-
-                    <!-- Admin: Only visible for Role 1 -->
-                    <TabItem x:Name="AdminTabMenu" Tag="{x:Static local:MENU.Admin}" 
-                             Visibility="{Binding IsAdmin, Converter={StaticResource BoolToVisConverter}}">
-                        <TabItem.Header>
-
-                            <StackPanel>
-                                <materialDesign:PackIcon Kind="Security" Width="24" Height="24" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding MainMenuAdmin}" HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                        </TabItem.Header>
-                    </TabItem>
-
-                </TabControl>
-
-            </DockPanel>
-            
         </Border>
 
-        <!-- Main content -->
-        <TabControl  x:Name="MainTabControl"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"/>
-        
-    </DockPanel>
+    </Grid>
 
-   
-    
 </Window>
-    
-
