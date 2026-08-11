@@ -18,6 +18,7 @@ namespace Raphael.Desktop.Models
         public static string Assigned = "Assigned";     // The Broker/Funding Source assigns the trip. The Router is notified.
         public static string Accepted = "Accepted";     // The Supplier accepts the trip. The Broker is notified. (Member may be notified.)
         public static string Scheduled = "Scheduled";   // The Router schedules the trip, designates a Driver and a Vehicle to carry out the trip. The Driver is notified.
+        public static string Started = "Started";       // The Driver selects the trip and heads to the pick-up address. The Member waits and is notified that the Driver is on its way.
         public static string Waiting = "Waiting";       // The Driver selects the trip and heads to the pick-up address. The Member waits and is notified that the Driver is on its way.
         public static string Late = "Late";             // The Driver is late to the pickup address with respect to the Pickup Time or is late with respect to the Appointment Time. Dispatcher is alerted. The Driver is notified.
         public static string InProgress = "InProgress"; // The Driver selects to start the trip and heads from the pick-up address to the drop-off address location. Dispatcher is notified.

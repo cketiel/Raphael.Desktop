@@ -70,6 +70,20 @@
                           materialDesign:HintAssist.Hint="Filter by item..."
                           SelectedItem="{Binding SelectedFundingSource}"/>
 
+                            <!-- Debajo del ComboBox de Funding Sources -->
+                            <TextBlock Text="Vehicle Routes" FontWeight="SemiBold" Margin="0,15,0,5"/>
+
+                            <!-- Master CheckBox para Rutas -->
+                            <CheckBox Content="[ SELECT ALL ROUTES ]" 
+                              IsChecked="{Binding IsAllRoutesSelected}" 
+                              FontWeight="Bold" Margin="2,0,0,5"/>
+
+                            <!-- Multi-selection ComboBox para Rutas -->
+                            <ComboBox ItemsSource="{Binding AllVehicleRoutes}" 
+                                ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                                materialDesign:HintAssist.Hint="Filter by route..."
+                                SelectedItem="{Binding SelectedVehicleRoute}"/>
+
                             <Separator Margin="0,20"/>
 
                             <Button Command="{Binding PreviewProductionReportCommand}" 

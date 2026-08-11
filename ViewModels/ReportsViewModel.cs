@@ -24,6 +24,23 @@ namespace Raphael.Desktop.ViewModels
         private readonly GpsService _gpsService;
         private readonly RunService _vehicleRouteService;
 
+        private bool _isAllRoutesSelected;
+        public bool IsAllRoutesSelected
+        {
+            get => _isAllRoutesSelected;
+            set
+            {
+                if (_isAllRoutesSelected != value)
+                {
+                    _isAllRoutesSelected = value;
+                    OnPropertyChanged();
+                    ToggleAllRoutes(value);
+                }
+            }
+        }
+
+        private bool _isUpdatingRoutesSelection = false;
+
         public ObservableCollection<FundingSource> AllFundingSources { get; set; } = new ObservableCollection<FundingSource>();
         public ObservableCollection<VehicleRoute> AllVehicleRoutes { get; set; } = new ObservableCollection<VehicleRoute>();
         public FundingSource SelectedFundingSource { get; set; }
@@ -155,10 +172,11 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 // 1. Obtener IDs seleccionados
-                var selectedIds = AllFundingSources.Where(x => x.IsSelected && x.Id != -1).Select(x => x.Id).ToList();
+                var selectedFsIds = AllFundingSources.Where(x => x.IsSelected && x.Id != -1).Select(x => x.Id).ToList();
+                var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
 
                 // 2. Llamar al servicio 
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedIds);
+                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds);
 
                 if (reportData == null || !reportData.Any())
                 {
@@ -205,12 +223,35 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 var routes = await _vehicleRouteService.GetAllAsync();
-                foreach (var r in routes) AllVehicleRoutes.Add(r);
+                foreach (var r in routes)
+                {
+                    r.IsSelected = false;
+                    r.PropertyChanged += OnRouteSelectionChanged; // Suscribirse
+                    AllVehicleRoutes.Add(r);
+                }
 
                 SelectedVehicleRoute = AllVehicleRoutes.FirstOrDefault();
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex.Message); }
         }
+        private void OnRouteSelectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(VehicleRoute.IsSelected) && !_isUpdatingRoutesSelection)
+            {
+                _isUpdatingRoutesSelection = true;
+                IsAllRoutesSelected = AllVehicleRoutes.All(x => x.IsSelected);
+                _isUpdatingRoutesSelection = false;
+            }
+        }
+
+        private void ToggleAllRoutes(bool selectAll)
+        {
+            if (_isUpdatingRoutesSelection) return;
+            _isUpdatingRoutesSelection = true;
+            foreach (var route in AllVehicleRoutes) route.IsSelected = selectAll;
+            _isUpdatingRoutesSelection = false;
+        }
+
         private async void LoadDataOld()
         {
             try
@@ -422,14 +463,15 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 // 2. Obtener IDs de Funding Sources seleccionados (Multi-select)
-                var selectedIds = AllFundingSources
+                var selectedFsIds = AllFundingSources
                     .Where(x => x.IsSelected && x.Id != -1)
                     .Select(x => x.Id)
                     .ToList();
 
+                var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
                 // 3. Obtener datos del servicio usando el rango de fechas (StartDate y EndDate)
                 // Se asume que has añadido 'GetProductionReportDataRangeAsync' a tu ScheduleService
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedIds);
+                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds);
 
                 if (reportData == null || reportData.Count == 0)
                 {

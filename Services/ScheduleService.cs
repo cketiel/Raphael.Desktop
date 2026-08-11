@@ -110,7 +110,34 @@ namespace Raphael.Desktop.Services
             return await response.Content.ReadFromJsonAsync<List<ProductionReportRowDto>>();
         }
 
-        public async Task<List<ProductionReportRowDto>> GetProductionReportDataRangeAsync(DateTime startDate, DateTime endDate, List<int> fundingSourceIds)
+        public async Task<List<ProductionReportRowDto>> GetProductionReportDataRangeAsync(
+            DateTime startDate,
+            DateTime endDate,
+            List<int> fundingSourceIds,
+            List<int> vehicleRouteIds) 
+        {
+            string start = startDate.ToString("yyyy-MM-dd");
+            string end = endDate.ToString("yyyy-MM-dd");
+
+            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}";
+
+            if (fundingSourceIds != null && fundingSourceIds.Any())
+            {
+                requestUri += $"&fundingSourceIds={string.Join(",", fundingSourceIds)}";
+            }
+          
+            if (vehicleRouteIds != null && vehicleRouteIds.Any())
+            {
+                requestUri += $"&vehicleRouteIds={string.Join(",", vehicleRouteIds)}";
+            }
+
+            var response = await _httpClient.GetAsync(requestUri);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<List<ProductionReportRowDto>>();
+        }
+
+        public async Task<List<ProductionReportRowDto>> GetProductionReportDataRangeAsync2(DateTime startDate, DateTime endDate, List<int> fundingSourceIds)
         {
             string start = startDate.ToString("yyyy-MM-dd");
             string end = endDate.ToString("yyyy-MM-dd");

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Raphael.Desktop.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Raphael.Desktop.Models
 {
-    public class VehicleRoute
+    public class VehicleRoute: BaseViewModel
     {
         public int Id { get; set; }
 
@@ -49,6 +50,14 @@ namespace Raphael.Desktop.Models
         [Required]
         [Column(TypeName = "time")]
         public TimeSpan ToTime { get; set; }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { _isSelected = value; OnPropertyChanged(); }
+        }
+
 
         //public ICollection<Schedule> Schedules { get; set; }
         public ICollection<RouteSuspension> Suspensions { get; set; }
