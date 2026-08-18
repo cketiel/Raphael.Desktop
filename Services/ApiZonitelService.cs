@@ -47,8 +47,9 @@ namespace Raphael.Desktop.Services
                                    $"Date: {date}\n" +
                                    $"Name: {passengerName}\n" +
                                    //$"Trip Number: {tripNumber}\n" +
-                                   $"Address: {pickupAddress}\n" +
+                                   ///$"Address: {pickupAddress}\n" +
                                    $"Time: {pickupTime}\n" +
+                                   "Please reply CONFIRM or CANCEL. Without confirmation, pickup cannot be guaranteed.\n" +
                                    "Visit www.etamilanes.com";
 
                 // Espacios en blanco en exceso: Al usar el formato $@"" con sangría dentro del código C#, todos esos espacios de la izquierda se incluyen en el texto del mensaje, haciendo que supere el límite de caracteres y se vea mal.

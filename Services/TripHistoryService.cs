@@ -43,13 +43,12 @@ namespace Raphael.Desktop.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Debug.WriteLine($"Error insertando historial: {error}");
-                    // Aquí podrías lanzar una excepción o loguear
+                    Debug.WriteLine($"Error inserting history: {error}");                   
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Excepción en SaveHistory: {ex.Message}");
+                Debug.WriteLine($"Exception in SaveHistory: {ex.Message}");
             }
         }
 
