@@ -41,6 +41,7 @@
 
     <Grid Margin="15">
         <TabControl>
+            <!-- Production Report Tab -->
             <TabItem Header="Production Report">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
@@ -120,7 +121,7 @@
             </TabItem>
 
             <!-- GPS Report Tab -->
-            <TabItem Header="GPS Report" >
+            <TabItem Header="GPS Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -190,7 +191,8 @@
                 </Grid>
             </TabItem>-->
 
-            <TabItem Header="Trip2 PDF Report">
+            <!-- Trip2 PDF Report Tab -->
+            <TabItem Header="Trip2 PDF Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -256,7 +258,7 @@
             </TabItem>
 
             <!-- AVIATA (Previsualización y Filtros) -->
-            <TabItem Header="Aviata Report">
+            <TabItem Header="Aviata Report"  Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>

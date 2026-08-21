@@ -1,19 +1,20 @@
 ﻿using ClosedXML.Excel;
+using Microsoft.Win32;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
 using Raphael.Desktop.Commands;
+using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Models.Pdf;
 using Raphael.Desktop.Services;
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
-using System.ComponentModel;
 
 namespace Raphael.Desktop.ViewModels
 {
@@ -97,6 +98,7 @@ namespace Raphael.Desktop.ViewModels
         public bool IsGeneratingAviata { get; set; }
         public string AviataPreviewFilePath { get; set; }
         public bool IsPreviewReadyAviata { get; set; }
+        public bool IsNotDriver { get; set; }
 
         public bool IsAllSelected
         {
@@ -140,6 +142,10 @@ namespace Raphael.Desktop.ViewModels
 
         public ReportsViewModel()
         {
+            string currentRole = SessionManager.Role;
+            bool IsDriver = currentRole == "2";
+            IsNotDriver = !IsDriver;
+
             _fundingSourceService = new FundingSourceService();
             _scheduleService = new ScheduleService();
             _gpsService = new GpsService();
@@ -160,6 +166,7 @@ namespace Raphael.Desktop.ViewModels
             PreviewProductionReportCommand = new RelayCommandObject(async (o) => await GenerateProductionPreview());
 
             LoadData();
+           
         }
 
         private async Task GenerateProductionPreview()
@@ -207,7 +214,9 @@ namespace Raphael.Desktop.ViewModels
         }
 
         private async void LoadData()
-        {
+        {            
+            string currentRole = SessionManager.Role;
+            bool IsDriver = currentRole == "2";
             try
             {
                 // Limpiamos antes de cargar para evitar duplicados
@@ -223,12 +232,25 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 var routes = await _vehicleRouteService.GetAllAsync();
-                foreach (var r in routes)
+                
+                if (IsDriver)
                 {
-                    r.IsSelected = false;
-                    r.PropertyChanged += OnRouteSelectionChanged; // Suscribirse
+                    string currentUser = SessionManager.UserId;
+                    int userId = int.Parse(currentUser);
+                    var r = routes.Find(r => r.DriverId == userId);
+                    r.IsSelected = true;
+                    r.PropertyChanged += OnRouteSelectionChanged;
                     AllVehicleRoutes.Add(r);
                 }
+                else
+                {
+                    foreach (var r in routes)
+                    {
+                        r.IsSelected = false;
+                        r.PropertyChanged += OnRouteSelectionChanged; // Suscribirse
+                        AllVehicleRoutes.Add(r);
+                    }
+                }                 
 
                 SelectedVehicleRoute = AllVehicleRoutes.FirstOrDefault();
             }

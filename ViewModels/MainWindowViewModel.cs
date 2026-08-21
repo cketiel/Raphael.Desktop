@@ -20,12 +20,28 @@ namespace Raphael.Desktop.ViewModels
             set => SetProperty(ref _isAdmin, value);
         }
 
+        private bool _isBookingVisible;
+
+        public bool IsBookingVisible
+        {
+            get => _isBookingVisible;
+            set => SetProperty(ref _isBookingVisible, value);
+        }
+
         private bool _isGeneralVisible;
 
         public bool IsGeneralVisible
         {
             get => _isGeneralVisible;
             set => SetProperty(ref _isGeneralVisible, value);
+        }
+
+        private bool _isDriverVisible;
+
+        public bool IsDriverVisible
+        {
+            get => _isDriverVisible;
+            set => SetProperty(ref _isDriverVisible, value);
         }
 
         public string LoggedUserName => "Hello, User"; // Example
@@ -191,6 +207,8 @@ namespace Raphael.Desktop.ViewModels
 
             // IsAdmin: Only if role is 1
             IsAdmin = currentRole == "1";
+            IsBookingVisible = currentRole == "6" || currentRole == "1" || currentRole == "3";
+            IsDriverVisible = currentRole == "2" || currentRole == "1" || currentRole == "3";
 
             // IsGeneralVisible: If it is role 1 OR it is role 3
             IsGeneralVisible =
@@ -472,6 +490,7 @@ namespace Raphael.Desktop.ViewModels
             Application.Current.Dispatcher.Invoke(
                 () =>
                 {
+                    SessionManager.Clear();
                     var loginWindow =
                         new LoginWindow();
 

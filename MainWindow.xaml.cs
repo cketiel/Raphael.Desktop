@@ -65,7 +65,12 @@ namespace Raphael.Desktop
                 _notificationSignalRService,
                 ShowNotificationToastAsync);
 
-            OpenHomeView(null, null); // Load HomeView by default
+            string currentRole = SessionManager.Role;
+            bool IsDriver = currentRole == "2";
+            if (IsDriver)
+                OpenTab(LocalizationService.Instance["Reports"], new ReportsView(), PackIconKind.FileChart);
+            else
+                OpenHomeView(null, null); // Load HomeView by default
             this.Loaded += MainWindow_Loaded;
             this.Closed += MainWindow_Closed;
 
@@ -673,7 +678,7 @@ namespace Raphael.Desktop
                 if ((selectedMenu == MENU.Data ||
                      selectedMenu == MENU.Schedules ||
                      selectedMenu == MENU.Dispatch ||
-                     selectedMenu == MENU.Reports)
+                     selectedMenu == MENU.Notification)
                      &&
                      (role != "1" && role != "3"))
                     return;
@@ -753,6 +758,7 @@ namespace Raphael.Desktop
         Schedules,
         Dispatch,
         Reports,
-        Admin
+        Admin,
+        Notification
     }
 }

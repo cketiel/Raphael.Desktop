@@ -169,7 +169,8 @@
                     <Grid DockPanel.Dock="Right"
                           Width="58"
                           Height="60"
-                          Margin="0,0,10,0">
+                          Margin="0,0,10,0"
+                          Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
 
                         <Button x:Name="NotificationButton"
                                 Command="{Binding OpenNotificationCenterCommand}"
@@ -218,7 +219,8 @@
 
                         <!-- Home: Always visible, no visibility binding required -->
                         <TabItem x:Name="HomeTabMenu"
-                                 Tag="{x:Static local:MENU.Home}">
+                                 Tag="{x:Static local:MENU.Home}"
+                                 Visibility="{Binding IsBookingVisible, Converter={StaticResource BoolToVisConverter}}">
                             <TabItem.Header>
 
                                 <StackPanel>
@@ -287,10 +289,10 @@
                             </TabItem.Header>
                         </TabItem>
 
-                        <!-- Reports: Visible for Role 1 and 3 -->
+                        <!-- Reports: Visible for Role 1, 2 and 3 -->
                         <TabItem x:Name="ReportsTabMenu"
                                  Tag="{x:Static local:MENU.Reports}"
-                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                                 Visibility="{Binding IsDriverVisible, Converter={StaticResource BoolToVisConverter}}">
                             <TabItem.Header>
 
                                 <StackPanel>
