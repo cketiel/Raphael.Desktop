@@ -19,7 +19,8 @@ namespace Raphael.Desktop.Models
         public static string Accepted = "Accepted";     // The Supplier accepts the trip. The Broker is notified. (Member may be notified.)
         public static string Scheduled = "Scheduled";   // The Router schedules the trip, designates a Driver and a Vehicle to carry out the trip. The Driver is notified.
         public static string Started = "Started";       // The Driver selects the trip and heads to the pick-up address. The Member waits and is notified that the Driver is on its way.
-        public static string Waiting = "Waiting";       // The Driver selects the trip and heads to the pick-up address. The Member waits and is notified that the Driver is on its way.
+        public static string Arrived = "Arrived";       // The Driver has reached the pick-up address and is waiting for the Member to board.
+        public static string Waiting = "Waiting";       // The Member reported being ready on a Will Call trip and is waiting for a vehicle to be dispatched. The office has one hour to get one there.
         public static string Late = "Late";             // The Driver is late to the pickup address with respect to the Pickup Time or is late with respect to the Appointment Time. Dispatcher is alerted. The Driver is notified.
         public static string InProgress = "InProgress"; // The Driver selects to start the trip and heads from the pick-up address to the drop-off address location. Dispatcher is notified.
         public static string Finished = "Finished";     // The Driver selects to end the trip. The Driver finishes the trip, leaving the Member at their destination. Dispatcher is notified. The Broker is notified.

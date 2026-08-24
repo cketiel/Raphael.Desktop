@@ -5,8 +5,6 @@ VisualStudioVersion = 17.13.35913.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Raphael.Desktop", "Raphael.Desktop.csproj", "{E8338DAB-139B-4616-BF39-838C07190348}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Raphael.Setup", "..\Raphael.Setup\Raphael.Setup.vdproj", "{CE50EE4D-953D-3782-D4A2-9EE621A862CF}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,8 +15,6 @@ Global
 		{E8338DAB-139B-4616-BF39-838C07190348}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E8338DAB-139B-4616-BF39-838C07190348}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E8338DAB-139B-4616-BF39-838C07190348}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CE50EE4D-953D-3782-D4A2-9EE621A862CF}.Debug|Any CPU.ActiveCfg = Debug
-		{CE50EE4D-953D-3782-D4A2-9EE621A862CF}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
