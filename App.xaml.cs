@@ -5,6 +5,7 @@ using Raphael.Desktop.Views;
 using Microsoft.Extensions.Configuration;
 using MaterialDesignThemes.Wpf;
 using MaterialDesignColors;
+using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
 
 
@@ -18,6 +19,12 @@ namespace Raphael.Desktop
         public static IConfiguration Configuration { get; private set; }
         protected void Application_Startup(object sender, StartupEventArgs e)
         {
+            // First thing, before anything can fail: an unhandled exception used to close
+            // the application without a word, and a dispatcher could only report that it
+            // "cerró sola". Now it is written to a log and, when the UI thread can carry
+            // on, it does.
+            CrashReporter.Install(this);
+
             var login = new LoginWindow();
             login.ResizeMode = ResizeMode.NoResize;
             login.WindowState = WindowState.Normal;
@@ -35,24 +42,6 @@ namespace Raphael.Desktop
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
             Configuration = builder.Build();
-
-            // Para saber pq se crashea la app
-            /* AppDomain.CurrentDomain.UnhandledException += (s, ex) =>
-            {
-                MessageBox.Show(((Exception)ex.ExceptionObject).Message, "Unhandled Exception");
-            };
-
-            DispatcherUnhandledException += (s, ex) =>
-            {
-                MessageBox.Show(ex.Exception.Message, "Dispatcher Exception");
-                ex.Handled = true;
-            };
-
-            TaskScheduler.UnobservedTaskException += (s, ex) =>
-            {
-                MessageBox.Show(ex.Exception.Message, "Task Exception");
-                ex.SetObserved();
-            };*/   
 
             //SetThemeBasedOnTime();
 

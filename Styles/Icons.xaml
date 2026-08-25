@@ -21,8 +21,23 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Hover Scale for all icons (x:Key="HoverScaleIconStyle => To limit)"-->
-    <Style  
+    <!--
+        Hover Scale — SE APLICA A MANO, NUNCA COMO ESTILO IMPLÍCITO.
+
+        ⚠️ Sin `x:Key` este estilo alcanzaba a TODOS los PackIcon de la aplicación,
+        incluidos los que MaterialDesign crea dentro de sus propias plantillas. Varios de
+        ellos (el chevron de un Expander, la flecha de un ComboBox, el icono de un
+        DatePicker) ya traen su propio `RenderTransform`, y es un `RotateTransform`, que
+        no tiene `ScaleX`. Al pasar el ratón por encima, la animación de abajo no podía
+        resolver la ruta y WPF lanzaba:
+
+            "No se pueden resolver todas las referencias de propiedad en la ruta a la
+             propiedad RenderTransform.ScaleX."
+
+        Eso es lo que cerraba la aplicación al abrir la administración del Centro de
+        Notificaciones. Con la clave puesta, el efecto solo se aplica donde se pide.
+    -->
+    <Style x:Key="HoverScaleIconStyle"
            TargetType="materialDesign:PackIcon">
         <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
         <Setter Property="RenderTransform">
