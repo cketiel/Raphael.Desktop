@@ -23,9 +23,11 @@ namespace Raphael.Desktop.Services
 
         public async Task SaveHistoryAsync(int tripId, string field, string priorValue, string newValue)
         {
-            // We force UTC conversion not to be applied
-            DateTime dateNow = DateTime.Now;
-            DateTime changeDate = DateTime.SpecifyKind(dateNow, DateTimeKind.Unspecified);// tells the system: "Don't touch the time, send it as is."
+            // An instant, so it travels in UTC and every screen shows it in the hour of
+            // whoever is looking. This used to send the dispatcher's own clock while the API
+            // wrote the server's, which left one column meaning two different things
+            // depending on which of them happened to write the row.
+            DateTime changeDate = DateTime.UtcNow;
             try
             {
                 var history = new TripHistoryCreateDto

@@ -2,8 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        Title="Provider Details" Height="550" Width="500" 
+        xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+        Title="Provider Details" Height="700" Width="500"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+
+    <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+    </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -19,6 +24,31 @@
                 <TextBox materialDesign:HintAssist.Hint="Address" Text="{Binding Provider.Address, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignFloatingHintTextBox}" Margin="0,0,0,15"/>
                 <TextBox materialDesign:HintAssist.Hint="Email" Text="{Binding Provider.Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignFloatingHintTextBox}" Margin="0,0,0,15"/>
                 <TextBox materialDesign:HintAssist.Hint="Phone" Text="{Binding Provider.Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignFloatingHintTextBox}" Margin="0,0,0,15"/>
+
+                <!-- What a pickup time means for this provider's trips. Not a display
+                     preference: a trip at 09:15 is 09:15 here, whoever opens the screen. -->
+                <ComboBox ItemsSource="{Binding TimeZones}"
+                          SelectedItem="{Binding SelectedTimeZone, Mode=TwoWay}"
+                          DisplayMemberPath="DisplayName"
+                          materialDesign:HintAssist.Hint="{Binding TimeZoneLabel}"
+                          Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                          Margin="0,0,0,4"/>
+
+                <!-- The check that actually catches a wrong pick: if this hour does not
+                     match the clock on that office wall, the choice is wrong. -->
+                <Border Background="#E8F0FE" CornerRadius="4" Padding="10,6" Margin="0,0,0,6"
+                        Visibility="{Binding HasTimeZonePreview, Converter={StaticResource BoolToVisConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ClockOutline" Width="16" Height="16"
+                                                 VerticalAlignment="Center" Foreground="#1A73E8"/>
+                        <TextBlock Text="{Binding TimeZonePreview}" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{Binding TimeZoneHelpText}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,15"/>
 
                 <TextBlock Text="Company Logo" Style="{StaticResource MaterialDesignCaptionTextBlock}" Margin="0,10,0,5"/>
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,20">
