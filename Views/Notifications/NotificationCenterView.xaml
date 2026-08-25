@@ -1,0 +1,1713 @@
+﻿<UserControl x:Class="Raphael.Desktop.Views.Notifications.NotificationCenterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             Height="Auto"
+             Width="Auto">
+
+    <UserControl.Resources>
+
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <converters:UtcToLocalConverter x:Key="UtcToLocal" />
+
+        <!-- Reaches the view model from inside an item template, where the DataContext is
+             the row. Same proxy the rest of the application uses. -->
+        <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
+
+        <!-- ===================== Palette =====================
+             The purple the application is themed with (MaterialDesign DeepPurple, the same
+             #673AB7 as MainBorderColor in Styles/Colors.xaml) and the tones derived from
+             it. Written out rather than taken from the theme keys so this panel keeps its
+             contrast if the theme is ever re-based. Red and amber stay as they are: they
+             mean overdue and disconnected, not decoration. -->
+        <SolidColorBrush x:Key="Accent" Color="#673AB7" />
+        <SolidColorBrush x:Key="AccentDeep" Color="#4527A0" />
+        <SolidColorBrush x:Key="AccentStrong" Color="#5E35B1" />
+        <SolidColorBrush x:Key="AccentSoft" Color="#EDE7F6" />
+        <SolidColorBrush x:Key="AccentSurface" Color="#F5F2FB" />
+        <SolidColorBrush x:Key="AccentBorder" Color="#DCD2F0" />
+        <SolidColorBrush x:Key="AccentText" Color="#3B3357" />
+        <SolidColorBrush x:Key="Danger" Color="#D93025" />
+
+        <!-- One section of the administration area, in the left rail.
+             A ToggleButton and not a Button: IsChecked is a real boolean dependency
+             property, so the selected look is a plain template trigger instead of a
+             binding to Tag that only resolves at run time. -->
+        <Style x:Key="AdminRailItemStyle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0 0 0 2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="Bar" Width="3" Margin="0 5"
+                                    HorizontalAlignment="Left" CornerRadius="2"
+                                    Background="Transparent" />
+                            <Border x:Name="Surface" Margin="3 0 0 0" Padding="12 9"
+                                    CornerRadius="0 8 8 0" Background="Transparent">
+                                <ContentPresenter />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#F3EFFA" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bar" Property="Background" Value="{StaticResource Accent}" />
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource AccentSoft}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A block of either the administration area or an open notice. Each one is one
+             subject — the patient, the line, the kept records — so each one gets its own
+             frame instead of being another paragraph in a column. -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#E6E1F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="0 0 0 12" />
+        </Style>
+
+        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{StaticResource AccentText}" />
+            <Setter Property="Margin" Value="0 0 0 6" />
+        </Style>
+
+        <Style x:Key="CardHintStyle" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.75" />
+            <Setter Property="Margin" Value="0 0 0 12" />
+        </Style>
+
+        <!-- ===================== Detail tiles =====================
+             One labelled value. They flow instead of sitting in a fixed grid, so a card
+             with four fields is four fields tall and one with fourteen closes up around
+             them; and a field with nothing in it is never built, so no card ever shows a
+             label with a dash after it. -->
+        <DataTemplate x:Key="DetailFieldTemplate">
+            <StackPanel MinWidth="{Binding TileWidth}" Margin="0 0 18 12">
+                <TextBlock Text="{Binding Label}"
+                           FontSize="10.5" Opacity="0.55"
+                           Foreground="{StaticResource AccentText}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Value}"
+                           FontSize="13" Margin="0 1 0 0"
+                           TextWrapping="Wrap" Foreground="#202124" />
+            </StackPanel>
+        </DataTemplate>
+
+        <ItemsPanelTemplate x:Key="DetailFieldPanel">
+            <WrapPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+
+        <!-- Title of a card in an open notice: an icon and a name. -->
+        <Style x:Key="CardIconStyle" TargetType="materialDesign:PackIcon">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0 0 8 0" />
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+
+        <Style x:Key="AdminColumnHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource AccentDeep}" />
+            <Setter Property="Opacity" Value="0.85" />
+        </Style>
+
+        <!-- Header of a group of kept records. Built by hand: the framework expander gives
+             its chevron a rotate transform, and the application-wide icon hover animation
+             used to look for a ScaleX on it and bring the window down. -->
+        <Style x:Key="AdminGroupHeaderStyle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Surface" Background="{StaticResource AccentSurface}"
+                                BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                                CornerRadius="8" Padding="10 7">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{StaticResource AccentSoft}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A row of the inbox. Its actions stay out of the way until the pointer is on
+             it, which is what keeps a list of fifty rows readable. -->
+        <Style x:Key="InboxRowStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="RowBorder"
+                                Background="{Binding RowBackground}"
+                                BorderBrush="#E8EAED"
+                                BorderThickness="0 0 0 1"
+                                Padding="8 0">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background" Value="#FFFFFF" />
+                                <Setter TargetName="RowBorder" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="6"
+                                                          ShadowDepth="0"
+                                                          Opacity="0.28"
+                                                          Color="#5F6368" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background" Value="#E1D7F5" />
+                            </Trigger>
+
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="RowBorder" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                <Setter TargetName="RowBorder" Property="BorderThickness" Value="0 0 0 2" />
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Icon-only action, quiet until hovered. -->
+        <Style x:Key="RowActionStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="#5F6368" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chip"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="14"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chip" Property="Background" Value="{StaticResource AccentSoft}" />
+                                <Setter Property="Foreground" Value="{StaticResource AccentDeep}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource RowActionStyle}">
+            <Setter Property="Padding" Value="8" />
+        </Style>
+
+    </UserControl.Resources>
+
+    <Border BorderThickness="1"
+            BorderBrush="{StaticResource MainBorderBrush}"
+            Background="White">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <!-- 0 title · 1 channel warning · 2 tabs and toolbar · 3 the panel itself,
+                     which is the inbox, a notice being read, or the administration area. -->
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ===================== Title and shift strip ===================== -->
+            <Grid Grid.Row="0" Margin="12 10 12 6">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                    <materialDesign:PackIcon Kind="BellOutline"
+                                             Width="22" Height="22"
+                                             VerticalAlignment="Center"
+                                             Foreground="{StaticResource Accent}" />
+
+                    <TextBlock Text="{Binding PanelTitle}"
+                               FontSize="17" FontWeight="SemiBold"
+                               Margin="8 0 18 0" VerticalAlignment="Center" />
+
+                    <!-- The Will Call closest to running out: the one number that has to be
+                         readable without opening anything. -->
+                    <Border Background="#FCE8E6" CornerRadius="12" Padding="10 3" Margin="0 0 8 0"
+                            Visibility="{Binding HasMostUrgent, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="PhoneAlert" Width="15" Height="15"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{Binding MostUrgent.CountdownBrush}" />
+                            <TextBlock Text="{Binding PendingActionLabel}" Margin="6 0 5 0"
+                                       FontSize="12" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding MostUrgent.CountdownText}"
+                                       FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{Binding MostUrgent.CountdownBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource AccentSoft}" CornerRadius="12" Padding="10 3" Margin="0 0 8 0">
+                        <TextBlock Text="{Binding InProgressLabel}" FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{StaticResource AccentDeep}" />
+                    </Border>
+
+                    <Border Background="#F1F3F4" CornerRadius="12" Padding="10 3">
+                        <TextBlock Text="{Binding CancelledTodayLabel}" FontSize="12" VerticalAlignment="Center" />
+                    </Border>
+
+                </StackPanel>
+
+                <!-- Searching what is not on screen is a trap: hidden while a notice is
+                     open and while the administration area has the panel. -->
+                <TextBox Grid.Column="1"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                         materialDesign:HintAssist.Hint="{Binding SearchHint}"
+                         MinWidth="180" MaxWidth="360" Margin="20 0"
+                         HorizontalAlignment="Right" VerticalAlignment="Center"
+                         Visibility="{Binding IsListing, Converter={StaticResource BoolToVis}}" />
+
+                <Button Grid.Column="2"
+                        Command="{Binding ToggleWindowCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        ToolTip="{Binding ToggleWindowText}"
+                        VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="{Binding ToggleWindowIcon}" Width="20" Height="20" />
+                </Button>
+
+            </Grid>
+
+            <!-- ===================== Channel health =====================
+                 A hub that is connected but silent looks exactly like a quiet morning.
+                 Without this a dispatcher can watch a dead panel all shift. -->
+            <Border Grid.Row="1" Background="#FEF7E0" BorderBrush="#F9AB00" BorderThickness="1"
+                    CornerRadius="4" Padding="10 6" Margin="12 0 12 6"
+                    Visibility="{Binding IsChannelHealthy, Converter={StaticResource InverseBoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="LanDisconnect" Width="18" Height="18"
+                                             VerticalAlignment="Center" Foreground="#B06000" />
+                    <TextBlock Text="{Binding ChannelStatusText}" Margin="8 0 0 0"
+                               VerticalAlignment="Center" Foreground="#B06000" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== Tabs and toolbar ===================== -->
+            <Grid Grid.Row="2" Margin="12 0 12 0"
+                  Visibility="{Binding IsListing, Converter={StaticResource BoolToVis}}">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Tabs as a wrapping strip: eight of them do not fit on one line on a
+                     small monitor, and a clipped label is a label nobody can read. -->
+                <ItemsControl ItemsSource="{Binding Tabs}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Cursor="Hand"
+                                    Margin="0 0 6 6"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding Data.SelectTabCommand, Source={StaticResource vmProxy}}"
+                                    CommandParameter="{Binding}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+
+                                        <!-- The chip carries the application's purple. Off, it is
+                                             the palest tone of it with a hairline border; on, it is
+                                             the purple itself and everything inside turns white.
+                                             The badge inverts with it so the count never sits red
+                                             on purple, which is the one pair that stops reading at
+                                             a glance. -->
+                                        <Border x:Name="Chip" CornerRadius="14" Padding="12 6"
+                                                Background="{StaticResource AccentSurface}"
+                                                BorderBrush="{StaticResource AccentBorder}"
+                                                BorderThickness="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon x:Name="ChipIcon"
+                                                                         Kind="{Binding Icon}"
+                                                                         Width="15" Height="15"
+                                                                         VerticalAlignment="Center"
+                                                                         Margin="0 0 6 0"
+                                                                         Foreground="{StaticResource AccentDeep}" />
+                                                <TextBlock x:Name="ChipText" Text="{Binding Header}"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{StaticResource AccentText}" />
+                                                <Border x:Name="Badge" Background="{StaticResource Danger}"
+                                                        CornerRadius="8" MinWidth="16" Height="16"
+                                                        Margin="6 0 0 0" Padding="4 0" VerticalAlignment="Center"
+                                                        Visibility="{Binding HasCount, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock x:Name="BadgeText" Text="{Binding Count}" Foreground="White"
+                                                               FontSize="10" FontWeight="Bold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Chip" Property="Background" Value="{StaticResource AccentSoft}" />
+                                                <Setter TargetName="Chip" Property="BorderBrush" Value="#C6B6E8" />
+                                            </Trigger>
+
+                                            <!-- Declared last on purpose: a selected chip that is
+                                                 also hovered stays selected. -->
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter TargetName="Chip" Property="Background" Value="{StaticResource Accent}" />
+                                                <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentStrong}" />
+                                                <Setter TargetName="ChipIcon" Property="Foreground" Value="White" />
+                                                <Setter TargetName="ChipText" Property="Foreground" Value="White" />
+                                                <Setter TargetName="ChipText" Property="FontWeight" Value="SemiBold" />
+                                                <Setter TargetName="Badge" Property="Background" Value="White" />
+                                                <Setter TargetName="BadgeText" Property="Foreground" Value="#B3261E" />
+                                            </DataTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Toolbar: bulk actions on the left, the page counter on the right. -->
+                <Grid Grid.Row="1" Margin="0 2 0 4">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+
+                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding RefreshText}">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" />
+                        </Button>
+
+                        <Button Command="{Binding MarkAllReadCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding MarkAllReadText}">
+                            <materialDesign:PackIcon Kind="EmailOpenOutline" Width="18" Height="18" />
+                        </Button>
+
+                        <Button Command="{Binding MarkAllUnreadCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding MarkAllUnreadText}">
+                            <materialDesign:PackIcon Kind="EmailOutline" Width="18" Height="18" />
+                        </Button>
+
+                        <Button Command="{Binding ExportCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding ExportText}">
+                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" />
+                        </Button>
+
+                        <!-- Personal, not administration: what the live alerts in the corner
+                             are allowed to do while this dispatcher works. -->
+                        <Button Command="{Binding OpenAlertSettingsCommand}"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding AlertSettingsText}">
+                            <materialDesign:PackIcon Kind="BellCogOutline" Width="18" Height="18" />
+                        </Button>
+
+                        <!-- Administration is a place, not a fold-out under the toolbar. Only
+                             an administrator ever sees the way in. -->
+                        <Button Command="{Binding OpenAdminCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding AdminOpenText}"
+                                Visibility="{Binding IsAdmin, Converter={StaticResource BoolToVis}}">
+                            <materialDesign:PackIcon Kind="ShieldAccountOutline" Width="18" Height="18"
+                                                     Foreground="{StaticResource AccentDeep}" />
+                        </Button>
+
+                        <Border Width="1" Background="#DADCE0" Margin="6 8" />
+
+                        <!-- Two hundred notices become about fifty journeys. -->
+                        <ToggleButton IsChecked="{Binding GroupByTrip, Mode=TwoWay}"
+                                      Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                      VerticalAlignment="Center" Margin="6 0 8 0"
+                                      ToolTip="{Binding GroupByTripText}" />
+
+                        <TextBlock Text="{Binding GroupByTripText}" VerticalAlignment="Center"
+                                   FontSize="12" Opacity="0.75" />
+
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <TextBlock Text="{Binding RangeLabel}" VerticalAlignment="Center"
+                                   FontSize="12" Opacity="0.75" Margin="0 0 8 0" />
+
+                        <Button Command="{Binding PreviousPageCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding PreviousText}">
+                            <materialDesign:PackIcon Kind="ChevronLeft" Width="18" Height="18" />
+                        </Button>
+
+                        <Button Command="{Binding NextPageCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding NextText}">
+                            <materialDesign:PackIcon Kind="ChevronRight" Width="18" Height="18" />
+                        </Button>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </Grid>
+
+            <!-- ===================== The list ===================== -->
+            <Grid Grid.Row="3" Margin="12 0 12 0">
+
+                <TextBlock Text="{Binding EmptyListText}" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" Opacity="0.5" TextWrapping="Wrap"
+                           Visibility="{Binding SelectedTab.HasRows, Converter={StaticResource InverseBoolToVis}}" />
+
+                <ListBox x:Name="InboxList"
+                         ItemsSource="{Binding SelectedTab.Items}"
+                         SelectedItem="{Binding SelectedNotification, Mode=TwoWay}"
+                         ItemContainerStyle="{StaticResource InboxRowStyle}"
+                         BorderThickness="0"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         MouseDoubleClick="InboxList_MouseDoubleClick"
+                         KeyDown="InboxList_KeyDown"
+                         Visibility="{Binding IsListing, Converter={StaticResource BoolToVis}}">
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Height="40">
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <!-- Anything not from today shows its date as well, and a
+                                         date and a time do not fit in the width a time needs.
+                                         Clipped at 110: "25/08/2026 11:2". -->
+                                    <ColumnDefinition Width="170" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Severity: the same reading the patient's app gives it. -->
+                                <Border Width="26" Height="26" CornerRadius="13"
+                                        Background="{Binding SeverityBackground}"
+                                        VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="{Binding SeverityIcon}"
+                                                             Width="16" Height="16"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{Binding SeverityBrush}" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding EventName}"
+                                               FontWeight="{Binding FontWeight}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <!-- "4" — the trip's other notices, folded in. -->
+                                    <TextBlock Text="{Binding ThreadCount}" Margin="6 0 0 0"
+                                               Opacity="0.6" FontSize="12"
+                                               Visibility="{Binding HasThread, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                            VerticalAlignment="Center" Margin="10 0">
+                                    <TextBlock Text="{Binding Body}"
+                                               FontWeight="{Binding FontWeight}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding ThreadSummary}" Margin="10 0 0 0"
+                                               Opacity="0.55" TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding HasThread, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="3" Text="{Binding CountdownText}"
+                                           Foreground="{Binding CountdownBrush}" FontWeight="Bold"
+                                           VerticalAlignment="Center" Margin="0 0 10 0"
+                                           Visibility="{Binding HasCountdown, Converter={StaticResource BoolToVis}}" />
+
+                                <!-- The time gives way to the actions when the pointer is on
+                                     the row, exactly as a mail client does it. -->
+                                <Grid Grid.Column="4">
+
+                                    <TextBlock x:Name="RowTime" Text="{Binding TimeLabel}"
+                                               FontWeight="{Binding FontWeight}" FontSize="12"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Margin="0 0 6 0" />
+
+                                    <StackPanel x:Name="RowActions" Orientation="Horizontal"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Visibility="Collapsed">
+
+                                        <Button Style="{StaticResource RowActionStyle}"
+                                                ToolTip="{Binding ArchiveToggleTooltip}"
+                                                Command="{Binding Data.ArchiveCommand, Source={StaticResource vmProxy}}"
+                                                CommandParameter="{Binding}">
+                                            <materialDesign:PackIcon Kind="{Binding ArchiveToggleIcon}" Width="17" Height="17" />
+                                        </Button>
+
+                                        <Button Style="{StaticResource RowActionStyle}"
+                                                ToolTip="{Binding ReadToggleTooltip}"
+                                                Command="{Binding Data.ToggleReadCommand, Source={StaticResource vmProxy}}"
+                                                CommandParameter="{Binding}">
+                                            <materialDesign:PackIcon Kind="{Binding ReadToggleIcon}"
+                                                                     Width="17" Height="17" />
+                                        </Button>
+
+                                    </StackPanel>
+
+                                </Grid>
+
+                            </Grid>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsMouseOver,
+                                                       RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                             Value="True">
+                                    <Setter TargetName="RowTime" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="RowActions" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+
+                </ListBox>
+
+                <!-- ===================== Reading a notice =====================
+                     Everything known about the trip, laid out to be read across the panel
+                     rather than down a narrow strip: what happened at the top, the journey
+                     and the trip's own record on the left, and the people and the vehicle
+                     on the right. The patient and the line are fetched when the notice is
+                     opened — never while the inbox is being scrolled past. -->
+                <Grid Background="White"
+                      Visibility="{Binding IsReading, Converter={StaticResource BoolToVis}}">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Back and the actions on the left, position and movement on the right. -->
+                    <Grid Margin="0 0 0 8">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+
+                            <Button Command="{Binding CloseReadingCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="{Binding BackText}">
+                                <materialDesign:PackIcon Kind="ArrowLeft" Width="20" Height="20" />
+                            </Button>
+
+                            <Border Width="1" Background="#DADCE0" Margin="6 8" />
+
+                            <Button Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="{Binding SelectedNotification.ArchiveToggleTooltip}"
+                                    Command="{Binding ArchiveCommand}"
+                                    CommandParameter="{Binding SelectedNotification}">
+                                <materialDesign:PackIcon Kind="{Binding SelectedNotification.ArchiveToggleIcon}" Width="19" Height="19" />
+                            </Button>
+
+                            <Button Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="{Binding SelectedNotification.ReadToggleTooltip}"
+                                    Command="{Binding ToggleReadCommand}"
+                                    CommandParameter="{Binding SelectedNotification}">
+                                <materialDesign:PackIcon Kind="{Binding SelectedNotification.ReadToggleIcon}"
+                                                         Width="19" Height="19" />
+                            </Button>
+
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+
+                            <TextBlock Text="{Binding ReadingPositionLabel}" VerticalAlignment="Center"
+                                       FontSize="12" Opacity="0.75" Margin="0 0 8 0" />
+
+                            <Button Command="{Binding PreviousMessageCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="{Binding PreviousText}">
+                                <materialDesign:PackIcon Kind="ChevronLeft" Width="18" Height="18" />
+                            </Button>
+
+                            <Button Command="{Binding NextMessageCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="{Binding NextText}">
+                                <materialDesign:PackIcon Kind="ChevronRight" Width="18" Height="18" />
+                            </Button>
+
+                        </StackPanel>
+
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0 0 6 0">
+                        <Grid Margin="0 0 0 14">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="380" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- ===== What happened ===== -->
+                            <Border Grid.ColumnSpan="2"
+                                    Background="{StaticResource AccentSurface}"
+                                    BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                                    CornerRadius="12" Padding="18 16" Margin="0 0 0 12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Width="46" Height="46" CornerRadius="23"
+                                            VerticalAlignment="Top"
+                                            Background="{Binding SelectedNotification.SeverityBackground}">
+                                        <materialDesign:PackIcon Kind="{Binding SelectedNotification.SeverityIcon}"
+                                                                 Width="26" Height="26"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                 Foreground="{Binding SelectedNotification.SeverityBrush}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" Margin="16 0 0 0">
+
+                                        <TextBlock Text="{Binding SelectedNotification.Title}"
+                                                   FontSize="20" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource AccentText}"
+                                                   TextWrapping="Wrap" />
+
+                                        <StackPanel Orientation="Horizontal" Margin="0 4 0 0">
+                                            <TextBlock Text="{Binding SelectedNotification.EventName}"
+                                                       FontSize="12" Opacity="0.8"
+                                                       Foreground="{StaticResource AccentDeep}"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="·" Margin="6 0" Opacity="0.4" FontSize="12" />
+                                            <TextBlock Text="{Binding SelectedNotification.CreatedAtLocal, StringFormat=f}"
+                                                       FontSize="12" Opacity="0.65" />
+                                        </StackPanel>
+
+                                        <TextBlock Text="{Binding SelectedNotification.Body}"
+                                                   TextWrapping="Wrap" Margin="0 12 0 0" FontSize="14" />
+
+                                        <!-- The state of the trip right now, next to what was
+                                             said about it when the notice was raised. They are
+                                             not always the same story. -->
+                                        <WrapPanel Margin="0 12 0 0">
+
+                                            <Border Background="{StaticResource Accent}" CornerRadius="12"
+                                                    Padding="12 4" Margin="0 0 8 0"
+                                                    Visibility="{Binding Detail.HasTrip, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CarInfo" Width="15" Height="15"
+                                                                             VerticalAlignment="Center" Foreground="White" />
+                                                    <TextBlock Text="{Binding Detail.StatusDisplay}" Margin="7 0 0 0"
+                                                               FontSize="12" FontWeight="SemiBold" Foreground="White"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Background="#FEF7E0" BorderBrush="#F1E0AE" BorderThickness="1"
+                                                    CornerRadius="12" Padding="12 4" Margin="0 0 8 0"
+                                                    Visibility="{Binding Detail.HasWillCall, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="PhoneAlert" Width="15" Height="15"
+                                                                             VerticalAlignment="Center" Foreground="#B06000" />
+                                                    <TextBlock Text="Will Call" Margin="7 0 0 0" FontSize="12"
+                                                               FontWeight="SemiBold" Foreground="#B06000"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- ⚠️ The hour the office has to get a vehicle to a
+                                                 patient who said they were ready. -->
+                                            <Border Background="#FCE8E6" CornerRadius="12" Padding="12 4"
+                                                    Visibility="{Binding SelectedNotification.HasCountdown, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="ClockAlertOutline" Width="15" Height="15"
+                                                                             VerticalAlignment="Center"
+                                                                             Foreground="{Binding SelectedNotification.CountdownBrush}" />
+                                                    <TextBlock Text="{Binding DeadlineHeader}" Margin="7 0 5 0"
+                                                               FontSize="12" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding SelectedNotification.CountdownText}"
+                                                               FontSize="12" FontWeight="Bold" VerticalAlignment="Center"
+                                                               Foreground="{Binding SelectedNotification.CountdownBrush}" />
+                                                </StackPanel>
+                                            </Border>
+
+                                        </WrapPanel>
+
+                                        <WrapPanel Margin="0 14 0 0">
+
+                                            <!-- ⚠️ Confirming a Will Call tells the patient the
+                                                 office is arranging their ride. Explicit, always. -->
+                                            <Button Command="{Binding AcknowledgeCommand}"
+                                                    Content="{Binding AcknowledgeText}"
+                                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                                    Margin="0 0 8 0" />
+
+                                            <Button Command="{Binding OpenTripCommand}"
+                                                    Content="{Binding OpenTripText}"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    Foreground="{StaticResource AccentDeep}"
+                                                    BorderBrush="{StaticResource Accent}"
+                                                    Margin="0 0 8 0" />
+
+                                            <Button Command="{Binding CopyTripNumberCommand}"
+                                                    Content="{Binding CopyTripText}"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    Foreground="{StaticResource AccentDeep}"
+                                                    BorderBrush="{StaticResource Accent}" />
+
+                                        </WrapPanel>
+
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Loading and failure, above both columns. -->
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2">
+
+                                <ProgressBar Style="{StaticResource MaterialDesignLinearProgressBar}"
+                                             IsIndeterminate="True" Margin="0 0 0 12"
+                                             Foreground="{StaticResource Accent}"
+                                             Visibility="{Binding Detail.IsLoadingTrip, Converter={StaticResource BoolToVis}}" />
+
+                                <Border Background="#FCE8E6" CornerRadius="8" Padding="12 8" Margin="0 0 0 12"
+                                        Visibility="{Binding Detail.HasError, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="AlertCircleOutline" Width="18" Height="18"
+                                                                 VerticalAlignment="Center" Foreground="#B3261E" />
+                                        <TextBlock Text="{Binding Detail.ErrorMessage}" Margin="10 0 0 0"
+                                                   Foreground="#B3261E" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+
+                            <!-- ===================== Left column ===================== -->
+                            <StackPanel Grid.Row="2" Margin="0 0 12 0"
+                                        Visibility="{Binding Detail.HasTrip, Converter={StaticResource BoolToVis}}">
+
+                                <!-- ===== The journey ===== -->
+                                <Border Style="{StaticResource CardStyle}">
+                                    <StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="MapMarkerPath" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding JourneySectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Pickup mark and the line down to the dropoff. -->
+                                            <Grid Grid.Row="0" Width="14" VerticalAlignment="Stretch" Margin="0 4 12 0">
+                                                <Border Width="12" Height="12" CornerRadius="6"
+                                                        VerticalAlignment="Top" HorizontalAlignment="Center"
+                                                        Background="{StaticResource Accent}" />
+                                                <Border Width="2" Margin="0 14 0 0" HorizontalAlignment="Center"
+                                                        Background="{StaticResource AccentBorder}" />
+                                            </Grid>
+
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="0 0 0 14">
+                                                <TextBlock Text="{Binding PickupLabel}"
+                                                           FontSize="10.5" Opacity="0.55"
+                                                           Foreground="{StaticResource AccentText}" />
+                                                <TextBlock Text="{Binding Detail.PickupDisplay}"
+                                                           FontSize="15" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" Margin="0 2 0 10" />
+                                                <ItemsControl ItemsSource="{Binding Detail.PickupFields}"
+                                                              ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                              ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                            </StackPanel>
+
+                                            <!-- ===== The leg between the two ends =====
+                                                 The dropoff event measures exactly what this
+                                                 line draws: the distance covered with the
+                                                 patient aboard and how long it took. So it is
+                                                 written on the line, not filed in a table. -->
+                                            <Grid Grid.Row="1" Width="14" Margin="0 0 12 0">
+                                                <Border Width="2" HorizontalAlignment="Center"
+                                                        Background="{StaticResource AccentBorder}" />
+                                            </Grid>
+
+                                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal"
+                                                        Margin="0 0 0 14"
+                                                        Visibility="{Binding Detail.HasLeg, Converter={StaticResource BoolToVis}}">
+
+                                                <Border Background="{StaticResource AccentSoft}"
+                                                        BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                                                        CornerRadius="12" Padding="11 4" Margin="0 0 8 0"
+                                                        Visibility="{Binding Detail.HasLegDistance, Converter={StaticResource BoolToVis}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="MapMarkerDistance"
+                                                                                 Width="15" Height="15"
+                                                                                 VerticalAlignment="Center"
+                                                                                 Foreground="{StaticResource AccentDeep}" />
+                                                        <TextBlock Text="{Binding Detail.LegDistanceDisplay}"
+                                                                   Margin="7 0 0 0" FontSize="12" FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource AccentDeep}" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Background="{StaticResource AccentSoft}"
+                                                        BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                                                        CornerRadius="12" Padding="11 4"
+                                                        Visibility="{Binding Detail.HasLegTravel, Converter={StaticResource BoolToVis}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="ClockFast"
+                                                                                 Width="15" Height="15"
+                                                                                 VerticalAlignment="Center"
+                                                                                 Foreground="{StaticResource AccentDeep}" />
+                                                        <TextBlock Text="{Binding Detail.LegTravelDisplay}"
+                                                                   Margin="7 0 0 0" FontSize="12" FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource AccentDeep}" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                            </StackPanel>
+
+                                            <Grid Grid.Row="2" Width="14" Margin="0 4 12 0" VerticalAlignment="Top">
+                                                <Border Width="12" Height="12" CornerRadius="6"
+                                                        VerticalAlignment="Top" HorizontalAlignment="Center"
+                                                        Background="{StaticResource AccentDeep}" />
+                                            </Grid>
+
+                                            <StackPanel Grid.Row="2" Grid.Column="1">
+                                                <TextBlock Text="{Binding DropoffLabel}"
+                                                           FontSize="10.5" Opacity="0.55"
+                                                           Foreground="{StaticResource AccentText}" />
+                                                <TextBlock Text="{Binding Detail.DropoffDisplay}"
+                                                           FontSize="15" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" Margin="0 2 0 10" />
+                                                <ItemsControl ItemsSource="{Binding Detail.DropoffFields}"
+                                                              ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                              ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                            </StackPanel>
+
+                                        </Grid>
+
+                                        <ProgressBar Style="{StaticResource MaterialDesignLinearProgressBar}"
+                                                     IsIndeterminate="True" Margin="26 6 0 0" Height="3"
+                                                     Foreground="{StaticResource Accent}"
+                                                     Visibility="{Binding Detail.IsLoadingSchedules, Converter={StaticResource BoolToVis}}" />
+
+                                        <Border Height="1" Background="#EDEAF4" Margin="0 6 0 12" />
+
+                                        <TextBlock Text="{Binding Detail.ScheduleDisplay}"
+                                                   FontSize="13" Foreground="{StaticResource AccentDeep}"
+                                                   FontWeight="SemiBold" TextWrapping="Wrap" />
+
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== The trip's own record ===== -->
+                                <Border Style="{StaticResource CardStyle}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="ClipboardTextOutline" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding TripDataSectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding Detail.TripFields}"
+                                                      ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                      ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Billing ===== -->
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.HasBilling, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="CurrencyUsd" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding BillingSectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding Detail.BillingFields}"
+                                                      ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                      ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Everything else this trip raised ===== -->
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding SelectedNotification.HasThread, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="TimelineTextOutline" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding ThreadHeaderText}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding SelectedNotification.Thread}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0 0 0 8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="90" />
+                                                            <ColumnDefinition Width="170" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding TimeLabel}" Opacity="0.6" FontSize="12" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding EventName}" FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{StaticResource AccentDeep}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Body}" FontSize="12"
+                                                                   Opacity="0.8" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+
+                            <!-- ===================== Right column =====================
+                                 The people. Fixed width: names, phone numbers and plates are
+                                 short, and letting them stretch across a wide monitor puts a
+                                 metre of white space between a label and its value. -->
+                            <StackPanel Grid.Row="2" Grid.Column="1" Width="380"
+                                        Visibility="{Binding Detail.HasTrip, Converter={StaticResource BoolToVis}}">
+
+                                <!-- ===== Patient ===== -->
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.IsLoadingCustomer, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                                     IsIndeterminate="True" Width="18" Height="18"
+                                                     Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LoadingPatientText}" Margin="12 0 0 0"
+                                                   FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.HasPatient, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="AccountHeartOutline" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding PatientLabel}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding Detail.PatientFields}"
+                                                      ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                      ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Driver ===== -->
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.IsLoadingRoute, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                                     IsIndeterminate="True" Width="18" Height="18"
+                                                     Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LoadingLineText}" Margin="12 0 0 0"
+                                                   FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.HasDriver, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="CardAccountDetailsOutline" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding DriverSectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding Detail.DriverFields}"
+                                                      ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                      ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== Vehicle ===== -->
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.HasVehicle, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="VanUtility" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding VehicleSectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding Detail.VehicleFields}"
+                                                      ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                      ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ===== The line ===== -->
+                                <Border Style="{StaticResource CardStyle}"
+                                        Visibility="{Binding Detail.HasLine, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 0 0 14">
+                                            <materialDesign:PackIcon Kind="RoutesClock" Style="{StaticResource CardIconStyle}" />
+                                            <TextBlock Text="{Binding LineSectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" Margin="0" />
+                                        </StackPanel>
+
+                                        <ItemsControl ItemsSource="{Binding Detail.LineFields}"
+                                                      ItemTemplate="{StaticResource DetailFieldTemplate}"
+                                                      ItemsPanel="{StaticResource DetailFieldPanel}" />
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+
+                        </Grid>
+                    </ScrollViewer>
+
+                </Grid>
+
+
+                <!-- ===================== Administration =====================
+                     Its own place, over the inbox, the same way a notice being read takes
+                     the panel. It used to be a fold-out strip above the list: opening it
+                     pushed the inbox down the screen, and the four jobs it does — watching
+                     the channel, switching notices off, keeping records, reading the trail —
+                     were one column of paragraphs where the harmless action and the
+                     irreversible one looked exactly alike.
+
+                     Each section is fetched the first time it is opened. The kept records
+                     are the one list with no ceiling; nobody should pay for them just by
+                     being an administrator. -->
+                <Grid Background="White"
+                      Visibility="{Binding IsAdminOpen, Converter={StaticResource BoolToVis}}">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- ===== Header: the way back, where you are, and reload ===== -->
+                    <Border Background="{StaticResource AccentSurface}"
+                            BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                            CornerRadius="10" Padding="8 6" Margin="0 0 0 10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button Command="{Binding CloseAdminCommand}"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    ToolTip="{Binding AdminBackText}"
+                                    VerticalAlignment="Center">
+                                <materialDesign:PackIcon Kind="ArrowLeft" Width="20" Height="20" />
+                            </Button>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                        VerticalAlignment="Center" Margin="8 0 0 0">
+
+                                <materialDesign:PackIcon Kind="ShieldAccountOutline"
+                                                         Width="20" Height="20"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{StaticResource Accent}" />
+
+                                <TextBlock Text="{Binding AdminSectionTitle}"
+                                           FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentText}"
+                                           Margin="8 0 0 0" VerticalAlignment="Center" />
+
+                                <materialDesign:PackIcon Kind="ChevronRight" Width="16" Height="16"
+                                                         Opacity="0.45" Margin="6 0 4 0"
+                                                         VerticalAlignment="Center" />
+
+                                <TextBlock Text="{Binding AdminSectionHeader}"
+                                           FontSize="14" Opacity="0.85"
+                                           VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+
+                                <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                             IsIndeterminate="True" Width="18" Height="18"
+                                             Margin="0 0 10 0" VerticalAlignment="Center"
+                                             Foreground="{StaticResource Accent}"
+                                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+
+                                <Button Command="{Binding RefreshAdminSectionCommand}"
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        ToolTip="{Binding RefreshText}">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" />
+                                </Button>
+
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- ===== Rail and section ===== -->
+                    <Grid Grid.Row="1">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="216" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border BorderBrush="#EDEAF4" BorderThickness="0 0 1 0" Padding="0 0 10 0">
+                            <StackPanel>
+
+                                <ToggleButton Style="{StaticResource AdminRailItemStyle}"
+                                              IsChecked="{Binding IsChannelSection, Mode=OneWay}"
+                                              Command="{Binding SelectAdminSectionCommand}"
+                                              CommandParameter="CHANNEL">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="LanConnect" Width="18" Height="18"
+                                                                 VerticalAlignment="Center"
+                                                                 Foreground="{StaticResource AccentDeep}" />
+                                        <StackPanel Grid.Column="1" Margin="10 0 0 0">
+                                            <TextBlock Text="{Binding ChannelSectionTitle}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding AdminChannelHint}"
+                                                       FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+                                </ToggleButton>
+
+                                <ToggleButton Style="{StaticResource AdminRailItemStyle}"
+                                              IsChecked="{Binding IsRulesSection, Mode=OneWay}"
+                                              Command="{Binding SelectAdminSectionCommand}"
+                                              CommandParameter="RULES">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="BellCogOutline" Width="18" Height="18"
+                                                                 VerticalAlignment="Center"
+                                                                 Foreground="{StaticResource AccentDeep}" />
+                                        <StackPanel Grid.Column="1" Margin="10 0 0 0">
+                                            <TextBlock Text="{Binding RulesSectionTitle}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding AdminRulesHint}"
+                                                       FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+                                </ToggleButton>
+
+                                <ToggleButton Style="{StaticResource AdminRailItemStyle}"
+                                              IsChecked="{Binding IsArchivedSection, Mode=OneWay}"
+                                              Command="{Binding SelectAdminSectionCommand}"
+                                              CommandParameter="ARCHIVED">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="ArchiveOutline" Width="18" Height="18"
+                                                                 VerticalAlignment="Center"
+                                                                 Foreground="{StaticResource AccentDeep}" />
+                                        <StackPanel Grid.Column="1" Margin="10 0 0 0">
+                                            <TextBlock Text="{Binding ArchivedSectionTitle}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding AdminArchivedHint}"
+                                                       FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+                                </ToggleButton>
+
+                                <ToggleButton Style="{StaticResource AdminRailItemStyle}"
+                                              IsChecked="{Binding IsAuditSection, Mode=OneWay}"
+                                              Command="{Binding SelectAdminSectionCommand}"
+                                              CommandParameter="AUDIT">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="History" Width="18" Height="18"
+                                                                 VerticalAlignment="Center"
+                                                                 Foreground="{StaticResource AccentDeep}" />
+                                        <StackPanel Grid.Column="1" Margin="10 0 0 0">
+                                            <TextBlock Text="{Binding AuditSectionTitle}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding AdminAuditHint}"
+                                                       FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Grid>
+                                </ToggleButton>
+
+                            </StackPanel>
+                        </Border>
+
+                        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                                      Margin="16 0 2 0">
+                            <Grid>
+
+                                <!-- ===== Channel ===== -->
+                                <StackPanel Visibility="{Binding IsChannelSection, Converter={StaticResource BoolToVis}}">
+
+                                    <Border Style="{StaticResource CardStyle}">
+                                        <StackPanel>
+
+                                            <TextBlock Text="{Binding ChannelSectionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" />
+
+                                            <Border CornerRadius="14" Padding="12 6" HorizontalAlignment="Left"
+                                                    Background="#E6F4EA"
+                                                    Visibility="{Binding IsChannelHealthy, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CheckCircleOutline"
+                                                                             Width="17" Height="17"
+                                                                             VerticalAlignment="Center"
+                                                                             Foreground="#1E8E3E" />
+                                                    <TextBlock Text="{Binding ChannelStatusText}" Margin="8 0 0 0"
+                                                               VerticalAlignment="Center" Foreground="#1E8E3E"
+                                                               FontWeight="SemiBold" FontSize="12" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border CornerRadius="14" Padding="12 6" HorizontalAlignment="Left"
+                                                    Background="#FCE8E6"
+                                                    Visibility="{Binding IsChannelHealthy, Converter={StaticResource InverseBoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="AlertCircleOutline"
+                                                                             Width="17" Height="17"
+                                                                             VerticalAlignment="Center"
+                                                                             Foreground="#B3261E" />
+                                                    <TextBlock Text="{Binding ChannelStatusText}" Margin="8 0 0 0"
+                                                               VerticalAlignment="Center" Foreground="#B3261E"
+                                                               FontWeight="SemiBold" FontSize="12" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <TextBlock Text="{Binding ChannelDiagnosticsText}"
+                                                       Margin="0 12 0 0" FontSize="12" Opacity="0.8"
+                                                       TextWrapping="Wrap" />
+
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- The failure this section exists for: a hub that is
+                                         connected and delivering nothing looks healthy. -->
+                                    <Border Style="{StaticResource CardStyle}"
+                                            Background="#FFFCF2" BorderBrush="#F1E0AE">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="InformationOutline"
+                                                                     Width="18" Height="18"
+                                                                     Foreground="#B06000"
+                                                                     VerticalAlignment="Top" Margin="0 2 0 0" />
+                                            <TextBlock Text="{Binding AdminChannelExplainText}"
+                                                       Margin="10 0 0 0" FontSize="12"
+                                                       TextWrapping="Wrap" Foreground="#7A5300" />
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+
+                                <!-- ===== Rules ===== -->
+                                <StackPanel Visibility="{Binding IsRulesSection, Converter={StaticResource BoolToVis}}">
+
+                                    <Border Style="{StaticResource CardStyle}"
+                                            Background="#FEF7E0" BorderBrush="#F1E0AE">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="AlertCircleOutline"
+                                                                     Width="18" Height="18"
+                                                                     Foreground="#B06000"
+                                                                     VerticalAlignment="Top" Margin="0 2 0 0" />
+                                            <TextBlock Text="{Binding RulesWarningText}"
+                                                       Margin="10 0 0 0" FontSize="12"
+                                                       TextWrapping="Wrap" Foreground="#7A5300" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource CardStyle}">
+                                        <StackPanel>
+
+                                            <Grid Margin="0 0 0 10">
+                                                <TextBlock Text="{Binding RulesSectionTitle}"
+                                                           Style="{StaticResource CardTitleStyle}"
+                                                           Margin="0" />
+                                                <TextBlock Text="{Binding RulesCountLabel}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                           FontSize="12" Opacity="0.65" />
+                                            </Grid>
+
+                                            <TextBlock Text="{Binding NoRulesText}"
+                                                       Style="{StaticResource CardHintStyle}"
+                                                       Visibility="{Binding HasRules, Converter={StaticResource InverseBoolToVis}}" />
+
+                                            <ItemsControl ItemsSource="{Binding EventToggles}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{StaticResource AccentSurface}"
+                                                                BorderBrush="{StaticResource AccentBorder}"
+                                                                BorderThickness="1" CornerRadius="8"
+                                                                Padding="12 8" Margin="0 0 0 6">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <ToggleButton IsChecked="{Binding IsActive, Mode=TwoWay}"
+                                                                              IsEnabled="{Binding IsNotBusy}"
+                                                                              Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                                                              VerticalAlignment="Center" />
+
+                                                                <StackPanel Grid.Column="1" Margin="16 0 0 0"
+                                                                            VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Name}"
+                                                                               FontWeight="SemiBold" FontSize="13"
+                                                                               Foreground="{StaticResource AccentText}"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Text="{Binding AudiencesLabel}"
+                                                                               FontSize="11" Opacity="0.6" />
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+
+                                <!-- ===== Kept records ===== -->
+                                <StackPanel Visibility="{Binding IsArchivedSection, Converter={StaticResource BoolToVis}}">
+
+                                    <!-- Cleanup first: it explains why the list below is the
+                                         only one that never shrinks on its own. -->
+                                    <Border Style="{StaticResource CardStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding AdminRetentionTitle}"
+                                                       Style="{StaticResource CardTitleStyle}" />
+                                            <TextBlock Text="{Binding RetentionPolicyText}"
+                                                       Style="{StaticResource CardHintStyle}" />
+                                            <Button Command="{Binding RunRetentionCommand}"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    Foreground="{StaticResource AccentDeep}"
+                                                    BorderBrush="{StaticResource Accent}"
+                                                    HorizontalAlignment="Left">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Broom" Width="17" Height="17"
+                                                                             VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding RunRetentionText}" Margin="8 0 0 0" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource CardStyle}">
+                                        <StackPanel>
+
+                                            <Grid Margin="0 0 0 6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding ArchivedSectionTitle}"
+                                                               Style="{StaticResource CardTitleStyle}"
+                                                               Margin="0" VerticalAlignment="Center" />
+                                                    <Border Background="{StaticResource AccentSoft}" CornerRadius="10"
+                                                            Padding="9 2" Margin="10 0 0 0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding ArchivedTotalLabel}" FontSize="11"
+                                                                   Foreground="{StaticResource AccentDeep}" />
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- ⚠️ Undoes every decision anybody made to keep
+                                                     a record. Alone on the right, away from the
+                                                     rest, and red. -->
+                                                <Button Command="{Binding DeleteAllArchivedCommand}"
+                                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                        Content="{Binding DeleteAllArchivedText}"
+                                                        Foreground="{StaticResource Danger}"
+                                                        BorderBrush="{StaticResource Danger}"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                        Height="30" Padding="12 0" FontSize="12" />
+                                            </Grid>
+
+                                            <TextBlock Text="{Binding ArchivedWarningText}"
+                                                       Style="{StaticResource CardHintStyle}" />
+
+                                            <TextBlock Text="{Binding NoArchivedText}"
+                                                       Style="{StaticResource CardHintStyle}"
+                                                       Visibility="{Binding HasArchived, Converter={StaticResource InverseBoolToVis}}" />
+
+                                            <ItemsControl ItemsSource="{Binding ArchivedGroups}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0 0 0 10">
+
+                                                            <ToggleButton x:Name="GroupToggle" IsChecked="True"
+                                                                          Style="{StaticResource AdminGroupHeaderStyle}">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <materialDesign:PackIcon x:Name="Chevron"
+                                                                                             Kind="ChevronDown"
+                                                                                             Width="17" Height="17"
+                                                                                             VerticalAlignment="Center"
+                                                                                             Foreground="{StaticResource AccentDeep}" />
+
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Audience}"
+                                                                               Margin="8 0 0 0" FontWeight="SemiBold"
+                                                                               FontSize="13" VerticalAlignment="Center"
+                                                                               Foreground="{StaticResource AccentText}" />
+
+                                                                    <Border Grid.Column="2" Background="White"
+                                                                            BorderBrush="{StaticResource AccentBorder}"
+                                                                            BorderThickness="1" CornerRadius="10"
+                                                                            Padding="9 1" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding Count}" FontSize="11"
+                                                                                   Foreground="{StaticResource AccentDeep}" />
+                                                                    </Border>
+                                                                </Grid>
+                                                            </ToggleButton>
+
+                                                            <ItemsControl ItemsSource="{Binding Items}" Margin="12 6 0 0"
+                                                                          Visibility="{Binding IsChecked, ElementName=GroupToggle,
+                                                                                       Converter={StaticResource BoolToVis}}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border Background="#FAFAFC" CornerRadius="6"
+                                                                                Padding="10 6" Margin="0 0 0 4">
+                                                                            <Grid>
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="130" />
+                                                                                    <ColumnDefinition Width="*" />
+                                                                                    <ColumnDefinition Width="150" />
+                                                                                    <ColumnDefinition Width="Auto" />
+                                                                                </Grid.ColumnDefinitions>
+
+                                                                                <!-- The dispatcher's own clock. The
+                                                                                     column stores UTC. -->
+                                                                                <TextBlock Text="{Binding CreatedAtUtc,
+                                                                                                  Converter={StaticResource UtcToLocal},
+                                                                                                  StringFormat=g}"
+                                                                                           FontSize="12" Opacity="0.6"
+                                                                                           VerticalAlignment="Center" />
+
+                                                                                <TextBlock Grid.Column="1" Text="{Binding Message}"
+                                                                                           ToolTip="{Binding Title}"
+                                                                                           FontSize="12" Margin="8 0"
+                                                                                           TextTrimming="CharacterEllipsis"
+                                                                                           VerticalAlignment="Center" />
+
+                                                                                <TextBlock Grid.Column="2" Text="{Binding ArchivedByUsername}"
+                                                                                           FontSize="11" Opacity="0.7"
+                                                                                           TextTrimming="CharacterEllipsis"
+                                                                                           VerticalAlignment="Center" />
+
+                                                                                <Button Grid.Column="3"
+                                                                                        Style="{StaticResource RowActionStyle}"
+                                                                                        Foreground="{StaticResource Danger}"
+                                                                                        ToolTip="{Binding Data.DeleteArchivedText,
+                                                                                                  Source={StaticResource vmProxy}}"
+                                                                                        Command="{Binding Data.DeleteArchivedCommand,
+                                                                                                  Source={StaticResource vmProxy}}"
+                                                                                        CommandParameter="{Binding}">
+                                                                                    <materialDesign:PackIcon Kind="DeleteForeverOutline"
+                                                                                                             Width="17" Height="17" />
+                                                                                </Button>
+                                                                            </Grid>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+
+                                                        </StackPanel>
+
+                                                        <DataTemplate.Triggers>
+                                                            <Trigger SourceName="GroupToggle" Property="ToggleButton.IsChecked" Value="False">
+                                                                <Setter TargetName="Chevron" Property="Kind" Value="ChevronRight" />
+                                                            </Trigger>
+                                                        </DataTemplate.Triggers>
+
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+
+                                <!-- ===== Who did what ===== -->
+                                <StackPanel Visibility="{Binding IsAuditSection, Converter={StaticResource BoolToVis}}">
+
+                                    <Border Style="{StaticResource CardStyle}">
+                                        <StackPanel>
+
+                                            <Grid Margin="0 0 0 10">
+                                                <TextBlock Text="{Binding AuditSectionTitle}"
+                                                           Style="{StaticResource CardTitleStyle}"
+                                                           Margin="0" />
+                                                <TextBlock Text="{Binding AuditCountLabel}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                           FontSize="12" Opacity="0.65" />
+                                            </Grid>
+
+                                            <Grid Margin="10 0 10 6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140" />
+                                                    <ColumnDefinition Width="170" />
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding AdminWhenColumn}" Style="{StaticResource AdminColumnHeaderStyle}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding AdminActionColumn}" Style="{StaticResource AdminColumnHeaderStyle}" />
+                                                <TextBlock Grid.Column="2" Text="{Binding AdminWhoColumn}" Style="{StaticResource AdminColumnHeaderStyle}" />
+                                                <TextBlock Grid.Column="3" Text="{Binding AdminDetailsColumn}" Style="{StaticResource AdminColumnHeaderStyle}" />
+                                            </Grid>
+
+                                            <Border Height="1" Background="{StaticResource AccentBorder}" Margin="0 0 0 6" />
+
+                                            <TextBlock Text="{Binding NoAuditText}"
+                                                       Style="{StaticResource CardHintStyle}"
+                                                       Visibility="{Binding HasAudit, Converter={StaticResource InverseBoolToVis}}" />
+
+                                            <ItemsControl ItemsSource="{Binding Audit}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#FAFAFC" CornerRadius="6"
+                                                                Padding="10 7" Margin="0 0 0 4">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="140" />
+                                                                    <ColumnDefinition Width="170" />
+                                                                    <ColumnDefinition Width="150" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Text="{Binding PerformedAtUtc,
+                                                                                  Converter={StaticResource UtcToLocal},
+                                                                                  StringFormat=g}"
+                                                                           FontSize="12" Opacity="0.6" />
+
+                                                                <TextBlock Grid.Column="1" Text="{Binding Action}"
+                                                                           FontSize="12" FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource AccentDeep}"
+                                                                           TextTrimming="CharacterEllipsis" />
+
+                                                                <TextBlock Grid.Column="2" Text="{Binding PerformedByUsername}"
+                                                                           FontSize="12"
+                                                                           TextTrimming="CharacterEllipsis" />
+
+                                                                <TextBlock Grid.Column="3" Text="{Binding Details}"
+                                                                           FontSize="12" Opacity="0.7"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                        </StackPanel>
+                                    </Border>
+
+                                </StackPanel>
+
+                            </Grid>
+                        </ScrollViewer>
+
+                    </Grid>
+
+                    <!-- ===== What just happened ===== -->
+                    <Border Grid.Row="2" Background="{StaticResource AccentSoft}"
+                            BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                            CornerRadius="8" Padding="12 8" Margin="0 10 0 8"
+                            Visibility="{Binding HasAdminMessage, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="InformationOutline" Width="18" Height="18"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{StaticResource AccentDeep}" />
+                            <TextBlock Text="{Binding AdminMessage}" Margin="10 0 0 0"
+                                       VerticalAlignment="Center" TextWrapping="Wrap"
+                                       Foreground="{StaticResource AccentText}" />
+                        </StackPanel>
+                    </Border>
+
+                </Grid>
+
+            </Grid>
+        </Grid>
+
+    </Border>
+
+</UserControl>
