@@ -6,6 +6,7 @@ using Raphael.Desktop.Commands;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.Views;
 
 namespace Raphael.Desktop.ViewModels
@@ -91,6 +92,14 @@ namespace Raphael.Desktop.ViewModels
         public string MenuLogout =>
             LocalizationService.Instance["MenuLogout"];
 
+        public string NotificationCenterText =>
+            LocalizationService.Instance["NotificationCenter"];
+
+        public string PendingActionText =>
+            string.Format(
+                LocalizationService.Instance["NotificationPendingAction"],
+                PendingActionCount);
+
 
         private ObservableCollection<LanguageOption> _languages;
 
@@ -154,44 +163,39 @@ namespace Raphael.Desktop.ViewModels
 
         #region Notifications
 
-        private NotificationApiClient? _notificationApiClient;
+        // The inbox itself lives in INotificationService. This view model only draws the
+        // badge and opens the panel: keeping a second collection here is how the counter
+        // and the list drift apart.
 
-        private NotificationSignalRService? _notificationSignalRService;
+        private INotificationService? _notificationService;
 
-        private readonly ObservableCollection<NotificationDto>
-            _notifications =
-                new ObservableCollection<NotificationDto>();
+        private Action<NotificationDto>? _showNotificationAlert;
 
-        public ReadOnlyObservableCollection<NotificationDto>
-            Notifications
-        { get; }
+        private Action? _openNotificationCenter;
 
-        private int _unreadNotificationsCount;
-
-        public int UnreadNotificationsCount
-        {
-            get => _unreadNotificationsCount;
-
-            private set
-            {
-                if (SetProperty(
-                    ref _unreadNotificationsCount,
-                    value))
-                {
-                    OnPropertyChanged(
-                        nameof(UnreadNotificationsVisibility));
-                }
-            }
-        }
+        public int UnreadNotificationsCount =>
+            _notificationService?.UnreadCount ?? 0;
 
         public Visibility UnreadNotificationsVisibility =>
             UnreadNotificationsCount > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-        private Func<
-            NotificationDto,
-            Task>? _showNotificationToastAsync;
+        /// <summary>
+        /// Notices still waiting for somebody in the office to take charge.
+        /// </summary>
+        /// <remarks>
+        /// Shown apart from the unread count on purpose. "Nobody has looked at it" and
+        /// "nobody has taken it" are different facts, and only the second one has a patient
+        /// waiting in a clinic behind it.
+        /// </remarks>
+        public int PendingActionCount =>
+            _notificationService?.PendingActionCount ?? 0;
+
+        public Visibility PendingActionVisibility =>
+            PendingActionCount > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
         #endregion
 
@@ -227,10 +231,6 @@ namespace Raphael.Desktop.ViewModels
             OpenNotificationCenterCommand =
                 new RelayCommand(
                     OpenNotificationCenter);
-
-            Notifications =
-                new ReadOnlyObservableCollection<NotificationDto>(
-                    _notifications);
 
             Languages =
                 new ObservableCollection<LanguageOption>
@@ -293,33 +293,44 @@ namespace Raphael.Desktop.ViewModels
         #region Notifications
 
         public void InitializeNotifications(
-            NotificationApiClient notificationApiClient,
-            NotificationSignalRService notificationSignalRService,
-            Func<NotificationDto, Task> showNotificationToastAsync)
+            INotificationService notificationService,
+            Action openNotificationCenter,
+            Action<NotificationDto> showNotificationAlert)
         {
-            _notificationApiClient =
-                notificationApiClient;
+            _notificationService = notificationService;
 
-            _notificationSignalRService =
-                notificationSignalRService;
+            _openNotificationCenter = openNotificationCenter;
 
-            _showNotificationToastAsync =
-                showNotificationToastAsync;
+            _showNotificationAlert = showNotificationAlert;
+
+            _notificationService.NotificationsChanged +=
+                (_, _) => RaiseNotificationCounters();
+
+            _notificationService.ReadStateChanged +=
+                (_, _) => RaiseNotificationCounters();
+
+            // Arrives on the SignalR thread; the alert stack lives on the interface one.
+            _notificationService.NotificationReceived +=
+                (_, notification) =>
+                {
+                    if (_showNotificationAlert is null)
+                        return;
+
+                    Application.Current?.Dispatcher.Invoke(
+                        () => _showNotificationAlert(notification));
+                };
         }
 
         public async Task StartNotificationsAsync()
         {
-            if (_notificationApiClient == null ||
-                _notificationSignalRService == null)
-            {
+            if (_notificationService == null)
                 return;
-            }
 
             try
             {
-                await RefreshNotificationsAsync();
+                await _notificationService.InitializeAsync();
 
-                await _notificationSignalRService.StartAsync();
+                RaiseNotificationCounters();
             }
             catch
             {
@@ -328,114 +339,28 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
-        public async Task RefreshNotificationsAsync()
+        public async Task StopNotificationsAsync()
         {
-            if (_notificationApiClient == null)
+            if (_notificationService == null)
                 return;
 
-            try
-            {
-                var notifications =
-                    await _notificationApiClient
-                        .GetNotificationsAsync();
-
-                Application.Current.Dispatcher.Invoke(
-                    () =>
-                    {
-                        _notifications.Clear();
-
-                        foreach (var notification in notifications)
-                        {
-                            _notifications.Add(notification);
-                        }
-
-                        UpdateUnreadCount();
-                    });
-            }
-            catch
-            {
-                // Ignore notification loading errors.
-            }
+            await _notificationService.StopAsync();
         }
 
-        public async Task HandleNotificationReceivedAsync(
-            NotificationDto notification)
+        private void RaiseNotificationCounters()
         {
-            if (notification == null)
-                return;
-
-            var existing =
-                _notifications.FirstOrDefault(
-                    x => x.Id == notification.Id);
-
-            if (existing != null)
-            {
-                _notifications.Remove(existing);
-            }
-
-            _notifications.Insert(
-                0,
-                notification);
-
-            UpdateUnreadCount();
-
-            if (_showNotificationToastAsync != null)
-            {
-                await _showNotificationToastAsync(
-                    notification);
-            }
-        }
-
-        public void HandleNotificationViewed(
-            Guid notificationRecipientId)
-        {
-            UpdateUnreadCount();
-        }
-
-        public void HandleNotificationAcknowledged(
-            Guid notificationRecipientId)
-        {
-            UpdateUnreadCount();
-        }
-
-        private void UpdateUnreadCount()
-        {
-            UnreadNotificationsCount =
-                _notifications
-                    .SelectMany(
-                        n => n.Recipients)
-                    .Count(
-                        r =>
-                            !r.IsViewed &&
-                            !r.IsAcknowledged);
+            OnPropertyChanged(nameof(UnreadNotificationsCount));
+            OnPropertyChanged(nameof(UnreadNotificationsVisibility));
+            OnPropertyChanged(nameof(PendingActionCount));
+            OnPropertyChanged(nameof(PendingActionVisibility));
+            OnPropertyChanged(nameof(PendingActionText));
         }
 
         private void OpenNotificationCenter()
         {
-            if (_notifications.Count == 0)
-            {
-                MessageBox.Show(
-                    "There are no notifications.",
-                    "Notifications",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-
-                return;
-            }
-
-            var message =
-                string.Join(
-                    Environment.NewLine +
-                    Environment.NewLine,
-                    _notifications.Select(
-                        n =>
-                            $"{n.Title}\n{n.Message}"));
-
-            MessageBox.Show(
-                message,
-                "Notification Center",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            // The panel is a tab like any other, so the main window owns the opening: it
+            // is the one that knows the tab strip.
+            _openNotificationCenter?.Invoke();
         }
 
         #endregion

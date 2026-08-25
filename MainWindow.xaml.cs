@@ -13,8 +13,10 @@ using System.Windows.Threading;
 using MaterialDesignThemes.Wpf;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.ViewModels;
 using Raphael.Desktop.Views;
+using Raphael.Desktop.Views.Notifications;
 
 namespace Raphael.Desktop
 {
@@ -26,12 +28,22 @@ namespace Raphael.Desktop
         private readonly DispatcherTimer themeTimer;
         private int tabCounter = 1;
 
-        private readonly NotificationApiClient _notificationApiClient;
-        private readonly NotificationSignalRService _notificationSignalRService;
+        private readonly INotificationService _notificationService;
+        private readonly NotificationTextService _notificationTextService;
 
         private readonly MainWindowViewModel _viewModel;
 
-        private DispatcherTimer? _notificationToastTimer;
+
+        private NotificationCenterView? _notificationCenter;
+        private NotificationCenterWindow? _notificationCenterWindow;
+        private NotificationToastViewModel? _toasts;
+        private NotificationAlertWindow? _notificationAlertWindow;
+
+        /// <summary>
+        /// Shutting down closes the owned panel window, which asks for the panel back.
+        /// Without this flag the application would try to open a tab on its way out.
+        /// </summary>
+        private bool _isClosing;
 
         public MainWindow()
         {
@@ -42,28 +54,38 @@ namespace Raphael.Desktop
             _viewModel = new MainWindowViewModel();
             DataContext = _viewModel;
 
-            _notificationApiClient = new NotificationApiClient();
-            _notificationSignalRService = new NotificationSignalRService();
+            // One inbox for the whole application: the bell badge and the Notification
+            // Center read the same list, so they cannot disagree.
+            _notificationService = new NotificationService(
+                new NotificationApiClient(),
+                new NotificationSignalRService(),
+                new LocalNotificationReadStateStore());
 
-            _notificationSignalRService.NotificationReceived +=
-                NotificationSignalRService_NotificationReceived;
+            _notificationTextService = new NotificationTextService();
 
-            _notificationSignalRService.NotificationsRefreshRequested +=
-                NotificationSignalRService_NotificationsRefreshRequested;
+            _toasts = new NotificationToastViewModel(
+                _notificationTextService,
+                ShowNotificationInCenter,
+                OpenNotificationCenter,
+                IsNotificationCenterInFront,
+                () => NativeWindowInterop.FlashTaskbar(this));
 
-            _notificationSignalRService.NotificationViewed +=
-                NotificationSignalRService_NotificationViewed;
+            NotificationToastHostControl.DataContext = _toasts.Inline;
 
-            _notificationSignalRService.NotificationAcknowledged +=
-                NotificationSignalRService_NotificationAcknowledged;
+            // The floating window is built once and hides itself while there is nothing to
+            // show, instead of being created and destroyed per alert.
+            _notificationAlertWindow = new NotificationAlertWindow(this, _toasts.Floating);
 
-            _notificationSignalRService.ConnectionError +=
-                NotificationSignalRService_ConnectionError;
+            _notificationAlertWindow.FootprintChanged +=
+                (_, height) => LiftInlineAlerts(height);
+
+            // Whatever the taskbar was blinking about, the dispatcher is here now.
+            Activated += (_, _) => NativeWindowInterop.StopFlashing(this);
 
             _viewModel.InitializeNotifications(
-                _notificationApiClient,
-                _notificationSignalRService,
-                ShowNotificationToastAsync);
+                _notificationService,
+                OpenNotificationCenter,
+                _toasts.Show);
 
             string currentRole = SessionManager.Role;
             bool IsDriver = currentRole == "2";
@@ -72,6 +94,7 @@ namespace Raphael.Desktop
             else
                 OpenHomeView(null, null); // Load HomeView by default
             this.Loaded += MainWindow_Loaded;
+            this.Closing += (_, _) => _isClosing = true;
             this.Closed += MainWindow_Closed;
 
             /*UpdateTheme();
@@ -104,8 +127,17 @@ namespace Raphael.Desktop
         {
             try
             {
-                await _notificationSignalRService.StopAsync();
-                await _notificationSignalRService.DisposeAsync();
+                _notificationCenterWindow?.Close();
+
+                // No owner, so nothing else would ever close it — and an open window with
+                // no owner keeps the process alive after the main one is gone.
+                _notificationAlertWindow?.Shutdown();
+
+                _toasts?.Close();
+
+                _notificationCenter?.ViewModel.Close();
+
+                await _viewModel.StopNotificationsAsync();
             }
             catch
             {
@@ -113,133 +145,208 @@ namespace Raphael.Desktop
             }
         }
 
-        private async void NotificationSignalRService_NotificationReceived(
-            object? sender,
-            Models.NotificationDto notification)
-        {
-            if (!Dispatcher.CheckAccess())
-            {
-                await Dispatcher.InvokeAsync(
-                    () => NotificationSignalRService_NotificationReceived(
-                        sender,
-                        notification));
+        #region Notification Center
 
+        /// <summary>
+        /// Opens the Notification Center, or brings it to the front if it is already open.
+        /// </summary>
+        /// <remarks>
+        /// One panel, never two. Two would each keep their own selection over the same
+        /// inbox, and a dispatcher would have no way to tell which one they had acted on.
+        /// </remarks>
+        private void OpenNotificationCenter()
+        {
+            // Already pulled out to its own window: bring that one forward.
+            if (_notificationCenterWindow is not null)
+            {
+                _notificationCenterWindow.Activate();
                 return;
             }
 
-            await _viewModel.HandleNotificationReceivedAsync(
-                notification);
-        }
+            var title = LocalizationService.Instance["NotificationCenter"];
 
-        private async void NotificationSignalRService_NotificationsRefreshRequested(
-            object? sender,
-            EventArgs e)
-        {
-            if (!Dispatcher.CheckAccess())
+            var existing = MainTabControl.Items
+                .OfType<TabItem>()
+                .FirstOrDefault(tab => tab.Tag?.ToString() == title);
+
+            if (existing is not null)
             {
-                await Dispatcher.InvokeAsync(
-                    () => NotificationSignalRService_NotificationsRefreshRequested(
-                        sender,
-                        e));
-
+                MainTabControl.SelectedItem = existing;
                 return;
             }
 
-            await _viewModel.RefreshNotificationsAsync();
+            _notificationCenter ??= CreateNotificationCenter();
+
+            OpenTab(title, _notificationCenter, PackIconKind.BellOutline);
         }
 
-        private void NotificationSignalRService_NotificationViewed(
-            object? sender,
-            Guid notificationRecipientId)
+        private NotificationCenterView CreateNotificationCenter()
         {
-            if (!Dispatcher.CheckAccess())
-            {
-                Dispatcher.Invoke(
-                    () => NotificationSignalRService_NotificationViewed(
-                        sender,
-                        notificationRecipientId));
+            var panel = new NotificationCenterView(
+                _notificationService,
+                _notificationTextService);
 
+            panel.ViewModel.ToggleWindowRequested = ToggleNotificationCenterWindow;
+
+            panel.ViewModel.OpenTripRequested = OpenTripInDispatch;
+
+            panel.ViewModel.AlertSettingsRequested = OpenAlertSettings;
+
+            return panel;
+        }
+
+        /// <summary>
+        /// Moves the panel between a tab and its own window, and back.
+        /// </summary>
+        /// <remarks>
+        /// The very same UserControl instance is handed over, so the selection, the scroll
+        /// position and the trip already loaded survive the move. A UserControl can only
+        /// have one parent, hence the detach before the re-attach.
+        /// </remarks>
+        private void ToggleNotificationCenterWindow()
+        {
+            if (_notificationCenter is null)
+                return;
+
+            if (_notificationCenterWindow is not null)
+            {
+                _notificationCenterWindow.Close();
                 return;
             }
 
-            _viewModel.HandleNotificationViewed(
-                notificationRecipientId);
-        }
+            var title = LocalizationService.Instance["NotificationCenter"];
 
-        private void NotificationSignalRService_NotificationAcknowledged(
-            object? sender,
-            Guid notificationRecipientId)
-        {
-            if (!Dispatcher.CheckAccess())
+            var tab = MainTabControl.Items
+                .OfType<TabItem>()
+                .FirstOrDefault(item => item.Tag?.ToString() == title);
+
+            if (tab is not null)
             {
-                Dispatcher.Invoke(
-                    () => NotificationSignalRService_NotificationAcknowledged(
-                        sender,
-                        notificationRecipientId));
+                if (tab.Content is Grid host)
+                    host.Children.Remove(_notificationCenter);
 
-                return;
+                MainTabControl.Items.Remove(tab);
             }
 
-            _viewModel.HandleNotificationAcknowledged(
-                notificationRecipientId);
-        }
+            _notificationCenterWindow =
+                new NotificationCenterWindow(_notificationCenter, this);
 
-        private void NotificationSignalRService_ConnectionError(
-            object? sender,
-            Exception exception)
-        {
-            // Do not display connection errors to the user.
-            // Automatic reconnect is handled by SignalR.
-        }
+            // The pop-out control has to say what it will do, and it is not the same thing
+            // in both places: from a tab it opens a window, from the window it puts the
+            // panel back. Same for its icon.
+            _notificationCenter.ViewModel.IsInOwnWindow = true;
 
-        private async Task ShowNotificationToastAsync(
-            Models.NotificationDto notification)
-        {
-            if (!Dispatcher.CheckAccess())
+            _notificationCenterWindow.ReturnRequested += (_, _) =>
             {
-                await Dispatcher.InvokeAsync(
-                    () => ShowNotificationToastAsync(notification));
+                _notificationCenterWindow = null;
 
-                return;
-            }
+                if (_notificationCenter is not null)
+                    _notificationCenter.ViewModel.IsInOwnWindow = false;
 
-            NotificationToastTitle.Text =
-                notification.Title;
+                // Closing the window returns the panel to the tab strip instead of losing
+                // it: a dispatcher who closes it by reflex has not thrown their inbox away.
+                if (IsLoaded && !_isClosing)
+                    OpenNotificationCenter();
+            };
 
-            NotificationToastMessage.Text =
-                notification.Message;
-
-            NotificationToast.Visibility =
-                Visibility.Visible;
-
-            _notificationToastTimer?.Stop();
-
-            _notificationToastTimer =
-                new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromSeconds(7)
-                };
-
-            _notificationToastTimer.Tick +=
-                (sender, args) =>
-                {
-                    _notificationToastTimer?.Stop();
-                    NotificationToast.Visibility =
-                        Visibility.Collapsed;
-                };
-
-            _notificationToastTimer.Start();
+            _notificationCenterWindow.Show();
         }
 
-        private void CloseNotificationToast(
-            object sender,
-            RoutedEventArgs e)
+        /// <summary>
+        /// Opens the Dispatch screen for the trip a notification is about.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ It opens Dispatch, it does not yet select the trip: DispatchView has no way
+        /// of being told which one to go to. The trip number is on screen in the detail
+        /// pane, and Copy trip number puts it on the clipboard, so the dispatcher can
+        /// search for it. Deep linking is registered in <c>_meta/BACKLOG.md</c>.
+        /// </remarks>
+        private void OpenTripInDispatch(int tripId)
         {
-            _notificationToastTimer?.Stop();
-
-            NotificationToast.Visibility =
-                Visibility.Collapsed;
+            OpenTab(
+                LocalizationService.Instance["Dispatch"],
+                new DispatchView(),
+                PackIconKind.WrenchClock);
         }
+
+        #endregion
+
+        #region Live alerts
+
+        /// <summary>
+        /// Opens the Notification Center on the notice the dispatcher clicked.
+        /// </summary>
+        /// <remarks>
+        /// The alert card is not a dead end: from it, one click lands on the notice itself
+        /// instead of leaving the dispatcher to remember it, close it, open the bell and
+        /// hunt for the row.
+        /// </remarks>
+        private void ShowNotificationInCenter(Models.NotificationDto notification)
+        {
+            if (notification is null)
+                return;
+
+            // The floating window never takes the focus, so coming forward has to be asked
+            // for. Here it is what the dispatcher meant by clicking.
+            if (WindowState == WindowState.Minimized)
+                WindowState = WindowState.Normal;
+
+            Activate();
+
+            OpenNotificationCenter();
+
+            _notificationCenter?.ViewModel.ShowNotification(notification.Id);
+        }
+
+        /// <summary>
+        /// True when the dispatcher is already looking at the inbox.
+        /// </summary>
+        /// <remarks>
+        /// Announcing what is on screen in front of them is noise. Only the ambient level
+        /// is held back by this: a Will Call still shows, because the panel does not tell
+        /// them the clock has started.
+        /// </remarks>
+        private bool IsNotificationCenterInFront()
+        {
+            if (_notificationCenterWindow is not null)
+                return _notificationCenterWindow.IsVisible;
+
+            if (!IsActive)
+                return false;
+
+            var title = LocalizationService.Instance["NotificationCenter"];
+
+            return MainTabControl.SelectedItem is TabItem tab &&
+                   tab.Tag?.ToString() == title;
+        }
+
+        /// <summary>
+        /// Moves the in-window stack above the floating alert, so neither covers the other.
+        /// </summary>
+        private void LiftInlineAlerts(double floatingHeight)
+        {
+            var bottom = floatingHeight > 0
+                ? 25 + floatingHeight + 12
+                : 25;
+
+            NotificationToastHostControl.Margin = new Thickness(0, 0, 25, bottom);
+        }
+
+        /// <summary>Personal alert preferences, from the Notification Center toolbar.</summary>
+        private void OpenAlertSettings()
+        {
+            if (_toasts is null)
+                return;
+
+            var window = new NotificationAlertSettingsWindow(_toasts)
+            {
+                Owner = this
+            };
+
+            window.ShowDialog();
+        }
+
+        #endregion
 
         private void Window_KeyDown(
             object sender,
@@ -294,6 +401,12 @@ namespace Raphael.Desktop
                 TimeSpan.FromMilliseconds(300));
 
             var contentGrid = new Grid();
+
+            // Most screens hand over a brand new control, but the Notification Center hands
+            // back the same instance every time so the inbox keeps its state. Whatever was
+            // holding it before has to let go first.
+            DetachFromParent(content);
+
             contentGrid.Children.Add(content);
             contentGrid.BeginAnimation(
                 OpacityProperty,
@@ -455,8 +568,19 @@ namespace Raphael.Desktop
             }*/
         }
 
+        /// <summary>
+        /// Fades a tab out and takes it off the strip.
+        /// </summary>
+        /// <remarks>
+        /// The tab stops answering to its name straight away, even though it stays on
+        /// screen for another fifth of a second. Otherwise clicking the bell during the
+        /// fade finds the dying tab, selects it, and watches it disappear — the panel never
+        /// opens and nothing explains why.
+        /// </remarks>
         private void CloseTabWithAnimation(TabItem tabItem)
         {
+            tabItem.Tag = null;
+
             if (tabItem.Content is Grid grid)
             {
                 var fadeOut = new DoubleAnimation(
@@ -465,7 +589,17 @@ namespace Raphael.Desktop
                     TimeSpan.FromMilliseconds(200));
 
                 fadeOut.Completed +=
-                    (s, e) => MainTabControl.Items.Remove(tabItem);
+                    (s, e) =>
+                    {
+                        MainTabControl.Items.Remove(tabItem);
+
+                        // The tab is gone, but the grid inside it still owns whatever it was
+                        // showing. For a screen that is rebuilt every time this only frees
+                        // memory; for the Notification Center it is the difference between
+                        // reopening and an error dialog.
+                        foreach (var child in grid.Children.OfType<UIElement>().ToList())
+                            grid.Children.Remove(child);
+                    };
 
                 grid.BeginAnimation(
                     OpacityProperty,
@@ -474,6 +608,38 @@ namespace Raphael.Desktop
             else
             {
                 MainTabControl.Items.Remove(tabItem);
+            }
+        }
+
+        /// <summary>
+        /// Takes a control off whatever was holding it.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ A WPF element has exactly one parent. The Notification Center is one instance
+        /// that outlives its tab — the bell hands the very same control back so the
+        /// selection, the scroll position and the loaded trip survive — so opening it a
+        /// second time means adding an element that something else still claims. That is
+        /// the "Specified element is already the logical child of another element.
+        /// Disconnect it first." that closed the panel after a tab had been closed.
+        /// </remarks>
+        private static void DetachFromParent(UIElement element)
+        {
+            if (element is null)
+                return;
+
+            switch (LogicalTreeHelper.GetParent(element))
+            {
+                case Panel panel:
+                    panel.Children.Remove(element);
+                    break;
+
+                case ContentControl host when ReferenceEquals(host.Content, element):
+                    host.Content = null;
+                    break;
+
+                case Decorator decorator when ReferenceEquals(decorator.Child, element):
+                    decorator.Child = null;
+                    break;
             }
         }
 
