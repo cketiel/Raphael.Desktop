@@ -794,7 +794,7 @@
 
                     <DataGrid Grid.Row="4" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableColumnVirtualization="False" VirtualizingStackPanel.IsVirtualizing="False" SelectionMode="Single" ScrollViewer.CanContentScroll="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Width="130">
+                            <DataGridTemplateColumn Width="165">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0">
@@ -825,7 +825,55 @@
                                                 </Button.Style>
                                                 <materialDesign:PackIcon Kind="SortClockDescending" Foreground="Green"/>
                                             </Button>
-                                            <Button Command="{Binding Data.ShowHistoryCommand, Source={StaticResource vmProxy}}" 
+                                            <!-- ===== Will Call =====
+                                                 The only door in the application to Trip.WillCall.
+                                                 A trip waiting on its patient can be activated; one
+                                                 that is not can be turned back into a Will Call. Both
+                                                 hidden on a cancelled trip: there is nothing to
+                                                 promise anybody. -->
+                                            <Button Command="{Binding Data.WillCallCommand, Source={StaticResource vmProxy}}"
+                                                    CommandParameter="{Binding}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip="{Binding Data.ActivateWillCallToolTip, Source={StaticResource vmProxy}}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding WillCall}" Value="True" />
+                                                                    <Condition Binding="{Binding IsCanceled}" Value="False" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <materialDesign:PackIcon Kind="ClockStart" Foreground="Green" Width="20" Height="20" />
+                                            </Button>
+
+                                            <Button Command="{Binding Data.WillCallCommand, Source={StaticResource vmProxy}}"
+                                                    CommandParameter="{Binding}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip="{Binding Data.RevertWillCallToolTip, Source={StaticResource vmProxy}}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding WillCall}" Value="False" />
+                                                                    <Condition Binding="{Binding IsCanceled}" Value="False" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <materialDesign:PackIcon Kind="PhonePaused" Foreground="#B06000" Width="20" Height="20" />
+                                            </Button>
+
+                                            <Button Command="{Binding Data.ShowHistoryCommand, Source={StaticResource vmProxy}}"
                                                 CommandParameter="{Binding}"
                                                 Style="{StaticResource MaterialDesignToolButton}"
                                                 ToolTip="Change History">

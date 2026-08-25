@@ -610,7 +610,17 @@
                                             Is24Hours="False"/>
 
                                         <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.Column="1" Margin="10,10,0,5">
-                                            <CheckBox x:Name="WillCallCheckBox" Content="Will Call" IsChecked="{Binding IsWillCall}"/>
+                                            <!-- ⚠️ Live only while booking. On an existing trip
+                                                 Will Call moves through Activate / Back to Will
+                                                 Call in Schedule, which leaves a record and tells
+                                                 the patient; the server ignores it on every update
+                                                 route, so a live box here would tick, save, and
+                                                 change nothing without saying so. -->
+                                            <CheckBox x:Name="WillCallCheckBox" Content="Will Call"
+                                                      IsChecked="{Binding IsWillCall}"
+                                                      IsEnabled="{Binding CanEditWillCall}"
+                                                      ToolTip="{Binding WillCallLockedToolTip}"
+                                                      ToolTipService.ShowOnDisabled="True"/>
                                         </StackPanel>
                                     </Grid>
                                 </TabItem>

@@ -10,6 +10,12 @@ namespace Raphael.Desktop.DTOs
     {
         public string Type { get; set; }
         public TimeSpan? FromTime { get; set; }
+
+        /// <summary>
+        /// ⚠️ Ignored by the server on this route, and kept only so the two hand-copied
+        /// versions of this DTO stay identical (see <c>_meta/CONTRACT_MAP.md</c>).
+        /// The only writers of <c>Trip.WillCall</c> are the two Will Call endpoints.
+        /// </summary>
         public bool WillCall { get; set; }
         public string? PickupPhone { get; set; }
         public string? PickupComment { get; set; }

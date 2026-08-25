@@ -32,6 +32,15 @@ namespace Raphael.Desktop.Helpers
         {
             public const string TripScheduled = "TRIP_SCHEDULED";
             public const string TripCancelled = "TRIP_CANCELLED";
+
+            /// <summary>A cancelled trip was put back in service.</summary>
+            public const string TripReactivated = "TRIP_REACTIVATED";
+
+            /// <summary>
+            /// A trip became a Will Call and now waits for the patient to say they are
+            /// ready. ⚠️ Not a "deactivation": nothing is switched off.
+            /// </summary>
+            public const string WillCallCreated = "WILL_CALL_CREATED";
             public const string DriverStartedTrip = "DRIVER_STARTED_TRIP";
             public const string DriverArrivedPickup = "DRIVER_ARRIVED_PICKUP";
             public const string DriverPickedUpPassenger = "DRIVER_PICKED_UP_PASSENGER";

@@ -690,9 +690,27 @@ namespace Raphael.Desktop.ViewModels
 
         }
 
+        /// <summary>
+        /// Will Call can only be decided while the trip is being booked.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ On an existing trip the field moves only through Activate / Back to Will Call
+        /// on the open-trips grid of Schedule, which records who did it and tells the
+        /// patient. The server ignores it on every update route, so leaving the box live
+        /// here would let a dispatcher tick it, save, and be told nothing had gone wrong.
+        /// </remarks>
+        public bool CanEditWillCall => SelectedTrip is null || SelectedTrip.Id <= 0;
+
+        public string WillCallLockedToolTip =>
+            LocalizationService.Instance["WillCallLockedHint"];
+
         // Este método se dispara automáticamente cuando cambia la propiedad SelectedTrip
         partial void OnSelectedTripChanged(TripReadDto value)
         {
+            // Before the null check: it has to be raised when the selection is cleared too,
+            // which is exactly when the form goes back to creating a trip.
+            OnPropertyChanged(nameof(CanEditWillCall));
+
             if (value == null) return;
 
             // 1. Cargar el Cliente asociado para que se llenen los campos de la izquierda
@@ -1052,7 +1070,11 @@ namespace Raphael.Desktop.ViewModels
 
                         // Estado y Metadatos (IMPORTANTE: Enviar el status actual para no fallar validación)
                         Status = SelectedTrip.Status ?? TripStatus.Accepted,
-                        WillCall = IsWillCall,
+
+                        // ⚠️ The trip's own value, not the checkbox. Editing a trip cannot
+                        // move Will Call: it goes through Activate / Back to Will Call on
+                        // the open-trips grid of Schedule, and the server ignores it here.
+                        WillCall = SelectedTrip.WillCall,
                         Type = IsReturn ? "Return" : "Appointment",
                         Created = SelectedTrip.Created,
                         VehicleRouteId = SelectedTrip.VehicleRouteId // Mantener la ruta asignada si existe

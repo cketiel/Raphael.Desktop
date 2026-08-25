@@ -35,6 +35,13 @@ namespace Raphael.Desktop.DTOs
         public string? DropoffComment { get; set; }
         public string? TripId { get; set; } // Funding Sources / Brokers Identifier
         public string? Authorization { get; set; }         
+        /// <summary>
+        /// True means the trip is waiting for the patient to say they are ready.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Read-only from here. It moves through the two Will Call endpoints and
+        /// nowhere else; the grid uses it to decide which of the two buttons to offer.
+        /// </remarks>
         public bool WillCall { get; set; }
         public string Status { get; set; }
         public int? FundingSourceId { get; set; }
@@ -42,5 +49,20 @@ namespace Raphael.Desktop.DTOs
         public string? PickupCity { get; set; }
         public string? DropoffCity { get; set; }
         public bool IsCanceled { get; set; }
+
+        /// <summary>Provider operating the trip. Null means the broker runs it itself.</summary>
+        public int? ProviderId { get; set; }
+
+        /// <summary>
+        /// The timezone this trip is operated in, as an IANA identifier, already resolved
+        /// through the provider's fallback chain by the server.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is the clock the Will Call dialog suggests "now" from. The dispatcher's
+        /// own machine is not it: a dispatcher covering a shift from another region would
+        /// otherwise start the one-hour promise at an hour that does not exist at the
+        /// pickup address. See <c>_meta/TIME_POLICY.md</c> §2B.
+        /// </remarks>
+        public string? ProviderTimeZoneId { get; set; }
     }
 }

@@ -154,6 +154,7 @@ namespace Raphael.Desktop.ViewModels
             CancelTripCommand = new AsyncRelayCommand<object>(ExecuteCancelTripAsync);
             UncancelTripCommand = new AsyncRelayCommand<object>(ExecuteUncancelTripAsync);
             EditTripCommand = new AsyncRelayCommand<object>(ExecuteEditTripAsync);
+            WillCallCommand = new AsyncRelayCommand<object>(ExecuteWillCallAsync);
 
             UnperformEventCommand = new AsyncRelayCommand<ScheduleDto>(ExecuteUnperformEventAsync);
 
@@ -252,6 +253,11 @@ namespace Raphael.Desktop.ViewModels
         public IAsyncRelayCommand CancelTripCommand { get; }
         public IAsyncRelayCommand UncancelTripCommand { get; }
         public IAsyncRelayCommand EditTripCommand { get; }
+
+        /// <summary>
+        /// ⚠️ The only door to <c>Trip.WillCall</c> in the application.
+        /// </summary>
+        public IAsyncRelayCommand WillCallCommand { get; }
 
         private void OpenColumnSelector()
         {
@@ -1885,6 +1891,70 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// Moves a trip's Will Call state, in either direction.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The only door in the whole application to <c>Trip.WillCall</c>. Which way it
+        /// goes is read off the trip itself, so the dispatcher cannot pick the wrong one:
+        /// a trip waiting on its patient can only be activated, and one that is not can
+        /// only be turned back into a Will Call.
+        ///
+        /// <para>
+        /// Cancelled trips are refused here as well as on the server. The buttons are
+        /// hidden for them, but a grid that has not been refreshed still holds rows whose
+        /// state moved on.
+        /// </para>
+        /// </remarks>
+        private async Task ExecuteWillCallAsync(object parameter)
+        {
+            var trip = parameter as UnscheduledTripDto;
+
+            if (trip == null)
+                return;
+
+            if (string.Equals(trip.Status, "Canceled", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    LocalizationService.Instance["WillCallCancelledTrip"],
+                    LocalizationService.Instance["WillCallActivateTitle"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                return;
+            }
+
+            var dialogViewModel = new WillCallDialogViewModel(trip);
+            var dialog = new WillCallDialog { DataContext = dialogViewModel };
+
+            var result = await MaterialDesignThemes.Wpf.DialogHost.Show(dialog, "ScheduleRootDialogHost");
+
+            if (result is not bool confirmed || !confirmed)
+                return;
+
+            try
+            {
+                if (dialogViewModel.IsActivating)
+                {
+                    await _tripService.ActivateWillCallAsync(trip.Id, dialogViewModel.SelectedFromTime);
+                }
+                else
+                {
+                    await _tripService.RevertToWillCallAsync(trip.Id, dialogViewModel.SelectedFromTime);
+                }
+
+                await LoadSchedulesAndTripsAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    LocalizationService.Instance["WillCallActivateTitle"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         private async Task ExecuteEditTripAsync(object parameter)
         {
             var tripToEdit = parameter as UnscheduledTripDto;
@@ -1915,6 +1985,10 @@ namespace Raphael.Desktop.ViewModels
         #region Translation
 
         // Schedules Grid
+        public string ActivateWillCallToolTip => LocalizationService.Instance["WillCallActivateToolTip"];
+
+        public string RevertWillCallToolTip => LocalizationService.Instance["WillCallRevertToolTip"];
+
         public string ColumnHeaderName => LocalizationService.Instance["Name"];
         public string ColumnHeaderPickup => LocalizationService.Instance["Pickup"];
         public string ColumnHeaderAppt => LocalizationService.Instance["Appt"];
