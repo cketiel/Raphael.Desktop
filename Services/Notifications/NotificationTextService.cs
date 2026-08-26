@@ -193,14 +193,35 @@ public sealed class NotificationTextService
         return result.ToString();
     }
 
+    /// <summary>
+    /// Reads an instant the server wrote in UTC, as it writes it: ISO-8601 round-trip
+    /// (<c>2026-08-25T23:00:00.0000000Z</c>).
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <c>RoundtripKind</c> must never come back here. Combined with
+    /// <c>AdjustToUniversal</c> — or with either Assume flag — .NET rejects the argument
+    /// outright, and an invalid <c>styles</c> throws even from a <c>TryParse</c>, which
+    /// swallows only bad *input*. That made this method fail every single time it was
+    /// called, and it took down the whole notification text with it: the dispatcher got
+    /// "Unexpected error" instead of a Will Call, and both countdowns silently never ran.
+    ///
+    /// <para>
+    /// <c>AssumeUniversal</c> covers a value that arrives without its Z — the field is
+    /// named Utc, so UTC is the only sane assumption; guessing the reader's zone would put
+    /// the deadline of a patient's one-hour promise hours off. <c>AdjustToUniversal</c>
+    /// then normalises anything carrying an offset.
+    /// </para>
+    /// </remarks>
     public static bool TryParseUtc(string value, out DateTime utc)
     {
         if (DateTime.TryParse(
                 value,
                 CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind | DateTimeStyles.AdjustToUniversal,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                 out var parsed))
         {
+            // AdjustToUniversal already returns Utc kind; kept so the value is still
+            // unambiguous if these styles are ever revisited.
             utc = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
             return true;
         }
