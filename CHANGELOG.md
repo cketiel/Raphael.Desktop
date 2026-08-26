@@ -38,8 +38,10 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 - Confirming a Will Call left the Confirm button live once the inbox had been reloaded, so the
   same patient could be promised a vehicle twice. Rows now take on the reloaded payload instead
   of holding the one they were built from, which also keeps the archive state honest.
-- Confirming now shows a Confirmed badge where the deadline countdown was, rather than reporting
-  itself only by a button greying out.
+- Confirming now shows a Confirmed mark where the deadline countdown was, in the inbox list as
+  well as in the notice itself, rather than reporting itself only by a button greying out. Having
+  to open a notice to find out it was already dealt with is what leads to confirming it twice, and
+  every confirmation of a Will Call promises the patient a vehicle again.
 
 ## [1.2.3] - 2026-08-20
 

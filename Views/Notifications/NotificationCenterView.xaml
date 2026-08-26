@@ -563,6 +563,25 @@
                                            VerticalAlignment="Center" Margin="0 0 10 0"
                                            Visibility="{Binding HasCountdown, Converter={StaticResource BoolToVis}}" />
 
+                                <!-- ⚠️ Shares the column with the countdown, and never collides:
+                                     HasCountdown requires that nobody has taken charge yet.
+
+                                     The detail pane says the same thing in the same place. It has
+                                     to: a dispatcher who cannot tell from the list that a notice is
+                                     already dealt with has to open it to find out, and the one who
+                                     does not bother confirms it a second time — which promises the
+                                     same patient another vehicle. -->
+                                <StackPanel Grid.Column="3" Orientation="Horizontal"
+                                            VerticalAlignment="Center" Margin="0 0 10 0"
+                                            Visibility="{Binding IsAcknowledged, Converter={StaticResource BoolToVis}}">
+                                    <materialDesign:PackIcon Kind="CheckCircleOutline" Width="14" Height="14"
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{Binding AcknowledgedForeground}" />
+                                    <TextBlock Text="{Binding StatusLabel}" Margin="5 0 0 0"
+                                               FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                               Foreground="{Binding AcknowledgedForeground}" />
+                                </StackPanel>
+
                                 <!-- The time gives way to the actions when the pointer is on
                                      the row, exactly as a mail client does it. -->
                                 <Grid Grid.Column="4">
