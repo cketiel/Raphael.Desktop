@@ -2,10 +2,16 @@
 		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers">
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        xmlns:converters="clr-namespace:Raphael.Desktop.Converters">
 
     <UserControl.Resources>
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
+        <!-- Reaches the view model from inside a DataGrid column, where RelativeSource
+             cannot: columns are not part of the visual tree. -->
+        <helpers:BindingProxy x:Key="providerProxy" Data="{Binding}" />
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisConverter" />
     </UserControl.Resources>
     
     <Border BorderThickness="1" BorderBrush="#2196f3" Background="White">
@@ -64,6 +70,27 @@
                     <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="Auto" />
                     <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*" />
                     <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="2*" />
+
+                    <!-- A provider without a timezone falls back to the server's configured
+                         default. That is a reasonable stopgap and a bad permanent state, so
+                         it is visible rather than silent. -->
+                    <DataGridTemplateColumn Header="Time zone" Width="200">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="AlertOutline" Width="15" Height="15"
+                                                             Foreground="#B06000" VerticalAlignment="Center"
+                                                             Visibility="{Binding HasTimeZone, Converter={StaticResource InverseBoolToVisConverter}}" />
+                                    <TextBlock Text="{Binding TimeZoneId}" VerticalAlignment="Center"
+                                               Visibility="{Binding HasTimeZone, Converter={StaticResource BoolToVisConverter}}" />
+                                    <TextBlock Text="{Binding Data.NoTimeZoneText, Source={StaticResource providerProxy}}"
+                                               Margin="5,0,0,0" VerticalAlignment="Center"
+                                               Foreground="#B06000" FontSize="11"
+                                               Visibility="{Binding HasTimeZone, Converter={StaticResource InverseBoolToVisConverter}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

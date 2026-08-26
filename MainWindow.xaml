@@ -8,6 +8,7 @@
         xmlns:materialDesignIcons="http://materialdesigninxaml.net/winfx/xaml/shared"
         xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
         xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+        xmlns:notifications="clr-namespace:Raphael.Desktop.Views.Notifications"
         mc:Ignorable="d"
         Title="Raphael"
         Height="600"
@@ -175,7 +176,7 @@
                         <Button x:Name="NotificationButton"
                                 Command="{Binding OpenNotificationCenterCommand}"
                                 Style="{StaticResource NotificationButtonStyle}"
-                                ToolTip="Notifications"
+                                ToolTip="{Binding NotificationCenterText}"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
 
@@ -184,6 +185,7 @@
                                                      Height="27"/>
                         </Button>
 
+                        <!-- What this dispatcher has not opened. -->
                         <Border Width="21"
                                 Height="21"
                                 CornerRadius="11"
@@ -199,6 +201,27 @@
                                        FontWeight="Bold"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- What nobody in the office has taken charge of. A different
+                             fact from unread, and the only one with a patient waiting
+                             behind it, so it gets its own mark. -->
+                        <Border Width="18"
+                                Height="18"
+                                CornerRadius="9"
+                                Background="#EAB308"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Margin="2,0,0,7"
+                                ToolTip="{Binding PendingActionText}"
+                                Visibility="{Binding PendingActionVisibility}">
+
+                            <materialDesign:PackIcon Kind="ClockAlertOutline"
+                                                     Width="12"
+                                                     Height="12"
+                                                     Foreground="White"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center"/>
                         </Border>
 
                     </Grid>
@@ -340,57 +363,16 @@
         </DockPanel>
 
 
-        <!-- Notification Toast -->
-        <Border x:Name="NotificationToast"
-                Width="380"
-                MinHeight="100"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0,0,25,25"
-                Background="White"
-                BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="15"
-                Visibility="Collapsed"
-                Panel.ZIndex="1000">
-
-            <Grid>
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="30"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel>
-
-                    <TextBlock x:Name="NotificationToastTitle"
-                               FontWeight="Bold"
-                               FontSize="15"
-                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}"
-                               Margin="0,0,0,5"/>
-
-                    <TextBlock x:Name="NotificationToastMessage"
-                               FontSize="13"
-                               TextWrapping="Wrap"
-                               Foreground="Black"/>
-
-                </StackPanel>
-
-                <Button Grid.Column="1"
-                        Width="25"
-                        Height="25"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Click="CloseNotificationToast">
-
-                    <materialDesign:PackIcon Kind="Close"/>
-
-                </Button>
-
-            </Grid>
-
-        </Border>
+        <!-- ===== Live alerts =====
+             The stack of what just happened. Everything that can wait shows here, inside
+             the application; a Will Call goes to its own window instead, which floats over
+             whatever the dispatcher is working in. The bottom margin lifts when that
+             window is on screen so the two never sit on top of each other. -->
+        <notifications:NotificationToastHost x:Name="NotificationToastHostControl"
+                                             HorizontalAlignment="Right"
+                                             VerticalAlignment="Bottom"
+                                             Margin="0,0,25,25"
+                                             Panel.ZIndex="1000" />
 
     </Grid>
 

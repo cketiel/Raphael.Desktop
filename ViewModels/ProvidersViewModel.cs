@@ -14,6 +14,13 @@ namespace Raphael.Desktop.ViewModels
     {
         private readonly IProviderService _service;
 
+        /// <summary>
+        /// Shown against a provider that has not declared a timezone, which means its trips
+        /// fall back to the server's configured default.
+        /// </summary>
+        public string NoTimeZoneText =>
+            Services.LocalizationService.Instance["ProviderNoTimeZone"];
+
         private ObservableCollection<Provider> _providers;
         public ObservableCollection<Provider> Providers
         {

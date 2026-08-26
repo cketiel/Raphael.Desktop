@@ -37,6 +37,33 @@ namespace Raphael.Desktop.Models
         private double? _longitude;
         public double? Longitude { get => _longitude; set => SetProperty(ref _longitude, value); }
 
+        private string? _timeZoneId;
+
+        /// <summary>
+        /// The timezone this provider's trips are operated in. IANA identifier.
+        /// </summary>
+        /// <remarks>
+        /// This is what a pickup time means. A trip at 09:15 is 09:15 here, whoever opens
+        /// the screen and wherever the API happens to be hosted.
+        ///
+        /// <para>
+        /// Empty until somebody fills it in, and then the server falls back to its
+        /// configured default. The list flags the ones still empty so the fallback does not
+        /// become permanent by inattention.
+        /// </para>
+        /// </remarks>
+        public string? TimeZoneId
+        {
+            get => _timeZoneId;
+            set
+            {
+                if (SetProperty(ref _timeZoneId, value))
+                    OnPropertyChanged(nameof(HasTimeZone));
+            }
+        }
+
+        public bool HasTimeZone => !string.IsNullOrWhiteSpace(TimeZoneId);
+
         public string FullLogoUrl
         {
             get

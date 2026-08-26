@@ -1,0 +1,29 @@
+<Window x:Class="Raphael.Desktop.Views.Notifications.NotificationAlertWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:notifications="clr-namespace:Raphael.Desktop.Views.Notifications"
+        Title="Raphael"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Focusable="False"
+        IsTabStop="False">
+
+    <!--
+        Where a Will Call goes.
+
+        ⚠️ No Owner on purpose. An owned window minimises with its owner, and the whole
+        point of this one is to be readable when the dispatcher has Raphael minimised and
+        is working in the phone system. The main window closes it explicitly instead.
+
+        The margin is room for the card's shadow, which would be clipped otherwise.
+    -->
+
+    <notifications:NotificationToastHost x:Name="Host" Margin="20" />
+
+</Window>

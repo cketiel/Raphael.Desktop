@@ -9,7 +9,11 @@ using GongSolutions.Wpf.DragDrop;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.Views.Dispatch;
+// Aliased, not imported: Raphael.Desktop.Helpers also declares a RelayCommand, and
+// importing the whole namespace makes every command in this file ambiguous.
+using NotificationKeys = Raphael.Desktop.Helpers.NotificationKeys;
 using Raphael.Desktop.Views.Schedules;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -81,6 +85,12 @@ namespace Raphael.Desktop.ViewModels
 
         public event EventHandler<ZoomAndCenterEventArgs> ZoomAndCenterRequest;
 
+        /// <summary>
+        /// Asks the view to bring one open trip into view. The view owns the grid; the
+        /// model only knows which row matters.
+        /// </summary>
+        public event EventHandler<UnscheduledTripEventArgs> ScrollUnscheduledTripIntoViewRequest;
+
         //private readonly UserConfigService _userConfigService;
         private readonly ScheduleService _scheduleService;
         private readonly TripService _tripService;
@@ -135,7 +145,14 @@ namespace Raphael.Desktop.ViewModels
 
         public IAsyncRelayCommand ShowHistoryCommand { get; }
 
-        public SchedulesViewModel(ScheduleService scheduleService)
+        /// <param name="notificationService">
+        /// The office inbox, when this tab is one the dispatcher works in. Optional
+        /// because Dispatch builds a schedule model of its own for its inner panel, and
+        /// nothing there routes trips.
+        /// </param>
+        public SchedulesViewModel(
+            ScheduleService scheduleService,
+            INotificationService notificationService = null)
         {
             AllowUnperformAction = true;
 
@@ -154,6 +171,7 @@ namespace Raphael.Desktop.ViewModels
             CancelTripCommand = new AsyncRelayCommand<object>(ExecuteCancelTripAsync);
             UncancelTripCommand = new AsyncRelayCommand<object>(ExecuteUncancelTripAsync);
             EditTripCommand = new AsyncRelayCommand<object>(ExecuteEditTripAsync);
+            WillCallCommand = new AsyncRelayCommand<object>(ExecuteWillCallAsync);
 
             UnperformEventCommand = new AsyncRelayCommand<ScheduleDto>(ExecuteUnperformEventAsync);
 
@@ -163,7 +181,8 @@ namespace Raphael.Desktop.ViewModels
 
             InitializeColumns();
             //_ = InitializeAsync();
-         
+
+            AttachNotifications(notificationService);
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)
@@ -252,6 +271,11 @@ namespace Raphael.Desktop.ViewModels
         public IAsyncRelayCommand CancelTripCommand { get; }
         public IAsyncRelayCommand UncancelTripCommand { get; }
         public IAsyncRelayCommand EditTripCommand { get; }
+
+        /// <summary>
+        /// ⚠️ The only door to <c>Trip.WillCall</c> in the application.
+        /// </summary>
+        public IAsyncRelayCommand WillCallCommand { get; }
 
         private void OpenColumnSelector()
         {
@@ -930,6 +954,9 @@ namespace Raphael.Desktop.ViewModels
                 return;
             }
 
+            if (await IsAlreadyCancelledAsync(tripToSchedule))
+                return;
+
             IsBusy = true;
             BusyMessage = "Calculating optimal route...";
 
@@ -1154,6 +1181,62 @@ namespace Raphael.Desktop.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        /// <summary>
+        /// Asks the server whether this trip is still routable, and takes the row out if
+        /// it is not.
+        /// </summary>
+        /// <remarks>
+        /// The live alert is what normally keeps this grid true, but it travels over a
+        /// hub that drops — which is why the panel carries a channel health band at all.
+        /// When it was down, the row on screen is the last thing anybody told this
+        /// dispatcher, and routing a cancelled trip hands a driver a patient who was told
+        /// no vehicle was coming.
+        ///
+        /// <para>
+        /// One read before an operation that already makes two round trips to Google Maps.
+        /// A failed read is not treated as a cancellation: the server refuses the routing
+        /// itself, so the worst case is the dispatcher getting the refusal a moment later.
+        /// </para>
+        /// </remarks>
+        private async Task<bool> IsAlreadyCancelledAsync(UnscheduledTripDto trip)
+        {
+            TripReadDto current;
+
+            try
+            {
+                current = await _tripService.GetTripByIdAsync(trip.Id);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (current is null)
+                return false;
+
+            bool isCancelled =
+                current.IsCancelled
+                || string.Equals(
+                       current.Status,
+                       TripStatus.Canceled,
+                       StringComparison.OrdinalIgnoreCase);
+
+            if (!isCancelled)
+                return false;
+
+            MessageBox.Show(
+                LocalizationService.Instance["RouteCancelledTripMessage"],
+                LocalizationService.Instance["RouteCancelledTripTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+
+            // Same departure the live alert would have run, so the grid ends up in the
+            // same state whichever of the two noticed first.
+            RetireCancelledTrip(trip.Id);
+
+            return true;
         }
 
         private bool CanRouteSelectedTrip() => SelectedVehicleRoute != null && SelectedUnscheduledTrip != null;
@@ -1885,6 +1968,70 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// Moves a trip's Will Call state, in either direction.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The only door in the whole application to <c>Trip.WillCall</c>. Which way it
+        /// goes is read off the trip itself, so the dispatcher cannot pick the wrong one:
+        /// a trip waiting on its patient can only be activated, and one that is not can
+        /// only be turned back into a Will Call.
+        ///
+        /// <para>
+        /// Cancelled trips are refused here as well as on the server. The buttons are
+        /// hidden for them, but a grid that has not been refreshed still holds rows whose
+        /// state moved on.
+        /// </para>
+        /// </remarks>
+        private async Task ExecuteWillCallAsync(object parameter)
+        {
+            var trip = parameter as UnscheduledTripDto;
+
+            if (trip == null)
+                return;
+
+            if (string.Equals(trip.Status, "Canceled", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    LocalizationService.Instance["WillCallCancelledTrip"],
+                    LocalizationService.Instance["WillCallActivateTitle"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                return;
+            }
+
+            var dialogViewModel = new WillCallDialogViewModel(trip);
+            var dialog = new WillCallDialog { DataContext = dialogViewModel };
+
+            var result = await MaterialDesignThemes.Wpf.DialogHost.Show(dialog, "ScheduleRootDialogHost");
+
+            if (result is not bool confirmed || !confirmed)
+                return;
+
+            try
+            {
+                if (dialogViewModel.IsActivating)
+                {
+                    await _tripService.ActivateWillCallAsync(trip.Id, dialogViewModel.SelectedFromTime);
+                }
+                else
+                {
+                    await _tripService.RevertToWillCallAsync(trip.Id, dialogViewModel.SelectedFromTime);
+                }
+
+                await LoadSchedulesAndTripsAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    LocalizationService.Instance["WillCallActivateTitle"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         private async Task ExecuteEditTripAsync(object parameter)
         {
             var tripToEdit = parameter as UnscheduledTripDto;
@@ -1912,9 +2059,171 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        #region Cancelled while the dispatcher was looking
+
+        /// <summary>
+        /// How long a cancelled row stays on screen before it is taken out of the grid.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately shorter than the ten seconds the live alert lasts
+        /// (<c>NotificationToastItemViewModel.AttentionLife</c>): the row has to go while
+        /// the alert explaining it is still on screen. The other way round, a dispatcher
+        /// who looked up a moment too late would see a row evaporate with nothing left to
+        /// say why.
+        ///
+        /// <para>
+        /// ⚠️ The departure storyboard in <c>ScheduleView.xaml</c> is timed to this. Move
+        /// one and the other has to move with it.
+        /// </para>
+        /// </remarks>
+        private static readonly TimeSpan DepartureLife = TimeSpan.FromMilliseconds(8200);
+
+        private INotificationService _notifications;
+
+        private readonly List<DispatcherTimer> _departureTimers = new();
+
+        private void AttachNotifications(INotificationService notificationService)
+        {
+            if (notificationService is null)
+                return;
+
+            _notifications = notificationService;
+
+            _notifications.NotificationReceived += OnNotificationReceived;
+        }
+
+        /// <summary>
+        /// Stops listening. Called when the tab is really closed, never on a tab switch.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Not hung off <c>Cleanup</c>/<c>Unloaded</c> on purpose. In a
+        /// <see cref="System.Windows.Controls.TabControl"/> those fire when the dispatcher
+        /// merely moves to another tab, and a screen that stops hearing about
+        /// cancellations after the first tab switch would go back to offering a cancelled
+        /// trip as routable — the exact failure this whole path exists to prevent.
+        /// </remarks>
+        public void ReleaseNotifications()
+        {
+            if (_notifications is not null)
+            {
+                _notifications.NotificationReceived -= OnNotificationReceived;
+                _notifications = null;
+            }
+
+            foreach (var timer in _departureTimers)
+                timer.Stop();
+
+            _departureTimers.Clear();
+        }
+
+        private void OnNotificationReceived(object sender, NotificationDto notification)
+        {
+            if (notification is null)
+                return;
+
+            if (!string.Equals(
+                    notification.BusinessEventCode,
+                    NotificationKeys.Events.TripCancelled,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (!NotificationKeys.TryGetTripId(notification, out var tripId))
+                return;
+
+            // Arrives on the SignalR thread; the grid lives on the interface one.
+            var dispatcher = Application.Current?.Dispatcher;
+
+            if (dispatcher is null)
+                return;
+
+            if (dispatcher.CheckAccess())
+                RetireCancelledTrip(tripId);
+            else
+                dispatcher.BeginInvoke(new Action(() => RetireCancelledTrip(tripId)));
+        }
+
+        /// <summary>
+        /// Takes a trip that was just cancelled somewhere else out of the open-trips grid,
+        /// slowly enough for the dispatcher to see which one left.
+        /// </summary>
+        /// <remarks>
+        /// A trip can be cancelled from the driver's app, the patient's, the Booking
+        /// Portal, an integrator or the bot. Until this existed, none of that reached a
+        /// dispatcher with the tab already open: the row stayed, and the row is an offer
+        /// to route a trip that no longer exists.
+        /// </remarks>
+        private void RetireCancelledTrip(int tripId)
+        {
+            var row = UnscheduledTrips.FirstOrDefault(t => t.Id == tripId);
+
+            // Not on this date, or already routed, or already gone. Nothing to do.
+            if (row is null || row.IsDeparting)
+                return;
+
+            MarkCancelled(row);
+
+            // Nobody can act on a row they cannot see. Asked for before the animation
+            // starts so the grid is already looking at it when the row lights up.
+            ScrollUnscheduledTripIntoViewRequest?.Invoke(
+                this,
+                new UnscheduledTripEventArgs(row));
+
+            row.IsDeparting = true;
+
+            // A timer rather than an awaited delay: it ticks on the interface thread,
+            // which is the only one allowed to touch the collection. It also runs whether
+            // or not this tab is the one on screen, so a hidden tab still ends up true.
+            var timer = new DispatcherTimer { Interval = DepartureLife };
+
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                _departureTimers.Remove(timer);
+                RemoveDepartedTrip(row);
+            };
+
+            _departureTimers.Add(timer);
+
+            timer.Start();
+        }
+
+        /// <summary>
+        /// Puts the cancellation on the row itself.
+        /// </summary>
+        /// <remarks>
+        /// This alone turns the row red, kills its schedule button and hides both Will
+        /// Call buttons: the grid was already built to render a cancelled trip, it just
+        /// never received one. See the row style and the button triggers in
+        /// <c>ScheduleView.xaml</c>.
+        /// </remarks>
+        private static void MarkCancelled(UnscheduledTripDto trip)
+        {
+            trip.Status = TripStatus.Canceled;
+            trip.IsCanceled = true;
+        }
+
+        private void RemoveDepartedTrip(UnscheduledTripDto trip)
+        {
+            // Routing reads the selection, not the clicked row, so a departing row left
+            // selected would still be what the schedule button acts on.
+            if (ReferenceEquals(SelectedUnscheduledTrip, trip))
+                SelectedUnscheduledTrip = null;
+
+            UnscheduledTrips.Remove(trip);
+        }
+
+        #endregion
+
+
         #region Translation
 
         // Schedules Grid
+        public string ActivateWillCallToolTip => LocalizationService.Instance["WillCallActivateToolTip"];
+
+        public string RevertWillCallToolTip => LocalizationService.Instance["WillCallRevertToolTip"];
+
         public string ColumnHeaderName => LocalizationService.Instance["Name"];
         public string ColumnHeaderPickup => LocalizationService.Instance["Pickup"];
         public string ColumnHeaderAppt => LocalizationService.Instance["Appt"];
@@ -1964,6 +2273,9 @@ namespace Raphael.Desktop.ViewModels
         //public string ColumnHeaderDistance => LocalizationService.Instance["Distance"];
         public string ColumnHeaderPickupCity => LocalizationService.Instance["PickupCity"];
         public string ColumnHeaderDropoffCity => LocalizationService.Instance["DropoffCity"];
+
+        // A trip cancelled somewhere else while this tab was open
+        public string TripCancelledRowLabel => LocalizationService.Instance["TripCancelledRowLabel"];
 
         // Actions
         public string CancelTripToolTip => LocalizationService.Instance["CancelTrip"];

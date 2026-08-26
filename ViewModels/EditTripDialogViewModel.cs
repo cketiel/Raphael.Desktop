@@ -6,11 +6,13 @@ namespace Raphael.Desktop.ViewModels
 {
     public class EditTripDialogViewModel : BaseViewModel
     {     
+        // ⚠️ No WillCall here. It is the one field of a trip that carries a promise of
+        // an hour to a patient, so it moves only through Activate / Revert on the
+        // open-trips grid of Schedule, where it leaves a history row and a notification.
         public string Title { get; set; }
         public bool IsAppointmentType { get; set; }
         public bool IsReturnType { get; set; }
         public DateTime? FromTime { get; set; }
-        public bool WillCall { get; set; }
         public string PickupPhone { get; set; }
         public string PickupComment { get; set; }
         public string DropoffPhone { get; set; }
@@ -28,7 +30,6 @@ namespace Raphael.Desktop.ViewModels
             {
                 FromTime = DateTime.Today + trip.FromTime.Value;
             }
-            WillCall = trip.WillCall;
             PickupPhone = trip.PickupPhone;
             PickupComment = trip.PickupComment;
             DropoffPhone = trip.DropoffPhone;
@@ -44,7 +45,6 @@ namespace Raphael.Desktop.ViewModels
             {
                 FromTime = DateTime.Today + trip.FromTime.Value;
             }
-            WillCall = trip.WillCall;
             PickupPhone = trip.PickupPhone;
             PickupComment = trip.PickupComment;
             DropoffPhone = trip.DropoffPhone;
@@ -56,7 +56,6 @@ namespace Raphael.Desktop.ViewModels
             {
                 Type = IsAppointmentType ? TripType.Appointment : TripType.Return,
                 FromTime = FromTime?.TimeOfDay,
-                WillCall = WillCall,
                 PickupPhone = PickupPhone,
                 PickupComment = PickupComment,
                 DropoffPhone = DropoffPhone,

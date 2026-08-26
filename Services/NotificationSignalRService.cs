@@ -23,6 +23,17 @@ namespace Raphael.Desktop.Services
 
         public event EventHandler<Exception>? ConnectionError;
 
+        /// <summary>
+        /// Raised whenever the hub connects, drops or reconnects.
+        /// </summary>
+        /// <remarks>
+        /// Connection errors are not shown to the user — SignalR reconnects on its own and
+        /// a modal about it would be noise. But a dispatcher staring at a panel that stopped
+        /// receiving has no way to tell it apart from a quiet morning, so the Notification
+        /// Center needs to know in order to show its channel health banner.
+        /// </remarks>
+        public event EventHandler? ConnectionStateChanged;
+
         public HubConnectionState State =>
             _connection.State;
 
@@ -148,6 +159,12 @@ namespace Raphael.Desktop.Services
                     this,
                     ex);
             }
+            finally
+            {
+                ConnectionStateChanged?.Invoke(
+                    this,
+                    EventArgs.Empty);
+            }
         }
 
         public async Task StopAsync()
@@ -179,6 +196,10 @@ namespace Raphael.Desktop.Services
                     exception);
             }
 
+            ConnectionStateChanged?.Invoke(
+                this,
+                EventArgs.Empty);
+
             return Task.CompletedTask;
         }
 
@@ -186,6 +207,10 @@ namespace Raphael.Desktop.Services
             string? connectionId)
         {
             _started = true;
+
+            ConnectionStateChanged?.Invoke(
+                this,
+                EventArgs.Empty);
 
             return Task.CompletedTask;
         }
@@ -201,6 +226,10 @@ namespace Raphael.Desktop.Services
                     this,
                     exception);
             }
+
+            ConnectionStateChanged?.Invoke(
+                this,
+                EventArgs.Empty);
 
             return Task.CompletedTask;
         }

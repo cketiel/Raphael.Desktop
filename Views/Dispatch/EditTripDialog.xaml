@@ -21,7 +21,12 @@
         <materialDesign:TimePicker Text="Pickup Time" Style="{StaticResource MaterialDesignFloatingHintTimePicker}"
                                    SelectedTime="{Binding FromTime}" Margin="0,8"/>
 
-        <CheckBox Content="Will Call" IsChecked="{Binding WillCall}" Margin="0,16"/>
+        <!-- ⚠️ Will Call is not edited here, and must not come back.
+             It governs a promise to a patient — an hour to get a vehicle to them — and it
+             now has exactly one door: the two buttons on the open-trips grid of Schedule,
+             which record who moved it and tell the patient. A checkbox on a form opened
+             from four screens flipped it with nobody the wiser. The server ignores the
+             field on this route as well. -->
 
         <TextBox materialDesign:HintAssist.Hint="Pickup Phone" Text="{Binding PickupPhone}" Margin="0,8"/>
         <TextBox materialDesign:HintAssist.Hint="Pickup Comment" Text="{Binding PickupComment}" Margin="0,8" TextWrapping="Wrap" VerticalAlignment="Top" Height="60"/>

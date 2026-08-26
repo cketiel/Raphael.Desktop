@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -7,7 +8,23 @@ using System.Threading.Tasks;
 
 namespace Raphael.Desktop.DTOs
 {
-    public class UnscheduledTripDto
+    /// <summary>
+    /// A trip waiting to be put on a route, as the open-trips grid shows it.
+    /// </summary>
+    /// <remarks>
+    /// Hand-kept copy of <c>Raphael.Shared.DTOs.UnscheduledTripDto</c>. See
+    /// <c>_meta/CONTRACT_MAP.md</c>.
+    ///
+    /// <para>
+    /// ⚠️ Observable where the server's copy is a plain object, and deliberately so: a
+    /// cancellation can land from the driver, the patient, the Booking Portal, an
+    /// integrator or the bot while a dispatcher is looking at this grid. The row has to
+    /// be able to change on screen without reloading the whole list under them. Only the
+    /// three fields that move at runtime notify; the rest stay plain, since nothing ever
+    /// rewrites an address after it was loaded.
+    /// </para>
+    /// </remarks>
+    public partial class UnscheduledTripDto : ObservableObject
     {
         public int Id { get; set; }
         public DateTime Date { get; set; }
@@ -35,12 +52,55 @@ namespace Raphael.Desktop.DTOs
         public string? DropoffComment { get; set; }
         public string? TripId { get; set; } // Funding Sources / Brokers Identifier
         public string? Authorization { get; set; }         
+        /// <summary>
+        /// True means the trip is waiting for the patient to say they are ready.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Read-only from here. It moves through the two Will Call endpoints and
+        /// nowhere else; the grid uses it to decide which of the two buttons to offer.
+        /// </remarks>
         public bool WillCall { get; set; }
-        public string Status { get; set; }
+
+        /// <summary>
+        /// Trip status as the server names it. Moves at runtime: the grid's row style,
+        /// the schedule button and the Will Call buttons all read it.
+        /// </summary>
+        [ObservableProperty]
+        private string _status;
+
         public int? FundingSourceId { get; set; }
         public string? DriverNoShowReason { get; set; }
         public string? PickupCity { get; set; }
         public string? DropoffCity { get; set; }
-        public bool IsCanceled { get; set; }
+
+        /// <summary>The other half of <see cref="Status"/>; both mark a cancellation.</summary>
+        [ObservableProperty]
+        private bool _isCanceled;
+
+        /// <summary>
+        /// True while the row is playing out its removal after the trip was cancelled
+        /// somewhere else. Purely visual — the row is already unroutable by then.
+        /// </summary>
+        /// <remarks>
+        /// Not sent by the server and never read back into one: it exists only so the
+        /// grid can show the dispatcher which row is leaving and why.
+        /// </remarks>
+        [ObservableProperty]
+        private bool _isDeparting;
+
+        /// <summary>Provider operating the trip. Null means the broker runs it itself.</summary>
+        public int? ProviderId { get; set; }
+
+        /// <summary>
+        /// The timezone this trip is operated in, as an IANA identifier, already resolved
+        /// through the provider's fallback chain by the server.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is the clock the Will Call dialog suggests "now" from. The dispatcher's
+        /// own machine is not it: a dispatcher covering a shift from another region would
+        /// otherwise start the one-hour promise at an hour that does not exist at the
+        /// pickup address. See <c>_meta/TIME_POLICY.md</c> §2B.
+        /// </remarks>
+        public string? ProviderTimeZoneId { get; set; }
     }
 }

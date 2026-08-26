@@ -17,13 +17,37 @@ namespace Raphael.Desktop.Services
         public event Action LanguageChanged;
 
         public string this[string key]
-        { 
+        {
             get
-            {               
+            {
                 if (_translations.TryGetValue(key, out var value))
                     return value;
                 return $"##{key}##"; // Show something visible if missing
             }
+        }
+
+        /// <summary>
+        /// Looks up a key without inventing a placeholder when it is missing.
+        /// </summary>
+        /// <remarks>
+        /// The indexer returns "##key##" so a forgotten label is visible while developing.
+        /// That is the wrong answer for text that has a real fallback: a notification whose
+        /// translation is missing must show the English the server already sent, not
+        /// "##notification.TRIP_CANCELLED.DESKTOP_USER.body##" to a dispatcher.
+        /// </remarks>
+        public bool TryGetValue(string key, out string value)
+        {
+            if (!string.IsNullOrWhiteSpace(key) &&
+                _translations != null &&
+                _translations.TryGetValue(key, out var found) &&
+                !string.IsNullOrWhiteSpace(found))
+            {
+                value = found;
+                return true;
+            }
+
+            value = null;
+            return false;
         }
 
         private LocalizationService() { }

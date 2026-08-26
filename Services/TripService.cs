@@ -224,6 +224,39 @@ namespace Raphael.Desktop.Services
             await _historyService.SaveHistoryAsync(tripId, "IsCanceled", "True", "False");
         }
 
+        /// <summary>
+        /// The office activates a Will Call because the patient rang instead of using the app.
+        /// </summary>
+        /// <param name="fromTime">
+        /// The pickup time the dispatcher settled on. Null lets the server use the hour
+        /// where the trip is operated.
+        /// </param>
+        /// <remarks>
+        /// ⚠️ No history record written here, unlike cancel and uncancel above: the server
+        /// writes it, with the state before and after, because this field is the one that
+        /// carries the hour promised to a patient.
+        /// </remarks>
+        public async Task ActivateWillCallAsync(int tripId, TimeSpan? fromTime)
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{EndPoint}/{tripId}/will-call/activate",
+                new WillCallUpdateDto { FromTime = fromTime });
+
+            if (!response.IsSuccessStatusCode)
+                throw await CreateApiException(response, "Error activating the Will Call");
+        }
+
+        /// <summary>The trip goes back to waiting for the patient to say they are ready.</summary>
+        public async Task RevertToWillCallAsync(int tripId, TimeSpan? fromTime)
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{EndPoint}/{tripId}/will-call/revert",
+                new WillCallUpdateDto { FromTime = fromTime });
+
+            if (!response.IsSuccessStatusCode)
+                throw await CreateApiException(response, "Error turning the trip back into a Will Call");
+        }
+
         // This throws a generic exception that makes it difficult to tell if the error was a 409 (Conflict) or a 500 (Server Error)
         public async Task UncancelTripAsyncOld(int tripId)
         {           
