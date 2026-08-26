@@ -26,6 +26,24 @@
 	     produced the build. Stamping UTC made an evening build in Saltillo come out dated
 	     tomorrow — true, and read as an error, which is the same trap as the old timestamp. -->
 	<BuildDateStamp>$([System.DateTime]::Now.ToString("yyyy.MM.dd"))</BuildDateStamp>
+
+	<!-- The configuration binder's source generator emits C# interceptors, and interceptors
+	     only compile in namespaces the project opts into. The package registers its own,
+	     but under a property Roslyn renamed along the way: InterceptorsPreviewNamespaces
+	     became InterceptorsNamespaces.
+
+	     Visual Studio and the dotnet CLI carry different Roslyn builds, so the registration
+	     landed in one and not the other: `dotnet publish` succeeded while the publish
+	     wizard failed with "the interceptors feature is not enabled in this namespace",
+	     which is why v1.2.3 ended up being distributed straight out of bin\Debug.
+
+	     Both names are declared. Whichever one a given compiler does not know, it ignores.
+	     ⚠️ Only one call in the whole application goes through the generator, which is
+	     ApiZonitelService's Get&lt;ZonitelSettings&gt;(). If this ever gets in the way again,
+	     EnableConfigurationBindingGenerator=false is a legitimate way out: nothing here is
+	     trimmed or AOT, which is the only thing the generator buys. -->
+	<InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.Extensions.Configuration.Binder.SourceGeneration</InterceptorsNamespaces>
+	<InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Microsoft.Extensions.Configuration.Binder.SourceGeneration</InterceptorsPreviewNamespaces>
   </PropertyGroup>
 
   <!-- ⚠️ Top level, never inside a Target: GenerateAssemblyInfo consumes AssemblyAttribute
