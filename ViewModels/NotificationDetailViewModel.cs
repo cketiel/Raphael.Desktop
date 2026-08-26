@@ -369,29 +369,21 @@ public sealed class NotificationDetailViewModel : BaseViewModel
     /// The trip's two schedule events, taken from the day of the line that was running it.
     /// </summary>
     /// <remarks>
-    /// There is no endpoint that returns the events of one trip, so this asks for the line's
-    /// day — the same call the dispatch board makes — and keeps the two rows that belong to
-    /// this trip. A trip nobody has scheduled has no line and no events, and the journey
-    /// card simply shows the addresses.
+    /// A trip nobody has scheduled has no events, and the journey card simply shows the
+    /// addresses.
     /// </remarks>
     private async Task LoadSchedulesAsync()
     {
         var trip = Trip;
 
-        if (trip is null || trip.VehicleRouteId <= 0 || IsLoadingSchedules)
+        if (trip is null || IsLoadingSchedules)
             return;
 
         IsLoadingSchedules = true;
 
         try
         {
-            var schedules = await _scheduleService.GetSchedulesAsync(
-                trip.VehicleRouteId,
-                trip.Date);
-
-            var mine = schedules?
-                .Where(schedule => schedule.TripId == trip.Id)
-                .ToList();
+            var mine = await LoadTripSchedulesAsync(trip);
 
             if (mine is null || mine.Count == 0)
                 return;
@@ -420,6 +412,38 @@ public sealed class NotificationDetailViewModel : BaseViewModel
         {
             IsLoadingSchedules = false;
         }
+    }
+
+    /// <summary>
+    /// Asks the API for this trip's events, and falls back to reading its line's whole day
+    /// when the API is one that cannot answer that yet.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ The fallback is temporary and exists only because Raphael.Backend deploys on its
+    /// own schedule: until <c>by-trip</c> is out there, every installation would otherwise
+    /// show a notice with no journey on it. **Delete this whole fallback once the API is
+    /// deployed** — it reads dozens of rows to use two, it misses a trip whose events were
+    /// filed under a different date, and it returns nothing at all for a trip nobody has
+    /// routed, which is exactly what <c>by-trip</c> was added to fix.
+    /// </remarks>
+    private async Task<List<ScheduleDto>> LoadTripSchedulesAsync(TripReadDto trip)
+    {
+        var byTrip = await _scheduleService.GetSchedulesByTripAsync(trip.Id);
+
+        // Not "no events" — an API that has the endpoint answers those with an empty list.
+        if (byTrip is not null)
+            return byTrip;
+
+        if (trip.VehicleRouteId <= 0)
+            return null;
+
+        var lineDay = await _scheduleService.GetSchedulesAsync(
+            trip.VehicleRouteId,
+            trip.Date);
+
+        return lineDay?
+            .Where(schedule => schedule.TripId == trip.Id)
+            .ToList();
     }
 
     private void ClearSchedules()

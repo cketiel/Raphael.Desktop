@@ -33,6 +33,27 @@ namespace Raphael.Desktop.Services
             return await response.Content.ReadFromJsonAsync<List<ScheduleDto>>();
         }
 
+        /// <summary>
+        /// The two events of one trip, or <c>null</c> when this API does not serve them yet.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The null is not "no events" — that comes back as an empty list. It means the
+        /// endpoint is not there, which is the normal state until Raphael.Backend is
+        /// deployed. Callers fall back to reading the whole day of the line; see
+        /// <c>NotificationDetailViewModel.LoadTripSchedulesAsync</c>.
+        /// </remarks>
+        public async Task<List<ScheduleDto>> GetSchedulesByTripAsync(int tripId)
+        {
+            var response = await _httpClient.GetAsync($"{_endPoint}/by-trip/{tripId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<List<ScheduleDto>>();
+        }
+
         public async Task<List<UnscheduledTripDto>> GetUnscheduledTripsAsync(DateTime date)
         {
             var url = $"{_endPoint}/unscheduled?date={date:yyyy-MM-dd}";
