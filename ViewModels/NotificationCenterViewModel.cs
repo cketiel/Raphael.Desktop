@@ -1532,6 +1532,11 @@ public sealed class NotificationCenterViewModel : BaseViewModel
             // still ages out of the inbox twelve hours after it was raised, like the rest.
             if (byId.TryGetValue(dto.Id, out var existing))
             {
+                // ⚠️ Adopt first. A reload hands back new objects, and a row still holding
+                // the old one reads a stale acknowledged flag: the Confirm button of a Will
+                // Call that was already confirmed stays live.
+                existing.Adopt(dto);
+
                 existing.IsRead = _notifications.IsRead(dto.Id);
                 existing.RefreshState();
                 existing.RefreshArchived();

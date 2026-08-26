@@ -38,7 +38,7 @@ public sealed class NotificationItemViewModel : BaseViewModel
 
     private bool _isRead;
 
-    public NotificationDto Dto { get; }
+    public NotificationDto Dto { get; private set; }
 
     public Guid NotificationId => Dto.Id;
 
@@ -204,6 +204,16 @@ public sealed class NotificationItemViewModel : BaseViewModel
         IsAcknowledged
             ? LocalizationService.Instance["NotificationAcknowledged"]
             : LocalizationService.Instance["NotificationPending"];
+
+    /// <summary>
+    /// Colours of the confirmed badge, taken from the palette every other notice uses so a
+    /// fifth hand-picked pair cannot drift away from the rest.
+    /// </summary>
+    public Brush AcknowledgedForeground =>
+        NotificationSeverityPalette.Foreground(NotificationKeys.Severity.Success);
+
+    public Brush AcknowledgedBackground =>
+        NotificationSeverityPalette.Background(NotificationKeys.Severity.Success);
 
     #endregion
 
@@ -415,6 +425,36 @@ public sealed class NotificationItemViewModel : BaseViewModel
     }
 
     #endregion
+
+    /// <summary>
+    /// Takes on the server's latest copy of this notification, keeping the row itself so
+    /// the dispatcher does not lose their place or their selection.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ A reload replaces every payload in the service with a freshly deserialised
+    /// object. Without adopting it, the row went on pointing at the instance it was built
+    /// from, and the two copies drifted apart: acknowledging wrote the timestamp on the
+    /// service's copy while <see cref="CanAcknowledge"/> read this one. The Confirm button
+    /// stayed enabled on a Will Call that had already been confirmed — and pressing it
+    /// again promises the same patient a second time that a vehicle is on its way.
+    /// </remarks>
+    public void Adopt(NotificationDto fresh)
+    {
+        if (fresh is null || ReferenceEquals(fresh, Dto))
+            return;
+
+        Dto = fresh;
+
+        // The rendered text belongs to the payload that was just replaced.
+        _cachedLanguage = null;
+        _title = null;
+        _body = null;
+
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Body));
+        OnPropertyChanged(nameof(EventName));
+        OnPropertyChanged(nameof(CreatedAtLocal));
+    }
 
     /// <summary>Called when the acknowledged state changed underneath.</summary>
     public void RefreshState()

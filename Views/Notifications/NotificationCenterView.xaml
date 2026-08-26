@@ -780,6 +780,28 @@
                                                 </StackPanel>
                                             </Border>
 
+                                            <!-- ⚠️ Takes the place the countdown leaves: the two are
+                                                 mutually exclusive, because a Will Call stops counting
+                                                 the moment somebody takes charge of it.
+
+                                                 Without this, confirming showed nothing at all — a
+                                                 button greying out and a red chip going away, both by
+                                                 omission. Confirming a Will Call promises a patient a
+                                                 vehicle, and an act that big must not read as if
+                                                 nothing happened. -->
+                                            <Border Background="{Binding SelectedNotification.AcknowledgedBackground}"
+                                                    CornerRadius="12" Padding="12 4"
+                                                    Visibility="{Binding SelectedNotification.IsAcknowledged, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CheckCircleOutline" Width="15" Height="15"
+                                                                             VerticalAlignment="Center"
+                                                                             Foreground="{Binding SelectedNotification.AcknowledgedForeground}" />
+                                                    <TextBlock Text="{Binding SelectedNotification.StatusLabel}" Margin="7 0 0 0"
+                                                               FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                               Foreground="{Binding SelectedNotification.AcknowledgedForeground}" />
+                                                </StackPanel>
+                                            </Border>
+
                                         </WrapPanel>
 
                                         <WrapPanel Margin="0 14 0 0">
