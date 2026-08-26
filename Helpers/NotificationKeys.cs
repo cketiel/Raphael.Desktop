@@ -111,6 +111,25 @@ namespace Raphael.Desktop.Helpers
                        StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// The trip a notification is about, or null when it is not about one.
+        /// </summary>
+        /// <remarks>
+        /// The metadata carries every value as text. Reading it in one place means a
+        /// screen that reacts to a notification and the panel that lists it cannot
+        /// disagree about which trip it names.
+        /// </remarks>
+        public static bool TryGetTripId(
+            Models.NotificationDto notification,
+            out int tripId)
+        {
+            tripId = 0;
+
+            return notification is not null
+                   && notification.Metadata.TryGetValue(Metadata.TripId, out var raw)
+                   && int.TryParse(raw, out tripId);
+        }
+
         /// <summary>Who cancelled a trip, as carried in the metadata.</summary>
         public static class CancelledBy
         {

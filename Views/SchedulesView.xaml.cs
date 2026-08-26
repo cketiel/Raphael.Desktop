@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.ViewModels;
 
 namespace Raphael.Desktop.Views
@@ -21,10 +22,27 @@ namespace Raphael.Desktop.Views
     /// </summary>
     public partial class SchedulesView : UserControl
     {
-        public SchedulesView()
+        private readonly SchedulesTabControlViewModel _viewModel;
+
+        /// <param name="notificationService">
+        /// The office inbox, so the schedule panel finds out when a trip it is offering as
+        /// routable gets cancelled from the driver's app, the patient's, the Booking
+        /// Portal, an integrator or the bot.
+        /// </param>
+        public SchedulesView(INotificationService notificationService = null)
         {
             InitializeComponent();
-            DataContext = new SchedulesTabControlViewModel();
+
+            _viewModel = new SchedulesTabControlViewModel(notificationService);
+            DataContext = _viewModel;
+        }
+
+        /// <summary>
+        /// Lets go of the inbox. Called when the tab is closed, not when it loses focus.
+        /// </summary>
+        public void ReleaseNotifications()
+        {
+            _viewModel?.ScheduleContentViewModel?.ReleaseNotifications();
         }
     }
 }

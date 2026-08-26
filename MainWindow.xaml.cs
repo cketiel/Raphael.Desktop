@@ -598,7 +598,17 @@ namespace Raphael.Desktop
                         // memory; for the Notification Center it is the difference between
                         // reopening and an error dialog.
                         foreach (var child in grid.Children.OfType<UIElement>().ToList())
+                        {
+                            // A screen that listens to the inbox has to be told the tab is
+                            // really closing. Unloaded cannot say it: in a TabControl that
+                            // fires on every tab switch too, and a schedule panel that went
+                            // deaf on the first switch would go back to offering cancelled
+                            // trips as routable.
+                            if (child is SchedulesView schedules)
+                                schedules.ReleaseNotifications();
+
                             grid.Children.Remove(child);
+                        }
                     };
 
                 grid.BeginAnimation(
@@ -868,7 +878,7 @@ namespace Raphael.Desktop
                     case MENU.Schedules:
                         OpenTab(
                             LocalizationService.Instance["Schedules"],
-                            new SchedulesView(),
+                            new SchedulesView(_notificationService),
                             PackIconKind.TableClock);
                         break;
 

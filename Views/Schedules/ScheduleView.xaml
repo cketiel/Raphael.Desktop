@@ -65,6 +65,39 @@
                     <Setter Property="Foreground" Value="Gray" />
                     <Setter Property="ToolTip" Value="This trip was canceled by the office." />
                 </MultiDataTrigger>
+
+                <!-- ===== The row is leaving =====
+                     The trip was cancelled somewhere else while this dispatcher had the
+                     tab open. The row is already unroutable by now (Status carries the
+                     cancellation, and the trigger further down kills the schedule button);
+                     this is what makes them see WHICH row went, instead of finding one
+                     row fewer the next time they look.
+
+                     Timed against DepartureLife in SchedulesViewModel: the row must be
+                     gone by 8.2 s, while the live alert explaining it is still up. Move
+                     one and move the other.
+
+                     MaxHeight rather than Height: an auto-sized row has no numeric height
+                     to animate from. Opacity only fades at the very end, once there is
+                     nothing left to read. -->
+                <DataTrigger Binding="{Binding IsDeparting}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
+                                                 From="36" To="0"
+                                                 BeginTime="0:0:7.0" Duration="0:0:1.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseIn" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                 To="0"
+                                                 BeginTime="0:0:7.0" Duration="0:0:1.2" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
 
@@ -792,12 +825,13 @@
 
                     <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="LightGray" ShowsPreview="True"/>
 
-                    <DataGrid Grid.Row="4" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableColumnVirtualization="False" VirtualizingStackPanel.IsVirtualizing="False" SelectionMode="Single" ScrollViewer.CanContentScroll="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
+                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableColumnVirtualization="False" VirtualizingStackPanel.IsVirtualizing="False" SelectionMode="Single" ScrollViewer.CanContentScroll="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="165">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0">
+                                      <Grid>
+                                        <StackPanel x:Name="ActionButtons" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0">
                                             <Button Command="{Binding Data.CancelTripCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" VerticalAlignment="Center" ToolTip="{Binding Data.CancelTripToolTip, Source={StaticResource vmProxy}}">
                                                 <Button.Visibility>
                                                     <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="NotCanceled" />
@@ -880,6 +914,108 @@
                                                 <materialDesign:PackIcon Kind="History" Foreground="Blue" Width="20" Height="20" />
                                             </Button>
                                         </StackPanel>
+
+                                        <!-- ===== The row is leaving =====
+                                             Takes the place of the buttons while the row
+                                             plays out its removal: there is nothing left
+                                             to do to a trip that no longer exists, and an
+                                             enabled button on a departing row is an
+                                             invitation to click it.
+
+                                             ⚠️ The ScaleTransform is declared right here,
+                                             on an icon this template owns. It must never
+                                             become an implicit PackIcon style: that is
+                                             what animated RenderTransform.ScaleX onto the
+                                             RotateTransform of MaterialDesign's own icons
+                                             and closed the application. See the C3 entry
+                                             in _meta/BACKLOG.md. -->
+                                        <Border x:Name="DepartingBadge"
+                                                Visibility="Collapsed"
+                                                CornerRadius="3"
+                                                Padding="6,2"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#FFD32F2F" />
+                                            </Border.Background>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <materialDesign:PackIcon Kind="CloseOctagon"
+                                                                         Width="20" Height="20"
+                                                                         Foreground="White"
+                                                                         VerticalAlignment="Center"
+                                                                         RenderTransformOrigin="0.5,0.5">
+                                                    <materialDesign:PackIcon.RenderTransform>
+                                                        <ScaleTransform x:Name="DepartingIconScale" ScaleX="0.6" ScaleY="0.6" />
+                                                    </materialDesign:PackIcon.RenderTransform>
+                                                </materialDesign:PackIcon>
+                                                <TextBlock Text="{Binding Data.TripCancelledRowLabel, Source={StaticResource vmProxy}}"
+                                                           Foreground="White"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center"
+                                                           Margin="6,0,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                      </Grid>
+
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsDeparting}" Value="True">
+                                                <Setter TargetName="ActionButtons" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="DepartingBadge" Property="Visibility" Value="Visible" />
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <!-- Burst at 0 → 0.6 s, then three slow beats to 3.0 s.
+                                                             One key-frame timeline per axis rather than a burst
+                                                             animation plus a repeating one: two animations on the
+                                                             same property leave the hand-over between them up to
+                                                             composition order.
+
+                                                             ⚠️ Nothing here animates a brush. A brush written
+                                                             inline in a DataTemplate is frozen by WPF so the
+                                                             template can be shared, and animating a frozen brush
+                                                             throws at runtime — the same family of failure as the
+                                                             PackIcon crash (C3). Scale only, on a transform this
+                                                             template declares itself.
+
+                                                             Neither this nor the row collapse blocks anything:
+                                                             the dispatcher keeps selecting and routing other
+                                                             trips while it plays. -->
+                                                        <Storyboard>
+                                                            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="DepartingIconScale"
+                                                                                          Storyboard.TargetProperty="ScaleX">
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0.6" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="1.4">
+                                                                    <EasingDoubleKeyFrame.EasingFunction>
+                                                                        <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                                                                    </EasingDoubleKeyFrame.EasingFunction>
+                                                                </EasingDoubleKeyFrame>
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:1.0" Value="1.1" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="1.4" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:1.8" Value="1.1" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:2.2" Value="1.4" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:2.6" Value="1.1" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:3.0" Value="1.4" />
+                                                            </DoubleAnimationUsingKeyFrames>
+
+                                                            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="DepartingIconScale"
+                                                                                          Storyboard.TargetProperty="ScaleY">
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0.6" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="1.4">
+                                                                    <EasingDoubleKeyFrame.EasingFunction>
+                                                                        <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                                                                    </EasingDoubleKeyFrame.EasingFunction>
+                                                                </EasingDoubleKeyFrame>
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:1.0" Value="1.1" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="1.4" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:1.8" Value="1.1" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:2.2" Value="1.4" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:2.6" Value="1.1" />
+                                                                <EasingDoubleKeyFrame KeyTime="0:0:3.0" Value="1.4" />
+                                                            </DoubleAnimationUsingKeyFrames>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

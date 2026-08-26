@@ -48,13 +48,21 @@ namespace Raphael.Desktop.Views.Schedules
         {            
             if (DataContext is SchedulesViewModel viewModel)
             {
+                // Re-attached here, not only on DataContextChanged: unloading detaches
+                // this control's own handlers, and unloading happens on every tab switch,
+                // not just on a close. Without this the grid would stop scrolling to a
+                // cancelled row after the dispatcher visited any other tab once.
+                // Idempotent, so returning to the tab repeatedly cannot stack handlers.
+                viewModel.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
+                viewModel.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
+
                 if (!viewModel.IsInitialized)
                 {
                     await viewModel.InitializeAsync();
                 }
                 viewModel.TriggerZoomToFit();
             }
-            
+
         }
 
         private void ScheduleView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -63,12 +71,14 @@ namespace Raphael.Desktop.Views.Schedules
             if (e.OldValue is SchedulesViewModel oldVm)
             {
                 oldVm.ZoomAndCenterRequest -= OnZoomAndCenterRequest;
+                oldVm.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
             }
 
             // Subscribe to the new ViewModel
             if (e.NewValue is SchedulesViewModel newVm)
             {
                 newVm.ZoomAndCenterRequest += OnZoomAndCenterRequest;
+                newVm.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
             }
         }
 
@@ -78,7 +88,26 @@ namespace Raphael.Desktop.Views.Schedules
             if (viewModel != null)
             {
                 viewModel.ZoomAndCenterRequest += OnZoomAndCenterRequest;
+                viewModel.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
             }
+        }
+
+        /// <summary>
+        /// Brings a row of the open-trips grid into view so the dispatcher sees what is
+        /// happening to it.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Scrolls without selecting. Moving the selection would clear the map points
+        /// the dispatcher had up and change which trip the schedule button acts on —
+        /// routing reads the selection, not the row that was clicked. <c>ScrollIntoView</c>
+        /// leaves keyboard focus where it was; <c>Focus()</c> would not.
+        /// </remarks>
+        private void OnScrollUnscheduledTripIntoView(object sender, UnscheduledTripEventArgs e)
+        {
+            if (e?.Trip is null)
+                return;
+
+            UnscheduledTripsGrid?.ScrollIntoView(e.Trip);
         }
 
         // The event handler that calls the map method
@@ -103,6 +132,12 @@ namespace Raphael.Desktop.Views.Schedules
             if (this.DataContext is SchedulesViewModel vm)
             {
                 vm.ZoomAndCenterRequest -= OnZoomAndCenterRequest;
+                vm.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
+
+                // ⚠️ The inbox subscription is NOT released here. This fires on a tab
+                // switch as well as on a close, and a panel that stopped hearing about
+                // cancellations would start offering cancelled trips as routable again.
+                // MainWindow lets go of it when the tab is really closed.
                 vm.Cleanup();
             }
             this.DataContextChanged -= ScheduleView_DataContextChanged;
