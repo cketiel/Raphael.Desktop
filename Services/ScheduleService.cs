@@ -66,7 +66,20 @@ namespace Raphael.Desktop.Services
         {
             //var request = new RouteTripRequest { VehicleRouteId = vehicleRouteId, TripIds = tripIds };
             var response = await _httpClient.PostAsJsonAsync($"{_endPoint}/route", request);
-            response.EnsureSuccessStatusCode();
+
+            // The API already says why it refused: the controller answers with
+            // "Error: ... -- Detalle: ...", and a request that fails model binding gets the
+            // ValidationProblemDetails that [ApiController] returns before the action runs.
+            // EnsureSuccessStatusCode() threw that body away and left the dispatcher with a
+            // bare "400 (Bad Request)" — nothing to act on, and nothing to report.
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new ApiException(
+                    message: $"The server refused to route the trip ({(int)response.StatusCode}). {body}",
+                    statusCode: response.StatusCode,
+                    details: body);
+            }
 
             // --- HISTORY RECORD ---
             await _historyService.SaveHistoryAsync(request.TripId, "Run", "Unassigned", request.VehicleRouteName);
