@@ -352,6 +352,8 @@ public sealed class NotificationCenterViewModel : BaseViewModel
 
     public string AlertSettingsText => LocalizationService.Instance["NotificationAlertsSettings"];
 
+    public string HelpSectionText => LocalizationService.Instance["HelpSectionTooltip"];
+
     public string AdminBackText => LocalizationService.Instance["NotificationAdminBack"];
 
     public string AdminChannelHint => LocalizationService.Instance["NotificationAdminChannelHint"];

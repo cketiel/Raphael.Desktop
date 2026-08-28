@@ -20,6 +20,19 @@ namespace Raphael.Desktop.Views.Notifications
     {
         public NotificationCenterViewModel ViewModel { get; }
 
+        /// <summary>
+        /// Opens the help topic a section header points at.
+        /// </summary>
+        /// <remarks>
+        /// The topic id travels in the button's Tag so one handler serves every header: the inbox
+        /// and the administration panel answer different questions and must not share a page.
+        /// </remarks>
+        private void HelpSection_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { Tag: string topic } && !string.IsNullOrWhiteSpace(topic))
+                Services.Help.HelpService.Instance.Open(topic);
+        }
+
         public NotificationCenterView(
             INotificationService notifications,
             NotificationTextService text)

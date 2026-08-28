@@ -6,6 +6,8 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:local="clr-namespace:Raphael.Desktop.Views"
              xmlns:views="clr-namespace:Raphael.Desktop.Views.Admin"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             helpers:HelpAssist.TopicId="desktop/admin/overview"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 

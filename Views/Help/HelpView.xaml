@@ -1,0 +1,65 @@
+﻿<UserControl x:Class="Raphael.Desktop.Views.Help.HelpView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             helpers:HelpAssist.TopicId="desktop/getting-started/help-itself">
+
+    <!-- The panel, not the window. It is the same instance whether it sits in a tab or in its own
+         window, so moving it keeps the page, the scroll position and the search box exactly where
+         the reader left them. Same arrangement as the Notification Centre, and for the same
+         reason: on two monitors the help belongs on the other screen, and on one it belongs in a
+         tab. -->
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Deliberately thin. The page carries its own header, its own search and its own
+             breadcrumbs; anything more here would be a second navigation competing with it. -->
+        <Border Grid.Row="0"
+                Height="34"
+                Background="{DynamicResource MaterialDesign.Brush.Card.Background}"
+                BorderBrush="{DynamicResource MaterialDesign.Brush.Card.Border}"
+                BorderThickness="0,0,0,1">
+
+            <DockPanel LastChildFill="False">
+
+                <Button x:Name="ToggleWindowButton"
+                        DockPanel.Dock="Right"
+                        Click="ToggleWindowButton_Click"
+                        Style="{StaticResource MaterialDesignToolButton}"
+                        Width="30"
+                        Height="30"
+                        Margin="0,0,4,0"
+                        ToolTip="{Binding ToggleWindowText, RelativeSource={RelativeSource AncestorType=UserControl}}">
+
+                    <materialDesign:PackIcon x:Name="ToggleWindowIcon"
+                                             Kind="OpenInNew"
+                                             Width="17"
+                                             Height="17" />
+                </Button>
+
+            </DockPanel>
+        </Border>
+
+        <wv2:WebView2 x:Name="Browser"
+                      Grid.Row="1" />
+
+        <!-- Only while WebView2 comes up. Without it the panel is a grey rectangle for a second
+             and reads as broken. -->
+        <TextBlock x:Name="StatusText"
+                   Grid.Row="1"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap"
+                   MaxWidth="420"
+                   TextAlignment="Center"
+                   FontSize="14"
+                   Opacity="0.6" />
+    </Grid>
+
+</UserControl>

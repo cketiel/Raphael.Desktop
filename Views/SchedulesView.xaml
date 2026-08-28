@@ -7,6 +7,8 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
              xmlns:views="clr-namespace:Raphael.Desktop.Views.Schedules"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             helpers:HelpAssist.TopicId="desktop/schedules/overview"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              Height="Auto" Width="Auto">

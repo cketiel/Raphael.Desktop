@@ -1,6 +1,8 @@
 <Window x:Class="Raphael.Desktop.Views.Notifications.NotificationCenterWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        helpers:HelpAssist.TopicId="desktop/notifications/center"
         Title="Raphael"
         Height="700"
         Width="1200"

@@ -95,6 +95,19 @@ namespace Raphael.Desktop.ViewModels
         public string NotificationCenterText =>
             LocalizationService.Instance["NotificationCenter"];
 
+        /// <summary>
+        /// Tooltip of the help button. Names the F1 shortcut on purpose: a keyboard shortcut
+        /// nobody is told about is a shortcut nobody uses.
+        /// </summary>
+        public string HelpTooltip =>
+            LocalizationService.Instance["HelpTooltip"];
+
+        public string MenuHelp =>
+            LocalizationService.Instance["MenuHelp"];
+
+        public string MenuAbout =>
+            LocalizationService.Instance["MenuAbout"];
+
         public string PendingActionText =>
             string.Format(
                 LocalizationService.Instance["NotificationPendingAction"],

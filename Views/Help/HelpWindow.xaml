@@ -1,0 +1,20 @@
+﻿<Window x:Class="Raphael.Desktop.Views.Help.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Raphael"
+        Height="760"
+        Width="1080"
+        MinHeight="420"
+        MinWidth="640"
+        Icon="/Assets/logo.png"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterOwner">
+
+    <!-- Content is the very same HelpView instance the tab was holding, so moving the panel here
+         keeps the page and the scroll position. Never modal: the help is read *while* the trip is
+         being worked, and a dispatcher who cannot touch Dispatch until they close it will stop
+         opening it. -->
+
+    <Grid x:Name="Host" />
+
+</Window>

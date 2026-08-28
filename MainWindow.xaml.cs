@@ -13,6 +13,7 @@ using System.Windows.Threading;
 using MaterialDesignThemes.Wpf;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Help;
 using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.ViewModels;
 using Raphael.Desktop.Views;
@@ -71,6 +72,17 @@ namespace Raphael.Desktop
                 () => NativeWindowInterop.FlashTaskbar(this));
 
             NotificationToastHostControl.DataContext = _toasts.Inline;
+
+            // The help asks the window for three things it cannot know on its own: where to show
+            // the panel, how to move it between a tab and its own window, and what the dispatcher
+            // is actually looking at when they press F1.
+            HelpService.Instance.ShowRequested = ShowHelp;
+            HelpService.Instance.ToggleWindowRequested = ToggleHelpWindow;
+            HelpService.Instance.ActiveContentProvider = () =>
+                (MainTabControl.SelectedItem as TabItem)?.Content as DependencyObject;
+
+            // "Open it for me": a link in the help stops describing the route and walks it.
+            HelpService.Instance.ActionRequested += OnHelpActionRequested;
 
             // The floating window is built once and hides itself while there is nothing to
             // show, instead of being created and destroyed per alert.
@@ -156,6 +168,10 @@ namespace Raphael.Desktop
         /// </remarks>
         private void OpenNotificationCenter()
         {
+            // The bell is not a main-menu tab, so nothing else sets this. Without it, F1 straight
+            // after clicking the bell would answer for whichever tab was opened before.
+            CurrentMenu = MENU.Notification;
+
             // Already pulled out to its own window: bring that one forward.
             if (_notificationCenterWindow is not null)
             {
@@ -347,6 +363,247 @@ namespace Raphael.Desktop
         }
 
         #endregion
+
+        /// <summary>
+        /// The main-menu tab in front, or null before anything has been opened.
+        /// </summary>
+        /// <remarks>
+        /// F1 resolves the deepest <see cref="Helpers.HelpAssist.TopicIdProperty"/> above the
+        /// focused element; this is the fallback when nothing on the way up declares one.
+        /// </remarks>
+        public static MENU? CurrentMenu { get; private set; }
+
+        /// <summary>Opens the help for whatever the dispatcher is looking at.</summary>
+        private void HelpButton_Click(object sender, RoutedEventArgs e) =>
+            HelpService.Instance.OpenContextual(CurrentMenu);
+
+        /// <summary>Gear menu: opens the help at the front page, not at the current context.</summary>
+        private void MenuHelp_Click(object sender, RoutedEventArgs e) =>
+            HelpService.Instance.Open(Helpers.HelpTopics.Home);
+
+        /// <summary>
+        /// Gear menu: what a support call starts with.
+        /// </summary>
+        /// <remarks>
+        /// Three versions, not one, because they can disagree and the disagreement is the useful
+        /// part: the application's own version, the day this build was compiled, and the version
+        /// the shipped help was written against. Help that covers an older release than the one
+        /// running is worth knowing about before anybody follows its instructions.
+        /// </remarks>
+        private void MenuAbout_Click(object sender, RoutedEventArgs e)
+        {
+            var help = HelpService.Instance;
+
+            var lines = new List<string>
+            {
+                $"{LocalizationService.Instance["AboutVersion"]}: {VersionHelper.Version}",
+                $"{LocalizationService.Instance["AboutBuild"]}: {VersionHelper.Build}"
+            };
+
+            if (help.IsAvailable)
+            {
+                lines.Add($"{LocalizationService.Instance["AboutHelpCovers"]}: {help.CoveredVersion ?? "—"}");
+                lines.Add($"{LocalizationService.Instance["AboutHelpUpdated"]}: {help.BuiltOn ?? "—"}");
+                lines.Add($"{LocalizationService.Instance["AboutHelpSource"]}: {help.SourceCommit ?? "—"}");
+            }
+            else
+            {
+                lines.Add(LocalizationService.Instance["HelpUnavailable"]);
+            }
+
+            MessageBox.Show(
+                string.Join(Environment.NewLine, lines),
+                LocalizationService.Instance["MenuAbout"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        #region Help panel
+
+        private Views.Help.HelpWindow _helpWindow;
+
+        /// <summary>
+        /// Makes the help panel visible, wherever it belongs right now.
+        /// </summary>
+        /// <remarks>
+        /// One panel, never two, for the same reason as the inbox: two would each hold their own
+        /// page over the same bundle, and the reader would have no way to tell which one they had
+        /// been reading. Where it opens the first time is remembered from last session.
+        /// </remarks>
+        private void ShowHelp()
+        {
+            if (_helpWindow is not null)
+            {
+                if (_helpWindow.WindowState == WindowState.Minimized)
+                    _helpWindow.WindowState = WindowState.Normal;
+
+                _helpWindow.Activate();
+                return;
+            }
+
+            var existing = FindHelpTab();
+
+            if (existing is not null)
+            {
+                MainTabControl.SelectedItem = existing;
+                return;
+            }
+
+            // Its own window by default: on two monitors the help belongs on the other screen, and
+            // that is where a dispatch desk usually is. Whoever docked it last gets it docked.
+            if (Properties.Settings.Default.HelpDocked)
+            {
+                HelpService.Instance.View.IsInOwnWindow = false;
+                OpenTab(
+                    LocalizationService.Instance["Help"],
+                    HelpService.Instance.View,
+                    PackIconKind.HelpCircleOutline);
+            }
+            else
+            {
+                OpenHelpWindow();
+            }
+        }
+
+        /// <summary>
+        /// Finds the tab holding the help panel, by the panel itself.
+        /// </summary>
+        /// <remarks>
+        /// Not by its title. A tab's Tag is the translated caption it was opened with, so after the
+        /// dispatcher switches language the old caption no longer matches and the lookup misses —
+        /// which would open a second help tab over the first. The panel is a single instance, so
+        /// asking who is holding it cannot be wrong.
+        /// </remarks>
+        private TabItem FindHelpTab()
+        {
+            var panel = HelpService.Instance.View;
+
+            return MainTabControl.Items
+                .OfType<TabItem>()
+                .FirstOrDefault(tab => tab.Content is Grid host && host.Children.Contains(panel));
+        }
+
+        /// <summary>
+        /// Moves the help panel between a tab and its own window, and back.
+        /// </summary>
+        /// <remarks>
+        /// The very same UserControl instance is handed over, so the page and the scroll position
+        /// survive the move. A UserControl can only have one parent, hence the detach before the
+        /// re-attach.
+        /// </remarks>
+        private void ToggleHelpWindow()
+        {
+            if (_helpWindow is not null)
+            {
+                _helpWindow.CloseForDocking();
+                return;
+            }
+
+            var tab = FindHelpTab();
+
+            if (tab is not null)
+            {
+                if (tab.Content is Grid host)
+                    host.Children.Remove(HelpService.Instance.View);
+
+                MainTabControl.Items.Remove(tab);
+            }
+
+            OpenHelpWindow();
+        }
+
+        private void OpenHelpWindow()
+        {
+            var panel = HelpService.Instance.View;
+
+            DetachFromParent(panel);
+
+            _helpWindow = new Views.Help.HelpWindow(panel, this);
+            panel.IsInOwnWindow = true;
+
+            Properties.Settings.Default.HelpDocked = false;
+            Properties.Settings.Default.Save();
+
+            // Docking: the reader asked for the panel to live in a tab from now on.
+            _helpWindow.DockRequested += (_, _) =>
+            {
+                _helpWindow = null;
+                panel.IsInOwnWindow = false;
+
+                if (!IsLoaded || _isClosing)
+                    return;
+
+                Properties.Settings.Default.HelpDocked = true;
+                Properties.Settings.Default.Save();
+
+                OpenTab(
+                    LocalizationService.Instance["Help"],
+                    panel,
+                    PackIconKind.HelpCircleOutline);
+            };
+
+            // Closing: the reader has finished. Nothing reopens, and the preference is left alone
+            // — where the help lives is decided by the dock control, never by the close button.
+            _helpWindow.Dismissed += (_, _) =>
+            {
+                _helpWindow = null;
+                panel.IsInOwnWindow = false;
+            };
+
+            _helpWindow.Show();
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Carries out an action a help page asked for.
+        /// </summary>
+        /// <remarks>
+        /// The vocabulary is deliberately tiny — <c>raphael://open/&lt;what&gt;</c> — and every
+        /// value is matched against a closed list here. The pages are ours, but they arrive from a
+        /// bundle on disk, and a bridge that took arbitrary instructions from page content would be
+        /// a way into a session that has a dispatch token in it. An unknown action is ignored.
+        /// </remarks>
+        private void OnHelpActionRequested(object sender, string action)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                switch (action)
+                {
+                    case "raphael://open/notification-center":
+                        OpenNotificationCenter();
+                        break;
+
+                    case "raphael://open/tab/dispatch":
+                        OpenTab(
+                            LocalizationService.Instance["Dispatch"],
+                            new DispatchView(),
+                            PackIconKind.WrenchClock);
+                        CurrentMenu = MENU.Dispatch;
+                        break;
+
+                    case "raphael://open/tab/schedules":
+                        OpenTab(
+                            LocalizationService.Instance["Schedules"],
+                            new SchedulesView(_notificationService),
+                            PackIconKind.TableClock);
+                        CurrentMenu = MENU.Schedules;
+                        break;
+
+                    case "raphael://open/alert-settings":
+                        // Modal, and the only action here that is. The main window comes forward
+                        // first: the dialog is owned by it, and opening a modal behind the help
+                        // window would look like the application had stopped responding.
+                        Activate();
+                        OpenAlertSettings();
+                        break;
+
+                    default:
+                        FileLogger.Log($"The help asked for an action this build does not know: {action}");
+                        break;
+                }
+            });
+        }
 
         private void Window_KeyDown(
             object sender,
@@ -858,6 +1115,11 @@ namespace Raphael.Desktop
                      &&
                      (role != "1" && role != "3"))
                     return;
+
+                // Remembered so F1 has somewhere to land when nothing under the focus declares a
+                // topic of its own. Set after the permission checks, so a tab the user was not
+                // allowed to open never becomes the help context.
+                CurrentMenu = selectedMenu;
 
                 switch (selectedMenu)
                 {
