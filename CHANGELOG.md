@@ -36,6 +36,15 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
   application is ahead of the help, the page says so in a banner rather than describing a product
   that has moved on.
 
+### Fixed
+- Routing a trip could be refused with a bare "400 (Bad Request)". The Pull-in hour was being built
+  from the pickup-to-dropoff leg rather than from the drive back to the garage that the hour
+  actually describes, so on a long trip it ran past midnight and the server rejected the whole
+  routing. Both routing paths — the Schedule tab and reassigning a run from Trips — now measure
+  that leg and send it. Merged before this release but after 1.3.0, so it reaches dispatchers here.
+- A refused routing now shows the reason the server gave. The response body was being discarded, so
+  the dispatcher saw the status code and nothing else while the explanation was there all along.
+
 ## [1.3.0] - 2026-08-25
 
 ### Added
