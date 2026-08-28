@@ -3,6 +3,39 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.4.0] - 2026-08-28
+
+### Added
+- Help inside the application. **F1** opens the topic for the screen in front of you, resolving the
+  deepest declaration above the focus: a dialog opens its own topic, not the one for the tab behind
+  it. A `?` button sits in the top bar, and smaller ones on the Notification Centre toolbar and the
+  administration header open the fine topic for that section.
+- The help panel opens in its own window and docks back into a tab, the same way the Notification
+  Centre does, keeping the page and scroll position across the move. The window remembers its
+  position, size and state, and validates them against the monitors currently attached.
+- Notifications documented in full, in Spanish and English: the bell and its two marks, live alerts
+  and their durations, sound and silence, the Notification Centre, the notice details, Will Call,
+  the catalogue of every notice and who receives it, read state, keeping and cleanup,
+  administration, export, and what to check when nothing arrives. The other tabs ship an
+  introduction and say so on the page.
+- A shared NEMT glossary — Will Call, no-show, route, leg, space type, funding source — linked
+  automatically into the running text, with the definition on hover.
+- Offline search over the whole bundle, reached with `/`, which understands the words the office
+  actually uses rather than only the ones on screen.
+- "Copy report for support" on every page: version, build, role, language, topic and channel status
+  in one paste.
+- "Open it for me" links that carry out the action in the application instead of describing the
+  route to it.
+- Gear menu: **Help** and **About Raphael**, the latter showing the application version, the build
+  date, and which version of the application the shipped help was written against.
+- A What's new page, and a "New in X.Y.Z" badge on topics for the two versions after they arrive.
+
+### Changed
+- The help follows the application's language switch immediately, without restarting, and every
+  page states which version of Raphael Desktop it covers and when it was last updated. If the
+  application is ahead of the help, the page says so in a banner rather than describing a product
+  that has moved on.
+
 ## [1.3.0] - 2026-08-25
 
 ### Added

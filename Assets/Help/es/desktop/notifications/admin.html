@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es" data-help-id="desktop/notifications/admin">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administración de las notificaciones · Ayuda de Raphael</title>
+<meta name="description" content="Ver si el canal está vivo, apagar un aviso sin desplegar nada, revisar lo conservado y saber quién tocó qué.">
+<meta name="help-covers" content="Raphael.Desktop 1.4.0">
+<meta name="help-built" content="2026-08-28">
+<link rel="stylesheet" href="../../../assets/help.css">
+</head>
+<body>
+<a class="rf-skip" href="#rf-content">Ir al contenido</a>
+
+<div class="rf-shell">
+
+  <header class="rf-head">
+    <button class="rf-btn rf-nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="rf-nav" title="Mostrar u ocultar el contenido">☰</button>
+
+    <a class="rf-brand" href="../../../es/desktop/getting-started/overview.html">
+      <span class="rf-brand-mark" aria-hidden="true">R</span>
+      <span>Ayuda de Raphael</span>
+      <span class="rf-brand-sub">1.4.0</span>
+    </a>
+
+    <div class="rf-search">
+      <span class="rf-search-icon" aria-hidden="true">⌕</span>
+      <input type="search" id="rf-search-input" autocomplete="off" spellcheck="false"
+             placeholder="Buscar… (viaje, Will Call, campanita)" aria-label="Buscar en la ayuda"
+             aria-expanded="false" aria-controls="rf-results" role="combobox">
+      <kbd>/</kbd>
+      <div class="rf-results" id="rf-results" role="listbox" hidden></div>
+    </div>
+
+    <div class="rf-head-actions">
+      <a class="rf-btn rf-btn-lang" href="../../../en/desktop/notifications/admin.html" title="Ver en inglés" data-lang-switch>EN</a>
+      <button class="rf-btn" type="button" data-theme-toggle title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">◐</button>
+      <button class="rf-btn" type="button" data-print title="Imprimir este tema">Imprimir</button>
+    </div>
+  </header>
+
+  <nav class="rf-nav" id="rf-nav" aria-label="Contenido">
+    <div class="rf-nav-section"><p class="rf-nav-title">Primeros pasos</p><ul><li><a href="../../../es/desktop/getting-started/overview.html" data-roles="admin dispatcher driver">Raphael Desktop en cinco minutos</a></li><li><a href="../../../es/desktop/getting-started/help-itself.html" data-roles="admin dispatcher driver">Cómo usar esta ayuda</a></li><li><a href="../../../es/desktop/whats-new/overview.html" data-roles="admin dispatcher driver">Novedades</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Notificaciones</p><ul><li><a href="../../../es/desktop/notifications/overview.html" data-roles="admin dispatcher">Qué avisa el sistema y por qué</a></li><li><a href="../../../es/desktop/notifications/bell.html" data-roles="admin dispatcher">La campanita y sus dos marcas</a></li><li><a href="../../../es/desktop/notifications/live-alerts.html" data-roles="admin dispatcher">Las alertas en vivo</a></li><li><a href="../../../es/desktop/notifications/alert-preferences.html" data-roles="admin dispatcher">Sonidos y silencio</a></li><li><a href="../../../es/desktop/notifications/center.html" data-roles="admin dispatcher">El Centro de notificaciones</a></li><li><a href="../../../es/desktop/notifications/detail-panel.html" data-roles="admin dispatcher">La ficha del aviso</a></li><li><a href="../../../es/desktop/notifications/will-call.html" data-roles="admin dispatcher">Atender un Will Call</a></li><li><a href="../../../es/desktop/notifications/catalog.html" data-roles="admin dispatcher">Los avisos, uno por uno</a></li><li><a href="../../../es/desktop/notifications/read-state.html" data-roles="admin dispatcher">Leído y no leído</a></li><li><a href="../../../es/desktop/notifications/keep-cleanup.html" data-roles="admin dispatcher">Conservar un aviso, y la limpieza automática</a></li><li><a href="../../../es/desktop/notifications/admin.html" aria-current="page" data-roles="admin">Administración de las notificaciones</a></li><li><a href="../../../es/desktop/notifications/export.html" data-roles="admin dispatcher">Exportar avisos a Excel</a></li><li><a href="../../../es/desktop/notifications/troubleshooting.html" data-roles="admin dispatcher">Cuando no llega nada</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Las pestañas</p><ul><li><a href="../../../es/desktop/home/overview.html" data-roles="admin dispatcher">Home — dar de alta un viaje</a></li><li><a href="../../../es/desktop/data/overview.html" data-roles="admin dispatcher">Data — los datos maestros</a></li><li><a href="../../../es/desktop/schedules/overview.html" data-roles="admin dispatcher">Schedules — planificar el día</a></li><li><a href="../../../es/desktop/dispatch/overview.html" data-roles="admin dispatcher">Dispatch — vigilar las rutas en marcha</a></li><li><a href="../../../es/desktop/reports/overview.html" data-roles="admin dispatcher driver">Reports — los informes</a></li><li><a href="../../../es/desktop/admin/overview.html" data-roles="admin">Admin — empleados, facturación e integradores</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Glosario</p><ul><li><a href="../../../es/_shared/glossary/will-call.html">Will Call</a></li><li><a href="../../../es/_shared/glossary/no-show.html">No-show</a></li><li><a href="../../../es/_shared/glossary/run.html">Ruta</a></li><li><a href="../../../es/_shared/glossary/leg.html">Trayecto — ida y vuelta</a></li><li><a href="../../../es/_shared/glossary/space-type.html">Tipo de espacio</a></li><li><a href="../../../es/_shared/glossary/funding-source.html">Fuente de financiación</a></li></ul></div>
+  </nav>
+
+  <main class="rf-main" id="rf-content">
+    <article class="rf-article">
+
+      <div data-stale-slot></div>
+
+      <div class="rf-crumbs"><span><a href="../../../es/desktop/getting-started/overview.html">Inicio</a></span><span>Notificaciones</span><span>Administración de las notificaciones</span></div>
+      <h1 class="rf-title">Administración de las notificaciones</h1>
+      <p class="rf-summary">Ver si el canal está vivo, apagar un aviso sin desplegar nada, revisar lo conservado y saber quién tocó qué.</p>
+      <div class="rf-meta"><span class="rf-chip rf-chip-mode">cómo se hace</span><span class="rf-chip rf-chip-new">Nuevo en 1.3.0</span></div>
+
+      <p>El panel de administración responde a cuatro preguntas que nadie más puede responder: si el canal está vivo, qué avisos están encendidos, qué se está conservando y quién tocó qué.</p>
+<p><strong>Solo lo ven los administradores.</strong> Se abre con <strong>«Notification centre administration»</strong> desde el Centro de notificaciones, y se vuelve con <strong>«Back to the inbox»</strong>.</p>
+<h2 id="el-canal-esta-llegando-algo">El canal — «¿está llegando algo?»<a class="help-anchor" href="#el-canal-esta-llegando-algo" aria-label="Enlace a esta sección">#</a></h2>
+<p>La línea de diagnóstico dice tres cosas: el estado del <strong>hub</strong>, cuándo llegó la <strong>última notificación</strong> y cuántas hay <strong>en la bandeja</strong>.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">Un hub conectado que no entrega nada se ve igual que una mañana tranquila</p><p>Ésta es la avería que más tiempo se lleva, porque el sistema informa de perfecta salud mientras no entrega nada.</p>
+<p>Si el panel lleva horas vacío y el estado dice <strong>conectado</strong>, no es que no haya pasado nada: revisa en el servidor la configuración de roles de conductor. Mientras esa lista esté vacía, <strong>todo usuario interno se trata como conductor</strong> y nadie entra en la difusión de oficina. El Desktop se queda vacío para siempre, y en perfecto estado.</p></aside>
+<h2 id="las-reglas-apagar-un-aviso-sin-desplegar">Las reglas — apagar un aviso sin desplegar<a class="help-anchor" href="#las-reglas-apagar-un-aviso-sin-desplegar" aria-label="Enlace a esta sección">#</a></h2>
+<p>La sección <strong>«Notices switched on»</strong> lista los eventos con sus audiencias, y cada uno se enciende y se apaga desde ahí.</p>
+<p><strong>Apagar un aviso lo silencia en todas las aplicaciones a la vez</strong>, sin desplegar nada y al instante.</p>
+<aside class="help-callout help-callout-warning" data-kind="warning"><p class="help-callout-title">Un apagado no sobrevive a una sincronización del catálogo</p><p>La sincronización impone lo que dice el catálogo, incluido qué está activo: volverá a encender lo que el catálogo declare encendido.</p>
+<p>Si el apagado tiene que durar, tiene que quedar también en el catálogo. Si no, es temporal aunque nadie te avise de cuándo se deshizo.</p></aside>
+<h2 id="lo-conservado-la-lista-que-crece-sin-techo">Lo conservado — la lista que crece sin techo<a class="help-anchor" href="#lo-conservado-la-lista-que-crece-sin-techo" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>«Kept records»</strong> es lo único que la limpieza no borra nunca, así que es la única lista del sistema sin techo. Hay que mirarla de vez en cuando.</p>
+<ul><li><strong>«Load kept records»</strong> la trae.</li><li><strong>«Delete this record for good»</strong> borra uno.</li><li><strong>«Delete every kept record»</strong> los borra todos.</li></ul>
+<aside class="help-callout help-callout-danger" data-kind="danger"><p class="help-callout-title">Estos dos borrados son definitivos</p><p>Borran la fila, sus destinatarios y sus datos. Y deshacen la decisión que alguien tomó de guardarla. No hay vuelta atrás, y queda escrito a nombre de quien lo hizo.</p></aside>
+<p><strong>El total no es la suma de los grupos.</strong> Una misma cancelación llega al paciente, a la oficina y al conductor: aparece bajo cada uno siendo <strong>una sola fila</strong>.</p>
+<h2 id="quien-hizo-que">Quién hizo qué<a class="help-anchor" href="#quien-hizo-que" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>«Who did what»</strong> es el rastro de las acciones que alguien decidió: conservar, dejar de conservar, ejecutar la limpieza y borrar conservados. Cada línea trae <strong>cuándo, qué, quién y detalles</strong>.</p>
+<p>La pasada automática de cada noche no aparece aquí: no hay una persona detrás.</p>
+<p>Dos cosas de este rastro, por si alguien las pregunta:</p>
+<ul><li><strong>No lleva ningún dato de paciente.</strong> Solo códigos de evento y recuentos.</li><li><strong>Guarda el nombre de usuario copiado</strong>, no un enlace a la ficha del usuario. Renombrar a alguien no puede reescribir la historia.</li></ul>
+<h2 id="ejecutar-la-limpieza-ahora">Ejecutar la limpieza ahora<a class="help-anchor" href="#ejecutar-la-limpieza-ahora" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>«<a class="help-term" href="../../../es/_shared/glossary/run.html" data-term-title="Ruta" data-term-summary="Un vehículo, un conductor y una franja de fechas y horas. Es la unidad a la que se asignan los viajes.">Run</a> cleanup now»</strong> hace lo que la pasada nocturna: caduca lo que ya venció y borra definitivamente lo que lleva caducado el tiempo suficiente. No adelanta nada que no fuera a pasar solo; el botón solo lo trae al presente.</p>
+<p>Se usa para comprobar que la limpieza funciona, o para liberar espacio antes de una revisión.</p>
+<h2 id="que-puede-salir-mal">Qué puede salir mal<a class="help-anchor" href="#que-puede-salir-mal" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>Cargas las reglas y no vuelve ninguna.</strong> El servidor no está devolviendo el catálogo: es un problema de la API, no del panel.</p>
+<p><strong>Apagaste un aviso y sigue llegando.</strong> Comprueba que apagaste la audiencia correcta: un evento tiene una regla por audiencia, y apagar la del paciente no apaga la de la oficina.</p>
+<p><strong>Borraste algo conservado que hacía falta.</strong> No se recupera. Es el motivo por el que el diálogo lo dice dos veces antes de hacerlo.</p>
+
+      <section class="rf-related"><h2>Ver también</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../es/desktop/notifications/keep-cleanup.html"><strong>Conservar un aviso, y la limpieza automática</strong><span>Por qué los avisos desaparecen solos, qué hace de verdad «conservar», y por qué no es lo mismo que archivar un correo.</span></a><a class="rf-related-card" href="../../../es/desktop/notifications/troubleshooting.html"><strong>Cuando no llega nada</strong><span>Cómo distinguir una mañana tranquila de un canal caído, y qué mirar en cada caso antes de llamar a soporte.</span></a></div></section>
+
+      <footer class="rf-foot">
+        <span data-covers>Cubre Raphael.Desktop 1.4.0</span>
+        <span>Actualizado el 28/08/2026</span>
+        <button class="rf-btn" type="button" data-diagnostics>Copiar informe para soporte</button>
+      </footer>
+
+    </article>
+  </main>
+
+  <aside class="rf-aside" aria-label="En esta página">
+    <p class="rf-aside-title">En esta página</p>
+    <ul><li class="rf-lvl-2"><a href="#el-canal-esta-llegando-algo">El canal — «¿está llegando algo?»</a></li><li class="rf-lvl-2"><a href="#las-reglas-apagar-un-aviso-sin-desplegar">Las reglas — apagar un aviso sin desplegar</a></li><li class="rf-lvl-2"><a href="#lo-conservado-la-lista-que-crece-sin-techo">Lo conservado — la lista que crece sin techo</a></li><li class="rf-lvl-2"><a href="#quien-hizo-que">Quién hizo qué</a></li><li class="rf-lvl-2"><a href="#ejecutar-la-limpieza-ahora">Ejecutar la limpieza ahora</a></li><li class="rf-lvl-2"><a href="#que-puede-salir-mal">Qué puede salir mal</a></li></ul>
+  </aside>
+
+</div>
+
+<script>window.__HELP_PAGE__ = {"id":"desktop/notifications/admin","lang":"es","app":"Raphael.Desktop","appVersion":"1.4.0","built":"2026-08-28","sourceCommit":"0cf5ab3","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
+<script src="../../../assets/search-index.es.js"></script>
+<script src="../../../assets/help.js"></script>
+</body>
+</html>

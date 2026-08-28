@@ -34,5 +34,41 @@ namespace Raphael.Desktop.Properties {
                 this["Language"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string HelpWindowBounds {
+            get {
+                return ((string)(this["HelpWindowBounds"]));
+            }
+            set {
+                this["HelpWindowBounds"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HelpWindowMaximized {
+            get {
+                return ((bool)(this["HelpWindowMaximized"]));
+            }
+            set {
+                this["HelpWindowMaximized"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HelpDocked {
+            get {
+                return ((bool)(this["HelpDocked"]));
+            }
+            set {
+                this["HelpDocked"] = value;
+            }
+        }
     }
 }

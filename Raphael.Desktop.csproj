@@ -11,10 +11,10 @@
 	<!-- The four move together. AssemblyVersion is the one that reaches the screen:
 	     VersionHelper reads Assembly.GetName().Version and the login and every window
 	     title show it. If it does not match the tag, the tag lies. -->
-	<Version>1.3.0</Version>
-	<AssemblyVersion>1.3.0.0</AssemblyVersion>
-	<FileVersion>1.3.0.0</FileVersion>
-	<InformationalVersion>1.3.0-release.1</InformationalVersion>
+	<Version>1.4.0</Version>
+	<AssemblyVersion>1.4.0.0</AssemblyVersion>
+	<FileVersion>1.4.0.0</FileVersion>
+	<InformationalVersion>1.4.0-release.1</InformationalVersion>
 
 	<!-- Stamped into the assembly at compile time and read back by VersionHelper.Build.
 	     It used to be the file's last-write timestamp, which copying the folder rewrites:
@@ -73,6 +73,20 @@
     <None Remove="Assets\Mappings\SAFERIDE.json" />
     <None Remove="Assets\Mappings\SAFERIDE2.json" />
     <None Remove="Assets\no-image.png" />
+  </ItemGroup>
+
+  <!-- ===== Product help =====
+       A compiled bundle, not source. It is written by `node help/build/build.js` in the ecosystem
+       repository and committed here so this project still builds on a machine that does not have
+       that repository beside it. `help.manifest.json` inside carries the version it covers and the
+       commit it came from, and /ship step 4-bis fails when either has fallen behind.
+
+       Do not edit anything under Assets\Help by hand: the next build overwrites it, and the topic
+       it came from would then say something different. See _meta/HELP_POLICY.md. -->
+  <ItemGroup>
+    <Content Include="Assets\Help\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

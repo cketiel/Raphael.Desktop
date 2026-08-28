@@ -1,4 +1,4 @@
-﻿{
+{
     "Home": "Home",
     "Data": "Data",
     "Schedules": "Schedules",
@@ -343,6 +343,20 @@
     "ProviderTimeZoneMissing": "No time zone chosen yet.",
     "ProviderNoTimeZone": "not set — uses the server default",
 
+    "HelpToggleWindow": "Open in its own window",
+    "HelpDockBack": "Put it back in a tab",
+    "MenuHelp": "Help",
+    "MenuAbout": "About Raphael",
+    "AboutVersion": "Version",
+    "AboutBuild": "Build",
+    "AboutHelpCovers": "Help covers",
+    "AboutHelpUpdated": "Help updated",
+    "AboutHelpSource": "Help source",
+    "HelpSectionTooltip": "Help for this section",
+    "Help": "Help",
+    "HelpTooltip": "Help (F1)",
+    "HelpLoading": "Opening the help…",
+    "HelpUnavailable": "The help is not available in this build. Ask support for a version that ships it.",
     "NotificationCenter": "Notifications",
     "NotificationType": "Type",
     "NotificationTitle": "Notification",

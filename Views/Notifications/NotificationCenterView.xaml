@@ -4,6 +4,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             helpers:HelpAssist.TopicId="desktop/notifications/center"
              Height="Auto"
              Width="Auto">
 
@@ -458,6 +459,16 @@
                                 Visibility="{Binding IsAdmin, Converter={StaticResource BoolToVis}}">
                             <materialDesign:PackIcon Kind="ShieldAccountOutline" Width="18" Height="18"
                                                      Foreground="{StaticResource AccentDeep}" />
+                        </Button>
+
+                        <!-- The fine topic for this screen, not the generic one for the tab. F1
+                             reaches the same place, but a screen this dense needs the way in to be
+                             visible: nobody presses a shortcut they were never told about. -->
+                        <Button Click="HelpSection_Click"
+                                Tag="desktop/notifications/center"
+                                Style="{StaticResource ToolbarButtonStyle}"
+                                ToolTip="{Binding HelpSectionText}">
+                            <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" />
                         </Button>
 
                         <Border Width="1" Background="#DADCE0" Margin="6 8" />
@@ -1240,6 +1251,15 @@
                                         Style="{StaticResource ToolbarButtonStyle}"
                                         ToolTip="{Binding RefreshText}">
                                     <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" />
+                                </Button>
+
+                                <!-- Administration has consequences the inbox does not: a deletion
+                                     here cannot be undone. Its own topic, one click away. -->
+                                <Button Click="HelpSection_Click"
+                                        Tag="desktop/notifications/admin"
+                                        Style="{StaticResource ToolbarButtonStyle}"
+                                        ToolTip="{Binding HelpSectionText}">
+                                    <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" />
                                 </Button>
 
                             </StackPanel>

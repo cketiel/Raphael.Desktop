@@ -151,6 +151,23 @@
 
                                     <Separator/>
 
+                                    <MenuItem Header="{Binding MenuHelp}"
+                                              Click="MenuHelp_Click"
+                                              InputGestureText="F1">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="HelpCircleOutline"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <MenuItem Header="{Binding MenuAbout}"
+                                              Click="MenuAbout_Click">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="InformationOutline"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <Separator/>
+
                                     <MenuItem Header="{Binding MenuLogout}"
                                               Command="{Binding LogoutCommand}">
                                         <MenuItem.Icon>
@@ -225,6 +242,25 @@
                         </Border>
 
                     </Grid>
+
+
+                    <!-- ===== Help =====
+                         Left of the bell, so the bell keeps the corner. Visible for every role,
+                         unlike the bell: a driver who only reaches Reports still gets F1 and this
+                         button. The tooltip names the shortcut, which is how anybody finds out
+                         F1 exists at all. -->
+                    <Button x:Name="HelpButton"
+                            DockPanel.Dock="Right"
+                            Click="HelpButton_Click"
+                            Style="{StaticResource NotificationButtonStyle}"
+                            ToolTip="{Binding HelpTooltip}"
+                            Margin="0,0,4,0"
+                            VerticalAlignment="Center">
+
+                        <materialDesign:PackIcon Kind="HelpCircleOutline"
+                                                 Width="27"
+                                                 Height="27"/>
+                    </Button>
 
 
                     <!-- Main Menu -->

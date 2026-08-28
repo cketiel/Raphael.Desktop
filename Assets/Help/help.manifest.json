@@ -1,0 +1,429 @@
+{
+  "helpVersion": "1.0.0",
+  "coversApp": {
+    "Raphael.Desktop": "1.4.0"
+  },
+  "builtUtc": "2026-08-28T08:54:19.759Z",
+  "sourceCommit": "0cf5ab3",
+  "languages": [
+    "es",
+    "en"
+  ],
+  "home": "desktop/getting-started/overview",
+  "menu": {
+    "Home": "desktop/home/overview",
+    "Data": "desktop/data/overview",
+    "Schedules": "desktop/schedules/overview",
+    "Dispatch": "desktop/dispatch/overview",
+    "Reports": "desktop/reports/overview",
+    "Admin": "desktop/admin/overview",
+    "Notification": "desktop/notifications/overview"
+  },
+  "redirects": {},
+  "topics": [
+    {
+      "id": "desktop/getting-started/overview",
+      "mode": "explanation",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher",
+        "driver"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Raphael Desktop en cinco minutos",
+        "en": "Raphael Desktop in five minutes"
+      }
+    },
+    {
+      "id": "desktop/getting-started/help-itself",
+      "mode": "how-to",
+      "since": "1.4.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher",
+        "driver"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Cómo usar esta ayuda",
+        "en": "How to use this help"
+      }
+    },
+    {
+      "id": "desktop/whats-new/overview",
+      "mode": "reference",
+      "since": "1.4.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher",
+        "driver"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Novedades",
+        "en": "What's new"
+      }
+    },
+    {
+      "id": "desktop/notifications/overview",
+      "mode": "explanation",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Qué avisa el sistema y por qué",
+        "en": "What the system tells you, and why"
+      }
+    },
+    {
+      "id": "desktop/notifications/bell",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "La campanita y sus dos marcas",
+        "en": "The bell and its two marks"
+      }
+    },
+    {
+      "id": "desktop/notifications/live-alerts",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Las alertas en vivo",
+        "en": "Live alerts"
+      }
+    },
+    {
+      "id": "desktop/notifications/alert-preferences",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Sonidos y silencio",
+        "en": "Sound and silence"
+      }
+    },
+    {
+      "id": "desktop/notifications/center",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "El Centro de notificaciones",
+        "en": "The Notification Centre"
+      }
+    },
+    {
+      "id": "desktop/notifications/detail-panel",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "La ficha del aviso",
+        "en": "The notice details"
+      }
+    },
+    {
+      "id": "desktop/notifications/will-call",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Atender un Will Call",
+        "en": "Attending a Will Call"
+      }
+    },
+    {
+      "id": "desktop/notifications/catalog",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Los avisos, uno por uno",
+        "en": "The notices, one by one"
+      }
+    },
+    {
+      "id": "desktop/notifications/read-state",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Leído y no leído",
+        "en": "Read and unread"
+      }
+    },
+    {
+      "id": "desktop/notifications/keep-cleanup",
+      "mode": "explanation",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Conservar un aviso, y la limpieza automática",
+        "en": "Keeping a notice, and the automatic cleanup"
+      }
+    },
+    {
+      "id": "desktop/notifications/admin",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Administración de las notificaciones",
+        "en": "Notification administration"
+      }
+    },
+    {
+      "id": "desktop/notifications/export",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Exportar avisos a Excel",
+        "en": "Exporting notices to Excel"
+      }
+    },
+    {
+      "id": "desktop/notifications/troubleshooting",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Cuando no llega nada",
+        "en": "When nothing arrives"
+      }
+    },
+    {
+      "id": "desktop/home/overview",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Home",
+      "title": {
+        "es": "Home — dar de alta un viaje",
+        "en": "Home — booking a trip"
+      }
+    },
+    {
+      "id": "desktop/data/overview",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Data — los datos maestros",
+        "en": "Data — the master data"
+      }
+    },
+    {
+      "id": "desktop/schedules/overview",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Schedules",
+      "title": {
+        "es": "Schedules — planificar el día",
+        "en": "Schedules — planning the day"
+      }
+    },
+    {
+      "id": "desktop/dispatch/overview",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Dispatch",
+      "title": {
+        "es": "Dispatch — vigilar las rutas en marcha",
+        "en": "Dispatch — watching the routes that are running"
+      }
+    },
+    {
+      "id": "desktop/reports/overview",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin",
+        "dispatcher",
+        "driver"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "Reports — los informes",
+        "en": "Reports — the reports"
+      }
+    },
+    {
+      "id": "desktop/admin/overview",
+      "mode": "reference",
+      "since": "1.3.0",
+      "lastReviewed": "1.4.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Admin",
+      "title": {
+        "es": "Admin — empleados, facturación e integradores",
+        "en": "Admin — employees, billing and integrators"
+      }
+    },
+    {
+      "id": "_shared/glossary/will-call",
+      "mode": "reference",
+      "since": "1.0.0",
+      "lastReviewed": "1.4.0",
+      "roles": [],
+      "menu": null,
+      "title": {
+        "es": "Will Call",
+        "en": "Will Call"
+      }
+    },
+    {
+      "id": "_shared/glossary/no-show",
+      "mode": "reference",
+      "since": "1.0.0",
+      "lastReviewed": "1.4.0",
+      "roles": [],
+      "menu": null,
+      "title": {
+        "es": "No-show",
+        "en": "No-show"
+      }
+    },
+    {
+      "id": "_shared/glossary/run",
+      "mode": "reference",
+      "since": "1.0.0",
+      "lastReviewed": "1.4.0",
+      "roles": [],
+      "menu": null,
+      "title": {
+        "es": "Ruta",
+        "en": "Route"
+      }
+    },
+    {
+      "id": "_shared/glossary/leg",
+      "mode": "reference",
+      "since": "1.0.0",
+      "lastReviewed": "1.4.0",
+      "roles": [],
+      "menu": null,
+      "title": {
+        "es": "Trayecto — ida y vuelta",
+        "en": "Leg — outbound and return"
+      }
+    },
+    {
+      "id": "_shared/glossary/space-type",
+      "mode": "reference",
+      "since": "1.0.0",
+      "lastReviewed": "1.4.0",
+      "roles": [],
+      "menu": null,
+      "title": {
+        "es": "Tipo de espacio",
+        "en": "Space type"
+      }
+    },
+    {
+      "id": "_shared/glossary/funding-source",
+      "mode": "reference",
+      "since": "1.0.0",
+      "lastReviewed": "1.4.0",
+      "roles": [],
+      "menu": null,
+      "title": {
+        "es": "Fuente de financiación",
+        "en": "Funding source"
+      }
+    }
+  ]
+}
