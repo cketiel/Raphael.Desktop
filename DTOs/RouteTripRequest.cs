@@ -38,6 +38,24 @@ namespace Raphael.Desktop.DTOs
         [Required]
         public TimeSpan DropoffETA { get; set; } // "hh:mm" format
 
+        /// <summary>
+        /// Travel from the dropoff back to the garage. Feeds the Pull-in hour.
+        /// </summary>
+        /// <remarks>
+        /// Before this field existed the Pull-in was built from <see cref="DropoffTravelTime"/>,
+        /// which is the pickup-to-dropoff leg: the vehicle's return to the garage was being
+        /// charged the duration of the trip it had just finished, a second time. On a long
+        /// trip that pushed the Pull-in past midnight, and a time-of-day column cannot hold
+        /// that hour.
+        ///
+        /// <para>
+        /// Zero when the caller does not send it, which is what an older Desktop does. The
+        /// Pull-in then lands on the dropoff hour: too early, but a real hour, and the
+        /// dispatcher's recalculation replaces it with the measured leg straight after.
+        /// </para>
+        /// </remarks>
+        public TimeSpan ReturnToGarageTravelTime { get; set; }
+
         public int TargetSequence { get; set; }
     }
 }

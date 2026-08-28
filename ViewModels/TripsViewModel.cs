@@ -248,6 +248,25 @@ namespace Raphael.Desktop.ViewModels
             TimeSpan pickupServiceTime = TimeSpan.FromMinutes(15);
             TimeSpan dFinalEta = pFinalEta + pickupServiceTime + dTravelTime;
 
+            // The drive home, for the Pull-in hour. Zero if Google will not price it: the
+            // Pull-in is the vehicle coming back to the garage, and losing the reassignment
+            // over that leg costs more than a Pull-in that is briefly early.
+            TimeSpan returnTravelTime;
+            try
+            {
+                var returnDetails = await _googleMapsService.GetRouteFullDetails(
+                    trip.DropoffLatitude, trip.DropoffLongitude,
+                    targetRoute.GarageLatitude, targetRoute.GarageLongitude);
+
+                returnTravelTime = returnDetails == null
+                    ? TimeSpan.Zero
+                    : TimeSpan.FromSeconds(returnDetails.DurationInTrafficSeconds);
+            }
+            catch
+            {
+                returnTravelTime = TimeSpan.Zero;
+            }
+
             // Send to Backend
             var request = new RouteTripRequest
             {
@@ -259,6 +278,7 @@ namespace Raphael.Desktop.ViewModels
                 DropoffDistance = dDistance,
                 DropoffTravelTime = dTravelTime,
                 DropoffETA = dFinalEta,
+                ReturnToGarageTravelTime = returnTravelTime,
                 VehicleRouteName = targetRoute.Name
             };
 

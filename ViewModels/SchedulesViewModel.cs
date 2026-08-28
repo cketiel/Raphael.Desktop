@@ -942,6 +942,35 @@ namespace Raphael.Desktop.ViewModels
 
         private bool CanLoadSchedulesAndTrips() => SelectedVehicleRoute != null;
 
+        /// <summary>
+        /// How long the vehicle takes from a dropoff back to its garage, for the Pull-in hour.
+        /// </summary>
+        /// <remarks>
+        /// A failure here returns <see cref="TimeSpan.Zero"/> instead of aborting: the Pull-in
+        /// is the vehicle coming home, not a patient being collected, and the recalculation
+        /// that runs straight after routing measures it again anyway. Losing the whole routing
+        /// because Google would not price the drive back to the garage costs more than a
+        /// Pull-in that is briefly early.
+        /// </remarks>
+        private async Task<TimeSpan> GetReturnToGarageTravelTimeAsync(
+            double dropoffLatitude, double dropoffLongitude, Models.VehicleRoute vehicleRoute)
+        {
+            try
+            {
+                var details = await _googleMapsService.GetRouteFullDetails(
+                    dropoffLatitude, dropoffLongitude,
+                    vehicleRoute.GarageLatitude, vehicleRoute.GarageLongitude);
+
+                return details == null
+                    ? TimeSpan.Zero
+                    : TimeSpan.FromSeconds(details.DurationInTrafficSeconds);
+            }
+            catch
+            {
+                return TimeSpan.Zero;
+            }
+        }
+
         // Routing logic
         private async Task RouteSelectedTripAsync()
         {
@@ -1010,6 +1039,12 @@ namespace Raphael.Desktop.ViewModels
                 TimeSpan pickupServiceTime = TimeSpan.FromMinutes(15);
                 TimeSpan dFinalEta = pFinalEta + pickupServiceTime + dTravelTime;
 
+                // The drive home. The Pull-in hour is built from this leg; it used to be
+                // built from dTravelTime, the trip's own pickup-to-dropoff leg, which billed
+                // the return to the garage for the trip all over again.
+                TimeSpan returnTravelTime = await GetReturnToGarageTravelTimeAsync(
+                    tripToSchedule.DropoffLatitude, tripToSchedule.DropoffLongitude, vehicleRoute);
+
                 var request = new RouteTripRequest
                 {
                     VehicleRouteId = vehicleRoute.Id,
@@ -1020,6 +1055,7 @@ namespace Raphael.Desktop.ViewModels
                     DropoffDistance = dDistance,
                     DropoffTravelTime = dTravelTime,
                     DropoffETA = dFinalEta,
+                    ReturnToGarageTravelTime = returnTravelTime,
                     VehicleRouteName = vehicleRoute.Name,
                     TargetSequence = targetSequence
                 };
