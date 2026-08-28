@@ -331,8 +331,8 @@ namespace Raphael.Desktop.Views
                 ";
                 await MapaWebView.ExecuteScriptAsync(fillInputsJs);
 
-                ShowETAInfo(trip);
-
+                // The ShowETAInfo call was here. It bought three route estimates and displayed
+                // none of them. The map itself already draws the route.
             }
 
 
@@ -362,24 +362,10 @@ namespace Raphael.Desktop.Views
 
             MapaWebView.CoreWebView2.Navigate(tempPath);
         }
-        public async void ShowETAInfo(TripReadDto SelectedTrip) {
-
-            GoogleMapsService googleMapsService = new GoogleMapsService();
-            var routeInfo = await googleMapsService.GetRouteDurationsAndDistance(SelectedTrip.PickupLatitude, SelectedTrip.PickupLongitude, SelectedTrip.DropoffLatitude, SelectedTrip.DropoffLongitude);
-
-            // Mostrar las duraciones y distancia en el Label
-            Label etaLabel = new Label();
-            etaLabel.Content = $"Duration without traffic: {routeInfo.noTraffic}\n" +
-                              $"Duration with traffic: {routeInfo.withTraffic}\n" +
-                              $"Duration (pessimistic): {routeInfo.pessimistic}\n" +
-                              $"Duration (optimistic): {routeInfo.optimistic}\n" +
-                              $"Distance: {routeInfo.distance}";
-
-            Dispatcher.Invoke(() =>
-            {
-                //ETAInfoLabel.Content = etaLabel.Content;
-            });
-        }
+        // ShowETAInfo lived here. It made three billed requests to Google — best guess,
+        // pessimistic and optimistic — built a label out of them, and then displayed nothing: the
+        // one line that would have shown the result was commented out. Removed rather than
+        // rewritten; when this screen needs an ETA, IRoutingApiService gives it in one request.
 
         private void MapaWebView_WebMessageReceived(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
         {
