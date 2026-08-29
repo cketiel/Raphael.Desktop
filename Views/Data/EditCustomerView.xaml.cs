@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
 using Raphael.Desktop.Services.Maps;
 using Raphael.Desktop.ViewModels;
 
@@ -27,6 +28,9 @@ namespace Raphael.Desktop.Views.Data
         //public EditCustomerViewModel ViewModel { get; set; }
         public EditCustomerViewModel ViewModel => DataContext as EditCustomerViewModel;
         private bool _isUpdatingFromHtml = false;
+
+        private readonly IMapsUsageApiService _mapsUsageApiService = new MapsUsageApiService();
+
         public EditCustomerView()
         {
             InitializeComponent();
@@ -52,6 +56,10 @@ namespace Raphael.Desktop.Views.Data
                     try
                     {
                         var json = args.WebMessageAsJson;
+
+                        // What the page spent at Google itself. The server never sees these.
+                        if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
+
                         dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
                        
                         if (data.type == "autocomplete")

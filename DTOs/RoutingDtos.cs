@@ -22,7 +22,9 @@ namespace Raphael.Desktop.DTOs
             /// Free-flow time with our own traffic buffer added. Not Google's traffic estimate,
             /// and no screen should label it as one.
             /// </summary>
-            public const string Buffered = "Buffered";
+            // 'Buffered' used to live here and made this field unusable: in MaxSavings mode every
+            // answer read Buffered whether it had been bought or cached, so nothing could tell
+            // what had been paid for. It is now RouteLegResultDto.Buffered, a separate flag.
         }
 
         public static class Statuses
@@ -83,7 +85,14 @@ namespace Raphael.Desktop.DTOs
         /// </summary>
         public string EncodedPolyline { get; set; }
 
+        /// <summary>Cache or Google: was anybody billed for this.</summary>
         public string Source { get; set; } = RoutingContract.Sources.Cache;
+
+        /// <summary>
+        /// True when the planning duration is our own free-flow-plus-margin figure rather than a
+        /// traffic estimate from Google. Independent of <see cref="Source"/>.
+        /// </summary>
+        public bool Buffered { get; set; }
 
         public string Status { get; set; } = RoutingContract.Statuses.Ok;
 

@@ -78,6 +78,12 @@
                     <views:ProvidersView />
                 </TabItem>
 
+                <!-- What Google Maps costs, what the cache saves, and the two settings that
+                     move both. See help topic admin/google-maps-panel. -->
+                <TabItem Header="Google Maps">
+                    <views:GoogleMapsAdminView />
+                </TabItem>
+
             </TabControl>
 
         </Grid>

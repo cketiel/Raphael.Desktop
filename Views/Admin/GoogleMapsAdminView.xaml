@@ -1,0 +1,410 @@
+<UserControl x:Class="Raphael.Desktop.Views.Admin.GoogleMapsAdminView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+             xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels.Admin"
+             mc:Ignorable="d"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DesignHeight="700" d:DesignWidth="1200">
+
+    <UserControl.DataContext>
+        <vm:GoogleMapsAdminViewModel />
+    </UserControl.DataContext>
+
+    <UserControl.Resources>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- A KPI card. Four of these carry the whole summary, so they are worth a style. -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Margin" Value="0,0,10,10" />
+        </Style>
+
+        <Style x:Key="CardLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#616161" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="CardValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#37474F" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#757575" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+
+    </UserControl.Resources>
+
+    <Grid Background="#FAFAFA">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================ period bar ============================ -->
+        <Border Grid.Row="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                Padding="12,10">
+            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <TextBlock Text="Periodo de facturación" VerticalAlignment="Center"
+                           FontWeight="SemiBold" Margin="0,0,10,0" />
+
+                <DatePicker SelectedDate="{Binding From, Mode=TwoWay}" Width="130"
+                            VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock Text="→" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <DatePicker SelectedDate="{Binding To, Mode=TwoWay}" Width="130"
+                            VerticalAlignment="Center" Margin="0,0,12,0" />
+
+                <Button Content="Este mes" Command="{Binding ThisMonthCommand}"
+                        Padding="10,4" Margin="0,0,6,0" />
+                <Button Content="Mes pasado" Command="{Binding LastMonthCommand}"
+                        Padding="10,4" Margin="0,0,6,0" />
+                <Button Content="30 días" Command="{Binding Last30DaysCommand}"
+                        Padding="10,4" Margin="0,0,6,0" />
+                <Button Content="90 días" Command="{Binding Last90DaysCommand}"
+                        Padding="10,4" Margin="0,0,16,0" />
+
+                <Button Content="Actualizar" Command="{Binding RefreshCommand}"
+                        Padding="14,4" FontWeight="SemiBold" Margin="0,0,6,0" />
+                <Button Content="Exportar CSV" Command="{Binding ExportCsvCommand}"
+                        Padding="10,4" />
+
+                <TextBlock Text="Cargando…" VerticalAlignment="Center" Margin="14,0,0,0"
+                           Foreground="#1976D2"
+                           Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+            </WrapPanel>
+        </Border>
+
+        <!-- ============================ messages ============================ -->
+        <StackPanel Grid.Row="1">
+            <Border Background="#FFEBEE" BorderBrush="#EF9A9A" BorderThickness="1" Padding="10,7"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#B71C1C" TextWrapping="Wrap" />
+            </Border>
+            <Border Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Padding="10,7"
+                    Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#1B5E20" TextWrapping="Wrap" />
+            </Border>
+        </StackPanel>
+
+        <TabControl Grid.Row="2" Margin="8" Background="Transparent" BorderThickness="0">
+
+            <!-- ==================================================================
+                 RESUMEN — the money view
+                 ================================================================== -->
+            <TabItem Header="Resumen">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                    <StackPanel>
+
+                        <!-- KPI cards -->
+                        <UniformGrid Rows="1" Columns="5">
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Comprado a Google" Style="{StaticResource CardLabel}" />
+                                    <TextBlock Text="{Binding BilledText}" Style="{StaticResource CardValue}"
+                                               Foreground="#E53935" />
+                                    <TextBlock Text="peticiones facturadas" Style="{StaticResource HintText}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Servido desde caché" Style="{StaticResource CardLabel}" />
+                                    <TextBlock Text="{Binding CachedText}" Style="{StaticResource CardValue}"
+                                               Foreground="#2E7D32" />
+                                    <TextBlock Text="sin coste alguno" Style="{StaticResource HintText}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Acierto de caché" Style="{StaticResource CardLabel}" />
+                                    <TextBlock Text="{Binding CacheHitPercentText}" Style="{StaticResource CardValue}"
+                                               Foreground="#2E7D32" />
+                                    <TextBlock Text="cuanto más alto, menos se paga"
+                                               Style="{StaticResource HintText}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Coste estimado" Style="{StaticResource CardLabel}" />
+                                    <TextBlock Text="{Binding EstimatedCostText}" Style="{StaticResource CardValue}" />
+                                    <TextBlock Style="{StaticResource HintText}">
+                                        <Run Text="proyección a fin de mes:" />
+                                        <Run Text="{Binding ProjectedCostText, Mode=OneWay}" FontWeight="SemiBold" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}" Background="#E8F5E9"
+                                    BorderBrush="#A5D6A7">
+                                <StackPanel>
+                                    <TextBlock Text="Coste evitado" Style="{StaticResource CardLabel}" />
+                                    <TextBlock Text="{Binding AvoidedCostText}" Style="{StaticResource CardValue}"
+                                               Foreground="#1B5E20" />
+                                    <TextBlock Style="{StaticResource HintText}">
+                                        <Run Text="{Binding SavingsRatioText, Mode=OneWay}" FontWeight="SemiBold" />
+                                        <Run Text="de lo que habría costado" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                        </UniformGrid>
+
+                        <!-- honesty notice: this is a simulation, and it says so -->
+                        <Border Background="#FFF8E1" BorderBrush="#FFE082" BorderThickness="1"
+                                CornerRadius="4" Padding="10,7" Margin="0,0,10,12">
+                            <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#6D4C41">
+                                <Run Text="Las cifras de coste son una estimación, no la factura." FontWeight="SemiBold" />
+                                <LineBreak />
+                                <Run Text="Los tramos de precio de Google son mensuales y de todo el proyecto: un periodo que no sea un mes natural calcula un volumen que Google nunca vio, y si otra aplicación usa la misma key consume el mismo tramo gratuito. Además, el mapa, el autocompletado y el geocoder al arrastrar un pin se cuentan por lo que reporta la aplicación, no por lo que mide el servidor." />
+                            </TextBlock>
+                        </Border>
+
+                        <!-- main chart: the story of the optimisation -->
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitle}"
+                                               Text="Peticiones por día: comprado vs. caché" />
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <RadioButton Content="Gráfico" GroupName="DailyView" Margin="0,0,8,0"
+                                                     IsChecked="{Binding ShowDailyAsChart, Mode=OneWay}"
+                                                     Command="{x:Null}"
+                                                     Checked="DailyChart_Checked" />
+                                        <RadioButton Content="Tabla" GroupName="DailyView"
+                                                     IsChecked="{Binding ShowDailyAsTable, Mode=OneWay}"
+                                                     Checked="DailyTable_Checked" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <lvc:CartesianChart Height="300"
+                                                    Series="{Binding DailySeries}"
+                                                    XAxes="{Binding DailyXAxes}"
+                                                    YAxes="{Binding CountAxes}"
+                                                    LegendPosition="Bottom"
+                                                    TooltipPosition="Top"
+                                                    Visibility="{Binding ShowDailyAsChart, Converter={StaticResource BoolToVis}}" />
+
+                                <DataGrid ItemsSource="{Binding DailyRows}" AutoGenerateColumns="False"
+                                          IsReadOnly="True" MaxHeight="300" HeadersVisibility="Column"
+                                          GridLinesVisibility="Horizontal" RowHeight="24"
+                                          Visibility="{Binding ShowDailyAsTable, Converter={StaticResource BoolToVis}}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Día" Width="110"
+                                                            Binding="{Binding Day, StringFormat=d}" />
+                                        <DataGridTextColumn Header="A Google" Width="110"
+                                                            Binding="{Binding Billed, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="Desde caché" Width="120"
+                                                            Binding="{Binding Cached, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="Total" Width="100"
+                                                            Binding="{Binding Total, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="% caché" Width="100"
+                                                            Binding="{Binding CacheHitPercent, StringFormat={}{0:0.0} %}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="La banda roja es lo que se paga. Que encoja mientras crece la verde es exactamente lo que el caché debe hacer." />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- trend -->
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}"
+                                           Text="Tendencia del acierto de caché" />
+                                <lvc:CartesianChart Height="220"
+                                                    Series="{Binding HitRateSeries}"
+                                                    XAxes="{Binding DailyXAxes}"
+                                                    YAxes="{Binding PercentAxes}"
+                                                    TooltipPosition="Top" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Esta línea debería subir con el tiempo y estabilizarse: son los pares origen-destino que se repiten semana tras semana." />
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================================================================
+                 DETALLE — the analysis view
+                 ================================================================== -->
+            <TabItem Header="Detalle">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                    <StackPanel>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}"
+                                           Text="Totales históricos (sin filtro de fecha)" />
+                                <TextBlock Text="{Binding TotalsText}" FontSize="14" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource SectionTitle}"
+                                               Text="Desglose por producto de Google" />
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <RadioButton Content="Tabla" GroupName="SkuView" Margin="0,0,8,0"
+                                                     IsChecked="{Binding ShowSkuAsTable, Mode=OneWay}"
+                                                     Checked="SkuTable_Checked" />
+                                        <RadioButton Content="Gráfico" GroupName="SkuView"
+                                                     IsChecked="{Binding ShowSkuAsChart, Mode=OneWay}"
+                                                     Checked="SkuChart_Checked" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <DataGrid ItemsSource="{Binding BySku}" AutoGenerateColumns="False"
+                                          IsReadOnly="True" HeadersVisibility="Column"
+                                          GridLinesVisibility="Horizontal" RowHeight="26"
+                                          Visibility="{Binding ShowSkuAsTable, Converter={StaticResource BoolToVis}}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Producto" Width="2*"
+                                                            Binding="{Binding DisplayName}" />
+                                        <DataGridTextColumn Header="A Google" Width="*"
+                                                            Binding="{Binding Billed, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="Desde caché" Width="*"
+                                                            Binding="{Binding Cached, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="% caché" Width="*"
+                                                            Binding="{Binding CacheHitPercent, StringFormat={}{0:0.0} %}" />
+                                        <DataGridTextColumn Header="Coste" Width="*"
+                                                            Binding="{Binding EstimatedCost, StringFormat=C2, ConverterCulture=en-US}" />
+                                        <DataGridTextColumn Header="Evitado" Width="*"
+                                                            Binding="{Binding AvoidedCost, StringFormat=C2, ConverterCulture=en-US}" />
+                                        <DataGridTextColumn Header="Gratis/mes" Width="*"
+                                                            Binding="{Binding FreeCapPerMonth, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="Gratis restante" Width="*"
+                                                            Binding="{Binding FreeRemainingThisMonth, StringFormat=N0}" />
+                                        <DataGridCheckBoxColumn Header="Reportado" Width="Auto"
+                                                                Binding="{Binding ReportedByClient}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <lvc:PieChart Height="300" Series="{Binding SkuSeries}"
+                                              LegendPosition="Right"
+                                              Visibility="{Binding ShowSkuAsChart, Converter={StaticResource BoolToVis}}" />
+
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="«Gratis restante» es del mes natural en curso, no del periodo elegido: es la cifra contra la que se ajustan las cuotas en la consola de Google. «Reportado» marca los productos que cuenta la aplicación en vez del servidor." />
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================================================================
+                 CONFIGURACIÓN
+                 ================================================================== -->
+            <TabItem Header="Configuración">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+                    <StackPanel>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Modo de tráfico" />
+
+                                <ComboBox ItemsSource="{Binding TrafficModes}"
+                                          SelectedItem="{Binding TrafficMode, Mode=TwoWay}"
+                                          Width="220" HorizontalAlignment="Left" />
+
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="MaxSavings pide las rutas sin tráfico ($5 por 1.000, 10.000 gratis al mes) y añade un margen propio. Precision las pide con el tráfico previsto de Google para la hora del viaje." />
+
+                                <Border Background="#FFF3E0" BorderBrush="#FFB74D" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,7" Margin="0,8,0,0"
+                                        Visibility="{Binding IsPrecision, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#E65100">
+                                        <Run Text="Precision cuesta el doble." FontWeight="SemiBold" />
+                                        <Run Text="$10 por cada 1.000 peticiones en vez de $5, y el tramo gratuito baja de 10.000 a 5.000 al mes. El caché sigue funcionando igual, pero cada acierto que falte se paga al doble." />
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Caché" />
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="Días de retención" Width="180" VerticalAlignment="Center" />
+                                    <TextBox Text="{Binding CacheRetentionDays, Mode=TwoWay}" Width="90" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Margen de tráfico (%)" Width="180" VerticalAlignment="Center" />
+                                    <TextBox Text="{Binding BufferPercent, Mode=TwoWay}" Width="90" />
+                                </StackPanel>
+
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="La retención decide cuánto tiempo se sirve y se conserva una respuesta de Google, de 1 a 3650 días. Los términos de Google describen una ventana de 30 días para el contenido cacheado; el valor por defecto de 365 es una decisión de negocio, no un descuido. El margen es el porcentaje que se suma al tiempo sin tráfico en modo MaxSavings." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <Button Content="Guardar configuración" Command="{Binding SaveSettingsCommand}"
+                                        Padding="18,7" HorizontalAlignment="Left" FontWeight="SemiBold" />
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Los cambios se aplican en todo el sistema en menos de un minuto, sin desplegar nada." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}"
+                                           Text="Tarifas de Google (tramos por volumen mensual)" />
+
+                                <DataGrid ItemsSource="{Binding PricingTiers}" AutoGenerateColumns="False"
+                                          IsReadOnly="True" HeadersVisibility="Column" MaxHeight="320"
+                                          GridLinesVisibility="Horizontal" RowHeight="24">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Producto" Width="2*"
+                                                            Binding="{Binding DisplayName}" />
+                                        <DataGridTextColumn Header="Gratis/mes" Width="*"
+                                                            Binding="{Binding FreeCapPerMonth, StringFormat=N0}" />
+                                        <DataGridTextColumn Header="Tramo" Width="*"
+                                                            Binding="{Binding Band}" />
+                                        <DataGridTextColumn Header="USD / 1.000" Width="*"
+                                                            Binding="{Binding PricePerThousand, StringFormat=C2, ConverterCulture=en-US}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="Estas tarifas viven en la base de datos, no en el código: cuando Google las cambie, se corrigen sin publicar una versión nueva." />
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+    </Grid>
+</UserControl>

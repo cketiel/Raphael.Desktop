@@ -1,6 +1,7 @@
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -102,6 +103,48 @@ namespace Raphael.Desktop.Services.Maps
             }
 
             webView.CoreWebView2.Navigate(url.ToString());
+        }
+
+        /// <summary>
+        /// Forwards a page's report of its own Google spending, if that is what this message is.
+        /// </summary>
+        /// <remarks>
+        /// The map pages call Google directly with the browser key — a map load, an address
+        /// autocomplete, a geocode when a pin is dragged — and the server sees none of it. Without
+        /// this the administrator's usage panel would show a figure that could never match the
+        /// invoice. Fire and forget, and silent on failure.
+        /// </remarks>
+        public static bool TryForwardUsage(string json, IMapsUsageApiService usage)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+
+                if (!document.RootElement.TryGetProperty("type", out var type)
+                    || type.GetString() != "usage")
+                {
+                    return false;
+                }
+
+                if (!document.RootElement.TryGetProperty("sku", out var skuElement)) return true;
+
+                var sku = skuElement.GetString();
+
+                if (string.IsNullOrWhiteSpace(sku)) return true;
+
+                var count = document.RootElement.TryGetProperty("count", out var countElement)
+                    && countElement.TryGetInt32(out var parsed)
+                        ? parsed
+                        : 1;
+
+                _ = usage.ReportUsageAsync(sku, count);
+
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
 
         /// <summary>What a page asks for when it needs the road between its two pins drawn.</summary>

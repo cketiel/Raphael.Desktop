@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Raphael.Desktop.Services;
 using Raphael.Desktop.Services.Maps;
 using Raphael.Desktop.ViewModels;
 
@@ -24,7 +25,10 @@ namespace Raphael.Desktop.Views.Data.Scheduling
     public partial class VehicleRouteEditorWindow : Window
     {
         public VehicleRouteEditorViewModel ViewModel => DataContext as VehicleRouteEditorViewModel;
-        private bool _isUpdatingFromHtml = false; 
+        private bool _isUpdatingFromHtml = false;
+
+        private readonly IMapsUsageApiService _mapsUsageApiService = new MapsUsageApiService();
+
         public VehicleRouteEditorWindow()
         {
             InitializeComponent();
@@ -74,6 +78,10 @@ namespace Raphael.Desktop.Views.Data.Scheduling
                     try
                     {
                         var json = args.WebMessageAsJson;
+
+                        // What the page spent at Google itself. The server never sees these.
+                        if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
+
                         dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
 
                         if (data.type == "autocomplete")

@@ -67,6 +67,11 @@ namespace Raphael.Desktop.Views
         private readonly IRoutingApiService _routingApiService = new RoutingApiService();
 
         /// <summary>
+        /// Forwards what the map pages spend at Google directly, which the server cannot see.
+        /// </summary>
+        private readonly IMapsUsageApiService _mapsUsageApiService = new MapsUsageApiService();
+
+        /// <summary>
         /// The date and hour of the trip currently on the map, so its route is priced against
         /// when the vehicle actually leaves rather than against right now.
         /// </summary>
@@ -159,6 +164,10 @@ namespace Raphael.Desktop.Views
                 try
                 {
                     var json = args.WebMessageAsJson;
+
+                    // The page spent something at Google on its own. Forwarded so the usage panel
+                    // sees what the server cannot.
+                    if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
 
                     // The map wants the road between its two pins drawn. It used to compute that
                     // itself with DirectionsService — a class this Cloud project can no longer

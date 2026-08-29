@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.4.0"
   },
-  "builtUtc": "2026-08-28T08:54:19.759Z",
-  "sourceCommit": "0cf5ab3",
+  "builtUtc": "2026-08-29T22:06:23.388Z",
+  "sourceCommit": "b3f866d",
   "languages": [
     "es",
     "en"
@@ -351,6 +351,20 @@
       "title": {
         "es": "Admin — empleados, facturación e integradores",
         "en": "Admin — employees, billing and integrators"
+      }
+    },
+    {
+      "id": "desktop/admin/google-maps",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Google Maps",
+      "title": {
+        "es": "Google Maps — consumo, coste y ahorro",
+        "en": "Google Maps — usage, cost and savings"
       }
     },
     {

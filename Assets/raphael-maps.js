@@ -52,6 +52,21 @@
     }
 
     /**
+     * Tells the host we just spent something at Google.
+     *
+     * These calls carry the browser key and go straight from this page to Google, so the server
+     * never sees them and the administrator's usage panel would be blind to a third of the bill.
+     * Counted here, at the moment of spending, and forwarded by the host.
+     *
+     * ⚠️ Approximate by nature. Google's autocomplete session billing does not map exactly onto
+     * "one request per keystroke burst", and the panel labels these SKUs as reported rather than
+     * measured for that reason.
+     */
+    function meter(sku, count) {
+        post({ type: 'usage', sku: sku, count: count || 1 });
+    }
+
+    /**
      * Loads the Maps JavaScript API once, with the libraries every page here needs:
      * `places` for the autocomplete data calls and `geometry` to decode the route shape.
      */
@@ -66,7 +81,16 @@
 
             var callbackName = '__raphaelMapsReady';
 
-            window[callbackName] = function () { resolve(window.google.maps); };
+            window[callbackName] = function () {
+                // A page that loads the API and draws a map is one Dynamic Maps load, billed the
+                // moment this callback fires. The autocomplete-only page draws no map, so it
+                // declares itself with data-no-map and is not counted.
+                if (!document.body || document.body.dataset.noMap !== '1') {
+                    meter('DynamicMaps');
+                }
+
+                resolve(window.google.maps);
+            };
 
             var script = document.createElement('script');
 
@@ -146,6 +170,8 @@
     function reverseGeocode(position) {
         return new Promise(function (resolve) {
             if (!geocoder) geocoder = new google.maps.Geocoder();
+
+            meter('Geocoding');
 
             geocoder.geocode({ location: position }, function (results, status) {
                 if (status === 'OK' && results && results.length) {
@@ -282,6 +308,8 @@
 
                 if (config.regionCode) request.includedRegionCodes = [config.regionCode];
 
+                meter('PlacesAutocomplete');
+
                 var response = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
 
                 suggestions = (response.suggestions || []).filter(function (s) {
@@ -307,6 +335,8 @@
 
             try {
                 var chosen = suggestion.placePrediction.toPlace();
+
+                meter('PlaceDetails');
 
                 await chosen.fetchFields({
                     fields: ['location', 'addressComponents', 'formattedAddress']
@@ -444,6 +474,7 @@
         num: num,
         flag: flag,
         post: post,
+        meter: meter,
         parseComponents: parseComponents,
         splitFormatted: splitFormatted,
         reverseGeocode: reverseGeocode,
