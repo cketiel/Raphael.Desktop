@@ -106,6 +106,31 @@ namespace Raphael.Desktop.Services
             return results.Count > 0 ? results[0] : Unavailable();
         }
 
+        public async Task<RouteLegResultDto> GetMapRouteAsync(
+            double originLat,
+            double originLng,
+            double destLat,
+            double destLng,
+            DateTime? date = null,
+            TimeSpan? departureTime = null)
+        {
+            var results = await GetLegsAsync(new List<RouteLegRequestItemDto>
+            {
+                new RouteLegRequestItemDto
+                {
+                    OriginLat = originLat,
+                    OriginLng = originLng,
+                    DestLat = destLat,
+                    DestLng = destLng,
+                    Date = date,
+                    DepartureTime = departureTime,
+                    IncludePolyline = true
+                }
+            });
+
+            return results.Count > 0 ? results[0] : Unavailable();
+        }
+
         public async Task<GeocodeResultDto> GeocodeAsync(string address)
         {
             if (string.IsNullOrWhiteSpace(address))
@@ -261,8 +286,12 @@ namespace Raphael.Desktop.Services
 
             var day = leg.Date?.DayOfWeek.ToString() ?? "-";
 
+            // The shape is part of the key: a leg remembered without one cannot answer a map that
+            // needs to draw the road.
+            var shape = leg.IncludePolyline ? "p" : "-";
+
             return string.Join("|",
-                E4(leg.OriginLat), E4(leg.OriginLng), E4(leg.DestLat), E4(leg.DestLng), hour, day);
+                E4(leg.OriginLat), E4(leg.OriginLng), E4(leg.DestLat), E4(leg.DestLng), hour, day, shape);
         }
 
         private static int E4(double coordinate) =>

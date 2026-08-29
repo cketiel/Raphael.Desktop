@@ -105,6 +105,13 @@
     <Content Include="Assets\googlemap.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!--
+      Shared by every map page: the Google loader, the address autocomplete and the route drawing.
+      Served to them from the maps virtual host, so it has to reach the output folder beside them.
+    -->
+    <Content Include="Assets\raphael-maps.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\icons\en.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

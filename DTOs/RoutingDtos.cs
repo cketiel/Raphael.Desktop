@@ -54,6 +54,11 @@ namespace Raphael.Desktop.DTOs
         public DateTime? Date { get; set; }
 
         public TimeSpan? DepartureTime { get; set; }
+
+        /// <summary>
+        /// Ask for the road's shape too, so a map can draw it. Only the map screens set this.
+        /// </summary>
+        public bool IncludePolyline { get; set; }
     }
 
     public class RouteLegsRequestDto
@@ -71,6 +76,12 @@ namespace Raphael.Desktop.DTOs
         public int DistanceMeters { get; set; }
 
         public double DistanceMiles { get; set; }
+
+        /// <summary>
+        /// The road's shape, encoded, when it was asked for. This is what the map draws now that
+        /// the JavaScript <c>DirectionsService</c> is gone.
+        /// </summary>
+        public string EncodedPolyline { get; set; }
 
         public string Source { get; set; } = RoutingContract.Sources.Cache;
 

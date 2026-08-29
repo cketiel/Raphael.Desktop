@@ -38,6 +38,22 @@ namespace Raphael.Desktop.Services
             DateTime? date = null,
             TimeSpan? departureTime = null);
 
+        /// <summary>
+        /// One leg with the road's shape, for a screen that draws a map.
+        /// </summary>
+        /// <remarks>
+        /// This is what replaced the map's own <c>DirectionsService</c>: Google stopped serving
+        /// that class to projects created after March 2025, and it was a billed request the cache
+        /// never saw. Now the shape comes back with the leg, cached like everything else.
+        /// </remarks>
+        Task<RouteLegResultDto> GetMapRouteAsync(
+            double originLat,
+            double originLng,
+            double destLat,
+            double destLng,
+            DateTime? date = null,
+            TimeSpan? departureTime = null);
+
         Task<GeocodeResultDto> GeocodeAsync(string address);
 
         Task<GeocodeResultDto> GeocodeAsync(string street, string city, string state, string zip);

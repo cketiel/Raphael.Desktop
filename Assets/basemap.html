@@ -1,18 +1,26 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Trip Route Map</title>
+    <title>Address Map</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <!--
+        Served from the maps virtual host, never from a string or a file in %TEMP%. That is what
+        gives the page an https origin, which is what lets the Google key be restricted by HTTP
+        referrer. See MapWebViewHost on the C# side.
+
+        The key itself arrives as window.RAPHAEL_MAPS.apiKey, injected by the host before this
+        document runs, so it is in neither this file nor the URL.
+    -->
+    <script src="raphael-maps.js"></script>
 
     <style>
-
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: system-ui, "Segoe UI", sans-serif;
         }
 
         #container {
@@ -43,7 +51,7 @@
             margin-bottom: 4px;
         }
 
-        input[type="text"] {
+        input[type="text"], input {
             padding: 6px 10px;
             font-size: 14px;
             width: 100%;
@@ -58,7 +66,6 @@
 </head>
 <body>
     <div id="container">
-
         <div id="inputs">
             <div class="input-group">
                 <label id="pickup-label" for="pickup">📍 Search address</label>
@@ -70,527 +77,215 @@
             </div>
         </div>
 
-        <!-- <input id="autocompleteInput" placeholder="Search address" type="text" class="form-control" /> -->
-        <!-- Map container -->
         <div id="map"></div>
-
     </div>
 
     <script>
         let map;
-        let pickupAutocomplete, dropoffAutocomplete;
         let pickupMarker, dropoffMarker;
         let pickupPosition, dropoffPosition;
 
-        const originLat = parseFloat("{ORIGIN_LAT}");
-        const originLng = parseFloat("{ORIGIN_LNG}");
+        const originLat = RaphaelMaps.num('lat', 25.77427);
+        const originLng = RaphaelMaps.num('lng', -80.19366);
 
-        let directionsService, directionsRenderer;
-        let infoWindow;
+        // The placeholder centre. Coordinates equal to it mean "nothing located yet", which is
+        // why no marker is dropped for it — the same rule the previous version applied.
+        const PLACEHOLDER_LAT = 25.77427;
 
-        let loadedPosition = { lat: originLat, lng: originLng }         
+        RaphaelMaps.ready().then(initMap).catch(error => {
+            document.getElementById('map').innerHTML =
+                '<p style="padding:16px;color:#a00">' + error.message + '</p>';
+        });
 
         function initMap() {
-            // Verify that C# values ​​are valid numbers
-            const lat = parseFloat("{ORIGIN_LAT}");
-            const lng = parseFloat("{ORIGIN_LNG}");
-
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 5,
-                center: { lat: isNaN(lat) ? 25.774 : lat, lng: isNaN(lng) ? -80.193 : lng }
+                center: { lat: originLat, lng: originLng }
             });
 
-            initPickupAutocomplete();
-            initDropoffAutocomplete();
+            // The shared module draws the route onto whichever map the page put here.
+            window.__raphaelMap = map;
 
-            // Only put the marker if there are real coordinates (not the C# placeholder)
-            if (!isNaN(lat) && !isNaN(lng) && lat != 25.77427) {
-                setPickupMarker({ lat: lat, lng: lng });
+            RaphaelMaps.attachAutocomplete('pickup', onPickupChosen);
+            RaphaelMaps.attachAutocomplete('dropoff', onDropoffChosen);
+
+            if (originLat !== PLACEHOLDER_LAT) {
+                setPickupMarker({ lat: originLat, lng: originLng });
             }
         }
 
-        /*function initMap() {
-            map = new google.maps.Map(document.getElementById('map'), {
-                //mapTypeControl: false,
-                //disableDefaultUI: true,
-                zoom: 5, // 3
-                center: { lat: originLat, lng: originLng }//,
-                //mapTypeId: 'roadmap'
-            });
+        // ------------------------------------------------------------------ pickup
 
-            initPickupAutocomplete();
-            initDropoffAutocomplete();
+        function onPickupChosen(result) {
+            pickupPosition = { lat: result.lat, lng: result.lng };
 
-            if (originLat != 25.77427 && originLng != -80.19366)
-                setPickupMarker(loadedPosition) 
-        }*/
+            RaphaelMaps.post({ type: 'autocomplete', result: result });
 
-        function initPickupAutocomplete() {
-            const pickupInput = document.getElementById("pickup");
-            pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
-            pickupAutocomplete.bindTo("bounds", map);
-            //map.controls[google.maps.ControlPosition.TOP_LEFT].push(pickupInput); 
-            pickupAutocomplete.addListener("place_changed", () => {
-                pickupPlaceChange();
-            });
+            setPickupMarker(pickupPosition);
         }
 
-        function pickupPlaceChange() {
-            const place = pickupAutocomplete.getPlace();
-            const location = place.geometry?.location;
-            pickupPosition = location; 
-            autocompleteCustomerAddressDataToWebView2(place, location);
-            setPickupMarker(location);           
-        }
-
-        // Send postMessage to WebView_Loaded()
-        function autocompleteCustomerAddressDataToWebView2(place, location) {
-            
-            if (!location) return;
-
-            const result = {
-                address: '',
-                city: '',
-                state: '',
-                zip: '',
-                lat: location.lat(),
-                lng: location.lng()
-            };
-
-            for (const comp of place.address_components) {
-                const types = comp.types;
-                if (types.includes("street_number")) result.address = comp.long_name + ' ';
-                if (types.includes("route")) result.address += comp.long_name;
-                if (types.includes("locality")) result.city = comp.long_name;
-                if (types.includes("administrative_area_level_1")) result.state = comp.short_name;
-                if (types.includes("postal_code")) result.zip = comp.long_name;
-            }
-
-            // Send to WebView2 (Function WebView_Loaded())
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage({
-                    type: 'autocomplete',
-                    result: result
-                });
-            }
-        }
-
-        // position = { lat, lng }
         function setPickupMarker(position) {
-            if (pickupMarker) {
-                pickupMarker.setMap(null);
-            }
+            if (pickupMarker) pickupMarker.setMap(null);
 
-            pickupPosition = position; 
+            pickupPosition = position;
 
             pickupMarker = new google.maps.Marker({
                 draggable: true,
                 animation: google.maps.Animation.DROP,
-                position,
-                label: "P",
-                map//,
-                //icon: 'Assets/icons/pickup.png'
+                position: position,
+                label: 'P',
+                map: map
             });
 
             focusMap(position, 17);
-            geocodePosition(position);
+            describePickup(position);
 
-            google.maps.event.addListener(pickupMarker, 'dragend', function () {
-                const currentPosition = pickupMarker.getPosition();
-                map.setCenter(currentPosition);
-                geocodePosition(currentPosition);
-                pickupPosition = currentPosition;
-                if (dropoffPosition)
-                    showsRoute();
+            pickupMarker.addListener('dragend', () => {
+                const moved = pickupMarker.getPosition();
+
+                map.setCenter(moved);
+                pickupPosition = moved;
+
+                describePickup(moved);
+
+                if (dropoffPosition) showsRoute();
             });
 
-            pickupMarker.addListener("click", pickupToggleBounce);
+            pickupMarker.addListener('click', () => toggleBounce(pickupMarker));
 
-            if (dropoffPosition)
-                showsRoute();
+            if (dropoffPosition) showsRoute();
         }
 
-        function focusMap(position, zoomValue) {
-            map.setCenter(position);
-            map.setZoom(zoomValue);
-        }
+        /** Fills the input and the WPF form from a point the dispatcher dragged a pin to. */
+        async function describePickup(position) {
+            const found = await RaphaelMaps.reverseGeocode(position);
 
-        function pickupToggleBounce() {
-            if (pickupMarker.getAnimation() !== null) {
-                pickupMarker.setAnimation(null);
-            } else {
-                pickupMarker.setAnimation(google.maps.Animation.BOUNCE);
-            }
-        }
-       
-        function geocodePosition(pos) {
-            geocoder = new google.maps.Geocoder();
-            geocoder.geocode({
-                latLng: pos
-            },
-                function (results, status) {
-                    if (status == google.maps.GeocoderStatus.OK) {
-                        var formattedAddress = results[0].formatted_address;
-                        document.getElementById('pickup').value = formattedAddress;
+            if (!found) return;
 
-                        completeAddress(formattedAddress, pos);
-                    }
-                }
-            );
-        }
+            document.getElementById('pickup').value = found.formatted_address;
 
-        function completeAddress(formattedAddress, pos) {
-            const addressArray = formattedAddress.split(",");
+            const lat = typeof position.lat === 'function' ? position.lat() : position.lat;
+            const lng = typeof position.lng === 'function' ? position.lng() : position.lng;
 
-            // Detectar si es función .lat() o propiedad .lat
-            const latVal = (typeof pos.lat === 'function') ? pos.lat() : pos.lat;
-            const lngVal = (typeof pos.lng === 'function') ? pos.lng() : pos.lng;
-
-            const result = {
-                address: '',
-                city: '',
-                state: '',
-                zip: '',
-                lat: latVal,
-                lng: lngVal
-            };
-
-            let stateZip = addressArray[2] || "";
-            const stateZipArray = stateZip.trim().split(" ");
-
-            result.address = addressArray[0];
-            result.city = addressArray[1] ? addressArray[1].trim() : "";
-            result.state = stateZipArray[0] || "";
-            result.zip = stateZipArray[1] || "";
-
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage({
-                    type: 'autocomplete',
-                    result: result
-                });
-            }
-        }
-       
-        /*function completeAddress(formattedAddress, pos) {
-
-            const addressArray = formattedAddress.split(",");
-            const result = {
-                address: '',
-                city: '',
-                state: '',
-                zip: '',
-                lat: pos.lat(),
-                lng: pos.lng()
-            };
-            let stateZip = addressArray[2];
-            const stateZipArray = stateZip.split(" ");
-
-            result.address = addressArray[0];
-            result.city = addressArray[1];
-            result.state = stateZipArray[1];
-            result.zip = stateZipArray[2];
-
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage({
-                    type: 'autocomplete',
-                    result: result
-                });
-            }
-
-        }*/
-
-        function initDropoffAutocomplete() {
-            const dropoffInput = document.getElementById("dropoff");
-            dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput);
-            dropoffAutocomplete.bindTo("bounds", map);
-
-            dropoffAutocomplete.addListener("place_changed", () => {
-                dropoffPlaceChange();
+            RaphaelMaps.post({
+                type: 'autocomplete',
+                result: RaphaelMaps.splitFormatted(found.formatted_address, lat, lng)
             });
         }
 
-        function dropoffPlaceChange() {        
-            const place = dropoffAutocomplete.getPlace();
-            const location = place.geometry?.location;
-            dropoffPosition = location;
-            updateDropoffAddress(place, location);
-            setDropoffMarker(location);          
-        }
+        // ------------------------------------------------------------------ dropoff
 
-        // Send postMessage to WebView_Loaded()
-        function updateDropoffAddress(place, location) {
+        function onDropoffChosen(result) {
+            dropoffPosition = { lat: result.lat, lng: result.lng };
 
-            if (!location) return;
-           
-            let dropoff_address = "";
-            let city = "";
+            RaphaelMaps.post({
+                type: 'dropoff',
+                dropoff_address: result.address,
+                city: result.city,
+                lat: result.lat,
+                lng: result.lng
+            });
 
-            for (const comp of place.address_components) {
-                const types = comp.types;
-                if (types.includes("street_number")) dropoff_address = comp.long_name + ' ';
-                if (types.includes("route")) dropoff_address += comp.long_name;
-                if (comp.types.includes("locality")) city = comp.long_name;
-            }
-
-            // Send to WebView2 (Function WebView_Loaded())
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage({
-                    type: 'dropoff',
-                    dropoff_address: dropoff_address,
-                    city: city,
-                    lat: location.lat(), 
-                    lng: location.lng() 
-                });
-            }
+            setDropoffMarker(dropoffPosition);
         }
 
         function setDropoffMarker(position) {
-            if (dropoffMarker) {
-                dropoffMarker.setMap(null);
-            }
+            if (dropoffMarker) dropoffMarker.setMap(null);
 
             dropoffPosition = position;
 
             dropoffMarker = new google.maps.Marker({
                 draggable: true,
                 animation: google.maps.Animation.DROP,
-                position,
-                label: "D",
-                map//,
-                //icon: 'Assets/icons/pickup.png'
+                position: position,
+                label: 'D',
+                map: map
             });
 
             focusMap(position, 17);
 
-            google.maps.event.addListener(dropoffMarker, 'dragend', function () {
-                const currentPosition = dropoffMarker.getPosition();
-                map.setCenter(currentPosition);
-                dropoffGeocodePosition(currentPosition);
-                dropoffPosition = currentPosition;
+            dropoffMarker.addListener('dragend', async () => {
+                const moved = dropoffMarker.getPosition();
+
+                map.setCenter(moved);
+                dropoffPosition = moved;
+
+                const found = await RaphaelMaps.reverseGeocode(moved);
+
+                if (found) {
+                    document.getElementById('dropoff').value = found.formatted_address;
+
+                    const parsed = RaphaelMaps.parseComponents(
+                        found.address_components, moved);
+
+                    RaphaelMaps.post({
+                        type: 'dropoff',
+                        dropoff_address: found.formatted_address,
+                        city: parsed.city,
+                        lat: parsed.lat,
+                        lng: parsed.lng
+                    });
+                }
+
                 showsRoute();
             });
 
-            dropoffMarker.addListener("click", dropoffToggleBounce);
+            dropoffMarker.addListener('click', () => toggleBounce(dropoffMarker));
 
             showsRoute();
         }
 
-        function dropoffGeocodePosition(pos) {
-            geocoder = new google.maps.Geocoder();
-            geocoder.geocode({
-                latLng: pos
-            },
-                function (results, status) {
-                    if (status == google.maps.GeocoderStatus.OK) {
-                        var formattedAddress = results[0].formatted_address;
-                        document.getElementById('dropoff').value = formattedAddress;
+        // ------------------------------------------------------------------ shared
 
-                        // Detectar si es función o propiedad
-                        const latVal = (typeof pos.lat === 'function') ? pos.lat() : pos.lat;
-                        const lngVal = (typeof pos.lng === 'function') ? pos.lng() : pos.lng;
-
-                        let city = "";
-                        results[0].address_components.forEach(c => {
-                            if (c.types.includes("locality")) city = c.long_name;
-                        });
-
-                        if (window.chrome && window.chrome.webview) {
-                            window.chrome.webview.postMessage({
-                                type: 'dropoff',
-                                dropoff_address: formattedAddress,
-                                city: city,
-                                lat: latVal,
-                                lng: lngVal
-                            });
-                        }
-                    }
-                });
+        function focusMap(position, zoomValue) {
+            map.setCenter(position);
+            map.setZoom(zoomValue);
         }
 
-        /*function dropoffGeocodePosition(pos) {
-            geocoder = new google.maps.Geocoder();
-            geocoder.geocode({
-                latLng: pos
-            },
-                function (results, status) {
-                    if (status == google.maps.GeocoderStatus.OK) {
-                        var formattedAddress = results[0].formatted_address;
-                        document.getElementById('dropoff').value = formattedAddress;
-                        if (window.chrome && window.chrome.webview) {
-                            window.chrome.webview.postMessage({
-                                type: 'dropoff',
-                                dropoff_address: formattedAddress,
-                                lat: pos.lat(), 
-                                lng: pos.lng()  
-                            });
-                        }
-                        //updateDropoffAddressShort(formattedAddress);
-                    }
-                }
-            );
-        }*/
-
-        function updateDropoffAddressShort(address) {
-            // Send to WebView2 (Function WebView_Loaded())
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage({
-                    type: 'dropoff',
-                    dropoff_address: address
-                });
-            }
+        function toggleBounce(marker) {
+            marker.setAnimation(
+                marker.getAnimation() !== null ? null : google.maps.Animation.BOUNCE);
         }
 
-        function dropoffToggleBounce() {
-            if (dropoffMarker.getAnimation() !== null) {
-                dropoffMarker.setAnimation(null);
-            } else {
-                dropoffMarker.setAnimation(google.maps.Animation.BOUNCE);
-            }
-        }
-
+        /**
+         * Asks the host for the road between the two pins.
+         *
+         * This used to be a DirectionsService call made here in the browser — a class Google no
+         * longer serves to this Cloud project, and a request nothing cached. The host answers
+         * through RaphaelMaps.showRoute.
+         */
         function showsRoute() {
+            if (!pickupPosition || !dropoffPosition) return;
 
-            if (!pickupPosition || !dropoffPosition) {
-                console.warn("Falta pickup o dropoff para calcular la ruta.");
-                return;
-            }
-
-            if (directionsRenderer) {
-                directionsRenderer.setMap(null);
-                directionsRenderer.setDirections(null);
-            }    
-
-            if (infoWindow) { infoWindow.open(null); }
-
-            directionsService = new google.maps.DirectionsService();           
-            directionsRenderer = new google.maps.DirectionsRenderer({
-                suppressMarkers: true, // 🔥 
-                polylineOptions: {
-                    strokeColor: '#4285F4',
-                    strokeOpacity: 0.9,
-                    strokeWeight: 6,
-                    icons: [{
-                        icon: {
-                            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                            scale: 4, // Increase icon size
-                            strokeColor: '#4285F4',
-                            strokeWeight: 2
-                        },
-                        offset: '100%',
-                        repeat: '50px'
-                    }]
-                }               
-            });
-
-            directionsRenderer.setMap(map);
-
-            // Convert to pure LatLngLiteral to avoid object formatting errors
-            const origin = (typeof pickupPosition.lat === 'function') ?
-                { lat: pickupPosition.lat(), lng: pickupPosition.lng() } : pickupPosition;
-
-            const destination = (typeof dropoffPosition.lat === 'function') ?
-                { lat: dropoffPosition.lat(), lng: dropoffPosition.lng() } : dropoffPosition;
-
-            directionsService.route({
-                origin: origin, //pickupPosition,
-                destination: destination, // dropoffPosition,
-                travelMode: google.maps.TravelMode.DRIVING,
-                drivingOptions: {
-                    departureTime: new Date(),
-                    trafficModel: google.maps.TrafficModel.BEST_GUESS // "bestguess"
-                }
-            }, (result, status) => {
-                if (status === "OK") {
-                    directionsRenderer.setDirections(result);
-
-                    const leg = result.routes[0].legs[0];
-                    const eta = leg.duration_in_traffic.text; // leg.duration_in_traffic.value; // text = minutes, value = seconds
-                    const distance = leg.distance.text; // leg.distance.value; // text = miles, value = meters
-
-                    const info = `ETA: ${eta} — Distance: ${distance}`;
-                    infoWindow = new google.maps.InfoWindow({
-                        content: `<b>${info}</b>`,
-                        position: leg.steps[Math.floor(leg.steps.length / 2)].end_location
-                    });
-
-                    infoWindow.open(map);
-
-                    // Enviar a WebView2
-                    if (window.chrome && window.chrome.webview) {
-                        window.chrome.webview.postMessage({
-                            type: 'routeInfo',
-                            eta: eta,
-                            distance: distance
-                        });
-                    }
-
-                } else {
-                    alert("Could not calculate route: " + status);
-                }
-            });
-
+            RaphaelMaps.clearRoute();
+            RaphaelMaps.requestRoute(pickupPosition, dropoffPosition);
         }
 
-    </script>
+        // ------------------------------------------------------------------ called from C#
 
-
-    <!--
-    <script>
-        const originLat = parseFloat("{ORIGIN_LAT}");
-        const originLng = parseFloat("{ORIGIN_LNG}");
-
-
-        function initMap() {
-            const map = new google.maps.Map(document.getElementById('map'), {
-                zoom: 5,
-                center: { lat: originLat, lng: originLng },
-                mapTypeId: 'roadmap'
-            });
-        }
-    </script>-->
-    <!-- Load Google Maps API and call initMap once it's ready -->
-    <script async defer
-            src="https://maps.googleapis.com/maps/api/js?key={{API_KEY}}&libraries=places&callback=initMap">
-    </script>
-
-    <script>
         function showDropoff() {
-            document.getElementById("dropoff-group").style.display = "flex";
-            document.getElementById("pickup-label").innerText = "📍 Pickup";
+            document.getElementById('dropoff-group').style.display = 'flex';
+            document.getElementById('pickup-label').innerText = '📍 Pickup';
         }
 
         function prepareNewCustomer() {
-            // Ocultar grupo dropoff
-            document.getElementById("dropoff-group").style.display = "none";
-            document.getElementById("pickup-label").innerText = "📍 Search address";
+            document.getElementById('dropoff-group').style.display = 'none';
+            document.getElementById('pickup-label').innerText = '📍 Search address';
 
-            // Limpiar inputs
-            document.getElementById("pickup").value = "";
-            document.getElementById("dropoff").value = "";
+            document.getElementById('pickup').value = '';
+            document.getElementById('dropoff').value = '';
 
-            // Quitar marcadores del mapa
             if (pickupMarker) pickupMarker.setMap(null);
             if (dropoffMarker) dropoffMarker.setMap(null);
+
             pickupPosition = null;
             dropoffPosition = null;
 
-            // Quitar ruta y ventana de info
-            if (directionsRenderer) directionsRenderer.setMap(null);
-            if (infoWindow) infoWindow.close();
+            RaphaelMaps.clearRoute();
 
-            // Centrar mapa en posición inicial
             map.setCenter({ lat: originLat, lng: originLng });
             map.setZoom(5);
         }
-        /*function prepareNewCustomer() {
-            document.getElementById("dropoff-group").style.display = "none";
-            const pickupInput = document.getElementById("pickup");
-            if (pickupInput) {
-                pickupInput.placeholder = "Search address";
-            }
-            document.getElementById("pickup-label").innerText = "📍 Search address";
-
-        }*/
     </script>
 </body>
 </html>

@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Raphael.Desktop.Services.Maps;
 using Raphael.Desktop.ViewModels;
 
 namespace Raphael.Desktop.Views.Data.Scheduling
@@ -65,7 +66,7 @@ namespace Raphael.Desktop.Views.Data.Scheduling
         {
             try
             {
-                await MapWebView.EnsureCoreWebView2Async(); //MapWebView.DefaultBackgroundColor = System.Drawing.Color.Red;
+                await MapWebViewHost.InitializeAsync(MapWebView);
                 LoadMap();
                 // Subscribe to message from JavaScript
                 MapWebView.CoreWebView2.WebMessageReceived += (s, args) =>
@@ -121,20 +122,10 @@ namespace Raphael.Desktop.Views.Data.Scheduling
             if (MapWebView.CoreWebView2 == null)
                 return;
 
-            string apiKey = App.Configuration["GoogleMaps:ApiKey"];
-
             double latitude = ViewModel?.Route?.GarageLatitude ?? 25.77427;
             double longitude = ViewModel?.Route?.GarageLongitude ?? -80.19366;
 
-            string htmlPath = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "basemap.html"));
-            htmlPath = htmlPath.Replace("{{API_KEY}}", apiKey);
-
-            htmlPath = htmlPath.Replace("{ORIGIN_LAT}", latitude.ToString(CultureInfo.InvariantCulture))
-                               .Replace("{ORIGIN_LNG}", longitude.ToString(CultureInfo.InvariantCulture));
-
-            MapWebView.NavigateToString(htmlPath);
-            //MapWebView.NavigateToString("<html><body><h1>Prueba WebView2</h1></body></html>");
-            //MapWebView.CoreWebView2.OpenDevToolsWindow();
+            MapWebViewHost.Navigate(MapWebView, "basemap.html", ("lat", latitude), ("lng", longitude));
         }
 
         private void GarageTextBox_TextChanged(object sender, TextChangedEventArgs e)
