@@ -73,198 +73,17 @@
                                    Margin="10,0,0,0"
                                    Text="Hello, User" />
 
-                        <!-- Button with ContextMenu -->
-                        <Button x:Name="UserMenuButton"
-                                VerticalAlignment="Center"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="White"
-                                FontSize="14"
-                                FontWeight="SemiBold"
-                                Margin="10,0,0,0"
-                                ContextMenuService.IsEnabled="True"
-                                Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
-                                ToolTip="{Binding Settings}">
-
-                            <materialDesign:PackIcon
-                                Width="30"
-                                Height="30"
-                                Kind="Cog"/>
-
-                            <Button.ContextMenu>
-                                <ContextMenu>
-
-                                    <MenuItem Header="{Binding MenuChangeLanguage}">
-                                        <MenuItem.Icon>
-                                            <materialDesign:PackIcon Kind="Translate"/>
-                                        </MenuItem.Icon>
-
-                                        <MenuItem Command="{Binding ChangeLanguageCommand}"
-                                                  CommandParameter="en">
-
-                                            <MenuItem.Header>
-                                                <StackPanel Orientation="Horizontal">
-
-                                                    <Image Source="/Assets/icons/en.png"
-                                                           Width="20"
-                                                           Height="15"
-                                                           Margin="0,0,5,0"/>
-
-                                                    <TextBlock Text="{Binding MenuEnglishLanguage}"/>
-
-                                                    <materialDesign:PackIcon
-                                                        Kind="CheckBold"
-                                                        Foreground="Green"
-                                                        Margin="5,0,0,0"
-                                                        Visibility="{Binding EnglishCheckVisibility}" />
-
-                                                </StackPanel>
-                                            </MenuItem.Header>
-
-                                        </MenuItem>
-
-                                        <MenuItem Command="{Binding ChangeLanguageCommand}"
-                                                  CommandParameter="es">
-
-                                            <MenuItem.Header>
-                                                <StackPanel Orientation="Horizontal">
-
-                                                    <Image Source="/Assets/icons/es.png"
-                                                           Width="20"
-                                                           Height="15"
-                                                           Margin="0,0,5,0"/>
-
-                                                    <TextBlock Text="{Binding MenuSpanishLanguage}"/>
-
-                                                    <materialDesign:PackIcon
-                                                        Kind="CheckBold"
-                                                        Foreground="Green"
-                                                        Margin="5,0,0,0"
-                                                        Visibility="{Binding SpanishCheckVisibility}" />
-
-                                                </StackPanel>
-                                            </MenuItem.Header>
-
-                                        </MenuItem>
-
-                                    </MenuItem>
-
-                                    <Separator/>
-
-                                    <MenuItem Header="{Binding MenuHelp}"
-                                              Click="MenuHelp_Click"
-                                              InputGestureText="F1">
-                                        <MenuItem.Icon>
-                                            <materialDesign:PackIcon Kind="HelpCircleOutline"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-
-                                    <MenuItem Header="{Binding MenuAbout}"
-                                              Click="MenuAbout_Click">
-                                        <MenuItem.Icon>
-                                            <materialDesign:PackIcon Kind="InformationOutline"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-
-                                    <Separator/>
-
-                                    <MenuItem Header="{Binding MenuLogout}"
-                                              Command="{Binding LogoutCommand}">
-                                        <MenuItem.Icon>
-                                            <materialDesign:PackIcon Kind="LogoutVariant"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-
-                                </ContextMenu>
-                            </Button.ContextMenu>
-
-                        </Button>
 
                     </StackPanel>
 
 
-                    <!-- Notifications -->
-                    <Grid DockPanel.Dock="Right"
-                          Width="58"
-                          Height="60"
-                          Margin="0,0,10,0"
-                          Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
-
-                        <Button x:Name="NotificationButton"
-                                Command="{Binding OpenNotificationCenterCommand}"
-                                Style="{StaticResource NotificationButtonStyle}"
-                                ToolTip="{Binding NotificationCenterText}"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center">
-
-                            <materialDesign:PackIcon Kind="BellOutline"
-                                                     Width="27"
-                                                     Height="27"/>
-                        </Button>
-
-                        <!-- What this dispatcher has not opened. -->
-                        <Border Width="21"
-                                Height="21"
-                                CornerRadius="11"
-                                Background="Red"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Top"
-                                Margin="0,7,2,0"
-                                Visibility="{Binding UnreadNotificationsVisibility}">
-
-                            <TextBlock Text="{Binding UnreadNotificationsCount}"
-                                       Foreground="White"
-                                       FontSize="11"
-                                       FontWeight="Bold"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Border>
-
-                        <!-- What nobody in the office has taken charge of. A different
-                             fact from unread, and the only one with a patient waiting
-                             behind it, so it gets its own mark. -->
-                        <Border Width="18"
-                                Height="18"
-                                CornerRadius="9"
-                                Background="#EAB308"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Bottom"
-                                Margin="2,0,0,7"
-                                ToolTip="{Binding PendingActionText}"
-                                Visibility="{Binding PendingActionVisibility}">
-
-                            <materialDesign:PackIcon Kind="ClockAlertOutline"
-                                                     Width="12"
-                                                     Height="12"
-                                                     Foreground="White"
-                                                     HorizontalAlignment="Center"
-                                                     VerticalAlignment="Center"/>
-                        </Border>
-
-                    </Grid>
 
 
-                    <!-- ===== Help =====
-                         Left of the bell, so the bell keeps the corner. Visible for every role,
-                         unlike the bell: a driver who only reaches Reports still gets F1 and this
-                         button. The tooltip names the shortcut, which is how anybody finds out
-                         F1 exists at all. -->
-                    <Button x:Name="HelpButton"
-                            DockPanel.Dock="Right"
-                            Click="HelpButton_Click"
-                            Style="{StaticResource NotificationButtonStyle}"
-                            ToolTip="{Binding HelpTooltip}"
-                            Margin="0,0,4,0"
-                            VerticalAlignment="Center">
-
-                        <materialDesign:PackIcon Kind="HelpCircleOutline"
-                                                 Width="27"
-                                                 Height="27"/>
-                    </Button>
 
 
                     <!-- Main Menu -->
                     <TabControl x:Name="MenuTabControl"
+                                DockPanel.Dock="Right"
                                 HorizontalAlignment="Right"
                                 Background="Transparent"
                                 BorderThickness="0"
@@ -385,6 +204,201 @@
                         </TabItem>
 
                     </TabControl>
+
+                    <!-- ===== Centre group =====
+                         The settings cog, help and the bell, together in the middle of
+                         whatever space the user block on the left and the menu on the
+                         right leave between them. This is the last child of the
+                         DockPanel, which is what makes it take that leftover space; the
+                         centring is within it, not against the window edges. -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+
+                        <!-- Button with ContextMenu -->
+                        <Button x:Name="UserMenuButton"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="White"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Margin="10,0,0,0"
+                                ContextMenuService.IsEnabled="True"
+                                Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
+                                ToolTip="{Binding Settings}">
+
+                            <materialDesign:PackIcon
+                                Width="30"
+                                Height="30"
+                                Kind="Cog"/>
+
+                            <Button.ContextMenu>
+                                <ContextMenu>
+
+                                    <MenuItem Header="{Binding MenuChangeLanguage}">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="Translate"/>
+                                        </MenuItem.Icon>
+
+                                        <MenuItem Command="{Binding ChangeLanguageCommand}"
+                                                  CommandParameter="en">
+
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+
+                                                    <Image Source="/Assets/icons/en.png"
+                                                           Width="20"
+                                                           Height="15"
+                                                           Margin="0,0,5,0"/>
+
+                                                    <TextBlock Text="{Binding MenuEnglishLanguage}"/>
+
+                                                    <materialDesign:PackIcon
+                                                        Kind="CheckBold"
+                                                        Foreground="Green"
+                                                        Margin="5,0,0,0"
+                                                        Visibility="{Binding EnglishCheckVisibility}" />
+
+                                                </StackPanel>
+                                            </MenuItem.Header>
+
+                                        </MenuItem>
+
+                                        <MenuItem Command="{Binding ChangeLanguageCommand}"
+                                                  CommandParameter="es">
+
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal">
+
+                                                    <Image Source="/Assets/icons/es.png"
+                                                           Width="20"
+                                                           Height="15"
+                                                           Margin="0,0,5,0"/>
+
+                                                    <TextBlock Text="{Binding MenuSpanishLanguage}"/>
+
+                                                    <materialDesign:PackIcon
+                                                        Kind="CheckBold"
+                                                        Foreground="Green"
+                                                        Margin="5,0,0,0"
+                                                        Visibility="{Binding SpanishCheckVisibility}" />
+
+                                                </StackPanel>
+                                            </MenuItem.Header>
+
+                                        </MenuItem>
+
+                                    </MenuItem>
+
+                                    <Separator/>
+
+                                    <MenuItem Header="{Binding MenuHelp}"
+                                              Click="MenuHelp_Click"
+                                              InputGestureText="F1">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="HelpCircleOutline"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <MenuItem Header="{Binding MenuAbout}"
+                                              Click="MenuAbout_Click">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="InformationOutline"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <Separator/>
+
+                                    <MenuItem Header="{Binding MenuLogout}"
+                                              Command="{Binding LogoutCommand}">
+                                        <MenuItem.Icon>
+                                            <materialDesign:PackIcon Kind="LogoutVariant"/>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                </ContextMenu>
+                            </Button.ContextMenu>
+
+                        </Button>
+
+                        <!-- ===== Help =====
+                             Between the cog and the bell. Visible for every role, unlike the
+                             bell: a driver who only reaches Reports still gets F1 and this
+                             button. The tooltip names the shortcut, which is how anybody finds
+                             out F1 exists at all. -->
+                        <Button x:Name="HelpButton"
+                            Click="HelpButton_Click"
+                            Style="{StaticResource NotificationButtonStyle}"
+                            ToolTip="{Binding HelpTooltip}"
+                            Margin="8,0,4,0"
+                            VerticalAlignment="Center">
+
+                        <materialDesign:PackIcon Kind="HelpCircleOutline"
+                                                 Width="27"
+                                                 Height="27"/>
+                    </Button>
+                    <!-- Notifications -->
+                    <Grid Width="58"
+                          Height="60"
+                          Margin="0,0,0,0"
+                          Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+
+                        <Button x:Name="NotificationButton"
+                                Command="{Binding OpenNotificationCenterCommand}"
+                                Style="{StaticResource NotificationButtonStyle}"
+                                ToolTip="{Binding NotificationCenterText}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+
+                            <materialDesign:PackIcon Kind="BellOutline"
+                                                     Width="27"
+                                                     Height="27"/>
+                        </Button>
+
+                        <!-- What this dispatcher has not opened. -->
+                        <Border Width="21"
+                                Height="21"
+                                CornerRadius="11"
+                                Background="Red"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,7,2,0"
+                                Visibility="{Binding UnreadNotificationsVisibility}">
+
+                            <TextBlock Text="{Binding UnreadNotificationsCount}"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- What nobody in the office has taken charge of. A different
+                             fact from unread, and the only one with a patient waiting
+                             behind it, so it gets its own mark. -->
+                        <Border Width="18"
+                                Height="18"
+                                CornerRadius="9"
+                                Background="#EAB308"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom"
+                                Margin="2,0,0,7"
+                                ToolTip="{Binding PendingActionText}"
+                                Visibility="{Binding PendingActionVisibility}">
+
+                            <materialDesign:PackIcon Kind="ClockAlertOutline"
+                                                     Width="12"
+                                                     Height="12"
+                                                     Foreground="White"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center"/>
+                        </Border>
+
+                    </Grid>
+
+                    </StackPanel>
+
 
                 </DockPanel>
 

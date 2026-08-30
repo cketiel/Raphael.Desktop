@@ -1000,10 +1000,42 @@ namespace Raphael.Desktop.Services
             return trip;       
         }
 
-        private async Task<Coordinates> GetCoordinates(string street, string city, string state, string zip)
+        /// <summary>
+        /// Addresses already resolved during this import, and the work in flight for them.
+        /// </summary>
+        /// <remarks>
+        /// A day's file names the same dozen clinics on nearly every row, and the rows are mapped
+        /// several at a time. Storing the <see cref="Task{TResult}"/> rather than the result means
+        /// five rows asking for the same clinic at the same instant share one request instead of
+        /// racing to make five.
+        /// </remarks>
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task<Coordinates>>
+            _coordinatesByAddress = new System.Collections.Concurrent.ConcurrentDictionary<string, Task<Coordinates>>();
+
+        private Task<Coordinates> GetCoordinates(string street, string city, string state, string zip)
         {
             var address = $"{street}, {city}, {state}, {zip}";
-            return await _googleMapsService.GetCoordinatesFromAddress(address);
+
+            var key = address.Trim().ToUpperInvariant();
+
+            return _coordinatesByAddress.GetOrAdd(key, _ => ResolveAsync(address));
+        }
+
+        private async Task<Coordinates> ResolveAsync(string address)
+        {
+            var coordinates = await _googleMapsService.GetCoordinatesFromAddress(address);
+
+            // Named rather than dereferenced. An unresolvable address used to surface as a
+            // NullReferenceException from the middle of the import, which told the dispatcher
+            // nothing about which row to fix.
+            if (coordinates == null)
+            {
+                throw new InvalidOperationException(
+                    $"The address could not be located on the map: {address}. " +
+                    "Correct it in the file and import again.");
+            }
+
+            return coordinates;
         }
 
         private DateTime ParseDate(string value)

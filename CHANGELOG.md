@@ -3,6 +3,43 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.5.0] - 2026-08-29
+
+### Added
+- An **Admin → Google Maps** panel for administrators: what Google Maps costs, what the cache
+  saves, and the settings that move both. Summary carries the period's figures — bought, cached,
+  hit rate, estimated cost and the cost avoided — with a daily chart of bought against cached and
+  the trend of the hit rate. Detail carries the breakdown per Google product, lifetime totals with
+  no date filter, and CSV export. Settings holds the traffic mode, the cache retention, the margin
+  and Google's price bands.
+- Travel times, distances, addresses and road shapes now come from Raphael.Api instead of from
+  Google directly, so one dispatcher's answer serves the next dispatcher and the driver on the
+  same route.
+- Help topics for every tab in Admin, and one per sub-tab of Google Maps.
+
+### Changed
+- **This application no longer holds a Google key for routing.** Everything a screen needs goes
+  through the API, which serves what it already knows and buys only what nobody has asked for yet.
+  The browser key that remains is used solely to draw the map.
+- Route recalculation on the Schedules screen no longer asks Google once per stop. Marking a stop
+  as performed re-chains the arrival times with no request at all, and moving a stop asks only
+  about the legs that actually changed.
+- The map pages moved off two Google classes that are no longer served to new Cloud projects:
+  address autocomplete and the route drawn on the map. The route now comes from the API with the
+  rest of the leg, so it is cached like everything else instead of being bought on every redraw.
+- Map pages are served from a virtual host rather than from a string or a temporary file, which is
+  what allows the browser key to be restricted to them.
+- Travel times are priced against the hour the trip actually leaves, not the moment a dispatcher
+  happens to open it.
+
+### Fixed
+- Distances and durations are no longer parsed from Google's localised text. A distance of
+  `12.3 mi` read as `123` on a machine with Spanish regional settings.
+- The trip form bought three traffic estimates whenever it opened a trip and displayed none of
+  them.
+- **F1 in Admin** opened the same page whichever tab was in front. It now opens the topic for the
+  tab, and for the sub-tab inside Google Maps.
+
 ## [1.4.0] - 2026-08-28
 
 ### Added

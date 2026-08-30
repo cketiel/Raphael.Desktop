@@ -20,7 +20,7 @@ namespace Raphael.Desktop.ViewModels
         // Services
         private readonly TripService _tripService;
         private readonly ScheduleService _scheduleService;
-        private readonly GoogleMapsService _googleMapsService;
+        private readonly IRoutingApiService _routingService;
 
         [ObservableProperty] private bool _isLoading;
         [ObservableProperty] private bool _isBusy;
@@ -57,7 +57,7 @@ namespace Raphael.Desktop.ViewModels
         {
             _tripService = new TripService();
             _scheduleService = new ScheduleService();
-            _googleMapsService = new GoogleMapsService();
+            _routingService = new RoutingApiService();
 
             CancelRouteCommand = new AsyncRelayCommand<TripReadDto>(ExecuteUnscheduleTripAsync);
             UpdateTripRunCommand = new AsyncRelayCommand<TripReadDto>(ExecuteUpdateTripRunAsync);
@@ -233,39 +233,61 @@ namespace Raphael.Desktop.ViewModels
                 previousServiceTime = TimeSpan.FromMinutes(previousSchedule.On ?? 15);
             }
            
-            var pDetails = await _googleMapsService.GetRouteFullDetails(originLat, originLng, trip.PickupLatitude, trip.PickupLongitude);
-            if (pDetails == null) throw new Exception("Google Maps distance calculation failed.");
+            // The three legs of routing a trip, asked for together: to the pickup, on to the
+            // dropoff, and home to the garage. Three separate calls to Google before.
+            var legs = await _routingService.GetLegsAsync(new List<RouteLegRequestItemDto>
+            {
+                new RouteLegRequestItemDto
+                {
+                    OriginLat = originLat,
+                    OriginLng = originLng,
+                    DestLat = trip.PickupLatitude,
+                    DestLng = trip.PickupLongitude,
+                    Date = SelectedDate,
+                    DepartureTime = previousEta
+                },
+                new RouteLegRequestItemDto
+                {
+                    OriginLat = trip.PickupLatitude,
+                    OriginLng = trip.PickupLongitude,
+                    DestLat = trip.DropoffLatitude,
+                    DestLng = trip.DropoffLongitude,
+                    Date = SelectedDate,
+                    DepartureTime = trip.FromTime
+                },
+                new RouteLegRequestItemDto
+                {
+                    OriginLat = trip.DropoffLatitude,
+                    OriginLng = trip.DropoffLongitude,
+                    DestLat = targetRoute.GarageLatitude,
+                    DestLng = targetRoute.GarageLongitude,
+                    Date = SelectedDate,
+                    DepartureTime = trip.ToTime ?? trip.FromTime
+                }
+            });
 
-            double pDistance = pDetails.DistanceMiles;
-            TimeSpan pTravelTime = TimeSpan.FromSeconds(pDetails.DurationInTrafficSeconds);
+            var pickupLeg = legs[0];
+            if (!pickupLeg.IsUsable) throw new Exception("The route to the pickup point could not be calculated.");
+
+            double pDistance = pickupLeg.DistanceMiles;
+            TimeSpan pTravelTime = TimeSpan.FromSeconds(pickupLeg.DurationInTrafficSeconds ?? pickupLeg.DurationSeconds);
             TimeSpan pFinalEta = previousEta + previousServiceTime + pTravelTime;
 
-            var dDetails = await _googleMapsService.GetRouteFullDetails(trip.PickupLatitude, trip.PickupLongitude, trip.DropoffLatitude, trip.DropoffLongitude);
-            if (dDetails == null) throw new Exception("Google Maps distance calculation failed.");
+            var dropoffLeg = legs[1];
+            if (!dropoffLeg.IsUsable) throw new Exception("The route to the dropoff point could not be calculated.");
 
-            double dDistance = dDetails.DistanceMiles;
-            TimeSpan dTravelTime = TimeSpan.FromSeconds(dDetails.DurationInTrafficSeconds);
+            double dDistance = dropoffLeg.DistanceMiles;
+            TimeSpan dTravelTime = TimeSpan.FromSeconds(dropoffLeg.DurationInTrafficSeconds ?? dropoffLeg.DurationSeconds);
             TimeSpan pickupServiceTime = TimeSpan.FromMinutes(15);
             TimeSpan dFinalEta = pFinalEta + pickupServiceTime + dTravelTime;
 
-            // The drive home, for the Pull-in hour. Zero if Google will not price it: the
-            // Pull-in is the vehicle coming back to the garage, and losing the reassignment
-            // over that leg costs more than a Pull-in that is briefly early.
-            TimeSpan returnTravelTime;
-            try
-            {
-                var returnDetails = await _googleMapsService.GetRouteFullDetails(
-                    trip.DropoffLatitude, trip.DropoffLongitude,
-                    targetRoute.GarageLatitude, targetRoute.GarageLongitude);
-
-                returnTravelTime = returnDetails == null
-                    ? TimeSpan.Zero
-                    : TimeSpan.FromSeconds(returnDetails.DurationInTrafficSeconds);
-            }
-            catch
-            {
-                returnTravelTime = TimeSpan.Zero;
-            }
+            // The drive home, for the Pull-in hour. Zero if it could not be priced: the Pull-in
+            // is the vehicle coming back to the garage, and losing the reassignment over that
+            // leg costs more than a Pull-in that is briefly early.
+            var garageLeg = legs[2];
+            TimeSpan returnTravelTime = garageLeg.IsUsable
+                ? TimeSpan.FromSeconds(garageLeg.DurationInTrafficSeconds ?? garageLeg.DurationSeconds)
+                : TimeSpan.Zero;
 
             // Send to Backend
             var request = new RouteTripRequest

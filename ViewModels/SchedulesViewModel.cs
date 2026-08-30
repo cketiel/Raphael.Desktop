@@ -96,6 +96,12 @@ namespace Raphael.Desktop.ViewModels
         private readonly TripService _tripService;
         private readonly GoogleMapsService _googleMapsService;
 
+        /// <summary>
+        /// Travel times through Raphael.Api. Prefer this over <see cref="_googleMapsService"/>:
+        /// it takes the scheduled departure hour and prices a screen's legs in one request.
+        /// </summary>
+        private readonly IRoutingApiService _routingService;
+
         [ObservableProperty]
         private DateTime _selectedDate = DateTime.Today.AddDays(1);
 
@@ -159,7 +165,8 @@ namespace Raphael.Desktop.ViewModels
             //UserConfigService _userConfigService = new UserConfigService();
             _scheduleService = scheduleService;
             _tripService = new TripService();
-            _googleMapsService = new GoogleMapsService();
+            _routingService = new RoutingApiService();
+            _googleMapsService = new GoogleMapsService(_routingService);
             _gpsService = new GpsService();
 
             LoadInitialDataCommand = new AsyncRelayCommand(LoadInitialDataAsync);
@@ -600,8 +607,11 @@ namespace Raphael.Desktop.ViewModels
                 // The start index is that of the event NEXT to the one that just completed.
                 int startIndex = lastPerformedEvent.Sequence.Value + 1;
 
-                // We recalculate
-                await RecalculateScheduleAsync(startIndex);
+                // Arithmetic only. Completing a stop moves no road: the legs ahead are the same
+                // ones, and what changed is the hour the vehicle actually left. This used to
+                // re-price the entire remaining route through Google, on a five-second timer,
+                // on every screen that had the route open.
+                await ResequenceEtasFromAsync(startIndex);
 
                 // IMPORTANT! We updated our "seal" to not recalculate for this same event.
                 _lastRecalculatedSequence = lastPerformedEvent.Sequence.Value;
@@ -942,34 +952,9 @@ namespace Raphael.Desktop.ViewModels
 
         private bool CanLoadSchedulesAndTrips() => SelectedVehicleRoute != null;
 
-        /// <summary>
-        /// How long the vehicle takes from a dropoff back to its garage, for the Pull-in hour.
-        /// </summary>
-        /// <remarks>
-        /// A failure here returns <see cref="TimeSpan.Zero"/> instead of aborting: the Pull-in
-        /// is the vehicle coming home, not a patient being collected, and the recalculation
-        /// that runs straight after routing measures it again anyway. Losing the whole routing
-        /// because Google would not price the drive back to the garage costs more than a
-        /// Pull-in that is briefly early.
-        /// </remarks>
-        private async Task<TimeSpan> GetReturnToGarageTravelTimeAsync(
-            double dropoffLatitude, double dropoffLongitude, Models.VehicleRoute vehicleRoute)
-        {
-            try
-            {
-                var details = await _googleMapsService.GetRouteFullDetails(
-                    dropoffLatitude, dropoffLongitude,
-                    vehicleRoute.GarageLatitude, vehicleRoute.GarageLongitude);
-
-                return details == null
-                    ? TimeSpan.Zero
-                    : TimeSpan.FromSeconds(details.DurationInTrafficSeconds);
-            }
-            catch
-            {
-                return TimeSpan.Zero;
-            }
-        }
+        // GetReturnToGarageTravelTimeAsync lived here: a separate call for the drive home, made
+        // after the other two had come back. The garage leg now travels in the same batch as
+        // the pickup and dropoff legs, so there is nothing left to ask for on its own.
 
         // Routing logic
         private async Task RouteSelectedTripAsync()
@@ -1018,11 +1003,49 @@ namespace Raphael.Desktop.ViewModels
                     previousServiceTime = TimeSpan.FromMinutes(previousSchedule.On ?? 15);
                 }
 
-                var pickupDetails = await _googleMapsService.GetRouteFullDetails(originLat, originLng, tripToSchedule.PickupLatitude, tripToSchedule.PickupLongitude);
-                if (pickupDetails == null) throw new Exception("Could not calculate the route to the pickup point.");
+                // The three legs of routing a trip — to the pickup, on to the dropoff, and home to
+                // the garage — asked for together. They used to be three separate calls to
+                // Google, made one after the other while the dispatcher waited.
+                var legs = await _routingService.GetLegsAsync(new List<RouteLegRequestItemDto>
+                {
+                    new RouteLegRequestItemDto
+                    {
+                        OriginLat = originLat,
+                        OriginLng = originLng,
+                        DestLat = tripToSchedule.PickupLatitude,
+                        DestLng = tripToSchedule.PickupLongitude,
+                        Date = SelectedDate,
+                        DepartureTime = previousEta
+                    },
+                    new RouteLegRequestItemDto
+                    {
+                        OriginLat = tripToSchedule.PickupLatitude,
+                        OriginLng = tripToSchedule.PickupLongitude,
+                        DestLat = tripToSchedule.DropoffLatitude,
+                        DestLng = tripToSchedule.DropoffLongitude,
+                        Date = SelectedDate,
 
-                double pDistance = pickupDetails.DistanceMiles;
-                TimeSpan pTravelTime = TimeSpan.FromSeconds(pickupDetails.DurationInTrafficSeconds);
+                        // The scheduled pickup hour rather than the computed one: it is known
+                        // before the first leg comes back, and an hour-wide bucket does not care
+                        // about the difference.
+                        DepartureTime = tripToSchedule.FromTime
+                    },
+                    new RouteLegRequestItemDto
+                    {
+                        OriginLat = tripToSchedule.DropoffLatitude,
+                        OriginLng = tripToSchedule.DropoffLongitude,
+                        DestLat = vehicleRoute.GarageLatitude,
+                        DestLng = vehicleRoute.GarageLongitude,
+                        Date = SelectedDate,
+                        DepartureTime = tripToSchedule.ToTime ?? tripToSchedule.FromTime
+                    }
+                });
+
+                var pickupLeg = legs[0];
+                if (!pickupLeg.IsUsable) throw new Exception("Could not calculate the route to the pickup point.");
+
+                double pDistance = pickupLeg.DistanceMiles;
+                TimeSpan pTravelTime = TimeSpan.FromSeconds(pickupLeg.DurationInTrafficSeconds ?? pickupLeg.DurationSeconds);
                 TimeSpan pCalculatedEta = previousEta + previousServiceTime + pTravelTime;
                 TimeSpan pFinalEta = pCalculatedEta;
                 if (previousSchedule == null || previousSchedule.EventType != ScheduleEventType.Pickup)
@@ -1031,19 +1054,25 @@ namespace Raphael.Desktop.ViewModels
                     if (pCalculatedEta < pViolationLimit) pFinalEta = pViolationLimit;
                 }
 
-                var dropoffDetails = await _googleMapsService.GetRouteFullDetails(tripToSchedule.PickupLatitude, tripToSchedule.PickupLongitude, tripToSchedule.DropoffLatitude, tripToSchedule.DropoffLongitude);
-                if (dropoffDetails == null) throw new Exception("Could not calculate the route to the dropoff point.");
+                var dropoffLeg = legs[1];
+                if (!dropoffLeg.IsUsable) throw new Exception("Could not calculate the route to the dropoff point.");
 
-                double dDistance = dropoffDetails.DistanceMiles;
-                TimeSpan dTravelTime = TimeSpan.FromSeconds(dropoffDetails.DurationInTrafficSeconds);
+                double dDistance = dropoffLeg.DistanceMiles;
+                TimeSpan dTravelTime = TimeSpan.FromSeconds(dropoffLeg.DurationInTrafficSeconds ?? dropoffLeg.DurationSeconds);
                 TimeSpan pickupServiceTime = TimeSpan.FromMinutes(15);
                 TimeSpan dFinalEta = pFinalEta + pickupServiceTime + dTravelTime;
 
                 // The drive home. The Pull-in hour is built from this leg; it used to be
                 // built from dTravelTime, the trip's own pickup-to-dropoff leg, which billed
                 // the return to the garage for the trip all over again.
-                TimeSpan returnTravelTime = await GetReturnToGarageTravelTimeAsync(
-                    tripToSchedule.DropoffLatitude, tripToSchedule.DropoffLongitude, vehicleRoute);
+                //
+                // Unusable here is not fatal, unlike the two legs above: the Pull-in is the
+                // vehicle coming home, not a patient being collected, and the recalculation
+                // that runs straight after routing measures it again anyway.
+                var garageLeg = legs[2];
+                TimeSpan returnTravelTime = garageLeg.IsUsable
+                    ? TimeSpan.FromSeconds(garageLeg.DurationInTrafficSeconds ?? garageLeg.DurationSeconds)
+                    : TimeSpan.Zero;
 
                 var request = new RouteTripRequest
                 {
@@ -1716,6 +1745,32 @@ namespace Raphael.Desktop.ViewModels
             }
         }*/
 
+        /// <summary>
+        /// Which pair of points each stop's travel time was measured over.
+        /// </summary>
+        /// <remarks>
+        /// A travel time only stops being valid when one of its two endpoints changes. Remembering
+        /// the pair is what lets a reorder ask for the two or three legs that actually moved
+        /// instead of the whole route.
+        /// </remarks>
+        private readonly Dictionary<int, string> _legKeyByScheduleId = new Dictionary<int, string>();
+
+        /// <summary>
+        /// Recalculates the route after its <b>shape</b> changed — a stop moved, was added,
+        /// removed or cancelled.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Only for changes of shape. When a driver simply performs a stop, no leg has moved
+        /// and nothing needs pricing: use <see cref="ResequenceEtasFromAsync"/>, which is free.
+        ///
+        /// <para>
+        /// This method used to ignore <paramref name="startIndex"/> and walk the whole route from
+        /// index 1, asking Google for every pending stop, one request at a time. On a
+        /// thirty-stop route that was thirty billed requests per drag of the mouse, and the same
+        /// again every time the driver completed anything. Now it prices only the legs whose two
+        /// endpoints changed, in a single batched request.
+        /// </para>
+        /// </remarks>
         private async Task RecalculateScheduleAsync(int startIndex)
         {
             // Usamos Schedules (la lista visual ordenada) para el cálculo
@@ -1725,78 +1780,225 @@ namespace Raphael.Desktop.ViewModels
             {
                 _isRecalculating = true;
 
-                for (int i = 1; i < Schedules.Count; i++)
+                await FetchChangedTravelTimesAsync(startIndex);
+
+                await ResequenceAndPersistAsync(startIndex);
+            }
+            finally { _isRecalculating = false; }
+        }
+
+        /// <summary>
+        /// Re-chains the arrival times from <paramref name="startIndex"/> on, without pricing
+        /// anything.
+        /// </summary>
+        /// <remarks>
+        /// This is what a driver completing a stop calls for. The remaining legs are the same
+        /// roads they were a minute ago, so their travel times still hold; what changed is the
+        /// hour the vehicle actually left, and that is arithmetic. It runs every few seconds on
+        /// every open schedule screen, and it costs nothing.
+        /// </remarks>
+        private async Task ResequenceEtasFromAsync(int startIndex)
+        {
+            if (_isRecalculating || Schedules.Count <= 2) return;
+
+            try
+            {
+                _isRecalculating = true;
+
+                await ResequenceAndPersistAsync(startIndex);
+            }
+            finally { _isRecalculating = false; }
+        }
+
+        /// <summary>
+        /// Prices the legs whose endpoints changed since they were last measured. One request.
+        /// </summary>
+        private async Task FetchChangedTravelTimesAsync(int startIndex)
+        {
+            int from = Math.Max(1, startIndex);
+
+            var wanted = new List<RouteLegRequestItemDto>();
+            var targets = new List<ScheduleDto>();
+
+            for (int i = from; i < Schedules.Count; i++)
+            {
+                var current = Schedules[i];
+
+                if (current.Performed) continue;
+
+                // A cancelled stop nobody drove to is not a leg: it costs no time and no distance.
+                if (current.Status == "Canceled" && current.Arrive == null) continue;
+
+                var previous = FindValidPrevious(i);
+
+                if (previous == null) continue;
+
+                var key = LegKeyOf(previous, current);
+
+                // Already measured over exactly this pair of points: the road has not moved.
+                if (current.Travel.HasValue
+                    && _legKeyByScheduleId.TryGetValue(current.Id, out var known)
+                    && known == key)
                 {
-                    var current = Schedules[i];
+                    continue;
+                }
 
-                    // BUSCAR EL PREVIO VÁLIDO (Lógica No-Show)
-                    ScheduleDto validPrevious = null;
-                    for (int j = i - 1; j >= 0; j--)
+                targets.Add(current);
+
+                wanted.Add(new RouteLegRequestItemDto
+                {
+                    OriginLat = previous.ScheduleLatitude,
+                    OriginLng = previous.ScheduleLongitude,
+                    DestLat = current.ScheduleLatitude,
+                    DestLng = current.ScheduleLongitude,
+
+                    // The hour the vehicle is planned to leave, not the hour the dispatcher is
+                    // looking at the screen. A route built the evening before was being priced
+                    // against last night's traffic.
+                    Date = current.Date ?? SelectedDate,
+
+                    // Falling back to this stop's own scheduled hour keeps the leg in the right
+                    // hour of the day when the chain ahead has no estimate yet — otherwise it
+                    // would be priced as leaving at midnight.
+                    DepartureTime = previous.ETA ?? current.Pickup ?? current.Appt
+                });
+            }
+
+            if (wanted.Count == 0) return;
+
+            var legs = await _routingService.GetLegsAsync(wanted);
+
+            for (int i = 0; i < targets.Count; i++)
+            {
+                var leg = i < legs.Count ? legs[i] : null;
+
+                // ⚠️ A leg nobody could price keeps whatever it had. Writing a zero here would
+                // tell the dispatcher the vehicle arrives the instant it leaves.
+                if (leg == null || !leg.IsUsable) continue;
+
+                targets[i].Distance = leg.DistanceMiles;
+                targets[i].Travel = TimeSpan.FromSeconds(leg.DurationInTrafficSeconds ?? leg.DurationSeconds);
+
+                _legKeyByScheduleId[targets[i].Id] = LegKeyOf(FindValidPrevious(Schedules.IndexOf(targets[i])), targets[i]);
+            }
+        }
+
+        /// <summary>
+        /// Walks the route from <paramref name="startIndex"/>, chaining arrival times and saving
+        /// only the rows that actually changed.
+        /// </summary>
+        private async Task ResequenceAndPersistAsync(int startIndex)
+        {
+            int from = Math.Max(1, startIndex);
+
+            for (int i = from; i < Schedules.Count; i++)
+            {
+                var current = Schedules[i];
+
+                var before = (current.Sequence, current.ETA, current.Travel, current.Distance);
+
+                var validPrevious = FindValidPrevious(i) ?? Schedules[0];
+
+                current.Sequence = i;
+
+                if (current.Status == "Canceled" && current.Arrive == null)
+                {
+                    // Es un viaje cancelado al que no se fue: distancia 0
+                    current.Distance = 0;
+                    current.Travel = TimeSpan.Zero;
+                    current.ETA = DepartureTimeOf(validPrevious);
+                }
+                else if (!current.Performed)
+                {
+                    TimeSpan travelToCurrent = current.Travel ?? TimeSpan.Zero;
+
+                    if (validPrevious.Name != null && validPrevious.Name.Equals("Pull-out"))
                     {
-                        var p = Schedules[j];
-                        // Un punto es válido si: No está cancelado O (está cancelado pero el Driver llegó/Arrive)
-                        bool isPhysicalStop = p.Status != "Canceled" || p.Arrive != null;
-                        if (isPhysicalStop)
+                        var pullOutEta = current.Pickup - (TimeSpan.FromMinutes(20) + travelToCurrent);
+
+                        if (validPrevious.ETA != pullOutEta)
                         {
-                            validPrevious = p;
-                            break;
+                            validPrevious.ETA = pullOutEta;
+                            await _scheduleService.UpdateAsync(validPrevious.Id, validPrevious);
                         }
                     }
-                    if (validPrevious == null) validPrevious = Schedules[0];
 
-                    // ASIGNAR SECUENCIA
-                    current.Sequence = i;
+                    // CÁLCULO DE ETA SIGUIENTE
+                    TimeSpan prevService = (validPrevious.Name == "Pull-out")
+                        ? TimeSpan.Zero
+                        : TimeSpan.FromMinutes(validPrevious.On ?? 15);
 
-                    // LÓGICA DE CÁLCULO
-                    if (current.Status == "Canceled" && current.Arrive == null)
+                    TimeSpan calculatedEta = DepartureTimeOf(validPrevious) + prevService + travelToCurrent;
+
+                    // Violaciones de tiempo
+                    if (current.EventType == ScheduleEventType.Pickup && current.Pickup.HasValue)
                     {
-                        // Es un viaje cancelado al que no se fue: distancia 0
-                        current.Distance = 0;
-                        current.Travel = TimeSpan.Zero;
-                        current.ETA = validPrevious.ETA;
-                    }
-                    else
-                    {
-                        if (!current.Performed)
-                        {
-                            var routeDetails = await _googleMapsService.GetRouteFullDetails(
-                                validPrevious.ScheduleLatitude, validPrevious.ScheduleLongitude,
-                                current.ScheduleLatitude, current.ScheduleLongitude);
-
-                            if (routeDetails != null)
-                            {
-                                current.Distance = routeDetails.DistanceMiles;
-                                current.Travel = TimeSpan.FromSeconds(routeDetails.DurationInTrafficSeconds);
-                            }
-
-                            
-                            TimeSpan travelToCurrent = current.Travel ?? TimeSpan.Zero;
-                            if (validPrevious.Name.Equals("Pull-out"))
-                            {
-                                validPrevious.ETA = current.Pickup - (TimeSpan.FromMinutes(20) + travelToCurrent);
-                                await _scheduleService.UpdateAsync(validPrevious.Id, validPrevious);
-                            }
-
-                            // CÁLCULO DE ETA SIGUIENTE
-                            TimeSpan prevEta = validPrevious.ETA ?? TimeSpan.Zero;
-                            TimeSpan prevService = (validPrevious.Name == "Pull-out") ? TimeSpan.Zero : TimeSpan.FromMinutes(validPrevious.On ?? 15);
-                            TimeSpan calculatedEta = prevEta + prevService + travelToCurrent;
-
-                            // Violaciones de tiempo
-                            if (current.EventType == ScheduleEventType.Pickup && current.Pickup.HasValue)
-                            {
-                                TimeSpan margin = (current.TripType == "Return") ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(15);
-                                if (calculatedEta < (current.Pickup.Value - margin)) calculatedEta = current.Pickup.Value - margin;
-                            }
-                            current.ETA = calculatedEta;
-                        }
+                        TimeSpan margin = (current.TripType == "Return") ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(15);
+                        if (calculatedEta < (current.Pickup.Value - margin)) calculatedEta = current.Pickup.Value - margin;
                     }
 
-                    // GUARDAR EN DB
+                    current.ETA = calculatedEta;
+                }
+
+                // Only what moved. This loop runs on a five-second timer with the screen open,
+                // and it used to write every row of the route on every pass.
+                if (before != (current.Sequence, current.ETA, current.Travel, current.Distance))
+                {
                     await _scheduleService.UpdateAsync(current.Id, current);
                 }
             }
-            finally { _isRecalculating = false; }
+        }
+
+        /// <summary>
+        /// The stop the vehicle left to reach the next one: the most recent one before
+        /// <paramref name="index"/> that is not a cancellation nobody drove to.
+        /// </summary>
+        private ScheduleDto FindValidPrevious(int index)
+        {
+            for (int j = index - 1; j >= 0; j--)
+            {
+                var p = Schedules[j];
+
+                // Un punto es válido si: No está cancelado O (está cancelado pero el Driver llegó/Arrive)
+                bool isPhysicalStop = p.Status != "Canceled" || p.Arrive != null;
+
+                if (isPhysicalStop) return p;
+            }
+
+            return Schedules.Count > 0 ? Schedules[0] : null;
+        }
+
+        /// <summary>
+        /// When the vehicle left a stop: the hour it really happened if it has, the estimate if
+        /// it has not.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is what makes a delay travel down the route. The chain used to be built out of
+        /// estimates all the way, including for stops already completed, so a driver running
+        /// twenty minutes late still showed every later arrival at its original hour — and a
+        /// dispatcher reading that screen had no reason to call the clinic.
+        /// </remarks>
+        private static TimeSpan DepartureTimeOf(ScheduleDto stop)
+        {
+            if (stop == null) return TimeSpan.Zero;
+
+            if (stop.Performed && stop.Perform.HasValue) return stop.Perform.Value;
+
+            if (stop.Arrive.HasValue) return stop.Arrive.Value;
+
+            return stop.ETA ?? TimeSpan.Zero;
+        }
+
+        /// <summary>The pair of points a travel time was measured over, to four decimals.</summary>
+        private static string LegKeyOf(ScheduleDto from, ScheduleDto to)
+        {
+            if (from == null || to == null) return string.Empty;
+
+            return string.Join("|",
+                (int)Math.Round(from.ScheduleLatitude * 10000),
+                (int)Math.Round(from.ScheduleLongitude * 10000),
+                (int)Math.Round(to.ScheduleLatitude * 10000),
+                (int)Math.Round(to.ScheduleLongitude * 10000));
         }
 
         private async Task RecalculateScheduleAsyncOld(int startIndex)

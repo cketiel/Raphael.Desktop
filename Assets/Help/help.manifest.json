@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.4.0"
+    "Raphael.Desktop": "1.5.0"
   },
-  "builtUtc": "2026-08-28T08:54:19.759Z",
-  "sourceCommit": "0cf5ab3",
+  "builtUtc": "2026-08-30T03:30:30.865Z",
+  "sourceCommit": "9075557",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.4.0",
+      "lastReviewed": "1.5.0",
       "roles": [
         "admin",
         "dispatcher",
@@ -351,6 +351,132 @@
       "title": {
         "es": "Admin — empleados, facturación e integradores",
         "en": "Admin — employees, billing and integrators"
+      }
+    },
+    {
+      "id": "desktop/admin/employees",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Employees",
+      "title": {
+        "es": "Admin — Employees",
+        "en": "Admin — Employees"
+      }
+    },
+    {
+      "id": "desktop/admin/billing",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Billing",
+      "title": {
+        "es": "Admin — Billing",
+        "en": "Admin — Billing"
+      }
+    },
+    {
+      "id": "desktop/admin/profile",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Profile",
+      "title": {
+        "es": "Admin — Profile",
+        "en": "Admin — Profile"
+      }
+    },
+    {
+      "id": "desktop/admin/integrators",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Integrators",
+      "title": {
+        "es": "Admin — Integrators",
+        "en": "Admin — Integrators"
+      }
+    },
+    {
+      "id": "desktop/admin/providers",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Providers",
+      "title": {
+        "es": "Admin — Providers",
+        "en": "Admin — Providers"
+      }
+    },
+    {
+      "id": "desktop/admin/google-maps",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Google Maps",
+      "title": {
+        "es": "Google Maps — consumo, coste y ahorro",
+        "en": "Google Maps — usage, cost and savings"
+      }
+    },
+    {
+      "id": "desktop/admin/google-maps/summary",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Summary",
+      "title": {
+        "es": "Google Maps — Resumen",
+        "en": "Google Maps — Summary"
+      }
+    },
+    {
+      "id": "desktop/admin/google-maps/detail",
+      "mode": "reference",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Detail",
+      "title": {
+        "es": "Google Maps — Detalle",
+        "en": "Google Maps — Detail"
+      }
+    },
+    {
+      "id": "desktop/admin/google-maps/settings",
+      "mode": "how-to",
+      "since": "1.5.0",
+      "lastReviewed": "1.5.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Settings",
+      "title": {
+        "es": "Google Maps — Configuración",
+        "en": "Google Maps — Settings"
       }
     },
     {

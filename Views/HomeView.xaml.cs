@@ -19,6 +19,7 @@ using System.Collections.ObjectModel;
 using Microsoft.Web.WebView2.Core;
 using System.Text.Json;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Maps;
 using System.Configuration;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
@@ -57,6 +58,26 @@ namespace Raphael.Desktop.Views
         private static CoreWebView2Environment _commonEnvironment;
         // Flag to avoid simultaneous calls on the same instance
         private bool _isInitializing = false;
+
+        /// <summary>
+        /// Travel times and road shapes, from Raphael.Api. The map page cannot ask for them
+        /// itself — it would need a session token in a document that also runs Google's script —
+        /// so this screen asks on its behalf.
+        /// </summary>
+        private readonly IRoutingApiService _routingApiService = new RoutingApiService();
+
+        /// <summary>
+        /// Forwards what the map pages spend at Google directly, which the server cannot see.
+        /// </summary>
+        private readonly IMapsUsageApiService _mapsUsageApiService = new MapsUsageApiService();
+
+        /// <summary>
+        /// The date and hour of the trip currently on the map, so its route is priced against
+        /// when the vehicle actually leaves rather than against right now.
+        /// </summary>
+        private DateTime? _mapTripDate;
+
+        private TimeSpan? _mapTripDeparture;
         public HomeView()
         {
             InitializeComponent();
@@ -113,8 +134,9 @@ namespace Raphael.Desktop.Views
                     _commonEnvironment = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
                 }
 
-                // Wait for initialization with the shared environment
-                await MapaWebView.EnsureCoreWebView2Async(_commonEnvironment);
+                // Wait for initialization with the shared environment, and serve the map pages
+                // from the virtual host so they have an origin the Google key can be tied to.
+                await MapWebViewHost.InitializeAsync(MapaWebView, _commonEnvironment);
 
                 // Only subscribe to events if it's the first time (CoreWebView2 has just been created)
                 ConfigureWebViewEvents();
@@ -142,6 +164,25 @@ namespace Raphael.Desktop.Views
                 try
                 {
                     var json = args.WebMessageAsJson;
+
+                    // The page spent something at Google on its own. Forwarded so the usage panel
+                    // sees what the server cannot.
+                    if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
+
+                    // A question only the API can answer: an address for a dragged pin, or a
+                    // place somebody chose. Served from our own database whenever we have it.
+                    if (MapWebViewHost.TryHandleLookup(json, MapaWebView, _routingApiService)) return;
+
+                    // The map wants the road between its two pins drawn. It used to compute that
+                    // itself with DirectionsService — a class this Cloud project can no longer
+                    // load, and a billed request no cache ever saw. Now it asks, we buy once (or
+                    // read from the cache), and we hand back a shape.
+                    if (MapWebViewHost.TryReadRouteRequest(json, out var routeRequest))
+                    {
+                        _ = DrawTripRouteAsync(routeRequest);
+                        return;
+                    }
+
                     dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
 
                     if (data.type == "routeInfo")
@@ -292,94 +333,87 @@ namespace Raphael.Desktop.Views
             if (MapaWebView.CoreWebView2 == null)
                 return;
 
-            string apiKey = App.Configuration["GoogleMaps:ApiKey"];
+            // The trip on screen is what the route should be priced against: its own date and
+            // pickup hour, not the moment the dispatcher happened to open it.
+            _mapTripDate = trip?.Date;
+            _mapTripDeparture = trip?.FromTime;
 
-            if (trip == null || MapaWebView.CoreWebView2 == null)
+            if (trip == null)
             {
-                string htmlPath = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "basemap.html"));
-                htmlPath = htmlPath.Replace("{{API_KEY}}", apiKey);
+                MapWebViewHost.Navigate(
+                    MapaWebView, "basemap.html", ("lat", 25.77427), ("lng", -80.19366));
 
-                htmlPath = htmlPath.Replace("{ORIGIN_LAT}", "25.77427")
-                                   .Replace("{ORIGIN_LNG}", "-80.19366");
-
-
-                MapaWebView.NavigateToString(htmlPath);
+                return;
             }
-            else
-            {
-                //MessageBox.Show($"La API Key es: {apiKey}");
 
-                string htmlPath = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "googlemap.html"));
-                htmlPath = htmlPath.Replace("{{API_KEY}}", apiKey);
+            MapWebViewHost.Navigate(
+                MapaWebView,
+                "googlemap.html",
+                ("lat", trip.PickupLatitude),
+                ("lng", trip.PickupLongitude),
+                ("dlat", trip.DropoffLatitude),
+                ("dlng", trip.DropoffLongitude));
 
-                htmlPath = htmlPath.Replace("{LAT_ORIGEN}", trip.PickupLatitude.ToString())
-                                   .Replace("{LNG_ORIGEN}", trip.PickupLongitude.ToString())
-                                   .Replace("{LAT_DESTINO}", trip.DropoffLatitude.ToString())
-                                   .Replace("{ORIGEN}", trip.PickupAddress)
-                                   //.Replace("{NOMBRE}", trip.PatientName)
-                                   .Replace("{LNG_DESTINO}", trip.DropoffLongitude.ToString());
+            // Wait for the document before writing into its fields.
+            await Task.Delay(500);
 
-                MapaWebView.NavigateToString(htmlPath);
-
-                // Esperar a que el mapa cargue y luego inyectar los valores en los inputs de arriba
-                // Usamos un pequeño delay o NavigationCompleted para asegurar que los elementos DOM existan
-                await Task.Delay(500);
-
-                string fillInputsJs = $@"
+            string fillInputsJs = $@"
                     document.getElementById('pickup').value = `{EscapeJs(trip.PickupAddress)}`;
                     document.getElementById('dropoff').value = `{EscapeJs(trip.DropoffAddress)}`;
                 ";
-                await MapaWebView.ExecuteScriptAsync(fillInputsJs);
+            await MapaWebView.ExecuteScriptAsync(fillInputsJs);
 
-                ShowETAInfo(trip);
-
-            }
-
-
-
-
+            // The ShowETAInfo call was here. It bought three route estimates and displayed
+            // none of them. The map itself already draws the route.
         }
 
-        public void LoadMapExcample()
+        /// <summary>
+        /// Prices the leg the map asked about and sends the shape back for it to draw.
+        /// </summary>
+        /// <remarks>
+        /// The figures land on the screen from here too. The page used to post them back in a
+        /// <c>routeInfo</c> message built out of Google's own localised strings — "12.3 mi"
+        /// parsed with the machine's locale, which on a Spanish-locale machine read as 123.
+        /// </remarks>
+        private async Task DrawTripRouteAsync(MapWebViewHost.MapRouteRequest request)
         {
-            // Template HTML file path
-            string templatePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "googlemap.html");
-
-            // Read original HTML
-            string htmlContent = File.ReadAllText(templatePath);
-
-            // Read key from App.config
-            string apiKey = ConfigurationManager.AppSettings["GoogleMapsApiKey"];
-
-            // Replace {{API_KEY}} with the real one
-            htmlContent = htmlContent.Replace("{{API_KEY}}", apiKey);
-
-            // Crear archivo temporal con el HTML ya modificado
-            string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "googlemap2.html");
-            File.WriteAllText(tempPath, htmlContent);
-
-            // Load into WebView2
-
-            MapaWebView.CoreWebView2.Navigate(tempPath);
-        }
-        public async void ShowETAInfo(TripReadDto SelectedTrip) {
-
-            GoogleMapsService googleMapsService = new GoogleMapsService();
-            var routeInfo = await googleMapsService.GetRouteDurationsAndDistance(SelectedTrip.PickupLatitude, SelectedTrip.PickupLongitude, SelectedTrip.DropoffLatitude, SelectedTrip.DropoffLongitude);
-
-            // Mostrar las duraciones y distancia en el Label
-            Label etaLabel = new Label();
-            etaLabel.Content = $"Duration without traffic: {routeInfo.noTraffic}\n" +
-                              $"Duration with traffic: {routeInfo.withTraffic}\n" +
-                              $"Duration (pessimistic): {routeInfo.pessimistic}\n" +
-                              $"Duration (optimistic): {routeInfo.optimistic}\n" +
-                              $"Distance: {routeInfo.distance}";
-
-            Dispatcher.Invoke(() =>
+            try
             {
-                //ETAInfoLabel.Content = etaLabel.Content;
-            });
+                var leg = await MapWebViewHost.DrawRouteAsync(
+                    MapaWebView,
+                    _routingApiService,
+                    request,
+                    _mapTripDate,
+                    _mapTripDeparture);
+
+                if (leg == null || !leg.IsUsable) return;
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (DataContext is HomeViewModel vm)
+                    {
+                        vm.Distance = leg.DistanceMiles.ToString("0.0", CultureInfo.InvariantCulture) + " mi";
+                        vm.ETA = MapWebViewHost.FormatDuration(
+                            leg.DurationInTrafficSeconds ?? leg.DurationSeconds);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                // A route nobody could price leaves the pins on the map. It is not worth a dialog
+                // in the middle of the dispatcher's work.
+                System.Diagnostics.Debug.WriteLine("Could not draw the trip route: " + ex.Message);
+            }
         }
+
+        // LoadMapExcample lived here. It read the key from App.config's appSettings, a section
+        // this application does not have, wrote the map to a file in %TEMP% and opened it from
+        // there — the very file:// origin that made the key impossible to restrict. Nothing
+        // called it.
+        // ShowETAInfo lived here. It made three billed requests to Google — best guess,
+        // pessimistic and optimistic — built a label out of them, and then displayed nothing: the
+        // one line that would have shown the result was commented out. Removed rather than
+        // rewritten; when this screen needs an ETA, IRoutingApiService gives it in one request.
 
         private void MapaWebView_WebMessageReceived(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
         {
@@ -407,22 +441,17 @@ namespace Raphael.Desktop.Views
             public string Pickup { get; set; } = "";
         }
 
-        // testing
+        // testing — never switched on; the call at the top of this file is commented out.
         private async void SetupAutocompleteOverlay()
         {
-
-            string apiKey = App.Configuration["GoogleMaps:ApiKey"];
-
-
-            string path = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "autocomplete.html"));
-            //string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "html", "autocomplete.html");
-
-            path = path.Replace("{{API_KEY}}", apiKey);
-
-            /*await AutocompleteOverlay.EnsureCoreWebView2Async();
-            AutocompleteOverlay.NavigateToString(path);
-            //AutocompleteOverlay.Source = new Uri(path); // AutocompleteOverlay.NavigateToString(htmlPath);
+            // Kept in step with the map pages rather than left behind: the page no longer takes a
+            // key pasted into its text, it is served from the maps virtual host and receives the
+            // key the same way the maps do.
+            /*await MapWebViewHost.InitializeAsync(AutocompleteOverlay);
+            MapWebViewHost.Navigate(AutocompleteOverlay, "autocomplete.html");
             AutocompleteOverlay.WebMessageReceived += AutocompleteOverlay_WebMessageReceived;*/
+
+            await Task.CompletedTask;
         }
 
         private void AutocompleteOverlay_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)

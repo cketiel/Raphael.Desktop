@@ -6,7 +6,7 @@ using System.Windows;
 
 namespace Raphael.Desktop.Services
 {
-    public class LocalizationService
+    public class LocalizationService : System.ComponentModel.INotifyPropertyChanged
     {
         private static readonly Lazy<LocalizationService> _instance = new(() => new LocalizationService());
         public static LocalizationService Instance => _instance.Value;
@@ -15,6 +15,13 @@ namespace Raphael.Desktop.Services
         private string _currentLanguage = "en";
 
         public event Action LanguageChanged;
+
+        /// <summary>
+        /// Raised with <c>Item[]</c> when the language changes, so a screen can bind straight to
+        /// this service's indexer — <c>{Binding L[some.key]}</c> — and have every label follow
+        /// the switch without a property per string behind it.
+        /// </summary>
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
 
         public string this[string key]
         {
@@ -66,6 +73,11 @@ namespace Raphael.Desktop.Services
 
                 _currentLanguage = language;
                 LanguageChanged?.Invoke();
+
+                // "Item[]" is WPF's name for "every indexed value changed". It is what makes a
+                // {Binding L[some.key]} re-read itself when the dispatcher switches language.
+                PropertyChanged?.Invoke(
+                    this, new System.ComponentModel.PropertyChangedEventArgs("Item[]"));
 
                 // Save language to settings
                 Properties.Settings.Default.Language = language;

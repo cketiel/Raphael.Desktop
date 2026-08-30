@@ -11,10 +11,10 @@
 	<!-- The four move together. AssemblyVersion is the one that reaches the screen:
 	     VersionHelper reads Assembly.GetName().Version and the login and every window
 	     title show it. If it does not match the tag, the tag lies. -->
-	<Version>1.4.0</Version>
-	<AssemblyVersion>1.4.0.0</AssemblyVersion>
-	<FileVersion>1.4.0.0</FileVersion>
-	<InformationalVersion>1.4.0-release.1</InformationalVersion>
+	<Version>1.5.0</Version>
+	<AssemblyVersion>1.5.0.0</AssemblyVersion>
+	<FileVersion>1.5.0.0</FileVersion>
+	<InformationalVersion>1.5.0-release.1</InformationalVersion>
 
 	<!-- Stamped into the assembly at compile time and read back by VersionHelper.Build.
 	     It used to be the file's last-write timestamp, which copying the folder rewrites:
@@ -105,6 +105,13 @@
     <Content Include="Assets\googlemap.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!--
+      Shared by every map page: the Google loader, the address autocomplete and the route drawing.
+      Served to them from the maps virtual host, so it has to reach the output folder beside them.
+    -->
+    <Content Include="Assets\raphael-maps.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\icons\en.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -145,6 +152,7 @@
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.7.25104.5739" />
     <PackageReference Include="GMap.NET.WinPresentation" Version="2.1.7" />
     <PackageReference Include="gong-wpf-dragdrop" Version="4.0.0" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.5" />
     <PackageReference Include="MaterialDesignColors" Version="5.2.1" />
     <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0" />

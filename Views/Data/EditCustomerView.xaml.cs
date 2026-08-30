@@ -14,6 +14,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Raphael.Desktop.Models;
+using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Maps;
 using Raphael.Desktop.ViewModels;
 
 namespace Raphael.Desktop.Views.Data
@@ -26,6 +28,15 @@ namespace Raphael.Desktop.Views.Data
         //public EditCustomerViewModel ViewModel { get; set; }
         public EditCustomerViewModel ViewModel => DataContext as EditCustomerViewModel;
         private bool _isUpdatingFromHtml = false;
+
+        private readonly IMapsUsageApiService _mapsUsageApiService = new MapsUsageApiService();
+
+        /// <summary>
+        /// Answers what the map page cannot: the address at a dragged pin, and the details of
+        /// a chosen place. Both come from our own database whenever anyone has asked before.
+        /// </summary>
+        private readonly IRoutingApiService _routingApiService = new RoutingApiService();
+
         public EditCustomerView()
         {
             InitializeComponent();
@@ -43,7 +54,7 @@ namespace Raphael.Desktop.Views.Data
         {
             try
             {
-                await MapWebView.EnsureCoreWebView2Async(); //MapWebView.DefaultBackgroundColor = System.Drawing.Color.Red;
+                await MapWebViewHost.InitializeAsync(MapWebView);
                 LoadMap();
                 // Subscribe to message from JavaScript
                 MapWebView.CoreWebView2.WebMessageReceived += (s, args) =>
@@ -51,6 +62,13 @@ namespace Raphael.Desktop.Views.Data
                     try
                     {
                         var json = args.WebMessageAsJson;
+
+                        // What the page spent at Google itself. The server never sees these.
+                        if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
+
+                        // Addresses and places, from the cache when we have them.
+                        if (MapWebViewHost.TryHandleLookup(json, MapWebView, _routingApiService)) return;
+
                         dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
                        
                         if (data.type == "autocomplete")
@@ -92,28 +110,15 @@ namespace Raphael.Desktop.Views.Data
 
         private void LoadMap()
         {
-            
-
             if (MapWebView.CoreWebView2 == null)
                 return;
-
-            string apiKey = App.Configuration["GoogleMaps:ApiKey"];
 
             double latitude = ViewModel?.CustomerToEdit.Latitude ?? 25.77427;
             double longitude = ViewModel?.CustomerToEdit.Longitude ?? -80.19366;
 
-            
-            string htmlPath = File.ReadAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "basemap.html"));
-                htmlPath = htmlPath.Replace("{{API_KEY}}", apiKey);
-
-                htmlPath = htmlPath.Replace("{ORIGIN_LAT}", latitude.ToString(CultureInfo.InvariantCulture))
-                                   .Replace("{ORIGIN_LNG}", longitude.ToString(CultureInfo.InvariantCulture));
-
-
-                MapWebView.NavigateToString(htmlPath);
-                //MapWebView.NavigateToString("<html><body><h1>Prueba WebView2</h1></body></html>");
-                //MapWebView.CoreWebView2.OpenDevToolsWindow();
-            
+            // Served from the maps virtual host rather than pasted into the control as a string:
+            // that is what gives the page an origin, and what lets the Google key be restricted.
+            MapWebViewHost.Navigate(MapWebView, "basemap.html", ("lat", latitude), ("lng", longitude));
         }
 
         private void AddressTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -133,11 +138,11 @@ namespace Raphael.Desktop.Views.Data
 
         private void MapWebView_CoreWebView2InitializationCompleted(object sender, Microsoft.Web.WebView2.Core.CoreWebView2InitializationCompletedEventArgs e)
         {
-            if (e.IsSuccess)
-            {
-                LoadMap();
-            }
-            else
+            // ⚠️ Deliberately does not navigate. This fires from inside EnsureCoreWebView2Async,
+            // before the virtual host has been mapped, so a navigation here would land on an
+            // error page and be corrected a moment later by WebView_Loaded — a visible flicker
+            // for no reason. WebView_Loaded owns the loading of this map.
+            if (!e.IsSuccess)
             {
                 MessageBox.Show("Failed to initialize WebView2.");
             }
