@@ -8,8 +8,7 @@
              xmlns:views="clr-namespace:Raphael.Desktop.Views.Admin"
              xmlns:services="clr-namespace:Raphael.Desktop.Services"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
-             helpers:HelpAssist.TopicId="desktop/admin/overview"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
 
     <UserControl.Resources>
@@ -58,29 +57,48 @@
                          HorizontalContentAlignment="Stretch"
                          VerticalContentAlignment="Stretch">
 
+                <!--
+                    F1 answers for the tab in front. Two rules make that work, and both were
+                    broken before:
+
+                    1. There is no HelpAssist.TopicId on this UserControl any more. There used to
+                       be one — "desktop/admin/overview" on the root — and because the resolver
+                       takes the shallowest declaration in the subtree, it shadowed everything
+                       below it. That is why F1 always opened the top of Admin no matter which
+                       tab was in front.
+
+                    2. The topic goes on each view, never on its TabItem. A TabControl realises
+                       only the selected tab's content, while every header exists at once, so a
+                       topic on a header would answer for Employees whichever tab was open.
+
+                    When nothing here matches, HelpService still falls back to the Admin topic
+                    for the menu, so F1 never lands nowhere.
+                -->
                 <TabItem Header="{Binding Employees}">
-                    <views:EmployeesView />
+                    <views:EmployeesView helpers:HelpAssist.TopicId="desktop/admin/employees" />
                 </TabItem>
 
 
                 <TabItem Header="{Binding Billing}">
-                    <views:BillingView />
+                    <views:BillingView helpers:HelpAssist.TopicId="desktop/admin/billing" />
                 </TabItem>
 
                 <TabItem Header="{Binding Profile}">
-                    <views:ProfileView />
+                    <views:ProfileView helpers:HelpAssist.TopicId="desktop/admin/profile" />
                 </TabItem>
 
                 <TabItem Header="Integrators">
-                    <views:IntegratorsView />
+                    <views:IntegratorsView helpers:HelpAssist.TopicId="desktop/admin/integrators" />
                 </TabItem>
 
                 <TabItem Header="Providers">
-                    <views:ProvidersView />
+                    <views:ProvidersView helpers:HelpAssist.TopicId="desktop/admin/providers" />
                 </TabItem>
 
-                <!-- What Google Maps costs, what the cache saves, and the two settings that
-                     move both. See help topic admin/google-maps-panel. -->
+                <!-- ⚠️ No TopicId on this one on purpose. The subtree walk takes the shallowest
+                     declaration it finds, so a topic here would shadow the three inside and F1
+                     would always open the panel's overview instead of the sub-tab in front.
+                     GoogleMapsAdminView declares one per sub-tab. -->
                 <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[gmaps.Tab]}">
                     <views:GoogleMapsAdminView />
