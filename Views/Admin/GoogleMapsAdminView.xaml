@@ -157,7 +157,6 @@
     <Grid Background="#FAFAFA">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -203,19 +202,7 @@
             </WrapPanel>
         </Border>
 
-        <!-- ============================ messages ============================ -->
-        <StackPanel Grid.Row="1">
-            <Border Background="#FFEBEE" BorderBrush="#EF9A9A" BorderThickness="1" Padding="10,7"
-                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#B71C1C" TextWrapping="Wrap" />
-            </Border>
-            <Border Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Padding="10,7"
-                    Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="{Binding StatusMessage}" Foreground="#1B5E20" TextWrapping="Wrap" />
-            </Border>
-        </StackPanel>
-
-        <TabControl Grid.Row="2" Margin="8" Background="Transparent" BorderThickness="0">
+        <TabControl Grid.Row="1" Margin="8" Background="Transparent" BorderThickness="0">
 
             <!-- ================================================================== -->
             <TabItem Header="{Binding L[gmaps.TabSummary]}">
@@ -576,5 +563,50 @@
             </TabItem>
 
         </TabControl>
+
+        <!-- ============================ messages ============================
+             ⚠️ An overlay, deliberately, and not a row of its own.
+
+             It used to sit in its own Auto row between the period bar and the tabs, which meant
+             that saying "Saved" pushed the entire panel down and the summary cards went with it.
+             A banner that reports the outcome of a click should not rearrange the screen the
+             click was made on.
+
+             It floats at the bottom instead, over the content and clear of everything that
+             matters: the summary cards are at the top and are never covered, and neither are the
+             sub-tabs — an overlay pinned to the top would have blocked switching tabs for as
+             long as it was showing. Nothing moves at any point, and it dismisses itself after a
+             few seconds, so nobody is left with a week-old "Saved" sitting over their figures.
+        -->
+        <Border Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                Panel.ZIndex="10" Margin="16,0,24,20" CornerRadius="4" MaxWidth="620"
+                Background="#FFEBEE" BorderBrush="#EF9A9A" BorderThickness="1" Padding="12,8"
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.25" />
+            </Border.Effect>
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="✕" Command="{Binding DismissMessageCommand}"
+                        Background="Transparent" BorderThickness="0" Foreground="#B71C1C"
+                        Cursor="Hand" Padding="8,0" FontSize="13" VerticalAlignment="Top" />
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#B71C1C" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                Panel.ZIndex="10" Margin="16,0,24,20" CornerRadius="4" MaxWidth="620"
+                Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1" Padding="12,8"
+                Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.25" />
+            </Border.Effect>
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="✕" Command="{Binding DismissMessageCommand}"
+                        Background="Transparent" BorderThickness="0" Foreground="#1B5E20"
+                        Cursor="Hand" Padding="8,0" FontSize="13" VerticalAlignment="Top" />
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#1B5E20" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+
     </Grid>
 </UserControl>

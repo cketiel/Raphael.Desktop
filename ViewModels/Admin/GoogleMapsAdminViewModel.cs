@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Raphael.Desktop.ViewModels.Admin
 {
@@ -58,6 +59,7 @@ namespace Raphael.Desktop.ViewModels.Admin
             LastMonthCommand = new RelayCommandObject(_ => SetPeriod(PeriodPreset.LastMonth));
             Last30DaysCommand = new RelayCommandObject(_ => SetPeriod(PeriodPreset.Last30Days));
             Last90DaysCommand = new RelayCommandObject(_ => SetPeriod(PeriodPreset.Last90Days));
+            DismissMessageCommand = new RelayCommandObject(_ => DismissMessage());
         }
 
         // ---------------------------------------------------------------- period
@@ -209,7 +211,12 @@ namespace Raphael.Desktop.ViewModels.Admin
         public string ErrorMessage
         {
             get => _errorMessage;
-            set { SetProperty(ref _errorMessage, value); OnPropertyChanged(nameof(HasError)); }
+            set
+            {
+                SetProperty(ref _errorMessage, value);
+                OnPropertyChanged(nameof(HasError));
+                RestartDismissTimer();
+            }
         }
 
         public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
@@ -218,10 +225,60 @@ namespace Raphael.Desktop.ViewModels.Admin
         public string StatusMessage
         {
             get => _statusMessage;
-            set { SetProperty(ref _statusMessage, value); OnPropertyChanged(nameof(HasStatus)); }
+            set
+            {
+                SetProperty(ref _statusMessage, value);
+                OnPropertyChanged(nameof(HasStatus));
+                RestartDismissTimer();
+            }
         }
 
         public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
+
+        /// <summary>
+        /// How long a banner stays before it takes itself away.
+        /// </summary>
+        /// <remarks>
+        /// Long enough to read a path to an exported file, short enough that it is gone before it
+        /// becomes furniture. An error gets longer than a confirmation: "Saved" is a fact the
+        /// administrator already expected, while a failure is something they have to act on.
+        /// </remarks>
+        private static readonly TimeSpan StatusLifetime = TimeSpan.FromSeconds(6);
+
+        private static readonly TimeSpan ErrorLifetime = TimeSpan.FromSeconds(12);
+
+        private DispatcherTimer _dismissTimer;
+
+        private void RestartDismissTimer()
+        {
+            _dismissTimer?.Stop();
+
+            if (!HasError && !HasStatus) return;
+
+            _dismissTimer ??= new DispatcherTimer();
+            _dismissTimer.Tick -= OnDismissTick;
+            _dismissTimer.Tick += OnDismissTick;
+            _dismissTimer.Interval = HasError ? ErrorLifetime : StatusLifetime;
+            _dismissTimer.Start();
+        }
+
+        private void OnDismissTick(object sender, EventArgs e) => DismissMessage();
+
+        /// <summary>Takes the banner away, whether the timer got there first or the reader did.</summary>
+        private void DismissMessage()
+        {
+            _dismissTimer?.Stop();
+
+            // Assigned to the fields rather than the properties: going through the setters would
+            // restart the timer this is being called from.
+            _errorMessage = null;
+            _statusMessage = null;
+
+            OnPropertyChanged(nameof(ErrorMessage));
+            OnPropertyChanged(nameof(StatusMessage));
+            OnPropertyChanged(nameof(HasError));
+            OnPropertyChanged(nameof(HasStatus));
+        }
 
         // ---------------------------------------------------------------- figures
 
@@ -467,6 +524,9 @@ namespace Raphael.Desktop.ViewModels.Admin
         public ICommand Last30DaysCommand { get; }
 
         public ICommand Last90DaysCommand { get; }
+
+        /// <summary>Closes the banner now, without waiting for it to time out.</summary>
+        public ICommand DismissMessageCommand { get; }
 
         // ---------------------------------------------------------------- loading
 
