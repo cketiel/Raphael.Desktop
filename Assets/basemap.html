@@ -156,7 +156,12 @@
             if (dropoffPosition) showsRoute();
         }
 
-        /** Fills the input and the WPF form from a point the dispatcher dragged a pin to. */
+        /**
+         * Fills the input and the WPF form from a point the dispatcher dragged a pin to.
+         *
+         * The address comes from the host, which serves it from our own database when anyone has
+         * dropped a pin nearby before. It used to come from Google on every single drag.
+         */
         async function describePickup(position) {
             const found = await RaphaelMaps.reverseGeocode(position);
 
@@ -164,13 +169,7 @@
 
             document.getElementById('pickup').value = found.formatted_address;
 
-            const lat = typeof position.lat === 'function' ? position.lat() : position.lat;
-            const lng = typeof position.lng === 'function' ? position.lng() : position.lng;
-
-            RaphaelMaps.post({
-                type: 'autocomplete',
-                result: RaphaelMaps.splitFormatted(found.formatted_address, lat, lng)
-            });
+            RaphaelMaps.post({ type: 'autocomplete', result: found.parts });
         }
 
         // ------------------------------------------------------------------ dropoff
@@ -215,15 +214,12 @@
                 if (found) {
                     document.getElementById('dropoff').value = found.formatted_address;
 
-                    const parsed = RaphaelMaps.parseComponents(
-                        found.address_components, moved);
-
                     RaphaelMaps.post({
                         type: 'dropoff',
                         dropoff_address: found.formatted_address,
-                        city: parsed.city,
-                        lat: parsed.lat,
-                        lng: parsed.lng
+                        city: found.parts.city,
+                        lat: found.parts.lat,
+                        lng: found.parts.lng
                     });
                 }
 

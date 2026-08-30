@@ -1,4 +1,4 @@
-using LiveChartsCore;
+﻿using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using Raphael.Desktop.Commands;
@@ -66,21 +66,94 @@ namespace Raphael.Desktop.ViewModels.Admin
         public DateTime From
         {
             get => _from;
-            set => SetProperty(ref _from, value);
+            set
+            {
+                if (!SetProperty(ref _from, value)) return;
+
+                // A hand-picked date is no longer any of the quick filters, and the buttons
+                // should stop claiming otherwise.
+                if (!_settingPreset) Preset = PeriodPreset.Custom;
+
+                OnPropertyChanged(nameof(PeriodLabel));
+            }
         }
 
         private DateTime _to;
         public DateTime To
         {
             get => _to;
-            set => SetProperty(ref _to, value);
+            set
+            {
+                if (!SetProperty(ref _to, value)) return;
+
+                if (!_settingPreset) Preset = PeriodPreset.Custom;
+
+                OnPropertyChanged(nameof(PeriodLabel));
+            }
         }
 
-        private enum PeriodPreset { ThisMonth, LastMonth, Last30Days, Last90Days }
+        private bool _settingPreset;
+
+        public enum PeriodPreset { ThisMonth, LastMonth, Last30Days, Last90Days, Custom }
+
+        private PeriodPreset _preset = PeriodPreset.ThisMonth;
+
+        /// <summary>
+        /// Which quick filter is in force. Bound to the buttons so one of them stays visibly
+        /// pressed: an administrator reading figures has to know which period produced them, and
+        /// four buttons that all look alike after a click answer nothing.
+        /// </summary>
+        public PeriodPreset Preset
+        {
+            get => _preset;
+            set
+            {
+                SetProperty(ref _preset, value);
+
+                OnPropertyChanged(nameof(IsThisMonth));
+                OnPropertyChanged(nameof(IsLastMonth));
+                OnPropertyChanged(nameof(IsLast30Days));
+                OnPropertyChanged(nameof(IsLast90Days));
+                OnPropertyChanged(nameof(PeriodLabel));
+            }
+        }
+
+        public bool IsThisMonth => Preset == PeriodPreset.ThisMonth;
+
+        public bool IsLastMonth => Preset == PeriodPreset.LastMonth;
+
+        public bool IsLast30Days => Preset == PeriodPreset.Last30Days;
+
+        public bool IsLast90Days => Preset == PeriodPreset.Last90Days;
+
+        /// <summary>
+        /// The period in words, appended to every title and chart so a screenshot of one card
+        /// still says what it is showing.
+        /// </summary>
+        public string PeriodLabel
+        {
+            get
+            {
+                var name = Preset switch
+                {
+                    PeriodPreset.ThisMonth => L["gmaps.ThisMonth"],
+                    PeriodPreset.LastMonth => L["gmaps.LastMonth"],
+                    PeriodPreset.Last30Days => L["gmaps.Last30"],
+                    PeriodPreset.Last90Days => L["gmaps.Last90"],
+                    _ => L["gmaps.Custom"]
+                };
+
+                return $"{name}  ·  {From:d} – {To:d}";
+            }
+        }
 
         private void SetPeriod(PeriodPreset preset)
         {
             var today = DateTime.Today;
+
+            // Guards the two date setters, which would otherwise flip the choice to Custom the
+            // moment this method assigns them.
+            _settingPreset = true;
 
             switch (preset)
             {
@@ -106,8 +179,15 @@ namespace Raphael.Desktop.ViewModels.Admin
                     break;
             }
 
+            _settingPreset = false;
+
+            Preset = preset;
+
             _ = LoadAsync();
         }
+
+        /// <summary>Every string on this screen, in whichever language is selected.</summary>
+        public LocalizationService L => LocalizationService.Instance;
 
         /// <summary>
         /// Warns when the chosen period is not a calendar month, because the cost figures then
@@ -176,8 +256,41 @@ namespace Raphael.Desktop.ViewModels.Admin
         public ObservableCollection<MapsSkuUsageDto> BySku { get; } =
             new ObservableCollection<MapsSkuUsageDto>();
 
-        public ObservableCollection<MapsPricingTierDto> PricingTiers { get; } =
-            new ObservableCollection<MapsPricingTierDto>();
+        public ObservableCollection<PricingRow> PricingRows { get; } =
+            new ObservableCollection<PricingRow>();
+
+        /// <summary>
+        /// Google's price list the way Google prints it: one row per product, one column per
+        /// volume band.
+        /// </summary>
+        /// <remarks>
+        /// The database stores one row per band, which is the right shape to calculate with and
+        /// the wrong one to read — thirty rows saying "Geocoding" six times over. Pivoted here so
+        /// an administrator can compare two products by running a finger across a line.
+        /// </remarks>
+        public class PricingRow
+        {
+            public string DisplayName { get; set; } = string.Empty;
+
+            /// <summary>Free requests a month, as a figure with thousands separators.</summary>
+            public string FreeTier { get; set; } = string.Empty;
+
+            public string Band10k { get; set; } = "—";
+
+            public string Band100k { get; set; } = "—";
+
+            public string Band500k { get; set; } = "—";
+
+            public string Band1M { get; set; } = "—";
+
+            public string Band5M { get; set; } = "—";
+
+            /// <summary>
+            /// The most expensive product on the list, shown in bold — it is the one whose volume
+            /// an administrator most needs to notice.
+            /// </summary>
+            public bool IsHighlighted { get; set; }
+        }
 
         public ObservableCollection<DailyRow> DailyRows { get; } =
             new ObservableCollection<DailyRow>();
@@ -230,10 +343,10 @@ namespace Raphael.Desktop.ViewModels.Admin
         {
             get
             {
-                if (Totals.FirstDay is null) return "Sin datos todavía.";
+                if (Totals.FirstDay is null) return L["gmaps.NoDataYet"];
 
-                return $"{Totals.Billed:N0} a Google · {Totals.Cached:N0} desde caché · "
-                     + $"{Totals.CacheHitRate * 100:0.0} % de acierto  "
+                return $"{Totals.Billed:N0} → {L["gmaps.ToGoogle"]}  ·  {Totals.Cached:N0} → {L["gmaps.FromCache"]}  ·  "
+                     + $"{Totals.CacheHitRate * 100:0.0} % {L["gmaps.CacheHit"]}  "
                      + $"({Totals.FirstDay:d} – {Totals.LastDay:d})";
             }
         }
@@ -272,12 +385,14 @@ namespace Raphael.Desktop.ViewModels.Admin
 
         public Axis[] CountAxes { get; } = new[]
         {
-            new Axis { Name = "Peticiones", MinLimit = 0 }
+            new Axis { MinLimit = 0 }
         };
 
+        // Axis names are left off on purpose: the series legend already says what is plotted, in
+        // the selected language, and an axis title would need rebuilding on every switch.
         public Axis[] PercentAxes { get; } = new[]
         {
-            new Axis { Name = "% servido desde caché", MinLimit = 0, MaxLimit = 100 }
+            new Axis { MinLimit = 0, MaxLimit = 100 }
         };
 
         // ---------------------------------------------------------------- view toggles
@@ -380,8 +495,7 @@ namespace Raphael.Desktop.ViewModels.Admin
                     BySku.Add(sku);
                 }
 
-                PricingTiers.Clear();
-                foreach (var tier in pricing) PricingTiers.Add(tier);
+                BuildPricingRows(pricing);
 
                 ApplySettings(settings);
                 BuildCharts(daily);
@@ -390,7 +504,7 @@ namespace Raphael.Desktop.ViewModels.Admin
             }
             catch (Exception ex)
             {
-                ErrorMessage = "No se pudieron leer los datos de consumo: " + ex.Message;
+                ErrorMessage = L["gmaps.LoadFailed"] + ex.Message;
             }
             finally
             {
@@ -406,6 +520,53 @@ namespace Raphael.Desktop.ViewModels.Admin
             TrafficMode = Read("Routing.TrafficMode", "MaxSavings");
             CacheRetentionDays = Read("Routing.CacheRetentionDays", "365");
             BufferPercent = Read("Routing.DefaultBufferPercent", "12");
+        }
+
+        /// <summary>
+        /// Pivots the price bands into one row per product, the way Google's own page prints it.
+        /// </summary>
+        /// <remarks>
+        /// The bands are matched by the request they start at rather than by position, so a
+        /// product Google prices differently — Routes Pro, whose free tier ends at 5,000 and
+        /// whose charging therefore starts there — still lands in the right column.
+        /// </remarks>
+        private void BuildPricingRows(List<MapsPricingTierDto> tiers)
+        {
+            PricingRows.Clear();
+
+            foreach (var group in tiers.GroupBy(t => t.Sku))
+            {
+                var bands = group.OrderBy(t => t.FromRequest).ToList();
+                var first = bands[0];
+
+                string Price(int upTo)
+                {
+                    var band = bands.FirstOrDefault(b => (b.ToRequest ?? int.MaxValue) == upTo);
+
+                    return band == null ? "—" : band.PricePerThousand.ToString("C2", Usd);
+                }
+
+                string Top()
+                {
+                    var band = bands.FirstOrDefault(b => b.ToRequest == null);
+
+                    return band == null ? "—" : band.PricePerThousand.ToString("C2", Usd);
+                }
+
+                PricingRows.Add(new PricingRow
+                {
+                    DisplayName = first.DisplayName,
+                    FreeTier = first.FreeCapPerMonth.ToString("N0"),
+                    Band10k = Price(100_000),
+                    Band100k = Price(500_000),
+                    Band500k = Price(1_000_000),
+                    Band1M = Price(5_000_000),
+                    Band5M = Top(),
+
+                    // Routes Pro is the one that costs double and gives half the free tier.
+                    IsHighlighted = group.Key == "RoutesPro"
+                });
+            }
         }
 
         /// <summary>
@@ -435,14 +596,14 @@ namespace Raphael.Desktop.ViewModels.Admin
             {
                 new StackedColumnSeries<long>
                 {
-                    Name = "Comprado a Google",
+                    Name = L["gmaps.BoughtFromGoogle"],
                     Values = byDay.Select(r => r.Billed).ToArray(),
                     Fill = new SolidColorPaint(BilledColour),
                     Stroke = null
                 },
                 new StackedColumnSeries<long>
                 {
-                    Name = "Servido desde caché",
+                    Name = L["gmaps.ServedFromCache"],
                     Values = byDay.Select(r => r.Cached).ToArray(),
                     Fill = new SolidColorPaint(CachedColour),
                     Stroke = null
@@ -513,12 +674,12 @@ namespace Raphael.Desktop.ViewModels.Admin
                 {
                     // The server caches settings for a minute, so the change is live everywhere
                     // within that — worth saying, or an administrator will click twice.
-                    StatusMessage = "Guardado. Activo en todo el sistema en menos de un minuto.";
+                    StatusMessage = L["gmaps.Saved"];
                 }
             }
             catch (Exception ex)
             {
-                ErrorMessage = "No se pudo guardar la configuración: " + ex.Message;
+                ErrorMessage = L["gmaps.SaveFailed"] + ex.Message;
             }
             finally
             {
@@ -540,8 +701,8 @@ namespace Raphael.Desktop.ViewModels.Admin
 
                 var csv = new StringBuilder();
 
-                csv.AppendLine("Producto,Comprado a Google,Servido desde cache,% cache,"
-                             + "Coste estimado USD,Coste evitado USD,Gratis al mes,Gratis restante");
+                csv.AppendLine("Product,BilledToGoogle,ServedFromCache,CachePercent,"
+                             + "EstimatedCostUSD,AvoidedCostUSD,FreePerMonth,FreeRemaining");
 
                 foreach (var sku in BySku)
                 {
@@ -557,7 +718,7 @@ namespace Raphael.Desktop.ViewModels.Admin
                 }
 
                 csv.AppendLine();
-                csv.AppendLine("Dia,Comprado a Google,Servido desde cache,% cache");
+                csv.AppendLine("Day,BilledToGoogle,ServedFromCache,CachePercent");
 
                 foreach (var row in DailyRows)
                 {
@@ -570,11 +731,11 @@ namespace Raphael.Desktop.ViewModels.Admin
 
                 File.WriteAllText(path, csv.ToString(), Encoding.UTF8);
 
-                StatusMessage = "Exportado a " + path;
+                StatusMessage = L["gmaps.ExportedTo"] + path;
             }
             catch (Exception ex)
             {
-                ErrorMessage = "No se pudo exportar: " + ex.Message;
+                ErrorMessage = L["gmaps.ExportFailed"] + ex.Message;
             }
         }
 

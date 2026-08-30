@@ -164,6 +164,10 @@
             if (dropoffPosition) showsRoute();
         }
 
+        /**
+         * The address the host resolved for a dragged pin — from our own database when anyone
+         * has dropped one nearby before, and only otherwise from Google.
+         */
         async function describePickup(position) {
             const found = await RaphaelMaps.reverseGeocode(position);
 
@@ -171,13 +175,7 @@
 
             document.getElementById('pickup').value = found.formatted_address;
 
-            const lat = typeof position.lat === 'function' ? position.lat() : position.lat;
-            const lng = typeof position.lng === 'function' ? position.lng() : position.lng;
-
-            RaphaelMaps.post({
-                type: 'pickup',
-                result: RaphaelMaps.splitFormatted(found.formatted_address, lat, lng)
-            });
+            RaphaelMaps.post({ type: 'pickup', result: found.parts });
         }
 
         // ------------------------------------------------------------------ dropoff
@@ -235,14 +233,12 @@
 
             document.getElementById('dropoff').value = found.formatted_address;
 
-            const parsed = RaphaelMaps.parseComponents(found.address_components, position);
-
             RaphaelMaps.post({
                 type: 'dropoff',
                 dropoff_address: found.formatted_address,
-                city: parsed.city,
-                lat: parsed.lat,
-                lng: parsed.lng
+                city: found.parts.city,
+                lat: found.parts.lat,
+                lng: found.parts.lng
             });
         }
 

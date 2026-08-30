@@ -31,6 +31,12 @@ namespace Raphael.Desktop.Views.Data
 
         private readonly IMapsUsageApiService _mapsUsageApiService = new MapsUsageApiService();
 
+        /// <summary>
+        /// Answers what the map page cannot: the address at a dragged pin, and the details of
+        /// a chosen place. Both come from our own database whenever anyone has asked before.
+        /// </summary>
+        private readonly IRoutingApiService _routingApiService = new RoutingApiService();
+
         public EditCustomerView()
         {
             InitializeComponent();
@@ -59,6 +65,9 @@ namespace Raphael.Desktop.Views.Data
 
                         // What the page spent at Google itself. The server never sees these.
                         if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
+
+                        // Addresses and places, from the cache when we have them.
+                        if (MapWebViewHost.TryHandleLookup(json, MapWebView, _routingApiService)) return;
 
                         dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
                        

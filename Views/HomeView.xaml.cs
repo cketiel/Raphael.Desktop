@@ -169,6 +169,10 @@ namespace Raphael.Desktop.Views
                     // sees what the server cannot.
                     if (MapWebViewHost.TryForwardUsage(json, _mapsUsageApiService)) return;
 
+                    // A question only the API can answer: an address for a dragged pin, or a
+                    // place somebody chose. Served from our own database whenever we have it.
+                    if (MapWebViewHost.TryHandleLookup(json, MapaWebView, _routingApiService)) return;
+
                     // The map wants the road between its two pins drawn. It used to compute that
                     // itself with DirectionsService — a class this Cloud project can no longer
                     // load, and a billed request no cache ever saw. Now it asks, we buy once (or

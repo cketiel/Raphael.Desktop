@@ -65,5 +65,23 @@ namespace Raphael.Desktop.Services
         Task<List<GeocodeResultDto>> GeocodeBatchAsync(List<string> addresses);
 
         Task<string> GetCityFromCoordinatesAsync(double latitude, double longitude);
+
+        /// <summary>
+        /// The address at a point, from the cache when anyone has asked about that spot before.
+        /// </summary>
+        /// <remarks>
+        /// What the map calls when a dispatcher drags a pin. It used to call Google itself, on
+        /// every drag, with nothing remembering the answer.
+        /// </remarks>
+        Task<ReverseGeocodeResultDto> ReverseGeocodeAsync(double latitude, double longitude);
+
+        /// <summary>
+        /// What we already know about a Google place. Status <c>NotFound</c> means nobody has
+        /// bought it yet and the caller should fetch it and hand it back.
+        /// </summary>
+        Task<PlaceDetailsDto> GetPlaceAsync(string placeId);
+
+        /// <summary>Remembers a place the map had to buy, so nobody buys it twice.</summary>
+        Task StorePlaceAsync(PlaceDetailsDto place);
     }
 }

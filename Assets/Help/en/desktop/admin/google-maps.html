@@ -6,7 +6,7 @@
 <title>Google Maps — usage, cost and savings · Raphael Help</title>
 <meta name="description" content="The panel that shows what Google Maps is costing, what the cache is saving, and lets you change the two settings that move both figures.">
 <meta name="help-covers" content="Raphael.Desktop 1.4.0">
-<meta name="help-built" content="2026-08-29">
+<meta name="help-built" content="2026-08-30">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
 <body>
@@ -70,7 +70,8 @@
 <h2 id="detail">Detail<a class="help-anchor" href="#detail" aria-label="Enlace a esta sección">#</a></h2>
 <p><strong>Lifetime totals</strong> carry no date filter: every request since counting began.</p>
 <p>The per-product breakdown switches between table and chart with the toggle in the corner. Two columns are worth explaining:</p>
-<ul><li><strong>Free remaining</strong> is for the <strong>current calendar month</strong>, not the selected period. It is the figure you set Cloud Console quotas against.</li><li><strong>Reported</strong> marks the products counted by the application rather than measured by the server. The map, the address autocomplete and the pin-drag geocoder talk to Google straight from the screen, so the server never sees them: the application counts those, and they are approximate.</li></ul>
+<ul><li><strong>Free remaining</strong> is for the <strong>current calendar month</strong>, not the selected period. It is the figure you set Cloud Console quotas against.</li><li><strong>Reported</strong> marks the products counted by the application rather than the server: the <strong>map load</strong> and the <strong>autocomplete</strong>, which talk to Google straight from the screen.</li></ul>
+<blockquote><p><strong>What is served from cache and what is not.</strong> The pin-drag geocoding and the details of a chosen address are asked of the database first, and only bought from Google when nobody has asked before. <strong>The map load cannot be cached</strong>: it is not a piece of data but Google's library running and pulling images from their servers. Every opening of a screen with a map is a billed load, and the only thing that reduces it is not opening one needlessly. At normal volumes this stays inside the 10,000 free loads a month.</p></blockquote>
 <p><strong>Export CSV</strong> writes the whole period — products and days — to your Documents folder.</p>
 <h2 id="settings">Settings<a class="help-anchor" href="#settings" aria-label="Enlace a esta sección">#</a></h2>
 <h3 id="traffic-mode">Traffic mode<a class="help-anchor" href="#traffic-mode" aria-label="Enlace a esta sección">#</a></h3>
@@ -89,7 +90,7 @@
 
       <footer class="rf-foot">
         <span data-covers>Covers Raphael.Desktop 1.4.0</span>
-        <span>Updated 2026-08-29</span>
+        <span>Updated 2026-08-30</span>
         <button class="rf-btn" type="button" data-diagnostics>Copy report for support</button>
       </footer>
 
@@ -103,7 +104,7 @@
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/admin/google-maps","lang":"en","app":"Raphael.Desktop","appVersion":"1.4.0","built":"2026-08-29","sourceCommit":"b3f866d","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/admin/google-maps","lang":"en","app":"Raphael.Desktop","appVersion":"1.4.0","built":"2026-08-30","sourceCommit":"2258b67","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
 <script src="../../../assets/search-index.en.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

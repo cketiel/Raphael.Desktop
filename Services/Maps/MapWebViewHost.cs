@@ -4,6 +4,7 @@ using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Services;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -145,6 +146,135 @@ namespace Raphael.Desktop.Services.Maps
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Answers the questions a map page cannot answer itself, through Raphael.Api.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is the cache the map pages were missing. Reverse geocoding and place lookups
+        /// used to go straight from the browser to Google on every pin drag and every chosen
+        /// suggestion — billed each time, and invisible to the cache the rest of the system was
+        /// built around. They now come from our own database whenever anybody has asked before.
+        ///
+        /// <para>
+        /// The page cannot call the API itself: that would put a session token in a document that
+        /// also runs Google's script. So it asks, and the reply is delivered by calling
+        /// <c>raphaelResolve</c> with the request id it sent.
+        /// </para>
+        ///
+        /// <para>Returns true when the message was one of ours and has been dealt with.</para>
+        /// </remarks>
+        public static bool TryHandleLookup(
+            string json,
+            WebView2 webView,
+            IRoutingApiService routing)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+
+                if (!document.RootElement.TryGetProperty("type", out var typeElement)) return false;
+
+                var type = typeElement.GetString();
+
+                switch (type)
+                {
+                    case "reverseGeocode":
+                        _ = AnswerReverseGeocodeAsync(document.RootElement, webView, routing);
+                        return true;
+
+                    case "placeLookup":
+                        _ = AnswerPlaceLookupAsync(document.RootElement, webView, routing);
+                        return true;
+
+                    case "placeStore":
+                        _ = StorePlaceAsync(document.RootElement, routing);
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+        }
+
+        private static async Task AnswerReverseGeocodeAsync(
+            JsonElement message,
+            WebView2 webView,
+            IRoutingApiService routing)
+        {
+            var id = message.TryGetProperty("requestId", out var requestId) ? requestId.GetInt32() : 0;
+
+            try
+            {
+                var latitude = message.GetProperty("latitude").GetDouble();
+                var longitude = message.GetProperty("longitude").GetDouble();
+
+                var answer = await routing.ReverseGeocodeAsync(latitude, longitude);
+
+                await ReplyAsync(webView, id, answer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Reverse geocode failed: " + ex.Message);
+
+                // Always reply, even with nothing: a page left waiting would hold a dragged pin
+                // in limbo until its own timeout.
+                await ReplyAsync(webView, id, null);
+            }
+        }
+
+        private static async Task AnswerPlaceLookupAsync(
+            JsonElement message,
+            WebView2 webView,
+            IRoutingApiService routing)
+        {
+            var id = message.TryGetProperty("requestId", out var requestId) ? requestId.GetInt32() : 0;
+
+            try
+            {
+                var placeId = message.GetProperty("placeId").GetString();
+
+                var answer = await routing.GetPlaceAsync(placeId);
+
+                await ReplyAsync(webView, id, answer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Place lookup failed: " + ex.Message);
+
+                await ReplyAsync(webView, id, null);
+            }
+        }
+
+        private static async Task StorePlaceAsync(JsonElement message, IRoutingApiService routing)
+        {
+            try
+            {
+                var place = JsonSerializer.Deserialize<PlaceDetailsDto>(message.GetRawText(), Json);
+
+                if (place != null) await routing.StorePlaceAsync(place);
+            }
+            catch (Exception ex)
+            {
+                // Fire and forget. A place we failed to remember is bought again next time,
+                // which is the old behaviour and not worth interrupting anybody over.
+                Debug.WriteLine("Could not store a place: " + ex.Message);
+            }
+        }
+
+        private static async Task ReplyAsync(WebView2 webView, int requestId, object payload)
+        {
+            if (requestId == 0 || webView?.CoreWebView2 == null) return;
+
+            var body = payload == null ? "null" : JsonSerializer.Serialize(payload, Json);
+
+            await webView.Dispatcher.InvokeAsync(async () =>
+                await webView.ExecuteScriptAsync($"raphaelResolve({requestId}, {body})"));
         }
 
         /// <summary>What a page asks for when it needs the road between its two pins drawn.</summary>

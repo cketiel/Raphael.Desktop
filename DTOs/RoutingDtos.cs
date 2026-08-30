@@ -131,6 +131,7 @@ namespace Raphael.Desktop.DTOs
         public string FormattedAddress { get; set; }
 
         public string Status { get; set; } = RoutingContract.Statuses.Ok;
+
         public string Source { get; set; } = RoutingContract.Sources.Cache;
 
         public bool IsUsable =>
@@ -151,7 +152,52 @@ namespace Raphael.Desktop.DTOs
     public class ReverseGeocodeResultDto
     {
         public string City { get; set; }
+
+        /// <summary>The whole line as Google prints it, for the address box on the map.</summary>
+        public string FormattedAddress { get; set; }
+
+        public string Street { get; set; }
+
+        public string State { get; set; }
+
+        public string Zip { get; set; }
+
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
+
         public string Status { get; set; } = RoutingContract.Statuses.Ok;
+
+        public string Source { get; set; } = RoutingContract.Sources.Cache;
+    }
+
+    /// <summary>
+    /// A Google place, cached by the server so it is bought once for everybody.
+    /// </summary>
+    /// <remarks>
+    /// The browser key is the only one with Places enabled, so the map stays the caller — but it
+    /// asks the server first, and hands back whatever it had to buy.
+    /// </remarks>
+    public class PlaceDetailsDto
+    {
+        public string PlaceId { get; set; } = string.Empty;
+
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
+
+        public string FormattedAddress { get; set; }
+
+        public string Street { get; set; }
+
+        public string City { get; set; }
+
+        public string State { get; set; }
+
+        public string Zip { get; set; }
+
+        public string Status { get; set; } = RoutingContract.Statuses.Ok;
+
         public string Source { get; set; } = RoutingContract.Sources.Cache;
     }
 

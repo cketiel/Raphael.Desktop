@@ -220,6 +220,65 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        public async Task<ReverseGeocodeResultDto> ReverseGeocodeAsync(double latitude, double longitude)
+        {
+            if (latitude == 0 && longitude == 0) return null;
+
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(
+                    $"{EndPoint}/reverse-geocode",
+                    new ReverseGeocodeRequestDto { Latitude = latitude, Longitude = longitude });
+
+                if (!response.IsSuccessStatusCode) return null;
+
+                return await response.Content.ReadFromJsonAsync<ReverseGeocodeResultDto>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Reverse geocode request failed: {ex.Message}");
+
+                return null;
+            }
+        }
+
+        public async Task<PlaceDetailsDto> GetPlaceAsync(string placeId)
+        {
+            if (string.IsNullOrWhiteSpace(placeId)) return null;
+
+            try
+            {
+                var response = await _httpClient.GetAsync(
+                    $"{EndPoint}/place/{Uri.EscapeDataString(placeId)}");
+
+                if (!response.IsSuccessStatusCode) return null;
+
+                return await response.Content.ReadFromJsonAsync<PlaceDetailsDto>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Place lookup failed: {ex.Message}");
+
+                return null;
+            }
+        }
+
+        public async Task StorePlaceAsync(PlaceDetailsDto place)
+        {
+            if (place == null || string.IsNullOrWhiteSpace(place.PlaceId)) return;
+
+            try
+            {
+                await _httpClient.PostAsJsonAsync($"{EndPoint}/place", place);
+            }
+            catch (Exception ex)
+            {
+                // A place we failed to remember gets bought again next time. That is the old
+                // behaviour, and not worth interrupting a dispatcher over.
+                System.Diagnostics.Debug.WriteLine($"Could not store a place: {ex.Message}");
+            }
+        }
+
         public async Task<string> GetCityFromCoordinatesAsync(double latitude, double longitude)
         {
             if (latitude == 0 && longitude == 0) return null;

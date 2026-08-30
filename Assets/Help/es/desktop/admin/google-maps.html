@@ -6,7 +6,7 @@
 <title>Google Maps — consumo, coste y ahorro · Ayuda de Raphael</title>
 <meta name="description" content="El panel donde se ve lo que Google Maps está costando, lo que el caché está ahorrando, y se cambian los dos ajustes que mueven ambas cifras.">
 <meta name="help-covers" content="Raphael.Desktop 1.4.0">
-<meta name="help-built" content="2026-08-29">
+<meta name="help-built" content="2026-08-30">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
 <body>
@@ -70,7 +70,8 @@
 <h2 id="detalle">Detalle<a class="help-anchor" href="#detalle" aria-label="Enlace a esta sección">#</a></h2>
 <p>Los <strong>totales históricos</strong> no llevan filtro de fecha: son todas las peticiones desde que se empezó a contar.</p>
 <p>El desglose por producto se puede ver como tabla o como gráfico, con el conmutador de la esquina. Dos columnas merecen explicación:</p>
-<ul><li><strong>Gratis restante</strong> es del <strong>mes natural en curso</strong>, no del periodo elegido. Es la cifra contra la que se ajustan las cuotas en la consola de Google.</li><li><strong>Reportado</strong> marca los productos que cuenta la aplicación en vez del servidor. El mapa, el autocompletado de direcciones y el geocoder de arrastrar un pin hablan con Google directamente desde la pantalla, así que el servidor no los ve: los cuenta la propia aplicación y son aproximados.</li></ul>
+<ul><li><strong>Gratis restante</strong> es del <strong>mes natural en curso</strong>, no del periodo elegido. Es la cifra contra la que se ajustan las cuotas en la consola de Google.</li><li><strong>Reportado</strong> marca los productos que cuenta la aplicación en vez del servidor: la <strong>carga del mapa</strong> y el <strong>autocompletado</strong>, que hablan con Google directamente desde la pantalla.</li></ul>
+<blockquote><p><strong>Qué se sirve desde caché y qué no.</strong> El geocoding al arrastrar un pin y los datos de una dirección elegida se piden primero a la base de datos, y solo se compran a Google si nadie los ha pedido antes. <strong>La carga del mapa no se puede cachear</strong>: no es un dato, es la librería de Google ejecutándose y pidiendo imágenes a sus servidores. Cada apertura de una pantalla con mapa es una carga facturada, y lo único que la reduce es no abrirla en balde. Con el volumen habitual queda dentro de las 10.000 cargas gratis al mes.</p></blockquote>
 <p>El botón <strong>Exportar CSV</strong> escribe el periodo completo —productos y días— en Documentos.</p>
 <h2 id="configuracion">Configuración<a class="help-anchor" href="#configuracion" aria-label="Enlace a esta sección">#</a></h2>
 <h3 id="modo-de-trafico">Modo de tráfico<a class="help-anchor" href="#modo-de-trafico" aria-label="Enlace a esta sección">#</a></h3>
@@ -89,7 +90,7 @@
 
       <footer class="rf-foot">
         <span data-covers>Cubre Raphael.Desktop 1.4.0</span>
-        <span>Actualizado el 29/08/2026</span>
+        <span>Actualizado el 30/08/2026</span>
         <button class="rf-btn" type="button" data-diagnostics>Copiar informe para soporte</button>
       </footer>
 
@@ -103,7 +104,7 @@
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/admin/google-maps","lang":"es","app":"Raphael.Desktop","appVersion":"1.4.0","built":"2026-08-29","sourceCommit":"b3f866d","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/admin/google-maps","lang":"es","app":"Raphael.Desktop","appVersion":"1.4.0","built":"2026-08-30","sourceCommit":"2258b67","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
 <script src="../../../assets/search-index.es.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

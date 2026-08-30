@@ -6,6 +6,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:local="clr-namespace:Raphael.Desktop.Views"
              xmlns:views="clr-namespace:Raphael.Desktop.Views.Admin"
+             xmlns:services="clr-namespace:Raphael.Desktop.Services"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              helpers:HelpAssist.TopicId="desktop/admin/overview"
              mc:Ignorable="d" 
@@ -80,7 +81,8 @@
 
                 <!-- What Google Maps costs, what the cache saves, and the two settings that
                      move both. See help topic admin/google-maps-panel. -->
-                <TabItem Header="Google Maps">
+                <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+                                          Path=[gmaps.Tab]}">
                     <views:GoogleMapsAdminView />
                 </TabItem>
 

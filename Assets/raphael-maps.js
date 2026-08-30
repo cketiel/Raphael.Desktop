@@ -158,29 +158,73 @@
         };
     }
 
-    var geocoder = null;
+    var pending = {};
+    var nextRequestId = 1;
 
     /**
-     * Turns a point back into an address for the marker-drag path.
-     * </p>
-     * Still Google's own Geocoder, unlike the routing above: geocoding is not a legacy service,
-     * this runs only when a dispatcher drags a pin, and going through the host would mean posting
-     * a patient's coordinates through one more hop for no saving worth the change.
+     * Asks the host something and waits for its answer.
+     *
+     * The host replies by calling `RaphaelMaps.resolve(id, payload)`, which is how anything that
+     * has to go through Raphael.Api gets back here. The page cannot call the API itself: that
+     * would mean a session token living in a document that also runs Google's script.
+     */
+    function ask(message) {
+        return new Promise(function (resolve) {
+            var id = nextRequestId++;
+
+            pending[id] = resolve;
+
+            message.requestId = id;
+
+            post(message);
+
+            // A host that never answers must not leave a dragged pin waiting forever.
+            setTimeout(function () {
+                if (pending[id]) { delete pending[id]; resolve(null); }
+            }, 8000);
+        });
+    }
+
+    /** Called from C# with the answer to an `ask`. */
+    function resolve(id, payload) {
+        var waiting = pending[id];
+
+        if (!waiting) return;
+
+        delete pending[id];
+
+        waiting(payload);
+    }
+
+    /**
+     * Turns a point back into an address when a dispatcher drags a pin.
+     *
+     * ⚠️ This goes through the host, not through google.maps.Geocoder. It used to call Google
+     * straight from here — a billed request on every drag that the cache never saw, while the
+     * server had both the Geocoding key and the table to remember it in. The answer now comes
+     * from our own database whenever anyone has dropped a pin within about eleven metres before.
      */
     function reverseGeocode(position) {
-        return new Promise(function (resolve) {
-            if (!geocoder) geocoder = new google.maps.Geocoder();
+        var lat = typeof position.lat === 'function' ? position.lat() : position.lat;
+        var lng = typeof position.lng === 'function' ? position.lng() : position.lng;
 
-            meter('Geocoding');
+        return ask({ type: 'reverseGeocode', latitude: lat, longitude: lng })
+            .then(function (answer) {
+                if (!answer || answer.status !== 'Ok') return null;
 
-            geocoder.geocode({ location: position }, function (results, status) {
-                if (status === 'OK' && results && results.length) {
-                    resolve(results[0]);
-                } else {
-                    resolve(null);
-                }
+                // Shaped like a google.maps.GeocoderResult so the callers did not have to change.
+                return {
+                    formatted_address: answer.formattedAddress || '',
+                    parts: {
+                        address: answer.street || '',
+                        city: answer.city || '',
+                        state: answer.state || '',
+                        zip: answer.zip || '',
+                        lat: answer.latitude,
+                        lng: answer.longitude
+                    }
+                };
             });
-        });
     }
 
     // ------------------------------------------------------------------ autocomplete
@@ -334,7 +378,39 @@
             close();
 
             try {
-                var chosen = suggestion.placePrediction.toPlace();
+                var prediction = suggestion.placePrediction;
+                var placeId = prediction.placeId;
+
+                // The token dies with the selection; the next word typed starts a new session.
+                sessionToken = null;
+
+                // Ask our own database first. A place chosen once has been chosen for everyone:
+                // in this business the same dialysis clinic is picked hundreds of times a month,
+                // and it should be bought exactly once.
+                var known = placeId
+                    ? await ask({ type: 'placeLookup', placeId: placeId })
+                    : null;
+
+                if (known && known.status === 'Ok') {
+                    var cached = {
+                        address: known.street || '',
+                        city: known.city || '',
+                        state: known.state || '',
+                        zip: known.zip || '',
+                        lat: known.latitude,
+                        lng: known.longitude
+                    };
+
+                    input.value = known.formattedAddress || cached.address;
+
+                    if (onSelect) onSelect(cached, null);
+
+                    return;
+                }
+
+                // Nobody has bought this one yet. Only this key has Places enabled, so we fetch
+                // it — and then hand it to the host so the next dispatcher gets it free.
+                var chosen = prediction.toPlace();
 
                 meter('PlaceDetails');
 
@@ -342,12 +418,23 @@
                     fields: ['location', 'addressComponents', 'formattedAddress']
                 });
 
-                // The token dies with the selection; the next word typed starts a new session.
-                sessionToken = null;
-
                 var parsed = parseComponents(chosen.addressComponents, chosen.location);
 
                 input.value = chosen.formattedAddress || parsed.address;
+
+                if (placeId) {
+                    post({
+                        type: 'placeStore',
+                        placeId: placeId,
+                        latitude: parsed.lat,
+                        longitude: parsed.lng,
+                        formattedAddress: chosen.formattedAddress || '',
+                        street: parsed.address,
+                        city: parsed.city,
+                        state: parsed.state,
+                        zip: parsed.zip
+                    });
+                }
 
                 if (onSelect) onSelect(parsed, chosen);
             } catch (error) {
@@ -474,6 +561,8 @@
         num: num,
         flag: flag,
         post: post,
+        ask: ask,
+        resolve: resolve,
         meter: meter,
         parseComponents: parseComponents,
         splitFormatted: splitFormatted,
@@ -484,6 +573,8 @@
         showRoute: showRoute
     };
 
-    // The host calls this one by name through ExecuteScriptAsync.
+    // The host calls these by name through ExecuteScriptAsync. Renaming one breaks the map
+    // silently, which is why they are pinned to window rather than left on the namespace.
     window.showRoute = showRoute;
+    window.raphaelResolve = resolve;
 })();
