@@ -132,6 +132,18 @@
             </Setter>
         </Style>
 
+        <!-- Headers centred, and only on this tab's grids. The shared style aligns them left,
+             which is right for the name columns everywhere else in the application; here every
+             column but the first holds a figure, and a centred heading sits over its numbers
+             instead of drifting away from them.
+
+             Assigned directly on each DataGrid rather than through a Setter — see the note
+             below for why a Setter would be ignored. -->
+        <Style x:Key="CentredColumnHeader" TargetType="{x:Type DataGridColumnHeader}"
+               BasedOn="{StaticResource CustomColumnHeaderStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
         <!-- ⚠️ There is deliberately no derived DataGrid style here any more.
              The first version wrapped the four shared styles in one Style with
              BasedOn="CustomDataGridStyle" and Setters for ColumnHeaderStyle, RowStyle and
@@ -322,7 +334,7 @@
                                           HorizontalScrollBarVisibility="Disabled"
                                           MaxHeight="320"
                                           Style="{StaticResource CustomDataGridStyle}"
-                                          ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
+                                          ColumnHeaderStyle="{StaticResource CentredColumnHeader}"
                                           RowStyle="{StaticResource CustomRowStyle}"
                                           CellStyle="{StaticResource CustomCellStyle}"
                                           SelectionUnit="FullRow"
@@ -410,7 +422,7 @@
                                           AlternatingRowBackground="White"
                                           HorizontalScrollBarVisibility="Disabled"
                                           Style="{StaticResource CustomDataGridStyle}"
-                                          ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
+                                          ColumnHeaderStyle="{StaticResource CentredColumnHeader}"
                                           RowStyle="{StaticResource CustomRowStyle}"
                                           CellStyle="{StaticResource CustomCellStyle}"
                                           SelectionUnit="FullRow"
@@ -529,7 +541,7 @@
                                           AlternatingRowBackground="White"
                                           HorizontalScrollBarVisibility="Disabled"
                                           Style="{StaticResource CustomDataGridStyle}"
-                                          ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
+                                          ColumnHeaderStyle="{StaticResource CentredColumnHeader}"
                                           CellStyle="{StaticResource CustomCellStyle}"
                                           SelectionUnit="FullRow">
                                     <DataGrid.RowStyle>
