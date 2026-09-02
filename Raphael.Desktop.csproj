@@ -11,10 +11,10 @@
 	<!-- The four move together. AssemblyVersion is the one that reaches the screen:
 	     VersionHelper reads Assembly.GetName().Version and the login and every window
 	     title show it. If it does not match the tag, the tag lies. -->
-	<Version>1.5.0</Version>
-	<AssemblyVersion>1.5.0.0</AssemblyVersion>
-	<FileVersion>1.5.0.0</FileVersion>
-	<InformationalVersion>1.5.0-release.1</InformationalVersion>
+	<Version>1.5.1</Version>
+	<AssemblyVersion>1.5.1.0</AssemblyVersion>
+	<FileVersion>1.5.1.0</FileVersion>
+	<InformationalVersion>1.5.1-release.1</InformationalVersion>
 
 	<!-- Stamped into the assembly at compile time and read back by VersionHelper.Build.
 	     It used to be the file's last-write timestamp, which copying the folder rewrites:

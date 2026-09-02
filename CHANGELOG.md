@@ -3,6 +3,14 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.5.1] - 2026-09-02
+
+### Changed
+- The scheduled-ride SMS now asks the patient to reply **CONFIRM or DECLINE** instead of
+  **CONFIRM or CANCEL**. The carrier's content filter blocks messages that contain the word
+  CANCEL, so the confirmation request was never reaching the patient. Whoever reads the replies
+  — the telephony provider and the customer service bot — has to accept the new keyword.
+
 ## [1.5.0] - 2026-08-29
 
 ### Added
