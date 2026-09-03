@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" data-help-id="desktop/schedules/stop-order">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change the order of the stops · Raphael Help</title>
+<meta name="description" content="Dragging a stop within a route, what gets recalculated, and what the system will not let you do.">
+<meta name="help-covers" content="Raphael.Desktop 1.6.0">
+<meta name="help-built" content="2026-09-03">
+<link rel="stylesheet" href="../../../assets/help.css">
+</head>
+<body>
+<a class="rf-skip" href="#rf-content">Skip to content</a>
+
+<div class="rf-shell">
+
+  <header class="rf-head">
+    <button class="rf-btn rf-nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="rf-nav" title="Show or hide the contents">☰</button>
+
+    <a class="rf-brand" href="../../../en/desktop/getting-started/overview.html">
+      <span class="rf-brand-mark" aria-hidden="true">R</span>
+      <span>Raphael Help</span>
+      <span class="rf-brand-sub">1.6.0</span>
+    </a>
+
+    <div class="rf-search">
+      <span class="rf-search-icon" aria-hidden="true">⌕</span>
+      <input type="search" id="rf-search-input" autocomplete="off" spellcheck="false"
+             placeholder="Search… (trip, Will Call, bell)" aria-label="Search the help"
+             aria-expanded="false" aria-controls="rf-results" role="combobox">
+      <kbd>/</kbd>
+      <div class="rf-results" id="rf-results" role="listbox" hidden></div>
+    </div>
+
+    <div class="rf-head-actions">
+      <a class="rf-btn rf-btn-lang" href="../../../es/desktop/schedules/stop-order.html" title="View in Spanish" data-lang-switch>ES</a>
+      <button class="rf-btn" type="button" data-theme-toggle title="Switch between light and dark" aria-label="Switch between light and dark">◐</button>
+      <button class="rf-btn" type="button" data-print title="Print this topic">Print</button>
+    </div>
+  </header>
+
+  <nav class="rf-nav" id="rf-nav" aria-label="Contents">
+    <div class="rf-nav-section"><p class="rf-nav-title">Getting started</p><ul><li><a href="../../../en/desktop/getting-started/overview.html" data-roles="admin dispatcher driver">Raphael Desktop in five minutes</a></li><li><a href="../../../en/desktop/getting-started/help-itself.html" data-roles="admin dispatcher driver">How to use this help</a></li><li><a href="../../../en/desktop/whats-new/overview.html" data-roles="admin dispatcher driver">What's new</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Notifications</p><ul><li><a href="../../../en/desktop/notifications/overview.html" data-roles="admin dispatcher">What the system tells you, and why</a></li><li><a href="../../../en/desktop/notifications/bell.html" data-roles="admin dispatcher">The bell and its two marks</a></li><li><a href="../../../en/desktop/notifications/live-alerts.html" data-roles="admin dispatcher">Live alerts</a></li><li><a href="../../../en/desktop/notifications/alert-preferences.html" data-roles="admin dispatcher">Sound and silence</a></li><li><a href="../../../en/desktop/notifications/center.html" data-roles="admin dispatcher">The Notification Centre</a></li><li><a href="../../../en/desktop/notifications/detail-panel.html" data-roles="admin dispatcher">The notice details</a></li><li><a href="../../../en/desktop/notifications/will-call.html" data-roles="admin dispatcher">Attending a Will Call</a></li><li><a href="../../../en/desktop/notifications/catalog.html" data-roles="admin dispatcher">The notices, one by one</a></li><li><a href="../../../en/desktop/notifications/read-state.html" data-roles="admin dispatcher">Read and unread</a></li><li><a href="../../../en/desktop/notifications/keep-cleanup.html" data-roles="admin dispatcher">Keeping a notice, and the automatic cleanup</a></li><li><a href="../../../en/desktop/notifications/admin.html" data-roles="admin">Notification administration</a></li><li><a href="../../../en/desktop/notifications/export.html" data-roles="admin dispatcher">Exporting notices to Excel</a></li><li><a href="../../../en/desktop/notifications/troubleshooting.html" data-roles="admin dispatcher">When nothing arrives</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">The tabs</p><ul><li><a href="../../../en/desktop/home/overview.html" data-roles="admin dispatcher">Home — booking a trip</a></li><li><a href="../../../en/desktop/data/overview.html" data-roles="admin dispatcher">Data — the master data</a></li><li><a href="../../../en/desktop/schedules/overview.html" data-roles="admin dispatcher">Schedules — planning the day</a></li><li><a href="../../../en/desktop/schedules/routing.html" data-roles="admin dispatcher">Route a trip</a></li><li><a href="../../../en/desktop/schedules/stop-order.html" aria-current="page" data-roles="admin dispatcher">Change the order of the stops</a></li><li><a href="../../../en/desktop/schedules/unrouting.html" data-roles="admin dispatcher">Take a trip off a route</a></li><li><a href="../../../en/desktop/schedules/live-board.html" data-roles="admin dispatcher">Why the screen changes on its own</a></li><li><a href="../../../en/desktop/dispatch/overview.html" data-roles="admin dispatcher">Dispatch — watching the routes that are running</a></li><li><a href="../../../en/desktop/reports/overview.html" data-roles="admin dispatcher driver">Reports — the reports</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Admin</p><ul><li><a href="../../../en/desktop/admin/overview.html" data-roles="admin">Admin — employees, billing and integrators</a></li><li><a href="../../../en/desktop/admin/employees.html" data-roles="admin">Admin — Employees</a></li><li><a href="../../../en/desktop/admin/billing.html" data-roles="admin">Admin — Billing</a></li><li><a href="../../../en/desktop/admin/profile.html" data-roles="admin">Admin — Profile</a></li><li><a href="../../../en/desktop/admin/integrators.html" data-roles="admin">Admin — Integrators</a></li><li><a href="../../../en/desktop/admin/providers.html" data-roles="admin">Admin — Providers</a></li><li><a href="../../../en/desktop/admin/google-maps.html" data-roles="admin">Google Maps — usage, cost and savings</a></li><li><a href="../../../en/desktop/admin/google-maps/summary.html" data-roles="admin">Google Maps — Summary</a></li><li><a href="../../../en/desktop/admin/google-maps/detail.html" data-roles="admin">Google Maps — Detail</a></li><li><a href="../../../en/desktop/admin/google-maps/settings.html" data-roles="admin">Google Maps — Settings</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Glossary</p><ul><li><a href="../../../en/_shared/glossary/will-call.html">Will Call</a></li><li><a href="../../../en/_shared/glossary/no-show.html">No-show</a></li><li><a href="../../../en/_shared/glossary/run.html">Route</a></li><li><a href="../../../en/_shared/glossary/leg.html">Leg — outbound and return</a></li><li><a href="../../../en/_shared/glossary/space-type.html">Space type</a></li><li><a href="../../../en/_shared/glossary/funding-source.html">Funding source</a></li></ul></div>
+  </nav>
+
+  <main class="rf-main" id="rf-content">
+    <article class="rf-article">
+
+      <div data-stale-slot></div>
+
+      <div class="rf-crumbs"><span><a href="../../../en/desktop/getting-started/overview.html">Home</a></span><span>The tabs</span><span>Change the order of the stops</span></div>
+      <h1 class="rf-title">Change the order of the stops</h1>
+      <p class="rf-summary">Dragging a stop within a route, what gets recalculated, and what the system will not let you do.</p>
+      <div class="rf-meta"><span class="rf-chip rf-chip-mode">how-to</span><span class="rf-chip rf-chip-new">New in 1.6.0</span></div>
+
+      <p>Changing the order of the stops changes the driver's actual round: the order in this grid is the order they will drive.</p>
+<h2 id="when-you-need-it">When you need it<a class="help-anchor" href="#when-you-need-it" aria-label="Enlace a esta sección">#</a></h2>
+<p>The system places each stop by its hour, and sometimes that is not the best round. Two pickups on the same street twenty minutes apart, a dialysis centre worth reaching before it fills up, a patient to drop off on the way instead of doubling back.</p>
+<h2 id="the-steps">The steps<a class="help-anchor" href="#the-steps" aria-label="Enlace a esta sección">#</a></h2>
+<ol><li>Pick the <strong><a class="help-term" href="../../../en/_shared/glossary/run.html" data-term-title="Route" data-term-summary="A vehicle, a driver and a span of dates and hours. It is the unit trips are assigned to.">route</a></strong>, and check you are on the right <strong>date</strong>.</li><li>In the top grid, <strong>drag the row</strong> to where you want it and drop it.</li></ol>
+<p>On drop, the system saves the new order and recalculates the ETAs of every stop from there down, including the hour the vehicle leaves the garage.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">Moving one stop moves every stop behind it</p><p>ETAs are a chain: each stop inherits the previous one's hour, plus the time the vehicle spends there, plus the drive. Pulling a stop forward <strong>delays everything behind it</strong>, and every one of those hours is a patient waiting at a door.</p>
+<p>After reordering, look for rows that have turned <strong>red</strong>: that is the screen telling you the new order breaks a promise that has already been made.</p></aside>
+<h2 id="what-the-system-will-not-let-you-do">What the system will not let you do<a class="help-anchor" href="#what-the-system-will-not-let-you-do" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>Cross the two stops of one trip.</strong> You cannot leave the dropoff before its pickup, or the pickup after its dropoff. While you drag, an invalid position shows in the cursor and dropping there does nothing.</p>
+<p><strong>Move Pull-out or Pull-in.</strong> They are the garage departure and <a class="help-term" href="../../../en/_shared/glossary/leg.html" data-term-title="Leg — outbound and return" data-term-summary="A round journey is not one trip, it is two: Appointment and Return, each with its own number and status.">return</a>. They are always the first and last stop, and they do not drag.</p>
+<h2 id="what-can-go-wrong">What can go wrong<a class="help-anchor" href="#what-can-go-wrong" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>&quot;Error saving order&quot;.</strong> Nothing was saved: the order you see reverts to what it was as soon as the grid refreshes. Try again; if it keeps failing, there is no connection to the server.</p>
+<p><strong>It reorders itself while you watch.</strong> Another dispatcher did it, on the same route. See <a href="../../../en/desktop/schedules/live-board.html">Why the screen changes on its own</a>.</p>
+<h2 id="see-also">See also<a class="help-anchor" href="#see-also" aria-label="Enlace a esta sección">#</a></h2>
+<ul><li><a href="../../../en/desktop/schedules/routing.html">Route a trip</a></li><li><a href="../../../en/desktop/schedules/overview.html">Schedules — planning the day</a></li></ul>
+
+      <section class="rf-related"><h2>See also</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../en/desktop/schedules/overview.html"><strong>Schedules — planning the day</strong><span>The three areas of the screen, what is in each grid, and what its colours mean.</span></a><a class="rf-related-card" href="../../../en/desktop/schedules/routing.html"><strong>Route a trip</strong><span>Putting a trip on a route, where the system places it, and what the patient is told.</span></a><a class="rf-related-card" href="../../../en/desktop/schedules/live-board.html"><strong>Why the screen changes on its own</strong><span>Several dispatchers work the same day; what updates live, what does not, and why not everything announces itself.</span></a></div></section>
+
+      <footer class="rf-foot">
+        <span data-covers>Covers Raphael.Desktop 1.6.0</span>
+        <span>Updated 2026-09-03</span>
+        <button class="rf-btn" type="button" data-diagnostics>Copy report for support</button>
+      </footer>
+
+    </article>
+  </main>
+
+  <aside class="rf-aside" aria-label="On this page">
+    <p class="rf-aside-title">On this page</p>
+    <ul><li class="rf-lvl-2"><a href="#when-you-need-it">When you need it</a></li><li class="rf-lvl-2"><a href="#the-steps">The steps</a></li><li class="rf-lvl-2"><a href="#what-the-system-will-not-let-you-do">What the system will not let you do</a></li><li class="rf-lvl-2"><a href="#what-can-go-wrong">What can go wrong</a></li><li class="rf-lvl-2"><a href="#see-also">See also</a></li></ul>
+  </aside>
+
+</div>
+
+<script>window.__HELP_PAGE__ = {"id":"desktop/schedules/stop-order","lang":"en","app":"Raphael.Desktop","appVersion":"1.6.0","built":"2026-09-03","sourceCommit":"c5118ec","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script src="../../../assets/search-index.en.js"></script>
+<script src="../../../assets/help.js"></script>
+</body>
+</html>

@@ -3,6 +3,52 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.6.0] - 2026-09-03
+
+### Added
+- The Schedule tab is live. What one dispatcher does appears on the others' screens without a
+  reload: a trip routed leaves the backlog, a trip taken off a route returns to it, and a route
+  that is reordered reloads with its new ETAs. It never reloads while a dispatcher is mid-drag or
+  mid-save. New `/hubs/dispatch` channel, which stores nothing and reaches no inbox — see
+  `_meta/REALTIME_POLICY.md`.
+- The driver's Arrive and Perform flags appear as they happen, from business events that were
+  already being published and simply were not being listened to on this screen.
+- The vehicle's position is pushed from the driver's own report instead of polled every five
+  seconds, and is interpolated over the real gap between two reports. The marker is a heading
+  arrow that turns by the shorter way round and holds its heading when the vehicle stops.
+- The header of the trips grid's first column counts what is left: unrouted trips, and how many of
+  them are Will Calls.
+- `PUT /api/schedules/resequence` writes a whole route's order in one request.
+
+### Changed
+- The unrouted trips grid virtualises again, on all three axes. It had been switched off, so three
+  to four hundred rows of twenty-four columns were built before anything appeared.
+- The action buttons in each row work on the first click, and the selected row is marked with an
+  accent bar down its left edge.
+- Collections are refilled in one notification instead of one per row; map markers are placed in
+  one pass instead of fourteen coordinate conversions per marker per gesture; and reordering a
+  route no longer reloads the day's trips.
+- One shared connection pool for the whole application instead of one HttpClient per service.
+- The scheduled-ride SMS asks the patient to press 1 to confirm or 9 to decline, instead of
+  replying with a word.
+
+### Fixed
+- Routing the first trip of a day renumbered the garage stops of every other day on that route —
+  in practice, reordering the route of a driver who might be on the road.
+- One row in every two never showed the late-ETA warning, the selection, or any state colour.
+  `AlternatingRowBackground` is applied by coercion, which outranks both setters and triggers.
+- The late-ETA warning was also hidden on any row that was selected or under the pointer, because
+  the selected cells paint over the row.
+- The vehicle marker pointed the wrong way: a car drawn in profile cannot be rotated by a compass
+  heading. A stopped vehicle no longer swings its heading to north.
+- `GET /api/schedules/unscheduled` no longer returns cancelled trips for the client to discard.
+
+### Security
+- The driver's password hash and push token were being serialised inside `GET /api/Runs`, which
+  returns route entities whole. Both are cut from serialisation on the entity.
+- `EnableSensitiveDataLogging` was on in production, writing patient names, addresses and phone
+  numbers into the logs. Development only now.
+
 ## [1.5.1] - 2026-09-02
 
 ### Changed
