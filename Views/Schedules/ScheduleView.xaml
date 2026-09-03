@@ -110,9 +110,48 @@
             <GradientStop Color="#14673AB7" Offset="0.5"/>
         </LinearGradientBrush>
 
+        <!-- Same reason as UnscheduledTripCellStyle below: a selected cell that fills itself
+             hides the row underneath, and on this grid what it hides is the warning that the
+             driver will be late. -->
+        <Style x:Key="ScheduleEventCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource CustomCellStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ⚠️ Cells stop painting their own selection colour.
+             With SelectionUnit="FullRow" every cell of the row becomes selected and the default
+             cell style fills it, covering the row's background — so the accent bar and the wash
+             were only visible while the pointer was over the row, which is the one state cells
+             do not paint. Handing the selected cell a transparent background lets the row show
+             through. Foreground is left alone on purpose: the row sets it, and a cancelled trip
+             has to stay red even while it is the selected one. -->
+        <Style x:Key="UnscheduledTripCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource CustomCellStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="UnscheduledTripRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
             <Style.Triggers>
+                <!-- ⚠️ Row striping is done HERE and the grid's AlternatingRowBackground is left
+                     unset. That property is applied by coercion, which is the last step of the
+                     WPF value pipeline: it beats setters AND triggers, so every second row kept
+                     its white and never showed selection, hover, or any state colour at all.
+                     AlternationCount stays on the grid — it is what numbers the rows — but the
+                     colour comes from this trigger, which the ones below can override.
+                     This must stay first: everything after it is allowed to win. -->
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="White"/>
+                </Trigger>
+
                 <!-- ⚠️ Hover and selection have to be declared here. The Background setter above
                      is a style value, and the row template paints selection from a template
                      trigger, which loses to it — which is why the dispatcher could not tell
@@ -317,7 +356,7 @@
                                  infinite height to measure against, so every row is realised and
                                  virtualisation is silently off no matter what the grid declares.
                                  The DataGrid scrolls itself. -->
-                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DropHandler="{Binding}">
+                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" CellStyle="{StaticResource ScheduleEventCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DropHandler="{Binding}">
                                     <DataGrid.RowStyle>
                                         <!-- ⚠️ Trigger order in THIS list is what decides the row's
                                              background, and the late-ETA ones are last on purpose.
@@ -334,6 +373,15 @@
                                                 <SolidColorBrush x:Key="EtaViolationActiveBrush" Color="#FFF07070"/>
                                             </Style.Resources>
                                             <Style.Triggers>
+                                                <!-- ⚠️ Striping done here, not with the grid's
+                                                     AlternatingRowBackground: that one is applied by
+                                                     coercion, the last step of the value pipeline, so
+                                                     it beat every trigger below and every second row
+                                                     stayed white — including a row whose driver was
+                                                     going to arrive hours late. Must stay first. -->
+                                                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                                    <Setter Property="Background" Value="White"/>
+                                                </Trigger>
                                                 <Trigger Property="IsSelected" Value="True">
                                                     <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
                                                 </Trigger>
@@ -925,7 +973,7 @@
                          recycled container can carry a running animation to whatever row it is
                          next used for. Standard still only builds the rows on screen — which is
                          the whole win — and builds a fresh container for each. -->
-                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
+                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource UnscheduledTripCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="165">
                                 <!-- The backlog counter lives in the header of the action column:
