@@ -14,6 +14,7 @@ using Raphael.Desktop.Views.Dispatch;
 // Aliased, not imported: Raphael.Desktop.Helpers also declares a RelayCommand, and
 // importing the whole namespace makes every command in this file ambiguous.
 using NotificationKeys = Raphael.Desktop.Helpers.NotificationKeys;
+using PerfLog = Raphael.Desktop.Helpers.PerfLog;
 using Raphael.Desktop.Views.Schedules;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -832,6 +833,8 @@ namespace Raphael.Desktop.ViewModels
             _isDataLoading = true;
             IsLoading = true;
 
+            using var _total = PerfLog.Measure("Schedule.LoadSchedulesAndTrips.TOTAL");
+
             try
             {
                 // 1. Limpiar colecciones
@@ -841,8 +844,15 @@ namespace Raphael.Desktop.ViewModels
                 SelectedUnscheduledTrip = null;
 
                 // 2. Obtener datos del servidor
-                var schedulesTask = _scheduleService.GetSchedulesAsync(SelectedVehicleRoute.Id, SelectedDate);
-                var tripsTask = _scheduleService.GetUnscheduledTripsAsync(SelectedDate);
+                // Timed one by one and not with a scope around the WhenAll: they run in
+                // parallel, so a single scope would only report the slower of the two and
+                // hide which endpoint is the one to fix.
+                var schedulesTask = TimedAsync(
+                    "Schedule.Net.GetSchedules",
+                    () => _scheduleService.GetSchedulesAsync(SelectedVehicleRoute.Id, SelectedDate));
+                var tripsTask = TimedAsync(
+                    "Schedule.Net.GetUnscheduledTrips",
+                    () => _scheduleService.GetUnscheduledTripsAsync(SelectedDate));
 
                 // Ejecutamos ambas peticiones en paralelo para mayor velocidad
                 await Task.WhenAll(schedulesTask, tripsTask);
@@ -851,17 +861,29 @@ namespace Raphael.Desktop.ViewModels
                 var trips = await tripsTask;
 
                 // 3. Llenar Master y filtrar Schedules
-                _masterSchedules.AddRange(schedules);
-                FilterSchedules();
-
-                // 4. Llenar UnscheduledTrips
-                foreach (var source in trips)
+                using (PerfLog.Measure("Schedule.Bind.Schedules"))
                 {
-                    if(source.IsCanceled != true)
-                        UnscheduledTrips.Add(source);
+                    _masterSchedules.AddRange(schedules);
+                    FilterSchedules();
                 }
 
-                UpdateMapViewForAllPoints();
+                // 4. Llenar UnscheduledTrips
+                using (PerfLog.Measure("Schedule.Bind.UnscheduledTrips"))
+                {
+                    foreach (var source in trips)
+                    {
+                        if(source.IsCanceled != true)
+                            UnscheduledTrips.Add(source);
+                    }
+                }
+
+                PerfLog.Mark("Schedule.Rows.Schedules", 0, _masterSchedules.Count);
+                PerfLog.Mark("Schedule.Rows.UnscheduledTrips", 0, UnscheduledTrips.Count);
+
+                using (PerfLog.Measure("Schedule.Map.UpdateAllPoints"))
+                {
+                    UpdateMapViewForAllPoints();
+                }
                 UpdateRouteSummary();
             }
             catch (Exception ex)
@@ -872,6 +894,18 @@ namespace Raphael.Desktop.ViewModels
             {
                 IsLoading = false;
                 _isDataLoading = false; // Liberar el bloqueo
+            }
+        }
+
+        /// <summary>
+        /// Runs a call and reports how long it took, returning what it returned. Used for the
+        /// requests that are launched together: each one gets its own line in the trace.
+        /// </summary>
+        private static async Task<T> TimedAsync<T>(string label, Func<Task<T>> call)
+        {
+            using (PerfLog.Measure(label))
+            {
+                return await call();
             }
         }
 
