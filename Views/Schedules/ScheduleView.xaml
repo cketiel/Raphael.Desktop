@@ -873,12 +873,12 @@
                                         </MultiBinding>
                                     </Canvas.Top>
 
-                                    <!-- Rotation follows VehicleHeading, which the view model turns
-                                         through the shorter way round: a vehicle correcting ten
-                                         degrees must not spin three hundred and fifty. A stopped
-                                         vehicle is left pointing where it last drove rather than
-                                         snapped to north, because a van parked facing south is
-                                         still facing south. -->
+                                    <!-- Rotation follows VehicleHeading: 0° is north, and the icon
+                                         inside points north when unrotated, so the two agree with
+                                         no offset. The view model turns through the shorter way
+                                         round, so a vehicle correcting ten degrees does not spin
+                                         three hundred and fifty, and it holds the last known
+                                         heading when the driver's app reports none. -->
                                     <Grid RenderTransformOrigin="0.5, 0.5">
                                         <Grid.RenderTransform>
                                             <RotateTransform Angle="{Binding VehicleHeading}"/>
@@ -921,29 +921,26 @@
                      Stroke="White" 
                      StrokeThickness="2"/>
 
-                                            <!-- A vehicle seen from above, so the marker reads as the
-                                                 van it represents and its rotation means something.
-                                                 An arrow only says "that way"; a car says which way
-                                                 the van is facing, which is what a dispatcher is
-                                                 actually looking for. A stopped one shows the stop
-                                                 sign, as before. -->
-                                            <materialDesign:PackIcon Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White">
-                                                <materialDesign:PackIcon.Style>
-                                                    <Style TargetType="materialDesign:PackIcon">
-                                                        <Setter Property="Kind" Value="CarSide"/>
-                                                        <Style.Triggers>
-                                                            <!-- Si la dirección es N/A, mostrar Stop -->
-                                                            <DataTrigger Binding="{Binding DriverLastKnownLocation.Direction}" Value="N/A">
-                                                                <Setter Property="Kind" Value="Stop"/>
-                                                            </DataTrigger>
-                                                            <!-- Adicionalmente, si la velocidad es muy baja, mostrar Stop -->
-                                                            <DataTrigger Binding="{Binding DriverLastKnownLocation.Speed, Converter={StaticResource SmartSpeedToBrushConverter}}" Value="{StaticResource StoppedBlueBrush}">
-                                                                <Setter Property="Kind" Value="Stop"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </materialDesign:PackIcon.Style>
-                                            </materialDesign:PackIcon>
+                                            <!-- ⚠️ This icon must be one drawn as seen FROM ABOVE, with
+                                                 its point at the top. It is rotated by the compass
+                                                 heading, so anything drawn in profile ends up lying
+                                                 on its side: a car seen from the side and turned to
+                                                 head east shows its nose pointing down and its wheels
+                                                 to the left. There is no top-down vehicle in this
+                                                 icon set, so it is the navigation arrow — the same
+                                                 one every map application uses for exactly this.
+                                                 If you change it, change it for another top-down
+                                                 shape that points up.
+
+                                                 One icon in every state. A stopped vehicle keeps the
+                                                 heading it last drove — a van parked facing south is
+                                                 still facing south — and that it is stopped is said
+                                                 by the colour of the circle, which is its speed.
+                                                 Saying it twice, with a second icon, only invites
+                                                 the two to disagree. -->
+                                            <materialDesign:PackIcon Kind="Navigation" Width="20" Height="20"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                     Foreground="White"/>
                                         </Grid>
                                     </Grid>
                                 </Grid>

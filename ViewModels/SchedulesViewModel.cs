@@ -2754,7 +2754,15 @@ namespace Raphael.Desktop.ViewModels
 
         private void ApplyVehiclePosition(VehiclePositionMessage message)
         {
-            var heading = HeadingFromDirection(message.Direction);
+            // ⚠️ An unknown heading is not north.
+            //
+            // The driver's app sends "N/A" when the vehicle is not moving, and the compass
+            // converter answers 0 for anything it does not recognise — so a van standing at a
+            // patient's door would have swung its arrow to point north every thirty seconds.
+            // A vehicle that stops keeps the heading it last drove.
+            var heading = IsUnknownDirection(message.Direction)
+                ? VehicleHeading
+                : HeadingFromDirection(message.Direction);
 
             // The last thing actually reported, kept apart from the drawn position: the tooltip
             // and the speed colour must say what the driver sent, not where the animation has
@@ -2865,6 +2873,13 @@ namespace Raphael.Desktop.ViewModels
             var difference = ((target - current) % 360 + 540) % 360 - 180;
             return current + difference;
         }
+
+        /// <summary>
+        /// Whether the driver's app is saying "I do not know", rather than naming a direction.
+        /// </summary>
+        private static bool IsUnknownDirection(string direction) =>
+            string.IsNullOrWhiteSpace(direction) ||
+            string.Equals(direction.Trim(), "N/A", StringComparison.OrdinalIgnoreCase);
 
         private static double HeadingFromDirection(string direction) =>
             _directionConverter.Convert(direction, typeof(double), null, System.Globalization.CultureInfo.InvariantCulture)
