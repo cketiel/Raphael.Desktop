@@ -1782,13 +1782,17 @@ namespace Raphael.Desktop.ViewModels
             BusyMessage = "Saving route order...";
             try
             {
-                // Actualizamos las secuencias según el nuevo orden visual
+                // Actualizamos las secuencias según el nuevo orden visual, y las mandamos
+                // TODAS en una sola petición. Antes era un PUT por parada, esperado uno tras
+                // otro contra un servidor que está en internet: mover una parada en una ruta
+                // de veinte costaba veinte viajes de ida y vuelta, y si uno fallaba la ruta
+                // quedaba a medio renumerar.
                 for (int i = 0; i < Schedules.Count; i++)
                 {
                     Schedules[i].Sequence = i;
-                    // Enviamos la actualización de la secuencia a la DB inmediatamente
-                    await _scheduleService.UpdateAsync(Schedules[i].Id, Schedules[i]);
                 }
+
+                await PersistSequenceAsync(Schedules);
 
                 // Ahora ejecutamos el cálculo de ETAs basado en este nuevo orden
                 await RecalculateScheduleAsync(0);
@@ -1991,6 +1995,11 @@ namespace Raphael.Desktop.ViewModels
         {
             int from = Math.Max(1, startIndex);
 
+            // Collected as we walk and written once at the end. The walk used to await a PUT
+            // inside itself — twice per stop in the worst case — so a route of twenty stops
+            // held the interface for up to forty round trips, and this runs on a timer.
+            var moved = new List<ScheduleDto>();
+
             for (int i = from; i < Schedules.Count; i++)
             {
                 var current = Schedules[i];
@@ -2019,7 +2028,7 @@ namespace Raphael.Desktop.ViewModels
                         if (validPrevious.ETA != pullOutEta)
                         {
                             validPrevious.ETA = pullOutEta;
-                            await _scheduleService.UpdateAsync(validPrevious.Id, validPrevious);
+                            if (!moved.Contains(validPrevious)) moved.Add(validPrevious);
                         }
                     }
 
@@ -2044,9 +2053,43 @@ namespace Raphael.Desktop.ViewModels
                 // and it used to write every row of the route on every pass.
                 if (before != (current.Sequence, current.ETA, current.Travel, current.Distance))
                 {
-                    await _scheduleService.UpdateAsync(current.Id, current);
+                    if (!moved.Contains(current)) moved.Add(current);
                 }
             }
+
+            await PersistSequenceAsync(moved);
+        }
+
+        /// <summary>
+        /// Writes the order and the recalculated hours of the given stops in one request.
+        /// </summary>
+        /// <remarks>
+        /// Nothing happens when the list is empty, which is the common case on the refresh
+        /// timer: most passes find the route exactly as they left it.
+        /// </remarks>
+        private async Task PersistSequenceAsync(IEnumerable<ScheduleDto> stops)
+        {
+            if (SelectedVehicleRoute == null) return;
+
+            var payload = stops
+                .Select(s => new ScheduleStopSequenceDto
+                {
+                    Id = s.Id,
+                    Sequence = s.Sequence,
+                    ETA = s.ETA,
+                    Travel = s.Travel,
+                    Distance = s.Distance
+                })
+                .ToList();
+
+            if (payload.Count == 0) return;
+
+            await _scheduleService.ResequenceAsync(new ScheduleResequenceRequest
+            {
+                VehicleRouteId = SelectedVehicleRoute.Id,
+                Date = SelectedDate,
+                Stops = payload
+            });
         }
 
         /// <summary>
