@@ -1169,8 +1169,16 @@ namespace Raphael.Desktop.ViewModels
                 await RecalculateScheduleAsync(0); // Recalcular todo para ajustar Pull-out y demás.
                 FilterSchedules();
 
-                // eliminar localmente el viaje ruteado
-                var tripToRemove = UnscheduledTrips.FirstOrDefault(t => t.Id == SelectedUnscheduledTrip.Id);
+                // Eliminar localmente el viaje ruteado.
+                //
+                // ⚠️ Contra tripToSchedule, la referencia capturada al empezar, y NO contra
+                // SelectedUnscheduledTrip. Entre aquel momento y este hay varios await, y desde
+                // que existe el tablero la selección puede haber desaparecido sola: el servidor
+                // emite TripRouted a todo el grupo — incluido quien acaba de rutear — así que el
+                // manejador de esta misma pantalla ya quitó la fila y vació la selección. Leer
+                // SelectedUnscheduledTrip aquí lanzaba una referencia nula justo después de un
+                // ruteo que había salido bien.
+                var tripToRemove = UnscheduledTrips.FirstOrDefault(t => t.Id == tripToSchedule.Id);
                 if (tripToRemove != null)
                 {
                     UnscheduledTrips.Remove(tripToRemove);
