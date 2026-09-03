@@ -124,6 +124,40 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        /// <summary>
+        /// Sends a whole route's new order in one request. Returns how many stops the server moved.
+        /// </summary>
+        /// <remarks>
+        /// Replaces a loop of UpdateAsync, one call per stop. Besides the round trips, the
+        /// single-stop save carries arrival detection and the notifications that hang off it;
+        /// reordering a route has nothing to say about whether a driver arrived anywhere, and
+        /// this endpoint cannot say it.
+        /// </remarks>
+        public async Task<int> ResequenceAsync(ScheduleResequenceRequest request)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"{_endPoint}/resequence", request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw await CreateApiException(response, "Error saving the route order");
+                }
+
+                var result = await response.Content.ReadFromJsonAsync<ResequenceResult>();
+                return result?.Changed ?? 0;
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ApiException("Connection error with the server.", ex);
+            }
+        }
+
+        private sealed class ResequenceResult
+        {
+            public int Changed { get; set; }
+        }
+
         public async Task<List<ProductionReportRowDto>> GetTrip2ReportDataAsync(DateTime startDate, DateTime endDate, List<int> fundingSourceIds)
         {
             string start = startDate.ToString("yyyy-MM-dd");

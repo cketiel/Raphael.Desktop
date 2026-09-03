@@ -10,6 +10,14 @@ namespace Raphael.Desktop.Converters
 {
     public class ColumnVisibilityConverter : IValueConverter
     {
+        // The same collection instance is handed to this converter once per column — twenty
+        // times on the Schedule screen — and each call used to scan it from the start. The
+        // lookup is built once per collection instance and reused; a new instance (the view
+        // model assigns a new collection when the column settings are saved) rebuilds it.
+        private IEnumerable<ColumnConfig> _cachedFor;
+        private int _cachedCount = -1;
+        private Dictionary<string, bool> _visibilityByProperty;
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // The value 'value' is the entire collection of ColumnConfigurations
@@ -22,13 +30,24 @@ namespace Raphael.Desktop.Converters
                 return Visibility.Collapsed;
             }
 
-            var config = configs.FirstOrDefault(c => c.PropertyName == propertyName);
-            if (config == null)
+            // The count guards the case where the same instance is refilled rather than replaced.
+            var count = (configs as ICollection<ColumnConfig>)?.Count ?? configs.Count();
+
+            if (!ReferenceEquals(configs, _cachedFor) || count != _cachedCount)
             {
-                return Visibility.Collapsed;
+                _visibilityByProperty = new Dictionary<string, bool>();
+                foreach (var config in configs)
+                {
+                    if (config?.PropertyName == null) continue;
+                    _visibilityByProperty[config.PropertyName] = config.IsVisible;
+                }
+                _cachedFor = configs;
+                _cachedCount = count;
             }
 
-            return config.IsVisible ? Visibility.Visible : Visibility.Collapsed;
+            return _visibilityByProperty.TryGetValue(propertyName, out var isVisible) && isVisible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

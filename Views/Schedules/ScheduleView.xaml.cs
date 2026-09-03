@@ -110,17 +110,49 @@ namespace Raphael.Desktop.Views.Schedules
             UnscheduledTripsGrid?.ScrollIntoView(e.Trip);
         }
 
+        /// <summary>
+        /// Gives the row under the pointer the selection before the click is delivered to
+        /// whatever is inside it.
+        /// </summary>
+        /// <remarks>
+        /// The action buttons live in the row and act on the row they are in — they carry the
+        /// trip as their CommandParameter and never needed the selection. But the grid spends
+        /// the first click of an unselected row moving selection and focus to it, so the
+        /// dispatcher had to press twice: once to point at the trip, once to do the thing.
+        /// Selecting here, on the preview pass, means one press both points and acts.
+        ///
+        /// The event is deliberately not marked handled: the click carries on to the button.
+        /// </remarks>
+        private void UnscheduledTripsGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var element = e.OriginalSource as DependencyObject;
+
+            while (element != null && element is not DataGridRow)
+            {
+                element = element is Visual or System.Windows.Media.Media3D.Visual3D
+                    ? VisualTreeHelper.GetParent(element)
+                    : LogicalTreeHelper.GetParent(element);
+            }
+
+            if (element is DataGridRow row && !row.IsSelected)
+            {
+                row.IsSelected = true;
+            }
+        }
+
         // The event handler that calls the map method
         private void OnZoomAndCenterRequest(object sender, ZoomAndCenterEventArgs e)
         {
             if (e.BoundingBox != null && DataContext is SchedulesViewModel viewModel)
             {
                 MapView.SetZoomToFitRect(e.BoundingBox);
-                //MapView.InvalidateVisual();
+
+                // SetZoomToFitRect can settle the zoom and the centre without either raising a
+                // change the layer sees, so the markers are told explicitly. This used to rebuild
+                // the entire Schedules collection to achieve the same thing.
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    
-                    viewModel.ForceRefreshSchedules();
+                    viewModel.InvalidateMapMarkers();
 
                 }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }

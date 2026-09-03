@@ -14,6 +14,7 @@ using Raphael.Desktop.Views.Dispatch;
 // Aliased, not imported: Raphael.Desktop.Helpers also declares a RelayCommand, and
 // importing the whole namespace makes every command in this file ambiguous.
 using NotificationKeys = Raphael.Desktop.Helpers.NotificationKeys;
+using PerfLog = Raphael.Desktop.Helpers.PerfLog;
 using Raphael.Desktop.Views.Schedules;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -42,7 +43,24 @@ namespace Raphael.Desktop.ViewModels
         private int _lastRecalculatedSequence = -1;
 
 
-        private readonly GpsService _gpsService; 
+        private readonly GpsService _gpsService;
+        private readonly RunService _runService;
+        private readonly VehicleGroupService _vehicleGroupService;
+        private readonly UserConfigService _userConfigService;
+
+        /// <summary>
+        /// The SMS gateway, shared by every open Schedule tab. It talks to a third party and
+        /// not to our API, so it does not go through ApiClientFactory; built once all the same,
+        /// because it used to get a brand new HttpClient on every trip routed.
+        /// </summary>
+        /// <remarks>
+        /// Lazy on purpose: a static initialiser that threw — because the configuration was not
+        /// there yet — would take the whole screen down with it, over the SMS.
+        /// </remarks>
+        private static readonly Lazy<ApiZonitelService> LazySmsService =
+            new(() => new ApiZonitelService(new HttpClient(), App.Configuration));
+
+        private static ApiZonitelService SmsService => LazySmsService.Value; 
         private DispatcherTimer _liveUpdateTimer;
         private List<ScheduleDto> _masterSchedules = new List<ScheduleDto>();
 
@@ -118,12 +136,22 @@ namespace Raphael.Desktop.ViewModels
         [NotifyCanExecuteChangedFor(nameof(CancelRouteCommand))]
         private ScheduleDto _selectedSchedule;
 
+        /// <summary>
+        /// Bumped to tell the map's marker layers to reposition. It is a counter and not a
+        /// boolean because what matters is that the value changed, not what it is.
+        /// </summary>
+        [ObservableProperty]
+        private int _mapRefreshTick;
+
         // Lista privada para mantener todas las rutas cargadas inicialmente
         private List<VehicleRoute> _allVehicleRoutesMaster = new();
-        public ObservableCollection<VehicleRoute> VehicleRoutes { get; } = new();
+        // Refilled wholesale on every load, so they notify once instead of once per row.
+        // Schedules keeps Move() for the drag-and-drop reorder: that is a one-row change and
+        // a Reset there would throw away the selection the dispatcher just made.
+        public Helpers.RangeObservableCollection<VehicleRoute> VehicleRoutes { get; } = new();
         public ObservableCollection<VehicleGroup> VehicleGroups { get; } = new();
-        public ObservableCollection<ScheduleDto> Schedules { get; } = new();
-        public ObservableCollection<UnscheduledTripDto> UnscheduledTrips { get; } = new();
+        public Helpers.RangeObservableCollection<ScheduleDto> Schedules { get; } = new();
+        public Helpers.RangeObservableCollection<UnscheduledTripDto> UnscheduledTrips { get; } = new();
 
         // The code generator will create a public ColumnConfigurations property.
         // Every time you assign a new value to ColumnConfigurations,
@@ -169,6 +197,12 @@ namespace Raphael.Desktop.ViewModels
             _googleMapsService = new GoogleMapsService(_routingService);
             _gpsService = new GpsService();
 
+            // Built once. These were being constructed inside the methods that use them, and
+            // each construction stands up an HttpClient and re-checks the session token.
+            _runService = new RunService();
+            _vehicleGroupService = new VehicleGroupService();
+            _userConfigService = new UserConfigService();
+
             LoadInitialDataCommand = new AsyncRelayCommand(LoadInitialDataAsync);
             LoadSchedulesAndTripsCommand = new AsyncRelayCommand(LoadSchedulesAndTripsAsync, CanLoadSchedulesAndTrips);
             RouteTripCommand = new AsyncRelayCommand(RouteSelectedTripAsync, CanRouteSelectedTrip);
@@ -186,10 +220,15 @@ namespace Raphael.Desktop.ViewModels
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
 
+            // The counter follows the collection rather than every place that touches it: rows
+            // leave from a reload, from a routing, and from a cancellation arriving over the hub.
+            UnscheduledTrips.CollectionChanged += (_, __) => UpdateUnscheduledSummary();
+
             InitializeColumns();
             //_ = InitializeAsync();
 
             AttachNotifications(notificationService);
+            AttachBoard(new DispatchBoardService());
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)
@@ -306,7 +345,7 @@ namespace Raphael.Desktop.ViewModels
                 ColumnConfigurations = new ObservableCollection<ColumnConfig>(viewModel.Columns);
 
                 // The new configuration is saved for future sessions.
-                UserConfigService _userConfigService = new UserConfigService();
+
                 _userConfigService.SaveColumnConfig(ColumnConfigurations);
 
                 // The user pressed OK. The main configuration is updated.
@@ -320,14 +359,14 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 // The new configuration is saved for future sessions.
-                UserConfigService _userConfigService = new UserConfigService();
+
                 _userConfigService.SaveColumnConfig(ColumnConfigurations);*/
             }
         }
         private void InitializeColumns()
         {
             // Try to load user saved settings
-            UserConfigService _userConfigService = new UserConfigService();
+
             var savedConfig = _userConfigService.LoadColumnConfig();
 
             if (savedConfig != null)
@@ -400,6 +439,10 @@ namespace Raphael.Desktop.ViewModels
                     await LoadSchedulesAndTripsAsync();
                 }
 
+                // Now that the screen knows which day and which route it is showing, it can say
+                // so and start being told what the others do to them.
+                UpdateBoardWatches();
+
                 // After the initial loading, we check if a recalculation is needed.
                 await CheckForPendingRecalculation();
 
@@ -463,22 +506,17 @@ namespace Raphael.Desktop.ViewModels
 
         private void FilterSchedules()
         {
-            Schedules.Clear();
+            // Regla: Siempre mostrar Pull-out, Pull-in y lo que no esté realizado.
+            // Si DisplayPerformedEvents es true, mostramos todo.
+            // One Reset for the whole grid instead of a Clear plus one notification per row.
+            var visible = _masterSchedules
+                .OrderBy(s => s.Sequence)
+                .Where(s => DisplayPerformedEvents
+                            || !s.Performed
+                            || s.Name == "Pull-out"
+                            || s.Name == "Pull-in");
 
-            // Aseguramos que el Master esté ordenado por secuencia antes de filtrar
-            var orderedMaster = _masterSchedules.OrderBy(s => s.Sequence).ToList();
-
-            foreach (var schedule in orderedMaster)
-            {
-                // Regla: Siempre mostrar Pull-out, Pull-in y lo que no esté realizado.
-                // Si DisplayPerformedEvents es true, mostramos todo.
-                bool isServiceEvent = schedule.Name == "Pull-out" || schedule.Name == "Pull-in";
-
-                if (DisplayPerformedEvents || !schedule.Performed || isServiceEvent)
-                {
-                    Schedules.Add(schedule);
-                }
-            }
+            Schedules.ReplaceAll(visible);
 
             CalculateVisualOffsets();
         }
@@ -672,7 +710,7 @@ namespace Raphael.Desktop.ViewModels
 
         private async Task LoadInitialDataListsAsync()
         {
-            RunService _runService = new RunService();
+
             var routes = await _runService.GetAllAsync();
 
             // Guardamos en la lista maestra
@@ -687,7 +725,7 @@ namespace Raphael.Desktop.ViewModels
             //ApplyVehicleRouteFilter();
 
             // Cargar grupos
-            VehicleGroupService _vehicleGroupService = new VehicleGroupService();
+
             var groups = await _vehicleGroupService.GetGroupsAsync();
             VehicleGroups.Clear();
 
@@ -725,8 +763,7 @@ namespace Raphael.Desktop.ViewModels
                 filtered = filtered.Where(r => r.Vehicle?.VehicleGroup?.Id == SelectedVehicleGroup.Id);
             }
 
-            VehicleRoutes.Clear();
-            foreach (var route in filtered) VehicleRoutes.Add(route);
+            VehicleRoutes.ReplaceAll(filtered);
 
             // Mantener selección si es posible
             SelectedVehicleRoute = VehicleRoutes.FirstOrDefault(r => r.Id == (previousSelected?.Id ?? -1))
@@ -735,7 +772,7 @@ namespace Raphael.Desktop.ViewModels
         private async Task LoadInitialDataListsAsyncOld()
         {
             // Este método solo carga las listas de ComboBox, sin seleccionar nada.
-            RunService _runService = new RunService();
+
             var routes = await _runService.GetAllAsync();
             VehicleRoutes.Clear();
             foreach (var r in routes)
@@ -747,7 +784,7 @@ namespace Raphael.Desktop.ViewModels
                     VehicleRoutes.Add(r);
             }
 
-            VehicleGroupService _vehicleGroupService = new VehicleGroupService();
+
             var groups = await _vehicleGroupService.GetGroupsAsync();
             VehicleGroups.Clear();
             foreach (var g in groups)
@@ -758,7 +795,7 @@ namespace Raphael.Desktop.ViewModels
 
         private async Task LoadInitialDataAsync()
         {
-            RunService _runService = new RunService();
+
             var routes = await _runService.GetAllAsync();
 
             VehicleRoutes.Clear();
@@ -777,7 +814,7 @@ namespace Raphael.Desktop.ViewModels
                 SelectedVehicleRoute = VehicleRoutes[0];
             }
 
-            VehicleGroupService _vehicleGroupService = new VehicleGroupService();
+
             var groups = await _vehicleGroupService.GetGroupsAsync();
             VehicleGroups.Clear();
             foreach (var group in groups)
@@ -832,17 +869,29 @@ namespace Raphael.Desktop.ViewModels
             _isDataLoading = true;
             IsLoading = true;
 
+            using var _total = PerfLog.Measure("Schedule.LoadSchedulesAndTrips.TOTAL");
+
             try
             {
                 // 1. Limpiar colecciones
+                // The bound grids are not emptied here on purpose: ReplaceAll below does it in
+                // the same notification that refills them, and the loading overlay hides the old
+                // content meanwhile. Clearing first would cost the grids one extra layout pass
+                // over the day that is being replaced.
                 _masterSchedules.Clear();
-                UnscheduledTrips.Clear();
                 SelectedUnscheduledTripPoints.Clear();
                 SelectedUnscheduledTrip = null;
 
                 // 2. Obtener datos del servidor
-                var schedulesTask = _scheduleService.GetSchedulesAsync(SelectedVehicleRoute.Id, SelectedDate);
-                var tripsTask = _scheduleService.GetUnscheduledTripsAsync(SelectedDate);
+                // Timed one by one and not with a scope around the WhenAll: they run in
+                // parallel, so a single scope would only report the slower of the two and
+                // hide which endpoint is the one to fix.
+                var schedulesTask = TimedAsync(
+                    "Schedule.Net.GetSchedules",
+                    () => _scheduleService.GetSchedulesAsync(SelectedVehicleRoute.Id, SelectedDate));
+                var tripsTask = TimedAsync(
+                    "Schedule.Net.GetUnscheduledTrips",
+                    () => _scheduleService.GetUnscheduledTripsAsync(SelectedDate));
 
                 // Ejecutamos ambas peticiones en paralelo para mayor velocidad
                 await Task.WhenAll(schedulesTask, tripsTask);
@@ -851,17 +900,25 @@ namespace Raphael.Desktop.ViewModels
                 var trips = await tripsTask;
 
                 // 3. Llenar Master y filtrar Schedules
-                _masterSchedules.AddRange(schedules);
-                FilterSchedules();
-
-                // 4. Llenar UnscheduledTrips
-                foreach (var source in trips)
+                using (PerfLog.Measure("Schedule.Bind.Schedules"))
                 {
-                    if(source.IsCanceled != true)
-                        UnscheduledTrips.Add(source);
+                    _masterSchedules.AddRange(schedules);
+                    FilterSchedules();
                 }
 
-                UpdateMapViewForAllPoints();
+                // 4. Llenar UnscheduledTrips
+                using (PerfLog.Measure("Schedule.Bind.UnscheduledTrips"))
+                {
+                    UnscheduledTrips.ReplaceAll(trips.Where(t => t.IsCanceled != true));
+                }
+
+                PerfLog.Mark("Schedule.Rows.Schedules", 0, _masterSchedules.Count);
+                PerfLog.Mark("Schedule.Rows.UnscheduledTrips", 0, UnscheduledTrips.Count);
+
+                using (PerfLog.Measure("Schedule.Map.UpdateAllPoints"))
+                {
+                    UpdateMapViewForAllPoints();
+                }
                 UpdateRouteSummary();
             }
             catch (Exception ex)
@@ -872,6 +929,18 @@ namespace Raphael.Desktop.ViewModels
             {
                 IsLoading = false;
                 _isDataLoading = false; // Liberar el bloqueo
+            }
+        }
+
+        /// <summary>
+        /// Runs a call and reports how long it took, returning what it returned. Used for the
+        /// requests that are launched together: each one gets its own line in the trace.
+        /// </summary>
+        private static async Task<T> TimedAsync<T>(string label, Func<Task<T>> call)
+        {
+            using (PerfLog.Measure(label))
+            {
+                return await call();
             }
         }
 
@@ -1100,8 +1169,16 @@ namespace Raphael.Desktop.ViewModels
                 await RecalculateScheduleAsync(0); // Recalcular todo para ajustar Pull-out y demás.
                 FilterSchedules();
 
-                // eliminar localmente el viaje ruteado
-                var tripToRemove = UnscheduledTrips.FirstOrDefault(t => t.Id == SelectedUnscheduledTrip.Id);
+                // Eliminar localmente el viaje ruteado.
+                //
+                // ⚠️ Contra tripToSchedule, la referencia capturada al empezar, y NO contra
+                // SelectedUnscheduledTrip. Entre aquel momento y este hay varios await, y desde
+                // que existe el tablero la selección puede haber desaparecido sola: el servidor
+                // emite TripRouted a todo el grupo — incluido quien acaba de rutear — así que el
+                // manejador de esta misma pantalla ya quitó la fila y vació la selección. Leer
+                // SelectedUnscheduledTrip aquí lanzaba una referencia nula justo después de un
+                // ruteo que había salido bien.
+                var tripToRemove = UnscheduledTrips.FirstOrDefault(t => t.Id == tripToSchedule.Id);
                 if (tripToRemove != null)
                 {
                     UnscheduledTrips.Remove(tripToRemove);
@@ -1110,8 +1187,7 @@ namespace Raphael.Desktop.ViewModels
                 SelectedUnscheduledTrip = null;
 
                 BusyMessage = "Sending notification to Member...";
-                HttpClient client = new HttpClient();
-                ApiZonitelService _apiZonitelService = new ApiZonitelService(client, App.Configuration);
+                var _apiZonitelService = SmsService;
 
                 // Validar si el teléfono es nulo o está vacío
                 if (string.IsNullOrWhiteSpace(tripToSchedule.CustomerPhone))
@@ -1393,6 +1469,9 @@ namespace Raphael.Desktop.ViewModels
         // Observe changes to automatically refresh data
         partial void OnSelectedDateChanged(DateTime value)
         {
+            // The board follows the screen: a dispatcher working Tuesday is not sent Wednesday.
+            UpdateBoardWatches();
+
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
                 _ = LoadSchedulesAndTripsAsync();
@@ -1403,6 +1482,14 @@ namespace Raphael.Desktop.ViewModels
 
         partial void OnSelectedVehicleRouteChanged(VehicleRoute value)
         {
+            // A different route means a different vehicle to follow, so the one on the map is
+            // forgotten rather than left sitting where the previous one was.
+            StopVehicleAnimator();
+            HasVehiclePosition = false;
+            _lastVehicleReportUtc = null;
+
+            UpdateBoardWatches();
+
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
                 _ = LoadSchedulesAsync(); // no es necesario volver a cargar los viajes
@@ -1412,26 +1499,37 @@ namespace Raphael.Desktop.ViewModels
                 LoadSchedulesAndTripsCommand.Execute(null);*/
         }
 
+        // The stops highlighted on the map by the current selection: the clicked event and the
+        // other leg of the same trip. Remembered so that changing the selection only has to
+        // clear two rows instead of walking the whole route.
+        private readonly List<ScheduleDto> _highlightedOnMap = new();
+
         // Logic to execute when the selection in the Schedules grid changes
         partial void OnSelectedScheduleChanged(ScheduleDto value)
-        {          
-            foreach (var schedule in Schedules)
+        {
+            // IsSelectedForMap is an observable property, so clearing it on every row of the
+            // route made one click cost N notifications — and N marker repositions with it.
+            foreach (var schedule in _highlightedOnMap)
             {
                 schedule.IsSelectedForMap = false;
             }
-           
+            _highlightedOnMap.Clear();
+
             if (value != null)
             {
                 //SelectedUnscheduledTrip = null; // This will clear the markers for the unscheduled trip
 
                 value.IsSelectedForMap = true;
+                _highlightedOnMap.Add(value);
+
                 var pairedEvent = Schedules.FirstOrDefault(s => s.TripId == value.TripId && s.Id != value.Id);
                 if (pairedEvent != null)
                 {
                     pairedEvent.IsSelectedForMap = true;
+                    _highlightedOnMap.Add(pairedEvent);
                 }
             }
-           
+
             UpdateMapViewForAllPoints();
         }
 
@@ -1521,25 +1619,34 @@ namespace Raphael.Desktop.ViewModels
             ZoomAndCenterOnPoints(allPoints);
         }
 
-        public void ForceRefreshSchedules()
+        /// <summary>
+        /// Asks the marker layers to reposition themselves. Used when the data behind the
+        /// markers moved but the map did not — after a zoom-to-fit, or after the overlap
+        /// offsets were recalculated.
+        /// </summary>
+        /// <remarks>
+        /// This replaces ForceRefreshSchedules, which emptied and refilled the whole Schedules
+        /// collection to force the old per-marker bindings to re-evaluate. It rebuilt every row
+        /// of the grid — on every zoom-to-fit — to move some dots on a map.
+        /// </remarks>
+        public void InvalidateMapMarkers()
         {
-            var items = new List<ScheduleDto>(Schedules);
-            Schedules.Clear();
-            foreach (var item in items)
-            {
-                Schedules.Add(item);
-            }
-          
-            FilterSchedules();
+            MapRefreshTick++;
         }
 
         private void CalculateVisualOffsets()
-        {         
+        {
+            // Written only where it actually changes: VisualOffsetIndex is an observable
+            // property, so a blind pass raises PropertyChanged on every stop of the route.
+            var moved = false;
+
             foreach (var schedule in Schedules)
             {
-                schedule.VisualOffsetIndex = 0;
-            }
+                if (schedule.VisualOffsetIndex == 0) continue;
 
+                schedule.VisualOffsetIndex = 0;
+                moved = true;
+            }
 
             // We group events by their coordinates and filter out only groups with more than one member (overlaps).
             var overlappingGroups = Schedules
@@ -1553,19 +1660,54 @@ namespace Raphael.Desktop.ViewModels
                 // Sorting by sequence ensures that scrolling is consistent.
                 foreach (var scheduleInGroup in group.OrderBy(s => s.Sequence))
                 {
-                    scheduleInGroup.VisualOffsetIndex = index;
+                    if (scheduleInGroup.VisualOffsetIndex != index)
+                    {
+                        scheduleInGroup.VisualOffsetIndex = index;
+                        moved = true;
+                    }
                     index++;
                 }
             }
+
+            if (moved) InvalidateMapMarkers();
         }
 
         #region Drag and Drop Implementation
 
         // --- IDragSource: Controls the start of the drag ---
 
+        // Where the other leg of the dragged trip sits, worked out once when the drag starts.
+        // DragOver runs on every mouse move, and it used to answer this question with a
+        // FirstOrDefault plus an IndexOf over the whole route each time. The list does not
+        // change between StartDrag and Drop, so once is enough.
+        private int _dragPairedLegIndex = -1;
+
         public void StartDrag(IDragInfo dragInfo)
         {
-            
+            _dragPairedLegIndex = -1;
+
+            if (dragInfo.SourceItem is not ScheduleDto source) return;
+
+            // Only a Pickup or a Dropoff has a leg to stay on the right side of. Anything else
+            // is left unconstrained, exactly as before.
+            if (source.EventType != ScheduleEventType.Pickup &&
+                source.EventType != ScheduleEventType.Dropoff) return;
+
+            // A Dropoff looks for its Pickup and a Pickup for its Dropoff — the leg it is not
+            // allowed to cross.
+            var pairedType = source.EventType == ScheduleEventType.Dropoff
+                ? ScheduleEventType.Pickup
+                : ScheduleEventType.Dropoff;
+
+            for (var i = 0; i < Schedules.Count; i++)
+            {
+                var candidate = Schedules[i];
+                if (candidate.TripId == source.TripId && candidate.EventType == pairedType)
+                {
+                    _dragPairedLegIndex = i;
+                    return;
+                }
+            }
         }
 
         public bool CanStartDrag(IDragInfo dragInfo)
@@ -1581,12 +1723,13 @@ namespace Raphael.Desktop.ViewModels
         public void Dropped(IDropInfo dropInfo)
         {
             // This is called after the drop operation has been completed
-           
+            _dragPairedLegIndex = -1;
         }
 
         public void DragCancelled()
         {
             // Called if the drag is canceled (e.g. by pressing ESC).
+            _dragPairedLegIndex = -1;
         }
 
         public bool TryCatchOccurredException(Exception exception)
@@ -1619,41 +1762,20 @@ namespace Raphael.Desktop.ViewModels
                 return;
             }
 
-            // 2. A "Dropoff" cannot go BEFORE its corresponding "Pickup".
-            if (sourceItem.EventType == ScheduleEventType.Dropoff)
+            // 2 and 3. The two legs of a trip cannot cross: a Dropoff may not land before its
+            // Pickup, and a Pickup may not land after its Dropoff. The index of the other leg
+            // was resolved in StartDrag; the list does not move until Drop.
+            if (_dragPairedLegIndex >= 0)
             {
-                // Find the Pickup for this trip
-                var pickupItem = Schedules.FirstOrDefault(s => s.TripId == sourceItem.TripId && s.EventType == ScheduleEventType.Pickup);
-                if (pickupItem != null)
-                {
-                    int pickupIndex = Schedules.IndexOf(pickupItem);
-                    // If the index where you want to drop is less than or equal to that of the pickup, it is not valid.
-                    if (dropInfo.InsertIndex <= pickupIndex)
-                    {
-                        dropInfo.Effects = DragDropEffects.None;
-                        return;
-                    }
-                }
-            }
+                // dropInfo.InsertIndex gives us the position *before* which it will be inserted.
+                var crossesItsOwnLeg = sourceItem.EventType == ScheduleEventType.Dropoff
+                    ? dropInfo.InsertIndex <= _dragPairedLegIndex
+                    : dropInfo.InsertIndex >= _dragPairedLegIndex;
 
-
-            // 3. A "Pickup" cannot go AFTER its corresponding "Dropoff".
-            if (sourceItem.EventType == ScheduleEventType.Pickup)
-            {
-                // Find the Dropoff for this trip
-                var dropoffItem = Schedules.FirstOrDefault(s => s.TripId == sourceItem.TripId && s.EventType == ScheduleEventType.Dropoff);
-                if (dropoffItem != null)
+                if (crossesItsOwnLeg)
                 {
-                    int dropoffIndex = Schedules.IndexOf(dropoffItem);
-                    // If the index where you want to drop is greater than or equal to the dropoff, it is not valid.
-                    // dropInfo.InsertIndex gives us the position *before* which it will be inserted.
-                    // If we move an element from a low index to a high index, the dropoff index may change.
-                    // Therefore, the simple condition is the most effective.
-                    if (dropInfo.InsertIndex >= dropoffIndex)
-                    {
-                        dropInfo.Effects = DragDropEffects.None;
-                        return;
-                    }
+                    dropInfo.Effects = DragDropEffects.None;
+                    return;
                 }
             }
 
@@ -1684,19 +1806,25 @@ namespace Raphael.Desktop.ViewModels
             BusyMessage = "Saving route order...";
             try
             {
-                // Actualizamos las secuencias según el nuevo orden visual
+                // Actualizamos las secuencias según el nuevo orden visual, y las mandamos
+                // TODAS en una sola petición. Antes era un PUT por parada, esperado uno tras
+                // otro contra un servidor que está en internet: mover una parada en una ruta
+                // de veinte costaba veinte viajes de ida y vuelta, y si uno fallaba la ruta
+                // quedaba a medio renumerar.
                 for (int i = 0; i < Schedules.Count; i++)
                 {
                     Schedules[i].Sequence = i;
-                    // Enviamos la actualización de la secuencia a la DB inmediatamente
-                    await _scheduleService.UpdateAsync(Schedules[i].Id, Schedules[i]);
                 }
+
+                await PersistSequenceAsync(Schedules);
 
                 // Ahora ejecutamos el cálculo de ETAs basado en este nuevo orden
                 await RecalculateScheduleAsync(0);
 
-                // Finalmente refrescamos para asegurar que todo esté sincronizado
-                await LoadSchedulesAndTripsAsync();
+                // Refrescamos solo la ruta. Reordenar paradas no toca la lista de viajes sin
+                // ruta: recargarla aquí volvía a traer y a repintar los ~400 viajes del día
+                // por cada arrastre.
+                await LoadSchedulesAsync();
             }
             catch (Exception ex)
             {
@@ -1891,6 +2019,11 @@ namespace Raphael.Desktop.ViewModels
         {
             int from = Math.Max(1, startIndex);
 
+            // Collected as we walk and written once at the end. The walk used to await a PUT
+            // inside itself — twice per stop in the worst case — so a route of twenty stops
+            // held the interface for up to forty round trips, and this runs on a timer.
+            var moved = new List<ScheduleDto>();
+
             for (int i = from; i < Schedules.Count; i++)
             {
                 var current = Schedules[i];
@@ -1919,7 +2052,7 @@ namespace Raphael.Desktop.ViewModels
                         if (validPrevious.ETA != pullOutEta)
                         {
                             validPrevious.ETA = pullOutEta;
-                            await _scheduleService.UpdateAsync(validPrevious.Id, validPrevious);
+                            if (!moved.Contains(validPrevious)) moved.Add(validPrevious);
                         }
                     }
 
@@ -1944,9 +2077,43 @@ namespace Raphael.Desktop.ViewModels
                 // and it used to write every row of the route on every pass.
                 if (before != (current.Sequence, current.ETA, current.Travel, current.Distance))
                 {
-                    await _scheduleService.UpdateAsync(current.Id, current);
+                    if (!moved.Contains(current)) moved.Add(current);
                 }
             }
+
+            await PersistSequenceAsync(moved);
+        }
+
+        /// <summary>
+        /// Writes the order and the recalculated hours of the given stops in one request.
+        /// </summary>
+        /// <remarks>
+        /// Nothing happens when the list is empty, which is the common case on the refresh
+        /// timer: most passes find the route exactly as they left it.
+        /// </remarks>
+        private async Task PersistSequenceAsync(IEnumerable<ScheduleDto> stops)
+        {
+            if (SelectedVehicleRoute == null) return;
+
+            var payload = stops
+                .Select(s => new ScheduleStopSequenceDto
+                {
+                    Id = s.Id,
+                    Sequence = s.Sequence,
+                    ETA = s.ETA,
+                    Travel = s.Travel,
+                    Distance = s.Distance
+                })
+                .ToList();
+
+            if (payload.Count == 0) return;
+
+            await _scheduleService.ResequenceAsync(new ScheduleResequenceRequest
+            {
+                VehicleRouteId = SelectedVehicleRoute.Id,
+                Date = SelectedDate,
+                Stops = payload
+            });
         }
 
         /// <summary>
@@ -2133,6 +2300,25 @@ namespace Raphael.Desktop.ViewModels
         }
 
         #endregion
+
+        /// <summary>
+        /// How many trips are waiting for a route, and how many of those are Will Calls.
+        /// </summary>
+        /// <remarks>
+        /// The Will Call count is not decoration: those are the trips whose hour is not fixed
+        /// yet, so they are the part of the backlog that cannot simply be planned in order.
+        /// </remarks>
+        [ObservableProperty]
+        private string _unscheduledSummaryText = "0 trips";
+
+        private void UpdateUnscheduledSummary()
+        {
+            var total = UnscheduledTrips.Count;
+            var willCall = UnscheduledTrips.Count(t => t.WillCall);
+
+            var tripLabel = total == 1 ? "trip" : "trips";
+            UnscheduledSummaryText = $"{total} {tripLabel} ({willCall} will call)";
+        }
 
         private void UpdateRouteSummary()
         {
@@ -2330,6 +2516,397 @@ namespace Raphael.Desktop.ViewModels
             _notifications.NotificationReceived += OnNotificationReceived;
         }
 
+        #endregion
+
+        #region The board: what the other dispatchers are doing
+
+        private IDispatchBoardService _board;
+
+        /// <summary>
+        /// Starts listening to the live board and follows what this screen is looking at.
+        /// </summary>
+        private void AttachBoard(IDispatchBoardService board)
+        {
+            if (board is null) return;
+
+            _board = board;
+
+            _board.TripRouted += OnBoardTripRouted;
+            _board.TripUnrouted += OnBoardTripUnrouted;
+            _board.RouteChanged += OnBoardRouteChanged;
+            _board.VehiclePosition += OnBoardVehiclePosition;
+
+            _ = _board.StartAsync();
+        }
+
+        /// <summary>
+        /// Tells the server which day and which route this screen is showing, so it is only sent
+        /// what it can act on.
+        /// </summary>
+        private void UpdateBoardWatches()
+        {
+            if (_board is null)
+            {
+                BoardTrace("no board service attached");
+                return;
+            }
+
+            BoardTrace($"watching day {SelectedDate:yyyy-MM-dd}, route {SelectedVehicleRoute?.Id.ToString() ?? "<none selected>"}");
+
+            _ = _board.WatchDayAsync(SelectedDate);
+
+            if (SelectedVehicleRoute != null)
+                _ = _board.WatchRouteAsync(SelectedVehicleRoute.Id, SelectedDate);
+        }
+
+        [System.Diagnostics.Conditional("DEBUG")]
+        private static void BoardTrace(string message) =>
+            System.Diagnostics.Debug.WriteLine($"[board/vm] {message}");
+
+        /// <summary>
+        /// Stops listening. Called when the tab is really closed, for the same reason as
+        /// <see cref="ReleaseNotifications"/>: a tab switch is not a close.
+        /// </summary>
+        private void ReleaseBoard()
+        {
+            if (_board is null) return;
+
+            _board.TripRouted -= OnBoardTripRouted;
+            _board.TripUnrouted -= OnBoardTripUnrouted;
+            _board.RouteChanged -= OnBoardRouteChanged;
+            _board.VehiclePosition -= OnBoardVehiclePosition;
+
+            _ = _board.StopAsync();
+            _board = null;
+        }
+
+        private void OnBoardTripRouted(object sender, TripRoutedMessage message)
+        {
+            if (message is null) return;
+
+            if (message.Date.Date != SelectedDate.Date)
+            {
+                BoardTrace($"TripRouted ignored: message is for {message.Date:yyyy-MM-dd}, screen shows {SelectedDate:yyyy-MM-dd}");
+                return;
+            }
+
+            // Another dispatcher took it. The row is an offer to route a trip, and that trip is
+            // on a vehicle now, so the offer has to go — quietly and without a reload: nobody
+            // needs telling, they need the list to be true.
+            OnUiThread(() => RemoveUnscheduledTrip(message.TripId));
+        }
+
+        private void OnBoardTripUnrouted(object sender, TripUnroutedMessage message)
+        {
+            if (message is null || message.Date.Date != SelectedDate.Date) return;
+
+            // It is waiting again, and this screen never had it in the backlog. The only honest
+            // way to show it is to ask the server for the day's list.
+            OnUiThread(() => _ = ReloadUnscheduledTripsAsync());
+        }
+
+        private void OnBoardRouteChanged(object sender, RouteChangedMessage message)
+        {
+            if (message is null) return;
+
+            if (SelectedVehicleRoute == null || message.VehicleRouteId != SelectedVehicleRoute.Id)
+            {
+                // Expected and correct: the top grid shows ONE route. A change to a route this
+                // dispatcher is not looking at is for whoever has that one open.
+                BoardTrace($"RouteChanged ignored: message is for route {message.VehicleRouteId}, screen shows {SelectedVehicleRoute?.Id.ToString() ?? "<none>"}");
+                return;
+            }
+
+            if (message.Date.Date != SelectedDate.Date)
+            {
+                BoardTrace($"RouteChanged ignored: message is for {message.Date:yyyy-MM-dd}, screen shows {SelectedDate:yyyy-MM-dd}");
+                return;
+            }
+
+            // ⚠️ Not while this dispatcher is mid-operation. Reloading the route under someone
+            // who is dragging a stop would move the ground beneath them, and their own save is
+            // about to arrive anyway.
+            if (_isRecalculating || _isDataLoading || IsBusy)
+            {
+                BoardTrace("RouteChanged deferred: this dispatcher is mid-operation");
+                return;
+            }
+
+            BoardTrace($"RouteChanged applied: reloading route {message.VehicleRouteId}");
+            OnUiThread(() => _ = LoadSchedulesAsync());
+        }
+
+        private void OnBoardVehiclePosition(object sender, VehiclePositionMessage message)
+        {
+            if (message is null) return;
+            if (SelectedVehicleRoute == null || message.VehicleRouteId != SelectedVehicleRoute.Id) return;
+
+            OnUiThread(() => ApplyVehiclePosition(message));
+        }
+
+        /// <summary>
+        /// Runs the action on the interface thread. Hub callbacks arrive on a background one and
+        /// everything they touch here is bound to a grid or a map.
+        /// </summary>
+        private static void OnUiThread(Action action)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher is null) return;
+
+            if (dispatcher.CheckAccess()) action();
+            else dispatcher.BeginInvoke(action);
+        }
+
+        /// <summary>
+        /// Takes a trip out of the backlog without a word, for when it is no longer on offer.
+        /// </summary>
+        /// <remarks>
+        /// Distinct from <see cref="RetireCancelledTrip"/>, which marks the row and lets it
+        /// leave with an animation. A cancellation is news the dispatcher has to notice; a trip
+        /// routed by a colleague is not, and drawing attention to each one would turn a busy
+        /// morning into a light show.
+        /// </remarks>
+        private void RemoveUnscheduledTrip(int tripId)
+        {
+            var row = UnscheduledTrips.FirstOrDefault(t => t.Id == tripId);
+            if (row is null) return;
+
+            if (SelectedUnscheduledTrip == row)
+            {
+                SelectedUnscheduledTrip = null;
+            }
+
+            UnscheduledTrips.Remove(row);
+        }
+
+        /// <summary>
+        /// Reloads only the backlog, leaving the route on screen and the map alone.
+        /// </summary>
+        private async Task ReloadUnscheduledTripsAsync()
+        {
+            if (_isDataLoading) return;
+
+            try
+            {
+                var trips = await _scheduleService.GetUnscheduledTripsAsync(SelectedDate);
+                var selectedId = SelectedUnscheduledTrip?.Id;
+
+                UnscheduledTrips.ReplaceAll(trips.Where(t => t.IsCanceled != true));
+
+                if (selectedId.HasValue)
+                {
+                    SelectedUnscheduledTrip =
+                        UnscheduledTrips.FirstOrDefault(t => t.Id == selectedId.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent on purpose: this is a background correction, not something the
+                // dispatcher asked for. A modal here would interrupt them over nothing.
+                System.Diagnostics.Debug.WriteLine($"[board] backlog reload failed: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region The vehicle on the map
+
+        /// <summary>
+        /// Where the vehicle is drawn right now — not where it last reported.
+        /// </summary>
+        /// <remarks>
+        /// The driver's app reports about every thirty seconds. Drawn straight from each report,
+        /// the vehicle stands still for half a minute and then teleports, which reads as a
+        /// broken map rather than a moving van. These two carry the interpolated position and
+        /// are what the marker binds to; <c>DriverLastKnownLocation</c> stays as the last thing
+        /// actually reported.
+        /// </remarks>
+        [ObservableProperty]
+        private double _vehicleDisplayLatitude;
+
+        [ObservableProperty]
+        private double _vehicleDisplayLongitude;
+
+        /// <summary>Where the vehicle is pointing, in degrees, so the car icon faces its road.</summary>
+        [ObservableProperty]
+        private double _vehicleHeading;
+
+        [ObservableProperty]
+        private bool _hasVehiclePosition;
+
+        // The interpolation in flight.
+        private DispatcherTimer _vehicleAnimator;
+        private DateTime _vehicleAnimStartedUtc;
+        private TimeSpan _vehicleAnimDuration;
+        private double _vehicleFromLat, _vehicleFromLng, _vehicleFromHeading;
+        private double _vehicleToLat, _vehicleToLng, _vehicleToHeading;
+        private DateTime? _lastVehicleReportUtc;
+
+        /// <summary>How long a step is allowed to take when the reports are irregular.</summary>
+        private static readonly TimeSpan MinVehicleStep = TimeSpan.FromSeconds(3);
+        private static readonly TimeSpan MaxVehicleStep = TimeSpan.FromSeconds(35);
+
+        /// <summary>
+        /// Movement below this is the GPS talking, not the vehicle: about eleven metres, the
+        /// same precision the routing cache rounds coordinates to.
+        /// </summary>
+        private const double GpsNoiseDegrees = 0.0001;
+
+        private void ApplyVehiclePosition(VehiclePositionMessage message)
+        {
+            // ⚠️ An unknown heading is not north.
+            //
+            // The driver's app sends "N/A" when the vehicle is not moving, and the compass
+            // converter answers 0 for anything it does not recognise — so a van standing at a
+            // patient's door would have swung its arrow to point north every thirty seconds.
+            // A vehicle that stops keeps the heading it last drove.
+            var heading = IsUnknownDirection(message.Direction)
+                ? VehicleHeading
+                : HeadingFromDirection(message.Direction);
+
+            // The last thing actually reported, kept apart from the drawn position: the tooltip
+            // and the speed colour must say what the driver sent, not where the animation has
+            // got to halfway between two reports.
+            DriverLastKnownLocation = new GpsDataDto
+            {
+                IdVehicleRoute = message.VehicleRouteId,
+                Latitude = message.Latitude,
+                Longitude = message.Longitude,
+                Speed = message.Speed,
+                Direction = message.Direction,
+                DateTime = message.AtUtc.ToLocalTime()
+            };
+
+            if (!HasVehiclePosition)
+            {
+                // First fix of the session: place it, do not fly it in from the middle of nowhere.
+                VehicleDisplayLatitude = message.Latitude;
+                VehicleDisplayLongitude = message.Longitude;
+                VehicleHeading = heading;
+                HasVehiclePosition = true;
+                _lastVehicleReportUtc = message.AtUtc;
+                return;
+            }
+
+            // The step lasts as long as the gap between this report and the last one really was.
+            // A fixed thirty seconds would make the vehicle sprint whenever a report arrived
+            // late and crawl whenever two arrived close together.
+            var gap = _lastVehicleReportUtc.HasValue
+                ? message.AtUtc - _lastVehicleReportUtc.Value
+                : MaxVehicleStep;
+
+            _lastVehicleReportUtc = message.AtUtc;
+
+            if (Math.Abs(message.Latitude - VehicleDisplayLatitude) < GpsNoiseDegrees &&
+                Math.Abs(message.Longitude - VehicleDisplayLongitude) < GpsNoiseDegrees)
+            {
+                // Parked, or drifting on the spot. Animating this would make a stationary
+                // vehicle appear to twitch all shift.
+                VehicleHeading = heading;
+                return;
+            }
+
+            _vehicleFromLat = VehicleDisplayLatitude;
+            _vehicleFromLng = VehicleDisplayLongitude;
+            _vehicleFromHeading = VehicleHeading;
+
+            _vehicleToLat = message.Latitude;
+            _vehicleToLng = message.Longitude;
+            _vehicleToHeading = ShortestTurnTarget(VehicleHeading, heading);
+
+            _vehicleAnimStartedUtc = DateTime.UtcNow;
+            _vehicleAnimDuration = Clamp(gap, MinVehicleStep, MaxVehicleStep);
+
+            StartVehicleAnimator();
+        }
+
+        private void StartVehicleAnimator()
+        {
+            if (_vehicleAnimator == null)
+            {
+                // Ten frames a second. A vehicle crosses a few pixels in half a minute at any
+                // useful zoom, so this is smooth to the eye and a rounding error next to the
+                // five-second full refresh it replaces.
+                _vehicleAnimator = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100)
+                };
+                _vehicleAnimator.Tick += OnVehicleAnimatorTick;
+            }
+
+            _vehicleAnimator.Start();
+        }
+
+        private void OnVehicleAnimatorTick(object sender, EventArgs e)
+        {
+            var elapsed = DateTime.UtcNow - _vehicleAnimStartedUtc;
+            var t = _vehicleAnimDuration <= TimeSpan.Zero
+                ? 1.0
+                : Math.Min(1.0, elapsed.TotalMilliseconds / _vehicleAnimDuration.TotalMilliseconds);
+
+            VehicleDisplayLatitude = _vehicleFromLat + ((_vehicleToLat - _vehicleFromLat) * t);
+            VehicleDisplayLongitude = _vehicleFromLng + ((_vehicleToLng - _vehicleFromLng) * t);
+
+            // The turn is given a quarter of the step: a vehicle changes heading at a corner,
+            // it does not rotate slowly along a straight road.
+            var turn = Math.Min(1.0, t * 4);
+            VehicleHeading = _vehicleFromHeading + ((_vehicleToHeading - _vehicleFromHeading) * turn);
+
+            if (t >= 1.0)
+            {
+                _vehicleAnimator.Stop();
+
+                // Normalised once the turn is over, so the angle does not wander past a full
+                // circle over a shift of left turns.
+                VehicleHeading = ((VehicleHeading % 360) + 360) % 360;
+            }
+
+            InvalidateMapMarkers();
+        }
+
+        /// <summary>
+        /// The equivalent of <paramref name="target"/> reached by the shorter way round, so a
+        /// vehicle correcting ten degrees does not spin three hundred and fifty.
+        /// </summary>
+        private static double ShortestTurnTarget(double current, double target)
+        {
+            var difference = ((target - current) % 360 + 540) % 360 - 180;
+            return current + difference;
+        }
+
+        /// <summary>
+        /// Whether the driver's app is saying "I do not know", rather than naming a direction.
+        /// </summary>
+        private static bool IsUnknownDirection(string direction) =>
+            string.IsNullOrWhiteSpace(direction) ||
+            string.Equals(direction.Trim(), "N/A", StringComparison.OrdinalIgnoreCase);
+
+        private static double HeadingFromDirection(string direction) =>
+            _directionConverter.Convert(direction, typeof(double), null, System.Globalization.CultureInfo.InvariantCulture)
+                is double angle
+                ? angle
+                : 0.0;
+
+        // The same table the map marker already used. Reused rather than repeated: two copies of
+        // a compass would eventually disagree.
+        private static readonly Converters.DirectionToAngleConverter _directionConverter = new();
+
+        private static TimeSpan Clamp(TimeSpan value, TimeSpan min, TimeSpan max) =>
+            value < min ? min : value > max ? max : value;
+
+        private void StopVehicleAnimator()
+        {
+            if (_vehicleAnimator == null) return;
+
+            _vehicleAnimator.Stop();
+            _vehicleAnimator.Tick -= OnVehicleAnimatorTick;
+            _vehicleAnimator = null;
+        }
+
+        #endregion
+
+        #region Cancelled while the dispatcher was looking (continued)
+
         /// <summary>
         /// Stops listening. Called when the tab is really closed, never on a tab switch.
         /// </summary>
@@ -2352,6 +2929,11 @@ namespace Raphael.Desktop.ViewModels
                 timer.Stop();
 
             _departureTimers.Clear();
+
+            // The board goes with them, and for the same reason: this runs on a real tab close,
+            // never on a tab switch.
+            ReleaseBoard();
+            StopVehicleAnimator();
         }
 
         private void OnNotificationReceived(object sender, NotificationDto notification)
@@ -2359,27 +2941,55 @@ namespace Raphael.Desktop.ViewModels
             if (notification is null)
                 return;
 
-            if (!string.Equals(
-                    notification.BusinessEventCode,
-                    NotificationKeys.Events.TripCancelled,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
             if (!NotificationKeys.TryGetTripId(notification, out var tripId))
                 return;
 
-            // Arrives on the SignalR thread; the grid lives on the interface one.
-            var dispatcher = Application.Current?.Dispatcher;
+            var code = notification.BusinessEventCode;
 
-            if (dispatcher is null)
+            if (string.Equals(code, NotificationKeys.Events.TripCancelled, StringComparison.OrdinalIgnoreCase))
+            {
+                // Arrives on the SignalR thread; the grid lives on the interface one.
+                OnUiThread(() => RetireCancelledTrip(tripId));
                 return;
+            }
 
-            if (dispatcher.CheckAccess())
-                RetireCancelledTrip(tripId);
-            else
-                dispatcher.BeginInvoke(new Action(() => RetireCancelledTrip(tripId)));
+            // ===== The driver's flags =====
+            //
+            // ⚠️ No new notifications were invented for these. The three events already exist,
+            // are already published, and already reach this application over the inbox hub —
+            // they were simply not being listened to here. Adding events for them would have
+            // meant a second copy of the same fact and a retention policy to go with it.
+            //
+            // The route grid shows the driver's progress: a stop turns green when they arrive
+            // and purple when they perform it. Until now that only appeared after a reload, so
+            // a dispatcher watching a route saw nothing happen for minutes at a time.
+            if (string.Equals(code, NotificationKeys.Events.DriverArrivedPickup, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(code, NotificationKeys.Events.DriverPickedUpPassenger, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(code, NotificationKeys.Events.DriverCompletedTrip, StringComparison.OrdinalIgnoreCase))
+            {
+                OnUiThread(() => RefreshRouteForTrip(tripId));
+            }
+        }
+
+        /// <summary>
+        /// Reloads the route on screen when its driver has just reached or performed a stop.
+        /// </summary>
+        /// <remarks>
+        /// The route is refetched rather than patched in place, deliberately. The message
+        /// carries the trip and nothing else — no hour, no distance, no odometer — and those
+        /// columns are read as measured facts. Writing a guess into them would be worse than
+        /// showing nothing, so the one true source is asked. It is a single indexed query, and
+        /// it only happens when the driver of the route this dispatcher is watching does
+        /// something: a handful of times an hour, not on a timer.
+        ///
+        /// A message about any other route belongs to whoever has that one open.
+        /// </remarks>
+        private void RefreshRouteForTrip(int tripId)
+        {
+            if (Schedules.All(s => s.TripId != tripId)) return;
+            if (_isRecalculating || _isDataLoading || IsBusy) return;
+
+            _ = LoadSchedulesAsync();
         }
 
         /// <summary>
