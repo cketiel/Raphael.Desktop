@@ -1225,7 +1225,7 @@ namespace Raphael.Desktop.ViewModels
                     pickupTimeDisplay = DateTime.Today.Add(tripToSchedule.FromTime.Value).ToString("hh:mm tt");
                 }
 
-                /*try
+                try
                 {
                     // Llamar al servicio
                     // Usamos TripId (si existe) o el Id de la base de datos como respaldo
@@ -1256,7 +1256,7 @@ namespace Raphael.Desktop.ViewModels
                 {
                     MessageBox.Show($"An error occurred while sending the SMS: {ex.Message}",
                                     "Exception", MessageBoxButton.OK, MessageBoxImage.Error);
-                }*/
+                }
 
                 /*bool resultado = await _apiZonitelService.SendSMSMessageRiderHasBeenScheduled(
                     "7860000000",
