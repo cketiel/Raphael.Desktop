@@ -5,8 +5,14 @@ using System;
 
 namespace Raphael.Desktop.DTOs
 {
-    public partial class ScheduleDto : ObservableObject
+    public partial class ScheduleDto : ObservableObject, Helpers.Maps.IMapMarker
     {
+        // --- IMapMarker: how the map layer reads this stop's position, without a binding path.
+        double Helpers.Maps.IMapMarker.MarkerLatitude => ScheduleLatitude;
+        double Helpers.Maps.IMapMarker.MarkerLongitude => ScheduleLongitude;
+        int Helpers.Maps.IMapMarker.MarkerOffsetIndex => VisualOffsetIndex;
+
+
         // Propiedades que no cambian o no se necesita notificar en tiempo real
         public int Id { get; set; }
         public int? TripId { get; set; }

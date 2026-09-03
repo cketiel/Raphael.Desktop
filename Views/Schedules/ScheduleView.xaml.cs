@@ -116,11 +116,13 @@ namespace Raphael.Desktop.Views.Schedules
             if (e.BoundingBox != null && DataContext is SchedulesViewModel viewModel)
             {
                 MapView.SetZoomToFitRect(e.BoundingBox);
-                //MapView.InvalidateVisual();
+
+                // SetZoomToFitRect can settle the zoom and the centre without either raising a
+                // change the layer sees, so the markers are told explicitly. This used to rebuild
+                // the entire Schedules collection to achieve the same thing.
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    
-                    viewModel.ForceRefreshSchedules();
+                    viewModel.InvalidateMapMarkers();
 
                 }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }

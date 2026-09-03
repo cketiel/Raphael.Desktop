@@ -43,7 +43,24 @@ namespace Raphael.Desktop.ViewModels
         private int _lastRecalculatedSequence = -1;
 
 
-        private readonly GpsService _gpsService; 
+        private readonly GpsService _gpsService;
+        private readonly RunService _runService;
+        private readonly VehicleGroupService _vehicleGroupService;
+        private readonly UserConfigService _userConfigService;
+
+        /// <summary>
+        /// The SMS gateway, shared by every open Schedule tab. It talks to a third party and
+        /// not to our API, so it does not go through ApiClientFactory; built once all the same,
+        /// because it used to get a brand new HttpClient on every trip routed.
+        /// </summary>
+        /// <remarks>
+        /// Lazy on purpose: a static initialiser that threw — because the configuration was not
+        /// there yet — would take the whole screen down with it, over the SMS.
+        /// </remarks>
+        private static readonly Lazy<ApiZonitelService> LazySmsService =
+            new(() => new ApiZonitelService(new HttpClient(), App.Configuration));
+
+        private static ApiZonitelService SmsService => LazySmsService.Value; 
         private DispatcherTimer _liveUpdateTimer;
         private List<ScheduleDto> _masterSchedules = new List<ScheduleDto>();
 
@@ -119,12 +136,22 @@ namespace Raphael.Desktop.ViewModels
         [NotifyCanExecuteChangedFor(nameof(CancelRouteCommand))]
         private ScheduleDto _selectedSchedule;
 
+        /// <summary>
+        /// Bumped to tell the map's marker layers to reposition. It is a counter and not a
+        /// boolean because what matters is that the value changed, not what it is.
+        /// </summary>
+        [ObservableProperty]
+        private int _mapRefreshTick;
+
         // Lista privada para mantener todas las rutas cargadas inicialmente
         private List<VehicleRoute> _allVehicleRoutesMaster = new();
-        public ObservableCollection<VehicleRoute> VehicleRoutes { get; } = new();
+        // Refilled wholesale on every load, so they notify once instead of once per row.
+        // Schedules keeps Move() for the drag-and-drop reorder: that is a one-row change and
+        // a Reset there would throw away the selection the dispatcher just made.
+        public Helpers.RangeObservableCollection<VehicleRoute> VehicleRoutes { get; } = new();
         public ObservableCollection<VehicleGroup> VehicleGroups { get; } = new();
-        public ObservableCollection<ScheduleDto> Schedules { get; } = new();
-        public ObservableCollection<UnscheduledTripDto> UnscheduledTrips { get; } = new();
+        public Helpers.RangeObservableCollection<ScheduleDto> Schedules { get; } = new();
+        public Helpers.RangeObservableCollection<UnscheduledTripDto> UnscheduledTrips { get; } = new();
 
         // The code generator will create a public ColumnConfigurations property.
         // Every time you assign a new value to ColumnConfigurations,
@@ -169,6 +196,12 @@ namespace Raphael.Desktop.ViewModels
             _routingService = new RoutingApiService();
             _googleMapsService = new GoogleMapsService(_routingService);
             _gpsService = new GpsService();
+
+            // Built once. These were being constructed inside the methods that use them, and
+            // each construction stands up an HttpClient and re-checks the session token.
+            _runService = new RunService();
+            _vehicleGroupService = new VehicleGroupService();
+            _userConfigService = new UserConfigService();
 
             LoadInitialDataCommand = new AsyncRelayCommand(LoadInitialDataAsync);
             LoadSchedulesAndTripsCommand = new AsyncRelayCommand(LoadSchedulesAndTripsAsync, CanLoadSchedulesAndTrips);
@@ -307,7 +340,7 @@ namespace Raphael.Desktop.ViewModels
                 ColumnConfigurations = new ObservableCollection<ColumnConfig>(viewModel.Columns);
 
                 // The new configuration is saved for future sessions.
-                UserConfigService _userConfigService = new UserConfigService();
+
                 _userConfigService.SaveColumnConfig(ColumnConfigurations);
 
                 // The user pressed OK. The main configuration is updated.
@@ -321,14 +354,14 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 // The new configuration is saved for future sessions.
-                UserConfigService _userConfigService = new UserConfigService();
+
                 _userConfigService.SaveColumnConfig(ColumnConfigurations);*/
             }
         }
         private void InitializeColumns()
         {
             // Try to load user saved settings
-            UserConfigService _userConfigService = new UserConfigService();
+
             var savedConfig = _userConfigService.LoadColumnConfig();
 
             if (savedConfig != null)
@@ -464,22 +497,17 @@ namespace Raphael.Desktop.ViewModels
 
         private void FilterSchedules()
         {
-            Schedules.Clear();
+            // Regla: Siempre mostrar Pull-out, Pull-in y lo que no esté realizado.
+            // Si DisplayPerformedEvents es true, mostramos todo.
+            // One Reset for the whole grid instead of a Clear plus one notification per row.
+            var visible = _masterSchedules
+                .OrderBy(s => s.Sequence)
+                .Where(s => DisplayPerformedEvents
+                            || !s.Performed
+                            || s.Name == "Pull-out"
+                            || s.Name == "Pull-in");
 
-            // Aseguramos que el Master esté ordenado por secuencia antes de filtrar
-            var orderedMaster = _masterSchedules.OrderBy(s => s.Sequence).ToList();
-
-            foreach (var schedule in orderedMaster)
-            {
-                // Regla: Siempre mostrar Pull-out, Pull-in y lo que no esté realizado.
-                // Si DisplayPerformedEvents es true, mostramos todo.
-                bool isServiceEvent = schedule.Name == "Pull-out" || schedule.Name == "Pull-in";
-
-                if (DisplayPerformedEvents || !schedule.Performed || isServiceEvent)
-                {
-                    Schedules.Add(schedule);
-                }
-            }
+            Schedules.ReplaceAll(visible);
 
             CalculateVisualOffsets();
         }
@@ -673,7 +701,7 @@ namespace Raphael.Desktop.ViewModels
 
         private async Task LoadInitialDataListsAsync()
         {
-            RunService _runService = new RunService();
+
             var routes = await _runService.GetAllAsync();
 
             // Guardamos en la lista maestra
@@ -688,7 +716,7 @@ namespace Raphael.Desktop.ViewModels
             //ApplyVehicleRouteFilter();
 
             // Cargar grupos
-            VehicleGroupService _vehicleGroupService = new VehicleGroupService();
+
             var groups = await _vehicleGroupService.GetGroupsAsync();
             VehicleGroups.Clear();
 
@@ -726,8 +754,7 @@ namespace Raphael.Desktop.ViewModels
                 filtered = filtered.Where(r => r.Vehicle?.VehicleGroup?.Id == SelectedVehicleGroup.Id);
             }
 
-            VehicleRoutes.Clear();
-            foreach (var route in filtered) VehicleRoutes.Add(route);
+            VehicleRoutes.ReplaceAll(filtered);
 
             // Mantener selección si es posible
             SelectedVehicleRoute = VehicleRoutes.FirstOrDefault(r => r.Id == (previousSelected?.Id ?? -1))
@@ -736,7 +763,7 @@ namespace Raphael.Desktop.ViewModels
         private async Task LoadInitialDataListsAsyncOld()
         {
             // Este método solo carga las listas de ComboBox, sin seleccionar nada.
-            RunService _runService = new RunService();
+
             var routes = await _runService.GetAllAsync();
             VehicleRoutes.Clear();
             foreach (var r in routes)
@@ -748,7 +775,7 @@ namespace Raphael.Desktop.ViewModels
                     VehicleRoutes.Add(r);
             }
 
-            VehicleGroupService _vehicleGroupService = new VehicleGroupService();
+
             var groups = await _vehicleGroupService.GetGroupsAsync();
             VehicleGroups.Clear();
             foreach (var g in groups)
@@ -759,7 +786,7 @@ namespace Raphael.Desktop.ViewModels
 
         private async Task LoadInitialDataAsync()
         {
-            RunService _runService = new RunService();
+
             var routes = await _runService.GetAllAsync();
 
             VehicleRoutes.Clear();
@@ -778,7 +805,7 @@ namespace Raphael.Desktop.ViewModels
                 SelectedVehicleRoute = VehicleRoutes[0];
             }
 
-            VehicleGroupService _vehicleGroupService = new VehicleGroupService();
+
             var groups = await _vehicleGroupService.GetGroupsAsync();
             VehicleGroups.Clear();
             foreach (var group in groups)
@@ -838,8 +865,11 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 // 1. Limpiar colecciones
+                // The bound grids are not emptied here on purpose: ReplaceAll below does it in
+                // the same notification that refills them, and the loading overlay hides the old
+                // content meanwhile. Clearing first would cost the grids one extra layout pass
+                // over the day that is being replaced.
                 _masterSchedules.Clear();
-                UnscheduledTrips.Clear();
                 SelectedUnscheduledTripPoints.Clear();
                 SelectedUnscheduledTrip = null;
 
@@ -870,11 +900,7 @@ namespace Raphael.Desktop.ViewModels
                 // 4. Llenar UnscheduledTrips
                 using (PerfLog.Measure("Schedule.Bind.UnscheduledTrips"))
                 {
-                    foreach (var source in trips)
-                    {
-                        if(source.IsCanceled != true)
-                            UnscheduledTrips.Add(source);
-                    }
+                    UnscheduledTrips.ReplaceAll(trips.Where(t => t.IsCanceled != true));
                 }
 
                 PerfLog.Mark("Schedule.Rows.Schedules", 0, _masterSchedules.Count);
@@ -1144,8 +1170,7 @@ namespace Raphael.Desktop.ViewModels
                 SelectedUnscheduledTrip = null;
 
                 BusyMessage = "Sending notification to Member...";
-                HttpClient client = new HttpClient();
-                ApiZonitelService _apiZonitelService = new ApiZonitelService(client, App.Configuration);
+                var _apiZonitelService = SmsService;
 
                 // Validar si el teléfono es nulo o está vacío
                 if (string.IsNullOrWhiteSpace(tripToSchedule.CustomerPhone))
@@ -1446,26 +1471,37 @@ namespace Raphael.Desktop.ViewModels
                 LoadSchedulesAndTripsCommand.Execute(null);*/
         }
 
+        // The stops highlighted on the map by the current selection: the clicked event and the
+        // other leg of the same trip. Remembered so that changing the selection only has to
+        // clear two rows instead of walking the whole route.
+        private readonly List<ScheduleDto> _highlightedOnMap = new();
+
         // Logic to execute when the selection in the Schedules grid changes
         partial void OnSelectedScheduleChanged(ScheduleDto value)
-        {          
-            foreach (var schedule in Schedules)
+        {
+            // IsSelectedForMap is an observable property, so clearing it on every row of the
+            // route made one click cost N notifications — and N marker repositions with it.
+            foreach (var schedule in _highlightedOnMap)
             {
                 schedule.IsSelectedForMap = false;
             }
-           
+            _highlightedOnMap.Clear();
+
             if (value != null)
             {
                 //SelectedUnscheduledTrip = null; // This will clear the markers for the unscheduled trip
 
                 value.IsSelectedForMap = true;
+                _highlightedOnMap.Add(value);
+
                 var pairedEvent = Schedules.FirstOrDefault(s => s.TripId == value.TripId && s.Id != value.Id);
                 if (pairedEvent != null)
                 {
                     pairedEvent.IsSelectedForMap = true;
+                    _highlightedOnMap.Add(pairedEvent);
                 }
             }
-           
+
             UpdateMapViewForAllPoints();
         }
 
@@ -1555,25 +1591,34 @@ namespace Raphael.Desktop.ViewModels
             ZoomAndCenterOnPoints(allPoints);
         }
 
-        public void ForceRefreshSchedules()
+        /// <summary>
+        /// Asks the marker layers to reposition themselves. Used when the data behind the
+        /// markers moved but the map did not — after a zoom-to-fit, or after the overlap
+        /// offsets were recalculated.
+        /// </summary>
+        /// <remarks>
+        /// This replaces ForceRefreshSchedules, which emptied and refilled the whole Schedules
+        /// collection to force the old per-marker bindings to re-evaluate. It rebuilt every row
+        /// of the grid — on every zoom-to-fit — to move some dots on a map.
+        /// </remarks>
+        public void InvalidateMapMarkers()
         {
-            var items = new List<ScheduleDto>(Schedules);
-            Schedules.Clear();
-            foreach (var item in items)
-            {
-                Schedules.Add(item);
-            }
-          
-            FilterSchedules();
+            MapRefreshTick++;
         }
 
         private void CalculateVisualOffsets()
-        {         
+        {
+            // Written only where it actually changes: VisualOffsetIndex is an observable
+            // property, so a blind pass raises PropertyChanged on every stop of the route.
+            var moved = false;
+
             foreach (var schedule in Schedules)
             {
-                schedule.VisualOffsetIndex = 0;
-            }
+                if (schedule.VisualOffsetIndex == 0) continue;
 
+                schedule.VisualOffsetIndex = 0;
+                moved = true;
+            }
 
             // We group events by their coordinates and filter out only groups with more than one member (overlaps).
             var overlappingGroups = Schedules
@@ -1587,19 +1632,54 @@ namespace Raphael.Desktop.ViewModels
                 // Sorting by sequence ensures that scrolling is consistent.
                 foreach (var scheduleInGroup in group.OrderBy(s => s.Sequence))
                 {
-                    scheduleInGroup.VisualOffsetIndex = index;
+                    if (scheduleInGroup.VisualOffsetIndex != index)
+                    {
+                        scheduleInGroup.VisualOffsetIndex = index;
+                        moved = true;
+                    }
                     index++;
                 }
             }
+
+            if (moved) InvalidateMapMarkers();
         }
 
         #region Drag and Drop Implementation
 
         // --- IDragSource: Controls the start of the drag ---
 
+        // Where the other leg of the dragged trip sits, worked out once when the drag starts.
+        // DragOver runs on every mouse move, and it used to answer this question with a
+        // FirstOrDefault plus an IndexOf over the whole route each time. The list does not
+        // change between StartDrag and Drop, so once is enough.
+        private int _dragPairedLegIndex = -1;
+
         public void StartDrag(IDragInfo dragInfo)
         {
-            
+            _dragPairedLegIndex = -1;
+
+            if (dragInfo.SourceItem is not ScheduleDto source) return;
+
+            // Only a Pickup or a Dropoff has a leg to stay on the right side of. Anything else
+            // is left unconstrained, exactly as before.
+            if (source.EventType != ScheduleEventType.Pickup &&
+                source.EventType != ScheduleEventType.Dropoff) return;
+
+            // A Dropoff looks for its Pickup and a Pickup for its Dropoff — the leg it is not
+            // allowed to cross.
+            var pairedType = source.EventType == ScheduleEventType.Dropoff
+                ? ScheduleEventType.Pickup
+                : ScheduleEventType.Dropoff;
+
+            for (var i = 0; i < Schedules.Count; i++)
+            {
+                var candidate = Schedules[i];
+                if (candidate.TripId == source.TripId && candidate.EventType == pairedType)
+                {
+                    _dragPairedLegIndex = i;
+                    return;
+                }
+            }
         }
 
         public bool CanStartDrag(IDragInfo dragInfo)
@@ -1615,12 +1695,13 @@ namespace Raphael.Desktop.ViewModels
         public void Dropped(IDropInfo dropInfo)
         {
             // This is called after the drop operation has been completed
-           
+            _dragPairedLegIndex = -1;
         }
 
         public void DragCancelled()
         {
             // Called if the drag is canceled (e.g. by pressing ESC).
+            _dragPairedLegIndex = -1;
         }
 
         public bool TryCatchOccurredException(Exception exception)
@@ -1653,41 +1734,20 @@ namespace Raphael.Desktop.ViewModels
                 return;
             }
 
-            // 2. A "Dropoff" cannot go BEFORE its corresponding "Pickup".
-            if (sourceItem.EventType == ScheduleEventType.Dropoff)
+            // 2 and 3. The two legs of a trip cannot cross: a Dropoff may not land before its
+            // Pickup, and a Pickup may not land after its Dropoff. The index of the other leg
+            // was resolved in StartDrag; the list does not move until Drop.
+            if (_dragPairedLegIndex >= 0)
             {
-                // Find the Pickup for this trip
-                var pickupItem = Schedules.FirstOrDefault(s => s.TripId == sourceItem.TripId && s.EventType == ScheduleEventType.Pickup);
-                if (pickupItem != null)
-                {
-                    int pickupIndex = Schedules.IndexOf(pickupItem);
-                    // If the index where you want to drop is less than or equal to that of the pickup, it is not valid.
-                    if (dropInfo.InsertIndex <= pickupIndex)
-                    {
-                        dropInfo.Effects = DragDropEffects.None;
-                        return;
-                    }
-                }
-            }
+                // dropInfo.InsertIndex gives us the position *before* which it will be inserted.
+                var crossesItsOwnLeg = sourceItem.EventType == ScheduleEventType.Dropoff
+                    ? dropInfo.InsertIndex <= _dragPairedLegIndex
+                    : dropInfo.InsertIndex >= _dragPairedLegIndex;
 
-
-            // 3. A "Pickup" cannot go AFTER its corresponding "Dropoff".
-            if (sourceItem.EventType == ScheduleEventType.Pickup)
-            {
-                // Find the Dropoff for this trip
-                var dropoffItem = Schedules.FirstOrDefault(s => s.TripId == sourceItem.TripId && s.EventType == ScheduleEventType.Dropoff);
-                if (dropoffItem != null)
+                if (crossesItsOwnLeg)
                 {
-                    int dropoffIndex = Schedules.IndexOf(dropoffItem);
-                    // If the index where you want to drop is greater than or equal to the dropoff, it is not valid.
-                    // dropInfo.InsertIndex gives us the position *before* which it will be inserted.
-                    // If we move an element from a low index to a high index, the dropoff index may change.
-                    // Therefore, the simple condition is the most effective.
-                    if (dropInfo.InsertIndex >= dropoffIndex)
-                    {
-                        dropInfo.Effects = DragDropEffects.None;
-                        return;
-                    }
+                    dropInfo.Effects = DragDropEffects.None;
+                    return;
                 }
             }
 
@@ -1729,8 +1789,10 @@ namespace Raphael.Desktop.ViewModels
                 // Ahora ejecutamos el cálculo de ETAs basado en este nuevo orden
                 await RecalculateScheduleAsync(0);
 
-                // Finalmente refrescamos para asegurar que todo esté sincronizado
-                await LoadSchedulesAndTripsAsync();
+                // Refrescamos solo la ruta. Reordenar paradas no toca la lista de viajes sin
+                // ruta: recargarla aquí volvía a traer y a repintar los ~400 viajes del día
+                // por cada arrastre.
+                await LoadSchedulesAsync();
             }
             catch (Exception ex)
             {

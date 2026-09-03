@@ -6,7 +6,8 @@
              xmlns:local="clr-namespace:Raphael.Desktop.Views.Schedules"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
-             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"  
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             xmlns:maps="clr-namespace:Raphael.Desktop.Helpers.Maps"
              xmlns:models="clr-namespace:Raphael.Desktop.Models"
              xmlns:gmaps="clr-namespace:GMap.NET.WindowsPresentation;assembly=GMap.NET.WindowsPresentation"
              xmlns:gong="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
@@ -139,7 +140,12 @@
     <materialDesign:DialogHost Identifier="ScheduleRootDialogHost">
         <Border BorderThickness="1,1,1,1" BorderBrush="{StaticResource MainBorderBrush}">
             <Grid Margin="4 0 4 4">
-                <Grid IsEnabled="{Binding !IsLoading}">
+                <!-- No IsEnabled binding here. It used to read "{Binding !IsLoading}", which is
+                     Avalonia syntax: WPF resolves it as a property path, the binding fails and
+                     IsEnabled is never applied. It is also redundant — the loading overlay at the
+                     bottom of this file is a Grid with a Background, so it already swallows every
+                     click while the screen loads. -->
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -227,8 +233,11 @@
                         </Grid.ColumnDefinitions>
 
                         <DockPanel Grid.Column="0">
-                            <ScrollViewer HorizontalScrollBarVisibility="Visible" >
-                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DropHandler="{Binding}">
+                            <!-- No ScrollViewer around this grid. One wrapping it gives the grid an
+                                 infinite height to measure against, so every row is realised and
+                                 virtualisation is silently off no matter what the grid declares.
+                                 The DataGrid scrolls itself. -->
+                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DropHandler="{Binding}">
                                     <DataGrid.RowStyle>
                                         <Style TargetType="DataGridRow" BasedOn="{StaticResource CustomRowStyle}">
                                             <Style.Triggers>
@@ -470,7 +479,6 @@
                                         <DataGridTextColumn Binding="{Binding FundingSource}" Header="{Binding Data.ColumnHeaderFundingSource, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=FundingSource}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                            </ScrollViewer>
                         </DockPanel>
 
                         <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray" ShowsPreview="True"/>
@@ -517,42 +525,17 @@
                                 </StackPanel>
                             </Border>
 
-                            <ItemsControl ItemsSource="{Binding Schedules}">
+                            <!-- Positions come from MapMarkerLayer, not from a MultiBinding per
+                                 marker: one pass over the layer when the map moves, instead of
+                                 fourteen coordinate conversions per marker per wheel tick. -->
+                            <ItemsControl ItemsSource="{Binding Schedules}"
+                                          maps:MapMarkerLayer.Map="{Binding ElementName=MapView}"
+                                          maps:MapMarkerLayer.RefreshTick="{Binding MapRefreshTick}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <Canvas/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemContainerStyle>
-                                    <Style TargetType="ContentPresenter">
-                                        <Setter Property="Canvas.Left">
-                                            <Setter.Value>
-                                                <MultiBinding Converter="{StaticResource LocationToPointConverter}">
-                                                    <Binding ElementName="MapView"/>
-                                                    <Binding Path="ScheduleLatitude"/>
-                                                    <Binding Path="ScheduleLongitude"/>
-                                                    <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
-                                                    <Binding Path="Zoom" ElementName="MapView"/>
-                                                    <Binding Path="Position" ElementName="MapView"/>
-                                                    <Binding Path="VisualOffsetIndex" />
-                                                </MultiBinding>
-                                            </Setter.Value>
-                                        </Setter>
-                                        <Setter Property="Canvas.Top">
-                                            <Setter.Value>
-                                                <MultiBinding Converter="{StaticResource LocationToPointConverter}" ConverterParameter="Y">
-                                                    <Binding ElementName="MapView"/>
-                                                    <Binding Path="ScheduleLatitude"/>
-                                                    <Binding Path="ScheduleLongitude"/>
-                                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
-                                                    <Binding Path="Zoom" ElementName="MapView"/>
-                                                    <Binding Path="Position" ElementName="MapView"/>
-                                                    <Binding Path="VisualOffsetIndex" />
-                                                </MultiBinding>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid>
@@ -647,42 +630,14 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <ItemsControl ItemsSource="{Binding SelectedUnscheduledTripPoints}">
+                            <ItemsControl ItemsSource="{Binding SelectedUnscheduledTripPoints}"
+                                          maps:MapMarkerLayer.Map="{Binding ElementName=MapView}"
+                                          maps:MapMarkerLayer.RefreshTick="{Binding MapRefreshTick}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <Canvas/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemContainerStyle>
-                                    <Style TargetType="ContentPresenter">
-                                        <Setter Property="Canvas.Left">
-                                            <Setter.Value>
-                                                <MultiBinding Converter="{StaticResource LocationToPointConverter}">
-                                                    <Binding ElementName="MapView"/>
-                                                    <Binding Path="Latitude"/>
-                                                    <Binding Path="Longitude"/>
-                                                    <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
-                                                    <Binding Path="Zoom" ElementName="MapView"/>
-                                                    <Binding Path="Position" ElementName="MapView"/>
-                                                    <Binding Path="VisualOffsetIndex" />
-                                                </MultiBinding>
-                                            </Setter.Value>
-                                        </Setter>
-                                        <Setter Property="Canvas.Top">
-                                            <Setter.Value>
-                                                <MultiBinding Converter="{StaticResource LocationToPointConverter}" ConverterParameter="Y">
-                                                    <Binding ElementName="MapView"/>
-                                                    <Binding Path="Latitude"/>
-                                                    <Binding Path="Longitude"/>
-                                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
-                                                    <Binding Path="Zoom" ElementName="MapView"/>
-                                                    <Binding Path="Position" ElementName="MapView"/>
-                                                    <Binding Path="VisualOffsetIndex" />
-                                                </MultiBinding>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Width="18" Height="18" Background="Black" CornerRadius="2">
@@ -825,7 +780,17 @@
 
                     <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="LightGray" ShowsPreview="True"/>
 
-                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableColumnVirtualization="False" VirtualizingStackPanel.IsVirtualizing="False" SelectionMode="Single" ScrollViewer.CanContentScroll="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
+                    <!-- Virtualisation on, all three axes. This grid holds the whole operating
+                         day — 300 to 400 trips — with 24 columns and an action column of seven
+                         buttons and two storyboards per row. Realising every one of them is what
+                         made the tab open in slow motion.
+
+                         Standard mode and not Recycling, deliberately. The rows here run the
+                         departure storyboards that play when a cancelled trip is retired, and a
+                         recycled container can carry a running animation to whatever row it is
+                         next used for. Standard still only builds the rows on screen — which is
+                         the whole win — and builds a fresh container for each. -->
+                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="165">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -1050,7 +1015,13 @@
                             <DataGridTextColumn Binding="{Binding Type}" Width="100" Header="{Binding Data.ColumnHeaderType, Source={StaticResource vmProxy}}"/>
                             <DataGridTextColumn Binding="{Binding TripId}" Width="100" Header="{Binding Data.ColumnHeaderTripId, Source={StaticResource vmProxy}}"/>
 
-                            <DataGridTextColumn Binding="{Binding NotificationStatus}" Width="100" Header="{Binding Data.ColumnHeaderNotificationStatus, Source={StaticResource vmProxy}}"/>
+                            <!-- Deliberately unbound. UnscheduledTripDto has no NotificationStatus
+                                 and the API never sent one, so the old binding failed once per row
+                                 — four hundred failed resolutions on every load — and the column
+                                 rendered empty anyway. It is kept, still empty, so the dispatcher's
+                                 column layout does not shift under them; give it a binding the day
+                                 the backend has something to put in it. -->
+                            <DataGridTextColumn Width="100" Header="{Binding Data.ColumnHeaderNotificationStatus, Source={StaticResource vmProxy}}"/>
 
 
                             <DataGridTextColumn Binding="{Binding Charge}" Width="80" Header="{Binding Data.ColumnHeaderCharge, Source={StaticResource vmProxy}}"/>
