@@ -79,23 +79,49 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Centred header text for the trips grid. Declared here and not in
+             CustomColumnHeaderStyle because that style is shared by every grid in the
+             application, and this is a decision about this screen. -->
+        <Style x:Key="CenteredColumnHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource CustomColumnHeaderStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ===== The accent bar, painted and not laid out =====
+             The bar used to be a 4px left BorderThickness on the row. A border insets the row's
+             content, so every column in the body slid four pixels away from its own header and
+             the dividing lines stopped meeting. These brushes draw the same bar inside the row's
+             background instead: MappingMode="Absolute" makes the gradient measure in pixels, so
+             the first 4px are solid accent and everything past them is the wash. Nothing moves,
+             and the column lines run unbroken from the header to the last row.
+
+             The wash is deliberately far lighter than the bar — the bar says WHICH row, the wash
+             says the row is selected, and they must not compete. -->
+        <LinearGradientBrush x:Key="SelectedTripRowBrush"
+                             MappingMode="Absolute" StartPoint="0,0" EndPoint="8,0" SpreadMethod="Pad">
+            <GradientStop Color="#FF673AB7" Offset="0"/>
+            <GradientStop Color="#FF673AB7" Offset="0.499"/>
+            <GradientStop Color="#38673AB7" Offset="0.5"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="HoverTripRowBrush"
+                             MappingMode="Absolute" StartPoint="0,0" EndPoint="8,0" SpreadMethod="Pad">
+            <GradientStop Color="#80673AB7" Offset="0"/>
+            <GradientStop Color="#80673AB7" Offset="0.499"/>
+            <GradientStop Color="#14673AB7" Offset="0.5"/>
+        </LinearGradientBrush>
+
         <Style x:Key="UnscheduledTripRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
-            <Setter Property="BorderThickness" Value="4,0,0,0"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
             <Style.Triggers>
                 <!-- ⚠️ Hover and selection have to be declared here. The Background setter above
                      is a style value, and the row template paints selection from a template
                      trigger, which loses to it — which is why the dispatcher could not tell
-                     which trip they had selected. The accent bar on the left edge is what
-                     survives the row's own state colours further down. -->
+                     which trip they had selected. -->
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FFEAF3F8"/>
-                    <Setter Property="BorderBrush" Value="#FFB8D6E4"/>
+                    <Setter Property="Background" Value="{StaticResource HoverTripRowBrush}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource MainBorderBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource SelectedTripRowBrush}"/>
                     <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
                 </Trigger>
 
@@ -204,7 +230,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="5"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -887,43 +913,7 @@
                         </Grid>
                     </Grid>
 
-                    <!-- PLACEMENT B of the backlog counter: the divider itself, given a label.
-                         The divider is already the boundary between the route area and the trip
-                         area, so a caption on it reads as the title of what is underneath. It
-                         costs 15px of height rather than a whole new bar, stays put when the grid
-                         scrolls sideways, and is still readable when the dispatcher drags the
-                         divider down to give the map the screen.
-
-                         The splitter keeps its own drag behaviour: the template is only a
-                         background, a caption and a grip, and none of them handle the mouse. -->
-                    <GridSplitter Grid.Row="3" Height="20" HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                                  ShowsPreview="True" Background="Transparent" Cursor="SizeNS"
-                                  ToolTip="Drag to give more room to the route or to the trips">
-                        <GridSplitter.Template>
-                            <ControlTemplate TargetType="GridSplitter">
-                                <Border Background="{StaticResource HeaderBackgroundBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="0,1,0,1">
-                                    <Grid>
-                                        <TextBlock Text="{Binding UnscheduledSummaryText}"
-                                                   Margin="10,0,0,0"
-                                                   FontWeight="SemiBold" FontSize="11"
-                                                   Foreground="#333333"
-                                                   HorizontalAlignment="Left"
-                                                   VerticalAlignment="Center"/>
-                                        <!-- Grip: three dots, so the bar still reads as draggable
-                                             now that it carries text. -->
-                                        <StackPanel Orientation="Horizontal"
-                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Ellipse Width="3" Height="3" Fill="#999999" Margin="2,0"/>
-                                            <Ellipse Width="3" Height="3" Fill="#999999" Margin="2,0"/>
-                                            <Ellipse Width="3" Height="3" Fill="#999999" Margin="2,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </ControlTemplate>
-                        </GridSplitter.Template>
-                    </GridSplitter>
+                    <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="LightGray" ShowsPreview="True"/>
 
                     <!-- Virtualisation on, all three axes. This grid holds the whole operating
                          day — 300 to 400 trips — with 24 columns and an action column of seven
@@ -935,14 +925,14 @@
                          recycled container can carry a running animation to whatever row it is
                          next used for. Standard still only builds the rows on screen — which is
                          the whole win — and builds a fresh container for each. -->
-                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
+                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="165">
-                                <!-- PLACEMENT A of the backlog counter: the header of the action
-                                     column. Costs no vertical space and sits on top of the data it
-                                     counts, but it travels with the horizontal scroll. Shown next
-                                     to PLACEMENT B (the labelled divider above this grid) so the
-                                     two can be compared side by side before one is kept. -->
+                                <!-- The backlog counter lives in the header of the action column:
+                                     the header stays put when the dispatcher scrolls down through
+                                     four hundred trips, so the count is always in view, and it
+                                     costs no vertical space in a screen whose whole layout is
+                                     about giving space to whichever area is being worked on. -->
                                 <DataGridTemplateColumn.HeaderTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Data.UnscheduledSummaryText, Source={StaticResource vmProxy}}"
