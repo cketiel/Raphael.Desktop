@@ -1217,7 +1217,7 @@ namespace Raphael.Desktop.ViewModels
                     pickupTimeDisplay = DateTime.Today.Add(tripToSchedule.FromTime.Value).ToString("hh:mm tt");
                 }
 
-                try
+                /*try
                 {
                     // Llamar al servicio
                     // Usamos TripId (si existe) o el Id de la base de datos como respaldo
@@ -1248,7 +1248,7 @@ namespace Raphael.Desktop.ViewModels
                 {
                     MessageBox.Show($"An error occurred while sending the SMS: {ex.Message}",
                                     "Exception", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                }*/
 
                 /*bool resultado = await _apiZonitelService.SendSMSMessageRiderHasBeenScheduled(
                     "7860000000",
@@ -2537,13 +2537,23 @@ namespace Raphael.Desktop.ViewModels
         /// </summary>
         private void UpdateBoardWatches()
         {
-            if (_board is null) return;
+            if (_board is null)
+            {
+                BoardTrace("no board service attached");
+                return;
+            }
+
+            BoardTrace($"watching day {SelectedDate:yyyy-MM-dd}, route {SelectedVehicleRoute?.Id.ToString() ?? "<none selected>"}");
 
             _ = _board.WatchDayAsync(SelectedDate);
 
             if (SelectedVehicleRoute != null)
                 _ = _board.WatchRouteAsync(SelectedVehicleRoute.Id, SelectedDate);
         }
+
+        [System.Diagnostics.Conditional("DEBUG")]
+        private static void BoardTrace(string message) =>
+            System.Diagnostics.Debug.WriteLine($"[board/vm] {message}");
 
         /// <summary>
         /// Stops listening. Called when the tab is really closed, for the same reason as
@@ -2564,7 +2574,13 @@ namespace Raphael.Desktop.ViewModels
 
         private void OnBoardTripRouted(object sender, TripRoutedMessage message)
         {
-            if (message is null || message.Date.Date != SelectedDate.Date) return;
+            if (message is null) return;
+
+            if (message.Date.Date != SelectedDate.Date)
+            {
+                BoardTrace($"TripRouted ignored: message is for {message.Date:yyyy-MM-dd}, screen shows {SelectedDate:yyyy-MM-dd}");
+                return;
+            }
 
             // Another dispatcher took it. The row is an offer to route a trip, and that trip is
             // on a vehicle now, so the offer has to go — quietly and without a reload: nobody
@@ -2584,14 +2600,31 @@ namespace Raphael.Desktop.ViewModels
         private void OnBoardRouteChanged(object sender, RouteChangedMessage message)
         {
             if (message is null) return;
-            if (SelectedVehicleRoute == null || message.VehicleRouteId != SelectedVehicleRoute.Id) return;
-            if (message.Date.Date != SelectedDate.Date) return;
+
+            if (SelectedVehicleRoute == null || message.VehicleRouteId != SelectedVehicleRoute.Id)
+            {
+                // Expected and correct: the top grid shows ONE route. A change to a route this
+                // dispatcher is not looking at is for whoever has that one open.
+                BoardTrace($"RouteChanged ignored: message is for route {message.VehicleRouteId}, screen shows {SelectedVehicleRoute?.Id.ToString() ?? "<none>"}");
+                return;
+            }
+
+            if (message.Date.Date != SelectedDate.Date)
+            {
+                BoardTrace($"RouteChanged ignored: message is for {message.Date:yyyy-MM-dd}, screen shows {SelectedDate:yyyy-MM-dd}");
+                return;
+            }
 
             // ⚠️ Not while this dispatcher is mid-operation. Reloading the route under someone
             // who is dragging a stop would move the ground beneath them, and their own save is
             // about to arrive anyway.
-            if (_isRecalculating || _isDataLoading || IsBusy) return;
+            if (_isRecalculating || _isDataLoading || IsBusy)
+            {
+                BoardTrace("RouteChanged deferred: this dispatcher is mid-operation");
+                return;
+            }
 
+            BoardTrace($"RouteChanged applied: reloading route {message.VehicleRouteId}");
             OnUiThread(() => _ = LoadSchedulesAsync());
         }
 

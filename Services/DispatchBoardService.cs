@@ -47,6 +47,8 @@ namespace Raphael.Desktop.Services
 
             var hubUrl = $"{baseUrl.TrimEnd('/')}/hubs/dispatch";
 
+            Trace($"hub url {hubUrl}");
+
             _connection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
@@ -60,23 +62,44 @@ namespace Raphael.Desktop.Services
             // A reconnection starts with empty group membership on the server, so whatever the
             // screen was watching has to be asked for again. Without this the tab comes back
             // connected and silent, which looks exactly like a quiet morning.
-            _connection.Reconnected += async _ => await RestoreWatchesAsync();
+            _connection.Reconnected += async _ =>
+            {
+                Trace("reconnected, asking for the groups again");
+                await RestoreWatchesAsync();
+            };
+
+            _connection.Closed += ex =>
+            {
+                Trace($"closed{(ex is null ? string.Empty : $": {ex.Message}")}");
+                return Task.CompletedTask;
+            };
         }
 
         public async Task StartAsync()
         {
-            if (_connection.State != HubConnectionState.Disconnected) return;
+            if (_connection.State != HubConnectionState.Disconnected)
+            {
+                Trace($"start skipped, already {_connection.State}");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SessionManager.Token))
+            {
+                Trace("no session token yet — the hub would refuse the connection");
+            }
 
             try
             {
                 await _connection.StartAsync();
+                Trace($"connected ({_connection.State})");
+
                 await RestoreWatchesAsync();
             }
             catch (Exception ex)
             {
                 // Never fatal. The screen works without the live channel; it just stops being
                 // told what other people do, which is how it behaved before this existed.
-                System.Diagnostics.Debug.WriteLine($"[board] could not connect: {ex.Message}");
+                Trace($"could not connect: {ex.GetType().Name}: {ex.Message}");
             }
         }
 
@@ -88,7 +111,12 @@ namespace Raphael.Desktop.Services
             var previous = _watchedDay;
             _watchedDay = day;
 
-            if (_connection.State != HubConnectionState.Connected) return;
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                // Remembered, not lost: RestoreWatchesAsync asks for it once the connection is up.
+                Trace($"day {day} queued, connection is {_connection.State}");
+                return;
+            }
 
             if (previous != null) await SafeInvokeAsync("UnwatchBoard", previous);
             await SafeInvokeAsync("WatchBoard", day);
@@ -105,7 +133,11 @@ namespace Raphael.Desktop.Services
             _watchedRouteId = vehicleRouteId;
             _watchedRouteDay = day;
 
-            if (_connection.State != HubConnectionState.Connected) return;
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"route {vehicleRouteId} on {day} queued, connection is {_connection.State}");
+                return;
+            }
 
             if (previousId.HasValue && previousDay != null)
                 await SafeInvokeAsync("UnwatchRoute", previousId.Value, previousDay);
@@ -132,16 +164,32 @@ namespace Raphael.Desktop.Services
         private void RegisterHandlers()
         {
             _connection.On<TripRoutedMessage>(
-                "TripRouted", m => TripRouted?.Invoke(this, m));
+                "TripRouted", m =>
+                {
+                    Trace($"<- TripRouted trip {m?.TripId} route {m?.VehicleRouteId} on {m?.Date:yyyy-MM-dd}");
+                    TripRouted?.Invoke(this, m);
+                });
 
             _connection.On<TripUnroutedMessage>(
-                "TripUnrouted", m => TripUnrouted?.Invoke(this, m));
+                "TripUnrouted", m =>
+                {
+                    Trace($"<- TripUnrouted trip {m?.TripId} route {m?.VehicleRouteId} on {m?.Date:yyyy-MM-dd}");
+                    TripUnrouted?.Invoke(this, m);
+                });
 
             _connection.On<RouteChangedMessage>(
-                "RouteChanged", m => RouteChanged?.Invoke(this, m));
+                "RouteChanged", m =>
+                {
+                    Trace($"<- RouteChanged route {m?.VehicleRouteId} on {m?.Date:yyyy-MM-dd}");
+                    RouteChanged?.Invoke(this, m);
+                });
 
             _connection.On<VehiclePositionMessage>(
-                "VehiclePosition", m => VehiclePosition?.Invoke(this, m));
+                "VehiclePosition", m =>
+                {
+                    Trace($"<- VehiclePosition route {m?.VehicleRouteId}");
+                    VehiclePosition?.Invoke(this, m);
+                });
         }
 
         private async Task RestoreWatchesAsync()
@@ -160,12 +208,21 @@ namespace Raphael.Desktop.Services
             try
             {
                 await _connection.InvokeCoreAsync(method, args);
+                Trace($"-> {method}({string.Join(", ", args)})");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[board] {method} failed: {ex.Message}");
+                Trace($"-> {method} FAILED: {ex.GetType().Name}: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// One prefix for the whole channel, so a single run can be read top to bottom in the
+        /// output window: what it connected to, what it asked to watch, and what arrived.
+        /// </summary>
+        [System.Diagnostics.Conditional("DEBUG")]
+        private static void Trace(string message) =>
+            System.Diagnostics.Debug.WriteLine($"[board] {message}");
 
         /// <summary>
         /// The day as the server names its groups. Invariant: a group name is an identifier, and
