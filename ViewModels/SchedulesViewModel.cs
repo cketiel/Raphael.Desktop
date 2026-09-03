@@ -220,6 +220,10 @@ namespace Raphael.Desktop.ViewModels
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
 
+            // The counter follows the collection rather than every place that touches it: rows
+            // leave from a reload, from a routing, and from a cancellation arriving over the hub.
+            UnscheduledTrips.CollectionChanged += (_, __) => UpdateUnscheduledSummary();
+
             InitializeColumns();
             //_ = InitializeAsync();
 
@@ -2229,6 +2233,25 @@ namespace Raphael.Desktop.ViewModels
         }
 
         #endregion
+
+        /// <summary>
+        /// How many trips are waiting for a route, and how many of those are Will Calls.
+        /// </summary>
+        /// <remarks>
+        /// The Will Call count is not decoration: those are the trips whose hour is not fixed
+        /// yet, so they are the part of the backlog that cannot simply be planned in order.
+        /// </remarks>
+        [ObservableProperty]
+        private string _unscheduledSummaryText = "0 trips";
+
+        private void UpdateUnscheduledSummary()
+        {
+            var total = UnscheduledTrips.Count;
+            var willCall = UnscheduledTrips.Count(t => t.WillCall);
+
+            var tripLabel = total == 1 ? "trip" : "trips";
+            UnscheduledSummaryText = $"{total} {tripLabel} ({willCall} will call)";
+        }
 
         private void UpdateRouteSummary()
         {

@@ -42,9 +42,63 @@
                                       NormalSpeedBrush="{StaticResource NormalSpeedBlueBrush}"
                                       SpeedingBrush="{StaticResource SpeedingBlueBrush}" />
         
+        <!-- ===== Action buttons in a grid row =====
+             Feedback that does not depend on the button template. MaterialDesignToolButton
+             paints its own hover, but inside a dense grid row it is too faint to tell the
+             dispatcher which of seven icons they are about to press — and pressing the wrong
+             one here cancels somebody's ride. Scale and cursor read on any template: the icon
+             grows under the pointer and presses in when held.
+
+             Focusable=false on purpose. The row, not the button, should keep keyboard focus,
+             and a button that takes focus makes the grid spend a click handing it over. -->
+        <Style x:Key="TripActionButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Opacity" Value="0.6"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="UnscheduledTripRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="4,0,0,0"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
             <Style.Triggers>
+                <!-- ⚠️ Hover and selection have to be declared here. The Background setter above
+                     is a style value, and the row template paints selection from a template
+                     trigger, which loses to it — which is why the dispatcher could not tell
+                     which trip they had selected. The accent bar on the left edge is what
+                     survives the row's own state colours further down. -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFEAF3F8"/>
+                    <Setter Property="BorderBrush" Value="#FFB8D6E4"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource MainBorderBrush}"/>
+                    <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
+                </Trigger>
+
                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
                     <Setter Property="Foreground" Value="Red" />
                     <Setter Property="ToolTip" Value="Canceled: Driver No-Show reported." />
@@ -150,7 +204,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="5"/>
+                        <RowDefinition Height="20"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -239,8 +293,30 @@
                                  The DataGrid scrolls itself. -->
                                 <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DropHandler="{Binding}">
                                     <DataGrid.RowStyle>
+                                        <!-- ⚠️ Trigger order in THIS list is what decides the row's
+                                             background, and the late-ETA ones are last on purpose.
+                                             CustomRowStyle, the base, paints selection and hover over
+                                             Background; a row that was late AND under the pointer, or
+                                             late AND selected, therefore lost its warning colour —
+                                             exactly when a dispatcher was looking at it. Hover and
+                                             selection are restated here, before the warning, so the
+                                             warning always wins and still darkens under the pointer.
+                                             Do not reorder. -->
                                         <Style TargetType="DataGridRow" BasedOn="{StaticResource CustomRowStyle}">
+                                            <Style.Resources>
+                                                <SolidColorBrush x:Key="EtaViolationBrush" Color="#FFFAA0A0"/>
+                                                <SolidColorBrush x:Key="EtaViolationActiveBrush" Color="#FFF07070"/>
+                                            </Style.Resources>
                                             <Style.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
+                                                </Trigger>
+
+                                                <!-- Late: the ETA is past the promised hour by more
+                                                     than the fifteen-minute window. -->
                                                 <DataTrigger Value="True">
                                                     <DataTrigger.Binding>
                                                         <MultiBinding Converter="{StaticResource EtaViolationConverter}">
@@ -250,9 +326,42 @@
                                                             <Binding Path="Appt" />
                                                         </MultiBinding>
                                                     </DataTrigger.Binding>
-                                                    <Setter Property="Background" Value="#FFFAA0A0" />
+                                                    <Setter Property="Background" Value="{StaticResource EtaViolationBrush}" />
                                                     <Setter Property="Foreground" Value="Black" />
                                                 </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Value="True">
+                                                            <Condition.Binding>
+                                                                <MultiBinding Converter="{StaticResource EtaViolationConverter}">
+                                                                    <Binding Path="EventType" />
+                                                                    <Binding Path="ETA" />
+                                                                    <Binding Path="Pickup" />
+                                                                    <Binding Path="Appt" />
+                                                                </MultiBinding>
+                                                            </Condition.Binding>
+                                                        </Condition>
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background" Value="{StaticResource EtaViolationActiveBrush}" />
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Value="True">
+                                                            <Condition.Binding>
+                                                                <MultiBinding Converter="{StaticResource EtaViolationConverter}">
+                                                                    <Binding Path="EventType" />
+                                                                    <Binding Path="ETA" />
+                                                                    <Binding Path="Pickup" />
+                                                                    <Binding Path="Appt" />
+                                                                </MultiBinding>
+                                                            </Condition.Binding>
+                                                        </Condition>
+                                                        <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background" Value="{StaticResource EtaViolationActiveBrush}" />
+                                                </MultiDataTrigger>
+
                                                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
                                                     <Setter Property="Foreground" Value="Red" />
                                                 </DataTrigger>
@@ -263,7 +372,7 @@
                                         <DataGridTemplateColumn Width="Auto">
                                             <DataGridTemplateColumn.HeaderTemplate>
                                                 <DataTemplate>
-                                                    <Button Command="{Binding DataContext.OpenColumnSelectorCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" Style="{StaticResource MaterialDesignToolButton}" ToolTip="{Binding Data.SelectFieldsToDisplayToolTip, Source={StaticResource vmProxy}}">
+                                                    <Button Command="{Binding DataContext.OpenColumnSelectorCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.SelectFieldsToDisplayToolTip, Source={StaticResource vmProxy}}">
                                                         <materialDesign:PackIcon Kind="Cog" Width="20" Height="20"/>
                                                     </Button>
                                                 </DataTemplate>
@@ -306,7 +415,7 @@
                                                                     ToolTip="{Binding Data.UnscheduleToolTip, Source={StaticResource vmProxy}}"
                                                                     Visibility="{Binding Performed, Converter={StaticResource InverseBoolToVis}}">
                                                                 <Button.Style>
-                                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
                                                                         <Style.Triggers>
 
                                                                             <DataTrigger Binding="{Binding Name}" Value="Pull-out">
@@ -328,7 +437,7 @@
                                                                 ToolTip="Un-arrive/perform">
                                                                 <Button.Style>
                                                                     <!-- We combine the base style with our visibility and state logic -->
-                                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                                    <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
                                                                         <!-- By default the button is hidden -->
                                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                                         <Style.Triggers>
@@ -778,7 +887,43 @@
                         </Grid>
                     </Grid>
 
-                    <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="LightGray" ShowsPreview="True"/>
+                    <!-- PLACEMENT B of the backlog counter: the divider itself, given a label.
+                         The divider is already the boundary between the route area and the trip
+                         area, so a caption on it reads as the title of what is underneath. It
+                         costs 15px of height rather than a whole new bar, stays put when the grid
+                         scrolls sideways, and is still readable when the dispatcher drags the
+                         divider down to give the map the screen.
+
+                         The splitter keeps its own drag behaviour: the template is only a
+                         background, a caption and a grip, and none of them handle the mouse. -->
+                    <GridSplitter Grid.Row="3" Height="20" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                  ShowsPreview="True" Background="Transparent" Cursor="SizeNS"
+                                  ToolTip="Drag to give more room to the route or to the trips">
+                        <GridSplitter.Template>
+                            <ControlTemplate TargetType="GridSplitter">
+                                <Border Background="{StaticResource HeaderBackgroundBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,1,0,1">
+                                    <Grid>
+                                        <TextBlock Text="{Binding UnscheduledSummaryText}"
+                                                   Margin="10,0,0,0"
+                                                   FontWeight="SemiBold" FontSize="11"
+                                                   Foreground="#333333"
+                                                   HorizontalAlignment="Left"
+                                                   VerticalAlignment="Center"/>
+                                        <!-- Grip: three dots, so the bar still reads as draggable
+                                             now that it carries text. -->
+                                        <StackPanel Orientation="Horizontal"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Ellipse Width="3" Height="3" Fill="#999999" Margin="2,0"/>
+                                            <Ellipse Width="3" Height="3" Fill="#999999" Margin="2,0"/>
+                                            <Ellipse Width="3" Height="3" Fill="#999999" Margin="2,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </ControlTemplate>
+                        </GridSplitter.Template>
+                    </GridSplitter>
 
                     <!-- Virtualisation on, all three axes. This grid holds the whole operating
                          day — 300 to 400 trips — with 24 columns and an action column of seven
@@ -790,31 +935,45 @@
                          recycled container can carry a running animation to whatever row it is
                          next used for. Standard still only builds the rows on screen — which is
                          the whole win — and builds a fresh container for each. -->
-                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
+                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" AlternatingRowBackground="White" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="165">
+                                <!-- PLACEMENT A of the backlog counter: the header of the action
+                                     column. Costs no vertical space and sits on top of the data it
+                                     counts, but it travels with the horizontal scroll. Shown next
+                                     to PLACEMENT B (the labelled divider above this grid) so the
+                                     two can be compared side by side before one is kept. -->
+                                <DataGridTemplateColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Data.UnscheduledSummaryText, Source={StaticResource vmProxy}}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="Trips with no route assigned, and how many of them are Will Call"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.HeaderTemplate>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                       <Grid>
                                         <StackPanel x:Name="ActionButtons" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0">
-                                            <Button Command="{Binding Data.CancelTripCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" VerticalAlignment="Center" ToolTip="{Binding Data.CancelTripToolTip, Source={StaticResource vmProxy}}">
+                                            <Button Command="{Binding Data.CancelTripCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource TripActionButtonStyle}" VerticalAlignment="Center" ToolTip="{Binding Data.CancelTripToolTip, Source={StaticResource vmProxy}}">
                                                 <Button.Visibility>
                                                     <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="NotCanceled" />
                                                 </Button.Visibility>
                                                 <materialDesign:PackIcon Kind="CloseThick" Foreground="Red" Width="20" Height="20" />
                                             </Button>
-                                            <Button Command="{Binding DataContext.UncancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" ToolTip="Uncancel trip">
+                                            <Button Command="{Binding DataContext.UncancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Style="{StaticResource TripActionButtonStyle}" ToolTip="Uncancel trip">
                                                 <Button.Visibility>
                                                     <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="Canceled" />
                                                 </Button.Visibility>
                                                 <materialDesign:PackIcon Kind="Restore" Foreground="Green" Width="20" Height="20" />
                                             </Button>
-                                            <Button Command="{Binding DataContext.EditTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" ToolTip="{Binding Data.EditTripToolTip, Source={StaticResource vmProxy}}">
+                                            <Button Command="{Binding DataContext.EditTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.EditTripToolTip, Source={StaticResource vmProxy}}">
                                                 <materialDesign:PackIcon Kind="FileEdit" Foreground="Orange"/>
                                             </Button>
                                             <Button Command="{Binding DataContext.RouteTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" ToolTip="{Binding Data.ScheduleTripToolTip, Source={StaticResource vmProxy}}">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                    <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Status}" Value="Canceled">
                                                                 <Setter Property="IsEnabled" Value="False" />
@@ -835,7 +994,7 @@
                                                     VerticalAlignment="Center"
                                                     ToolTip="{Binding Data.ActivateWillCallToolTip, Source={StaticResource vmProxy}}">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                    <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <MultiDataTrigger>
@@ -856,7 +1015,7 @@
                                                     VerticalAlignment="Center"
                                                     ToolTip="{Binding Data.RevertWillCallToolTip, Source={StaticResource vmProxy}}">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+                                                    <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                         <Style.Triggers>
                                                             <MultiDataTrigger>
@@ -874,7 +1033,7 @@
 
                                             <Button Command="{Binding Data.ShowHistoryCommand, Source={StaticResource vmProxy}}"
                                                 CommandParameter="{Binding}"
-                                                Style="{StaticResource MaterialDesignToolButton}"
+                                                Style="{StaticResource TripActionButtonStyle}"
                                                 ToolTip="Change History">
                                                 <materialDesign:PackIcon Kind="History" Foreground="Blue" Width="20" Height="20" />
                                             </Button>
