@@ -13,12 +13,15 @@ Target: `net8.0-windows`
 - Auth: **JWT** → `Services/AuthService.cs`
 - Cliente HTTP: `Services/ApiClientFactory.cs`
 - Config: `appsettings.json`
-- DTOs espejo: `DTOs/` (23) — **copias manuales** de `Raphael.Backend/Raphael.Shared/DTOs/`
+- DTOs espejo: `DTOs/` (25) — **copias manuales** de `Raphael.Backend/Raphael.Shared/DTOs/`
 
-⚠️ **Drift abierto:** `DTOs/ScheduleDto.cs` tiene **28 propiedades**, el backend expone **36**.
-Faltan `CustomerId, CustomerPhone, Distance, ETA, On, Sequence, Travel, VehicleRouteId`. Cualquier
-pantalla que muestre schedule/ruta está ciega a esos campos aunque la API ya los devuelva. Antes de
-construir sobre `ScheduleDto`, sanear el DTO. Ver `../_meta/CONTRACT_MAP.md`.
+⚠️ **Drift abierto (menor):** `DTOs/ScheduleDto.cs` tiene **33 propiedades**, el backend expone **36**.
+Faltan `CustomerId, CustomerPhone, VehicleRouteId`. Ninguna pantalla las pinta hoy.
+Hasta RE-008 aquí ponía que faltaban 8: cinco de ellas ya estaban. Ver `../_meta/CONTRACT_MAP.md`.
+
+⚠️ **La pestaña Schedule tiene doctrina propia:** `../_meta/REALTIME_POLICY.md`. Su canal en vivo
+(`/hubs/dispatch`) **no es el de notificaciones** y no persiste nada. Antes de mandar algo por ahí,
+o de convertirlo en notificación, lee §3 de ese documento.
 
 `DTOs/ProblemDetails.cs` es local (envelope RFC 7807), no tiene ni necesita contraparte en backend.
 
