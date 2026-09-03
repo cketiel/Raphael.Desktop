@@ -844,12 +844,19 @@
 
                             <Canvas>
                               
-                                <Grid Visibility="{Binding DriverLastKnownLocation, Converter={StaticResource NullToVis}}">
+                                <!-- Bound to the DRAWN position, not the reported one. The driver's
+                                     app reports about every thirty seconds; drawn straight from
+                                     each report the vehicle stands still and then teleports,
+                                     which reads as a broken map. The view model interpolates
+                                     between reports and these two follow that. The tooltip and
+                                     the speed colour below stay on DriverLastKnownLocation,
+                                     because those must say what the driver actually sent. -->
+                                <Grid Visibility="{Binding HasVehiclePosition, Converter={StaticResource BoolToVis}}">
                                     <Canvas.Left>
                                         <MultiBinding Converter="{StaticResource LocationToPointConverter}">
                                             <Binding ElementName="MapView"/>
-                                            <Binding Path="DriverLastKnownLocation.Latitude"/>
-                                            <Binding Path="DriverLastKnownLocation.Longitude"/>
+                                            <Binding Path="VehicleDisplayLatitude"/>
+                                            <Binding Path="VehicleDisplayLongitude"/>
                                             <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
                                             <Binding Path="Zoom" ElementName="MapView"/>
                                             <Binding Path="Position" ElementName="MapView"/>
@@ -858,44 +865,24 @@
                                     <Canvas.Top>
                                         <MultiBinding Converter="{StaticResource LocationToPointConverter}" ConverterParameter="Y">
                                             <Binding ElementName="MapView"/>
-                                            <Binding Path="DriverLastKnownLocation.Latitude"/>
-                                            <Binding Path="DriverLastKnownLocation.Longitude"/>
+                                            <Binding Path="VehicleDisplayLatitude"/>
+                                            <Binding Path="VehicleDisplayLongitude"/>
                                             <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
                                             <Binding Path="Zoom" ElementName="MapView"/>
                                             <Binding Path="Position" ElementName="MapView"/>
                                         </MultiBinding>
                                     </Canvas.Top>
 
-                                    <!-- Contenedor del Marcador con Estilo para Rotación Condicional -->
+                                    <!-- Rotation follows VehicleHeading, which the view model turns
+                                         through the shorter way round: a vehicle correcting ten
+                                         degrees must not spin three hundred and fifty. A stopped
+                                         vehicle is left pointing where it last drove rather than
+                                         snapped to north, because a van parked facing south is
+                                         still facing south. -->
                                     <Grid RenderTransformOrigin="0.5, 0.5">
-                                        <Grid.Style>
-                                            <Style TargetType="Grid">
-                                                <!-- Por defecto: Rotar según la dirección -->
-                                                <Setter Property="RenderTransform">
-                                                    <Setter.Value>
-                                                        <RotateTransform Angle="{Binding DriverLastKnownLocation.Direction, Converter={StaticResource DirectionToAngleConverter}}" />
-                                                    </Setter.Value>
-                                                </Setter>
-                                                <Style.Triggers>
-                                                    <!-- Si la dirección es N/A (parado), forzamos rotación 0 para que el Stop no salga girado -->
-                                                    <DataTrigger Binding="{Binding DriverLastKnownLocation.Direction}" Value="N/A">
-                                                        <Setter Property="RenderTransform">
-                                                            <Setter.Value>
-                                                                <RotateTransform Angle="0"/>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </DataTrigger>
-                                                   
-                                                    <DataTrigger Binding="{Binding DriverLastKnownLocation.Speed}" Value="0">
-                                                        <Setter Property="RenderTransform">
-                                                            <Setter.Value>
-                                                                <RotateTransform Angle="0"/>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Grid.Style>
+                                        <Grid.RenderTransform>
+                                            <RotateTransform Angle="{Binding VehicleHeading}"/>
+                                        </Grid.RenderTransform>
 
                                         <!-- El visual del marcador (Círculo + Icono) -->
                                         <Grid x:Name="DriverMarkerVisual" Width="28" Height="28">
@@ -934,11 +921,16 @@
                      Stroke="White" 
                      StrokeThickness="2"/>
 
-                                            <!-- Icono que cambia entre Flecha y Stop -->
+                                            <!-- A vehicle seen from above, so the marker reads as the
+                                                 van it represents and its rotation means something.
+                                                 An arrow only says "that way"; a car says which way
+                                                 the van is facing, which is what a dispatcher is
+                                                 actually looking for. A stopped one shows the stop
+                                                 sign, as before. -->
                                             <materialDesign:PackIcon Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White">
                                                 <materialDesign:PackIcon.Style>
                                                     <Style TargetType="materialDesign:PackIcon">
-                                                        <Setter Property="Kind" Value="ArrowUp"/>
+                                                        <Setter Property="Kind" Value="CarSide"/>
                                                         <Style.Triggers>
                                                             <!-- Si la dirección es N/A, mostrar Stop -->
                                                             <DataTrigger Binding="{Binding DriverLastKnownLocation.Direction}" Value="N/A">

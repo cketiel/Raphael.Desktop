@@ -228,6 +228,7 @@ namespace Raphael.Desktop.ViewModels
             //_ = InitializeAsync();
 
             AttachNotifications(notificationService);
+            AttachBoard(new DispatchBoardService());
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)
@@ -437,6 +438,10 @@ namespace Raphael.Desktop.ViewModels
                 {
                     await LoadSchedulesAndTripsAsync();
                 }
+
+                // Now that the screen knows which day and which route it is showing, it can say
+                // so and start being told what the others do to them.
+                UpdateBoardWatches();
 
                 // After the initial loading, we check if a recalculation is needed.
                 await CheckForPendingRecalculation();
@@ -1456,6 +1461,9 @@ namespace Raphael.Desktop.ViewModels
         // Observe changes to automatically refresh data
         partial void OnSelectedDateChanged(DateTime value)
         {
+            // The board follows the screen: a dispatcher working Tuesday is not sent Wednesday.
+            UpdateBoardWatches();
+
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
                 _ = LoadSchedulesAndTripsAsync();
@@ -1466,6 +1474,14 @@ namespace Raphael.Desktop.ViewModels
 
         partial void OnSelectedVehicleRouteChanged(VehicleRoute value)
         {
+            // A different route means a different vehicle to follow, so the one on the map is
+            // forgotten rather than left sitting where the previous one was.
+            StopVehicleAnimator();
+            HasVehiclePosition = false;
+            _lastVehicleReportUtc = null;
+
+            UpdateBoardWatches();
+
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
                 _ = LoadSchedulesAsync(); // no es necesario volver a cargar los viajes
@@ -2492,6 +2508,349 @@ namespace Raphael.Desktop.ViewModels
             _notifications.NotificationReceived += OnNotificationReceived;
         }
 
+        #endregion
+
+        #region The board: what the other dispatchers are doing
+
+        private IDispatchBoardService _board;
+
+        /// <summary>
+        /// Starts listening to the live board and follows what this screen is looking at.
+        /// </summary>
+        private void AttachBoard(IDispatchBoardService board)
+        {
+            if (board is null) return;
+
+            _board = board;
+
+            _board.TripRouted += OnBoardTripRouted;
+            _board.TripUnrouted += OnBoardTripUnrouted;
+            _board.RouteChanged += OnBoardRouteChanged;
+            _board.VehiclePosition += OnBoardVehiclePosition;
+
+            _ = _board.StartAsync();
+        }
+
+        /// <summary>
+        /// Tells the server which day and which route this screen is showing, so it is only sent
+        /// what it can act on.
+        /// </summary>
+        private void UpdateBoardWatches()
+        {
+            if (_board is null) return;
+
+            _ = _board.WatchDayAsync(SelectedDate);
+
+            if (SelectedVehicleRoute != null)
+                _ = _board.WatchRouteAsync(SelectedVehicleRoute.Id, SelectedDate);
+        }
+
+        /// <summary>
+        /// Stops listening. Called when the tab is really closed, for the same reason as
+        /// <see cref="ReleaseNotifications"/>: a tab switch is not a close.
+        /// </summary>
+        private void ReleaseBoard()
+        {
+            if (_board is null) return;
+
+            _board.TripRouted -= OnBoardTripRouted;
+            _board.TripUnrouted -= OnBoardTripUnrouted;
+            _board.RouteChanged -= OnBoardRouteChanged;
+            _board.VehiclePosition -= OnBoardVehiclePosition;
+
+            _ = _board.StopAsync();
+            _board = null;
+        }
+
+        private void OnBoardTripRouted(object sender, TripRoutedMessage message)
+        {
+            if (message is null || message.Date.Date != SelectedDate.Date) return;
+
+            // Another dispatcher took it. The row is an offer to route a trip, and that trip is
+            // on a vehicle now, so the offer has to go — quietly and without a reload: nobody
+            // needs telling, they need the list to be true.
+            OnUiThread(() => RemoveUnscheduledTrip(message.TripId));
+        }
+
+        private void OnBoardTripUnrouted(object sender, TripUnroutedMessage message)
+        {
+            if (message is null || message.Date.Date != SelectedDate.Date) return;
+
+            // It is waiting again, and this screen never had it in the backlog. The only honest
+            // way to show it is to ask the server for the day's list.
+            OnUiThread(() => _ = ReloadUnscheduledTripsAsync());
+        }
+
+        private void OnBoardRouteChanged(object sender, RouteChangedMessage message)
+        {
+            if (message is null) return;
+            if (SelectedVehicleRoute == null || message.VehicleRouteId != SelectedVehicleRoute.Id) return;
+            if (message.Date.Date != SelectedDate.Date) return;
+
+            // ⚠️ Not while this dispatcher is mid-operation. Reloading the route under someone
+            // who is dragging a stop would move the ground beneath them, and their own save is
+            // about to arrive anyway.
+            if (_isRecalculating || _isDataLoading || IsBusy) return;
+
+            OnUiThread(() => _ = LoadSchedulesAsync());
+        }
+
+        private void OnBoardVehiclePosition(object sender, VehiclePositionMessage message)
+        {
+            if (message is null) return;
+            if (SelectedVehicleRoute == null || message.VehicleRouteId != SelectedVehicleRoute.Id) return;
+
+            OnUiThread(() => ApplyVehiclePosition(message));
+        }
+
+        /// <summary>
+        /// Runs the action on the interface thread. Hub callbacks arrive on a background one and
+        /// everything they touch here is bound to a grid or a map.
+        /// </summary>
+        private static void OnUiThread(Action action)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher is null) return;
+
+            if (dispatcher.CheckAccess()) action();
+            else dispatcher.BeginInvoke(action);
+        }
+
+        /// <summary>
+        /// Takes a trip out of the backlog without a word, for when it is no longer on offer.
+        /// </summary>
+        /// <remarks>
+        /// Distinct from <see cref="RetireCancelledTrip"/>, which marks the row and lets it
+        /// leave with an animation. A cancellation is news the dispatcher has to notice; a trip
+        /// routed by a colleague is not, and drawing attention to each one would turn a busy
+        /// morning into a light show.
+        /// </remarks>
+        private void RemoveUnscheduledTrip(int tripId)
+        {
+            var row = UnscheduledTrips.FirstOrDefault(t => t.Id == tripId);
+            if (row is null) return;
+
+            if (SelectedUnscheduledTrip == row)
+            {
+                SelectedUnscheduledTrip = null;
+            }
+
+            UnscheduledTrips.Remove(row);
+        }
+
+        /// <summary>
+        /// Reloads only the backlog, leaving the route on screen and the map alone.
+        /// </summary>
+        private async Task ReloadUnscheduledTripsAsync()
+        {
+            if (_isDataLoading) return;
+
+            try
+            {
+                var trips = await _scheduleService.GetUnscheduledTripsAsync(SelectedDate);
+                var selectedId = SelectedUnscheduledTrip?.Id;
+
+                UnscheduledTrips.ReplaceAll(trips.Where(t => t.IsCanceled != true));
+
+                if (selectedId.HasValue)
+                {
+                    SelectedUnscheduledTrip =
+                        UnscheduledTrips.FirstOrDefault(t => t.Id == selectedId.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent on purpose: this is a background correction, not something the
+                // dispatcher asked for. A modal here would interrupt them over nothing.
+                System.Diagnostics.Debug.WriteLine($"[board] backlog reload failed: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region The vehicle on the map
+
+        /// <summary>
+        /// Where the vehicle is drawn right now — not where it last reported.
+        /// </summary>
+        /// <remarks>
+        /// The driver's app reports about every thirty seconds. Drawn straight from each report,
+        /// the vehicle stands still for half a minute and then teleports, which reads as a
+        /// broken map rather than a moving van. These two carry the interpolated position and
+        /// are what the marker binds to; <c>DriverLastKnownLocation</c> stays as the last thing
+        /// actually reported.
+        /// </remarks>
+        [ObservableProperty]
+        private double _vehicleDisplayLatitude;
+
+        [ObservableProperty]
+        private double _vehicleDisplayLongitude;
+
+        /// <summary>Where the vehicle is pointing, in degrees, so the car icon faces its road.</summary>
+        [ObservableProperty]
+        private double _vehicleHeading;
+
+        [ObservableProperty]
+        private bool _hasVehiclePosition;
+
+        // The interpolation in flight.
+        private DispatcherTimer _vehicleAnimator;
+        private DateTime _vehicleAnimStartedUtc;
+        private TimeSpan _vehicleAnimDuration;
+        private double _vehicleFromLat, _vehicleFromLng, _vehicleFromHeading;
+        private double _vehicleToLat, _vehicleToLng, _vehicleToHeading;
+        private DateTime? _lastVehicleReportUtc;
+
+        /// <summary>How long a step is allowed to take when the reports are irregular.</summary>
+        private static readonly TimeSpan MinVehicleStep = TimeSpan.FromSeconds(3);
+        private static readonly TimeSpan MaxVehicleStep = TimeSpan.FromSeconds(35);
+
+        /// <summary>
+        /// Movement below this is the GPS talking, not the vehicle: about eleven metres, the
+        /// same precision the routing cache rounds coordinates to.
+        /// </summary>
+        private const double GpsNoiseDegrees = 0.0001;
+
+        private void ApplyVehiclePosition(VehiclePositionMessage message)
+        {
+            var heading = HeadingFromDirection(message.Direction);
+
+            // The last thing actually reported, kept apart from the drawn position: the tooltip
+            // and the speed colour must say what the driver sent, not where the animation has
+            // got to halfway between two reports.
+            DriverLastKnownLocation = new GpsDataDto
+            {
+                IdVehicleRoute = message.VehicleRouteId,
+                Latitude = message.Latitude,
+                Longitude = message.Longitude,
+                Speed = message.Speed,
+                Direction = message.Direction,
+                DateTime = message.AtUtc.ToLocalTime()
+            };
+
+            if (!HasVehiclePosition)
+            {
+                // First fix of the session: place it, do not fly it in from the middle of nowhere.
+                VehicleDisplayLatitude = message.Latitude;
+                VehicleDisplayLongitude = message.Longitude;
+                VehicleHeading = heading;
+                HasVehiclePosition = true;
+                _lastVehicleReportUtc = message.AtUtc;
+                return;
+            }
+
+            // The step lasts as long as the gap between this report and the last one really was.
+            // A fixed thirty seconds would make the vehicle sprint whenever a report arrived
+            // late and crawl whenever two arrived close together.
+            var gap = _lastVehicleReportUtc.HasValue
+                ? message.AtUtc - _lastVehicleReportUtc.Value
+                : MaxVehicleStep;
+
+            _lastVehicleReportUtc = message.AtUtc;
+
+            if (Math.Abs(message.Latitude - VehicleDisplayLatitude) < GpsNoiseDegrees &&
+                Math.Abs(message.Longitude - VehicleDisplayLongitude) < GpsNoiseDegrees)
+            {
+                // Parked, or drifting on the spot. Animating this would make a stationary
+                // vehicle appear to twitch all shift.
+                VehicleHeading = heading;
+                return;
+            }
+
+            _vehicleFromLat = VehicleDisplayLatitude;
+            _vehicleFromLng = VehicleDisplayLongitude;
+            _vehicleFromHeading = VehicleHeading;
+
+            _vehicleToLat = message.Latitude;
+            _vehicleToLng = message.Longitude;
+            _vehicleToHeading = ShortestTurnTarget(VehicleHeading, heading);
+
+            _vehicleAnimStartedUtc = DateTime.UtcNow;
+            _vehicleAnimDuration = Clamp(gap, MinVehicleStep, MaxVehicleStep);
+
+            StartVehicleAnimator();
+        }
+
+        private void StartVehicleAnimator()
+        {
+            if (_vehicleAnimator == null)
+            {
+                // Ten frames a second. A vehicle crosses a few pixels in half a minute at any
+                // useful zoom, so this is smooth to the eye and a rounding error next to the
+                // five-second full refresh it replaces.
+                _vehicleAnimator = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100)
+                };
+                _vehicleAnimator.Tick += OnVehicleAnimatorTick;
+            }
+
+            _vehicleAnimator.Start();
+        }
+
+        private void OnVehicleAnimatorTick(object sender, EventArgs e)
+        {
+            var elapsed = DateTime.UtcNow - _vehicleAnimStartedUtc;
+            var t = _vehicleAnimDuration <= TimeSpan.Zero
+                ? 1.0
+                : Math.Min(1.0, elapsed.TotalMilliseconds / _vehicleAnimDuration.TotalMilliseconds);
+
+            VehicleDisplayLatitude = _vehicleFromLat + ((_vehicleToLat - _vehicleFromLat) * t);
+            VehicleDisplayLongitude = _vehicleFromLng + ((_vehicleToLng - _vehicleFromLng) * t);
+
+            // The turn is given a quarter of the step: a vehicle changes heading at a corner,
+            // it does not rotate slowly along a straight road.
+            var turn = Math.Min(1.0, t * 4);
+            VehicleHeading = _vehicleFromHeading + ((_vehicleToHeading - _vehicleFromHeading) * turn);
+
+            if (t >= 1.0)
+            {
+                _vehicleAnimator.Stop();
+
+                // Normalised once the turn is over, so the angle does not wander past a full
+                // circle over a shift of left turns.
+                VehicleHeading = ((VehicleHeading % 360) + 360) % 360;
+            }
+
+            InvalidateMapMarkers();
+        }
+
+        /// <summary>
+        /// The equivalent of <paramref name="target"/> reached by the shorter way round, so a
+        /// vehicle correcting ten degrees does not spin three hundred and fifty.
+        /// </summary>
+        private static double ShortestTurnTarget(double current, double target)
+        {
+            var difference = ((target - current) % 360 + 540) % 360 - 180;
+            return current + difference;
+        }
+
+        private static double HeadingFromDirection(string direction) =>
+            _directionConverter.Convert(direction, typeof(double), null, System.Globalization.CultureInfo.InvariantCulture)
+                is double angle
+                ? angle
+                : 0.0;
+
+        // The same table the map marker already used. Reused rather than repeated: two copies of
+        // a compass would eventually disagree.
+        private static readonly Converters.DirectionToAngleConverter _directionConverter = new();
+
+        private static TimeSpan Clamp(TimeSpan value, TimeSpan min, TimeSpan max) =>
+            value < min ? min : value > max ? max : value;
+
+        private void StopVehicleAnimator()
+        {
+            if (_vehicleAnimator == null) return;
+
+            _vehicleAnimator.Stop();
+            _vehicleAnimator.Tick -= OnVehicleAnimatorTick;
+            _vehicleAnimator = null;
+        }
+
+        #endregion
+
+        #region Cancelled while the dispatcher was looking (continued)
+
         /// <summary>
         /// Stops listening. Called when the tab is really closed, never on a tab switch.
         /// </summary>
@@ -2514,6 +2873,11 @@ namespace Raphael.Desktop.ViewModels
                 timer.Stop();
 
             _departureTimers.Clear();
+
+            // The board goes with them, and for the same reason: this runs on a real tab close,
+            // never on a tab switch.
+            ReleaseBoard();
+            StopVehicleAnimator();
         }
 
         private void OnNotificationReceived(object sender, NotificationDto notification)
@@ -2521,27 +2885,55 @@ namespace Raphael.Desktop.ViewModels
             if (notification is null)
                 return;
 
-            if (!string.Equals(
-                    notification.BusinessEventCode,
-                    NotificationKeys.Events.TripCancelled,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
             if (!NotificationKeys.TryGetTripId(notification, out var tripId))
                 return;
 
-            // Arrives on the SignalR thread; the grid lives on the interface one.
-            var dispatcher = Application.Current?.Dispatcher;
+            var code = notification.BusinessEventCode;
 
-            if (dispatcher is null)
+            if (string.Equals(code, NotificationKeys.Events.TripCancelled, StringComparison.OrdinalIgnoreCase))
+            {
+                // Arrives on the SignalR thread; the grid lives on the interface one.
+                OnUiThread(() => RetireCancelledTrip(tripId));
                 return;
+            }
 
-            if (dispatcher.CheckAccess())
-                RetireCancelledTrip(tripId);
-            else
-                dispatcher.BeginInvoke(new Action(() => RetireCancelledTrip(tripId)));
+            // ===== The driver's flags =====
+            //
+            // ⚠️ No new notifications were invented for these. The three events already exist,
+            // are already published, and already reach this application over the inbox hub —
+            // they were simply not being listened to here. Adding events for them would have
+            // meant a second copy of the same fact and a retention policy to go with it.
+            //
+            // The route grid shows the driver's progress: a stop turns green when they arrive
+            // and purple when they perform it. Until now that only appeared after a reload, so
+            // a dispatcher watching a route saw nothing happen for minutes at a time.
+            if (string.Equals(code, NotificationKeys.Events.DriverArrivedPickup, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(code, NotificationKeys.Events.DriverPickedUpPassenger, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(code, NotificationKeys.Events.DriverCompletedTrip, StringComparison.OrdinalIgnoreCase))
+            {
+                OnUiThread(() => RefreshRouteForTrip(tripId));
+            }
+        }
+
+        /// <summary>
+        /// Reloads the route on screen when its driver has just reached or performed a stop.
+        /// </summary>
+        /// <remarks>
+        /// The route is refetched rather than patched in place, deliberately. The message
+        /// carries the trip and nothing else — no hour, no distance, no odometer — and those
+        /// columns are read as measured facts. Writing a guess into them would be worse than
+        /// showing nothing, so the one true source is asked. It is a single indexed query, and
+        /// it only happens when the driver of the route this dispatcher is watching does
+        /// something: a handful of times an hour, not on a timer.
+        ///
+        /// A message about any other route belongs to whoever has that one open.
+        /// </remarks>
+        private void RefreshRouteForTrip(int tripId)
+        {
+            if (Schedules.All(s => s.TripId != tripId)) return;
+            if (_isRecalculating || _isDataLoading || IsBusy) return;
+
+            _ = LoadSchedulesAsync();
         }
 
         /// <summary>
