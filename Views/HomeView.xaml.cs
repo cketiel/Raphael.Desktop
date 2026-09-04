@@ -1007,12 +1007,10 @@ namespace Raphael.Desktop.Views
                         MessageBox.Show($"Error reading CSV file: {readEx.Message}", "Read Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         return; // Exit if reading fails
                     }
-                    finally
-                    {
-                        // Always reactivate the button and hide progress if something fails in reading or at the end
-                        SelectCsvButton.IsEnabled = true;
-                        // Don't hide ProgressPanel yet, we will do it after mapping
-                    }
+                    // ⚠️ The button used to be re-enabled here, before the import had even begun,
+                    // so a second file could be started on top of the first. Two imports at once
+                    // are two bursts at once, which is the thing this whole path exists to avoid.
+                    // The outer finally re-enables it, and it runs on every exit from here.
 
 
                     if (records == null || !records.Any())
@@ -1025,26 +1023,13 @@ namespace Raphael.Desktop.Views
                     ImportProgressBar.Maximum = records.Count; // Update the maximum value of the progress bar.
                     ProgressText.Text = $"Processing 0 of {records.Count} trips...";
 
-                    // Map logs in parallel with SemaphoreSlim and progress 
+                    // Sequential from here on: one request per chunk, never several at once.
+                    // The concurrency this replaced is what the shared host read as an attack.
+                    // See Services/TripImportService.cs.
                     if (DataContext is HomeViewModel vm)
                     {
-                        GoogleMapsService googleMapsService = new GoogleMapsService();
-                        ISpaceTypeService spaceTypeService = new SpaceTypeService();
-                        ICapacityTypeService capacityTypeService = new CapacityTypeService();
-                        ICustomerService customerService = new CustomerService();
-                        IFundingSourceService fundingSourceService = new FundingSourceService();
-                        TripService tripService = new TripService();
-                       
-                        var mapper = new CsvTripMapper(
-                            vm.Trips, vm.SpaceTypes, vm.CapacityTypes, vm.Customers, vm.FundingSources,
-                            googleMapsService, spaceTypeService, capacityTypeService,
-                            customerService, fundingSourceService, tripService
-                        );
-
                         FundingSource importSelectedFundingSource = vm.SelectedFundingSourceImport;
-                        // fundingSourceName = "SAFERIDE"; 
                         bool selectedFileIsSaferide = isSaferide;
-                        //bool selectedFundingSourceIsSaferide = string.Equals(importSelectedFundingSource.Name, "SAFERIDE", StringComparison.OrdinalIgnoreCase);
 
                         // para los casos de "SAFERIDE MILANES" Y "SAFERIDE YAMIGROUP"
                         bool selectedFundingSourceIsSaferide = importSelectedFundingSource.Name?.StartsWith("SAFERIDE", StringComparison.OrdinalIgnoreCase) ?? false;
@@ -1054,105 +1039,65 @@ namespace Raphael.Desktop.Views
                         {
                             ShowInconsistencyMessage();
                         }
-                        else 
+                        else
                         {
-                            List<CsvTripRawModel> errorTrips = new List<CsvTripRawModel>();
-                            // If the FundingSource is SAFERIDE, the number of concurrent threads must be limited because it does not have the Coordinates and many requests cannot be made to the Google Maps API
-                            // SAFERIDE = 5
-                            // Ride2md = 10
-                            int maxConcurrentTasks = selectedFileIsSaferide ? 5 : 10; // Here configure the maximum number of simultaneous processes. Keep in mind that The free Google Maps Api option only allows (50 requests per second, 3000 per minute) and each trip makes 2 calls: pickupAddress and dropoffAddress.
-                            using var semaphore = new SemaphoreSlim(maxConcurrentTasks, maxConcurrentTasks);
+                            // The mapper is built with the collections it has always taken, but the
+                            // import path uses only its pure mapping: no lookups, no inserts.
+                            var mapper = new CsvTripMapper(
+                                vm.Trips, vm.SpaceTypes, vm.CapacityTypes, vm.Customers, vm.FundingSources,
+                                new GoogleMapsService(), new SpaceTypeService(), new CapacityTypeService(),
+                                new CustomerService(), new FundingSourceService(), new TripService()
+                            );
 
-                            var mappedTrips = new List<TripReadDto>(records.Count);
-                            var mappingTasks = new List<Task>();
-                            int processedCount = 0;
+                            var importService = new TripImportService();
 
-                            // Set up the progress reporter
-                            var progressReporter = new Progress<int>(processed =>
+                            var progressReporter = new Progress<TripImportProgress>(p =>
                             {
-                                ImportProgressBar.Value = processed;
-                                ProgressText.Text = $"Processing {processed} of {records.Count} trips...";
+                                ImportProgressBar.Maximum = p.Total <= 0 ? 1 : p.Total;
+                                ImportProgressBar.Value = p.Completed;
+                                ProgressText.Text = p.Stage == "Geocoding"
+                                    ? $"Locating {p.Completed} of {p.Total} addresses..."
+                                    : $"Importing {p.Completed} of {p.Total} trips...";
                             });
 
-                            int count = 0;
-                            foreach (var record in records)
-                            {
-                                await semaphore.WaitAsync(); // Wait for a slot
+                            var outcome = await importService.ImportAsync(
+                                records,
+                                importSelectedFundingSource,
+                                selectedFileIsSaferide,
+                                csvType,
+                                mapper,
+                                progressReporter);
 
-                                var task = Task.Run(async () => // Use Task.Run to not block the SelectCsv_Click loop
-                                {
-                                    try 
-                                    {
-                                        
-                                        var trip = await mapper.MapToTripAsync(record, importSelectedFundingSource, selectedFileIsSaferide, csvType);
-                                        lock (mappedTrips) // Synchronize access to the shared list
-                                        {
-                                            mappedTrips.Add(trip);
-                                        }
-                                        Interlocked.Increment(ref processedCount); // Atomic increase
-                                        ((IProgress<int>)progressReporter).Report(processedCount);
-                                        count = processedCount;
-                                    }
-                                    catch (Exception taskEx)
-                                    {
-                                        // Handle errors per task individually if necessary
-                                        // For example, log the error and continue
-                                        Debug.WriteLine($"Error mapping record: {taskEx.Message}");
-                                        // Optionally, you can add this error to a list of errors to display at the end
-                                        errorTrips.Add(record);
-                                    }
-                                    finally
-                                    {
-                                        semaphore.Release(); // Release the slot
-                                    }
-                                });
-                                mappingTasks.Add(task);
+                            PreviewGrid.ItemsSource = outcome.Rows;
+
+                            // The number of requests is the whole point of this change, so it is
+                            // said out loud. An import that starts costing thousands again is a
+                            // regression nobody would notice until the host blocks us.
+                            Debug.WriteLine($"Trip import: {records.Count} rows in {outcome.RequestCount} requests.");
+
+                            MessageBox.Show(
+                                $"{outcome.StoredCount} trips imported ({outcome.CreatedCount} new, {outcome.UpdatedCount} updated) using {outcome.RequestCount} server requests.",
+                                "Process Completed", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            if (outcome.FailedCount > 0)
+                            {
+                                MessageBox.Show(
+                                    $"{outcome.FailedCount} trips were not imported. TripIds: {string.Join(", ", outcome.FailedTripIds)}."
+                                    + Environment.NewLine + Environment.NewLine
+                                    + "The reason for each one is in the Status and Reason columns of the preview below. Correct them in the file and import it again.",
+                                    "Trips not imported", MessageBoxButton.OK, MessageBoxImage.Warning);
                             }
 
-                            // Wait for all mapping tasks to complete
-                            await Task.WhenAll(mappingTasks);
-
-                            string errorTripIdList = ""; // string.Join(", ", mappedTrips.Select(t => t.Id));
-                            // Resolving the concurrency error
-                            // Try to insert the trips that gave a concurrency error when inserting the customer.
-                            foreach (var et in errorTrips) 
+                            if (outcome.Aborted)
                             {
-                                try
-                                {
-                                    var trip = await mapper.MapToTripAsync(et, importSelectedFundingSource, selectedFileIsSaferide, csvType);
-                                    mappedTrips.Add(trip);
-                                    count++;
-                                    ((IProgress<int>)progressReporter).Report(count);
-                                }
-                                catch (Exception ex)
-                                {
-                                    errorTripIdList = errorTripIdList + et.RideId + ", ";
-                                    Debug.WriteLine($"Error mapping record: {ex.Message}");
-                                }
-                                
+                                MessageBox.Show(
+                                    "The import stopped before the end of the file: " + outcome.AbortReason
+                                    + Environment.NewLine + Environment.NewLine
+                                    + "Wait a couple of minutes and import the SAME whole file again. That is safe and it is the fix: "
+                                    + "a trip that already went in is updated, never duplicated.",
+                                    "Import stopped", MessageBoxButton.OK, MessageBoxImage.Warning);
                             }
-
-                            AssignTripTypes(mappedTrips);
-                           
-                            var updatePayload = mappedTrips.Select(t => new TripTypeUpdateDto
-                            {
-                                Id = t.Id,
-                                Type = t.Type
-                            }).ToList();
-
-                            await tripService.UpdateTripTypeAsync(updatePayload);
-
-                            //PreviewGrid.ItemsSource = new ObservableCollection<Trip>(mappedTrips); // Use ObservableCollection if the UI needs to be updated dynamically
-                            PreviewGrid.ItemsSource = mappedTrips;
-
-                            // Variant of saving all trips in a single request to the API
-                            //await tripService.CreateTripsAsync(mappedTrips); 
-                            MessageBox.Show($"{mappedTrips.Count} Trips processed and ready to preview.", "Process Completed", MessageBoxButton.OK, MessageBoxImage.Information);
-                            if(errorTrips.Count  > 0) 
-                                MessageBox.Show($"{errorTripIdList} Lista de ids de trips sin importar.", "Process Completed", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
-
-                        
                     }
                     else
                     {
@@ -1173,38 +1118,6 @@ namespace Raphael.Desktop.Views
             }
         }
 
-        public void AssignTripTypes(List<TripReadDto> trips)
-        {
-            // Agrupamos por cliente para analizar sus viajes del día
-            var tripsByCustomer = trips.GroupBy(t => t.CustomerId);
-
-            foreach (var group in tripsByCustomer)
-            {
-                var customerTrips = group.OrderBy(t => t.FromTime).ToList();
-
-                if (customerTrips.Count == 1)
-                {
-                    var trip = customerTrips.First();
-                    // Regla: Si es único y WillCall es true, es Return. Si no, Appointment.
-                    trip.Type = trip.WillCall ? "Return" : "Appointment";
-                }
-                else if (customerTrips.Count >= 2)
-                {
-                    // El primero (más temprano) es Appointment
-                    customerTrips.First().Type = "Appointment";
-
-                    // El último (más tarde) es Return
-                    customerTrips.Last().Type = "Return";
-
-                    // Si hubiera viajes intermedios (más de 2), podrías decidir qué hacer.
-                    // Por ahora, marcamos los del medio como Return
-                    for (int i = 1; i < customerTrips.Count - 1; i++)
-                    {
-                        customerTrips[i].Type = "Return";
-                    }
-                }
-            }
-        }
 
         private void ShowInconsistencyMessage() 
         {

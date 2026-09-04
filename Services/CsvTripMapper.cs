@@ -1038,8 +1038,214 @@ namespace Raphael.Desktop.Services
             return coordinates;
         }
 
+        #region Batch import
+
+        /// <summary>The pickup address line, exactly as it is stored and geocoded.</summary>
+        /// <remarks>
+        /// Not trimmed and not filtered for blanks, because this same string is what the trip
+        /// carries in <c>PickupAddress</c> and what the geocoder is asked for. Two spellings of
+        /// one clinic would be two cache entries and two purchases.
+        /// </remarks>
+        public static string BuildPickupAddress(CsvTripRawModel raw)
+            => $"{raw.FromSt}, {raw.FromCity}, {raw.FromState}, {raw.FromZIP}";
+
+        /// <summary>The dropoff address line, exactly as it is stored and geocoded.</summary>
+        public static string BuildDropoffAddress(CsvTripRawModel raw)
+            => $"{raw.ToST}, {raw.ToCity}, {raw.ToState}, {raw.ToZip}";
+
+        /// <summary>
+        /// Turns one CSV row into the object the server stores. Touches nothing outside itself.
+        /// </summary>
+        /// <remarks>
+        /// This is <see cref="MapToTripAsync"/> with the network taken out. That method resolved
+        /// the coordinates, the space type, the patient and the trip as it went, which is how a
+        /// four-hundred-row file came to some two thousand four hundred requests; here the
+        /// coordinates arrive already resolved in one batch and everything else is decided by
+        /// the server, from the object this returns.
+        ///
+        /// <para>
+        /// <see cref="MapToTripAsync"/> is left in place untouched. Nothing calls it any more,
+        /// but it is what the mapping of this method is checked against.
+        /// </para>
+        /// </remarks>
+        /// <param name="coordinatesByAddress">
+        /// Coordinates for every address in the file, keyed by the line
+        /// <see cref="BuildPickupAddress"/> builds. Ignored for files that carry their own.
+        /// </param>
+        /// <exception cref="FormatException">A date or a time in the row cannot be read.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The row names a mobility type this system does not have, or an address that could not
+        /// be located. Either way the row is reported and the file can be corrected.
+        /// </exception>
+        public TripImportItemDto MapToImportItem(
+            CsvTripRawModel raw,
+            bool isSaferide,
+            CsvType csvType,
+            IReadOnlyDictionary<string, Coordinates> coordinatesByAddress)
+        {
+            var allMobilityTypes = MobilityType.AllMobilityTypes();
+
+            string fullName;
+            string riderIdBuilt;
+            DateTime date;
+            TimeSpan? fromTime;
+            TimeSpan? toTime;
+
+            switch (csvType)
+            {
+                case CsvType.Saferide:
+                    fullName = $"{raw.PatientFirstName} {raw.PatientLastName}".Trim();
+                    riderIdBuilt = $"{fullName} {raw.PatientPhoneNumber}".Trim();
+                    date = ParseDate(raw.Date);
+                    fromTime = string.IsNullOrWhiteSpace(raw.PickupTime) ? null : ParseTime(raw.PickupTime);
+                    toTime = string.IsNullOrWhiteSpace(raw.Appointment) ? null : ParseTime(raw.Appointment);
+                    break;
+
+                case CsvType.Saferide2:
+                    fullName = raw.PatientFullName;
+                    riderIdBuilt = raw.RiderId;
+                    var dateWithTime = ParseDateWithTime(raw.PickupTime);
+                    date = dateWithTime.Date;
+                    fromTime = dateWithTime.TimeOfDay;
+                    toTime = string.IsNullOrWhiteSpace(raw.Appointment)
+                        ? null
+                        : ParseDateWithTime(raw.Appointment).TimeOfDay;
+                    break;
+
+                case CsvType.Ride2md:
+                    fullName = raw.PatientFullName;
+                    riderIdBuilt = raw.RiderId;
+                    date = ParseDate(raw.Date);
+                    fromTime = string.IsNullOrWhiteSpace(raw.PickupTime) ? null : ParseTime(raw.PickupTime);
+                    toTime = string.IsNullOrWhiteSpace(raw.Appointment) ? null : ParseTime(raw.Appointment);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(csvType), csvType, "CSV type not supported");
+            }
+
+            var pickupAddress = BuildPickupAddress(raw);
+            var dropoffAddress = BuildDropoffAddress(raw);
+
+            double pickupLatitude;
+            double pickupLongitude;
+            double dropoffLatitude;
+            double dropoffLongitude;
+            bool isWillCall;
+            MobilityType mobilityType;
+
+            if (isSaferide) // CsvType.Saferide and CsvType.Saferide2
+            {
+                var pickup = ResolveFromBatch(coordinatesByAddress, pickupAddress);
+                var dropoff = ResolveFromBatch(coordinatesByAddress, dropoffAddress);
+
+                pickupLatitude = pickup.Latitude;
+                pickupLongitude = pickup.Longitude;
+                dropoffLatitude = dropoff.Latitude;
+                dropoffLongitude = dropoff.Longitude;
+
+                isWillCall = string.Equals(raw.Status, "WillCall", StringComparison.OrdinalIgnoreCase);
+                mobilityType = allMobilityTypes.FirstOrDefault(mt => mt.SpaceType.Equals(raw.Type, StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                pickupLatitude = double.TryParse(raw.PickupLatitude, out var plt) ? plt : 0;
+                pickupLongitude = double.TryParse(raw.PickupLongitude, out var plg) ? plg : 0;
+                dropoffLatitude = double.TryParse(raw.DropoffLatitude, out var dlt) ? dlt : 0;
+                dropoffLongitude = double.TryParse(raw.DropoffLongitude, out var dlg) ? dlg : 0;
+
+                isWillCall = string.IsNullOrWhiteSpace(raw.Appointment) && string.IsNullOrWhiteSpace(raw.PickupTime);
+                mobilityType = allMobilityTypes.FirstOrDefault(mt => mt.Description.Equals(raw.Type, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (mobilityType == null)
+            {
+                // Named rather than dereferenced. An unknown mobility type used to surface as a
+                // NullReferenceException from inside the loop, which told the dispatcher nothing
+                // about which row to fix.
+                throw new InvalidOperationException(
+                    $"'{raw.Type}' is not a mobility type this system knows. " +
+                    "Correct it in the file, or add the space type under Admin, and import again.");
+            }
+
+            // C2C and D2D are ways of walking a patient to the door, not extra seats: they count
+            // against ambulatory capacity.
+            var capacityName =
+                mobilityType.SpaceType.Equals("C2C", StringComparison.OrdinalIgnoreCase) ||
+                mobilityType.SpaceType.Equals("D2D", StringComparison.OrdinalIgnoreCase)
+                    ? "AMB"
+                    : mobilityType.SpaceType;
+
+            // The type a single row implies. The final value is decided across the whole file by
+            // TripImportService.AssignTripTypes, once every row is mapped.
+            var tripType = isWillCall ? TripType.Return : TripType.Appointment;
+
+            return new TripImportItemDto
+            {
+                TripId = raw.RideId,
+                Date = date,
+                FromTime = fromTime,
+                ToTime = toTime,
+
+                PickupAddress = pickupAddress,
+                PickupLatitude = pickupLatitude,
+                PickupLongitude = pickupLongitude,
+                DropoffAddress = dropoffAddress,
+                DropoffLatitude = dropoffLatitude,
+                DropoffLongitude = dropoffLongitude,
+                PickupCity = raw.FromCity,
+                DropoffCity = raw.ToCity,
+                Distance = double.TryParse(raw.Distance, out var dist) ? dist : 0,
+
+                Type = tripType,
+                WillCall = isWillCall,
+
+                // Built with the type this row implies, which is what the labels have always
+                // carried: the pass over the whole file rewrites Type and leaves these alone.
+                Pickup = fullName + " " + "Pickup - " + tripType,
+                Dropoff = fullName + " " + "Dropoof - " + tripType,
+                PickupPhone = raw.PatientPhoneNumber,
+                DropoffPhone = raw.DropoffPhone,
+                PickupComment = raw.AdditionalNotes + ". " + raw.OtherDetails,
+                DropoffComment = raw.Treatment,
+
+                SpaceTypeName = mobilityType.SpaceType,
+                SpaceTypeDescription = mobilityType.Description,
+                CapacityTypeName = capacityName,
+
+                RiderId = riderIdBuilt,
+                CustomerFullName = fullName,
+                CustomerPhone = raw.PatientPhoneNumber,
+                CustomerMobilePhone = raw.AlternativePhoneNumber,
+                CustomerAddress = raw.FromSt,
+                CustomerCity = raw.FromCity,
+                CustomerState = raw.FromState,
+                CustomerZip = raw.FromZIP,
+                CustomerGender = raw.Gender ?? "Male",
+                CustomerDOB = string.IsNullOrWhiteSpace(raw.PatientDOB) ? null : ParseDate(raw.PatientDOB)
+            };
+        }
+
+        private static Coordinates ResolveFromBatch(
+            IReadOnlyDictionary<string, Coordinates> coordinatesByAddress,
+            string address)
+        {
+            if (coordinatesByAddress != null &&
+                coordinatesByAddress.TryGetValue(address, out var found) &&
+                found != null)
+            {
+                return found;
+            }
+
+            throw new InvalidOperationException(
+                $"The address could not be located on the map: {address}. " +
+                "Correct it in the file and import again.");
+        }
+
+        #endregion
+
         private DateTime ParseDate(string value)
-        {           
+        {
             return DateTime.TryParseExact(value, new[] { "yyyy-MM-dd", "M/d/yyyy", "MM/dd/yyyy", "M-d-yyyy", "MM-dd-yyyy", "yyyy/MM/dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
             ? date
             : throw new FormatException($"Invalid date: {value}");
