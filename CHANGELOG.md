@@ -1,7 +1,34 @@
-# Changelog
+﻿# Changelog
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
+
+## [1.6.1] - 2026-09-04
+
+### Fixed
+- Importing a broker's CSV file no longer floods the server. It opened five to ten threads and made
+  up to six requests per row — two geocodings, a patient lookup, a patient insert, the trip and the
+  history row — so four hundred trips came to roughly two thousand four hundred requests. The shared
+  host reads a burst like that as an attack and withdraws the application's permissions: the
+  connection dropped mid-file and trips went missing. The same file now costs about six requests,
+  sent one at a time. Measured in production: a hundred and forty-eight trips imported in three.
+- The Select CSV button was re-enabled the moment the file finished reading, before the import had
+  begun, so a second file could be started on top of the first.
+- A patient named on two rows of the same file could be created twice by two threads racing each
+  other. The old code caught the failures and retried them at the end; now the race cannot happen.
+
+### Changed
+- The import preview shows the status and the reason for every row, so a rejected trip can be found
+  in the original file by the broker's TripId and corrected. It used to list only what had gone in.
+- Re-importing a file is safe and is now the documented fix for an interrupted import: trips are
+  matched on the broker's TripId, so one that already went in is updated, never duplicated. A trip
+  cancelled in the office stays cancelled when it appears again in the file.
+- Every address in a file is resolved in one batched request to `POST /api/routing/geocode/batch`,
+  which has existed since 1.5.0. A file that carries its own coordinates asks for none at all.
+
+### Added
+- Help topic *Importing a broker's trips* (`desktop/home/import-trips`), with the reason for each
+  kind of rejection and what to correct in the file.
 
 ## [1.6.0] - 2026-09-03
 

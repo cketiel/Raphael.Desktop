@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.6.0"
+    "Raphael.Desktop": "1.6.1"
   },
-  "builtUtc": "2026-09-03T12:33:03.512Z",
-  "sourceCommit": "c5118ec",
+  "builtUtc": "2026-09-04T23:56:21.059Z",
+  "sourceCommit": "35f7d57",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.5.1",
+      "lastReviewed": "1.6.1",
       "roles": [
         "admin",
         "dispatcher",
@@ -276,6 +276,21 @@
       "title": {
         "es": "Home — dar de alta un viaje",
         "en": "Home — booking a trip"
+      }
+    },
+    {
+      "id": "desktop/home/import-trips",
+      "mode": "how-to",
+      "since": "1.6.1",
+      "lastReviewed": "1.6.1",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Home",
+      "title": {
+        "es": "Importar los viajes de un broker",
+        "en": "Importing a broker's trips"
       }
     },
     {
