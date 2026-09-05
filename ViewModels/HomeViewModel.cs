@@ -463,6 +463,8 @@ namespace Raphael.Desktop.ViewModels
         public string EditTripLabel => LocalizationService.Instance["home.EditTrip"];
         public string ChangeHistoryLabel => LocalizationService.Instance["home.ChangeHistory"];
         public string LoadingTripsLabel => LocalizationService.Instance["home.LoadingTrips"];
+        public string CanceledByDriverToolTip => LocalizationService.Instance["home.CanceledByDriver"];
+        public string CanceledByOfficeToolTip => LocalizationService.Instance["home.CanceledByOffice"];
         public string Step1Label => LocalizationService.Instance["home.Step1"];
         public string Step2Label => LocalizationService.Instance["home.Step2"];
         public string Step3Label => LocalizationService.Instance["home.Step3"];

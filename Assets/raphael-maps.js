@@ -536,32 +536,30 @@
     /**
      * The pins.
      *
-     * Letters in a balloon are what a demo looks like. These are the two shapes every mapping
-     * product has settled on, and they are read without a legend: the journey STARTS at a dot and
-     * ARRIVES at a pin. Colour carries the same meaning a second time — the brand purple for where
-     * the patient is waiting, green for where they are going — so neither shape nor colour is
-     * carrying it alone, which matters for whoever cannot tell the two apart.
+     * Two pins of the same shape, told apart by colour: RED is where the patient is waiting,
+     * BLUE is where they are going. It is the pairing every dispatcher already carries from
+     * every other mapping product, so nobody has to be taught it.
+     *
+     * WARNING: shape no longer carries the meaning - colour carries it alone. Red and blue are
+     * the safest pair to do that with (they stay distinct under the common forms of colour
+     * blindness, which red/green does not), and both markers keep their `title`, so hovering
+     * says which is which. If a third state ever lands on this map, bring the shape back rather
+     * than reaching for a third colour.
      *
      * Symbols, not images: vector at every zoom, no file to ship, and nothing else to fetch.
      */
-    function pickupSymbol() {
-        return {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#673AB7',
-            fillOpacity: 1,
-            strokeColor: '#FFFFFF',
-            strokeWeight: 3.5
-        };
-    }
 
-    function dropoffSymbol() {
+    // Material's place mark, on its own 24x24 grid: the teardrop and the hole punched in it.
+    var PIN_PATH = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z'
+        + 'm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z';
+
+    function pin(fill) {
         return {
-            // Material's place mark, on its own 24x24 grid.
-            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z'
-                + 'm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z',
-            fillColor: '#2E7D32',
+            path: PIN_PATH,
+            fillColor: fill,
             fillOpacity: 1,
+            // The white keyline is what keeps the pin readable over a dark satellite tile or a
+            // motorway of about its own colour.
             strokeColor: '#FFFFFF',
             strokeWeight: 1.6,
             scale: 1.5,
@@ -569,6 +567,15 @@
             anchor: new google.maps.Point(12, 22)
         };
     }
+
+    function pickupSymbol() {
+        return pin('#D32F2F');
+    }
+
+    function dropoffSymbol() {
+        return pin('#1565C0');
+    }
+
 
     function routeCard() {
         var card = document.getElementById('rm-route');

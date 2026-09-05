@@ -681,5 +681,7 @@
     "home.UncancelTrip": "Descancelar viaje",
     "home.EditTrip": "Editar viaje",
     "home.ChangeHistory": "Historial de cambios",
-    "home.LoadingTrips": "Cargando viajes y ubicaciones..."
+    "home.LoadingTrips": "Cargando viajes y ubicaciones...",
+    "home.CanceledByDriver": "Cancelado: el conductor reportó un no-show.",
+    "home.CanceledByOffice": "Este viaje fue cancelado por la oficina."
 }

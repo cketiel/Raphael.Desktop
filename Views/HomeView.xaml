@@ -127,19 +127,19 @@
                     <Setter Property="Background" Value="White" />
                 </Trigger>
 
-                <!-- Status tints come BEFORE hover and selection, so those win. Later triggers
-                     are applied last, and a cancelled row that kept its pink while selected
-                     would hide the one thing the dispatcher is looking for: which row they are
-                     on. The red text survives either way — the row sets Foreground, and the
-                     cell style deliberately leaves Foreground alone. -->
-                <DataTrigger Binding="{Binding Status}" Value="Finished">
-                    <Setter Property="Background" Value="#F2F2F2" />
-                </DataTrigger>
+                <!-- Status is said in the TEXT, never in the row's background. Two rules already
+                     carry it: red type when a driver reported a no-show, grey italic when the
+                     office cancelled. A tint on top of that says the same thing a third time and
+                     costs the alternating banding - the plain white every other row - which is
+                     what lets the eye track one trip across twenty columns.
+
+                     The alternation trigger above is therefore the only thing that paints an
+                     unselected row. Hover and selection come after it and win, which is the whole
+                     point of the ordering. -->
 
                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
-                    <Setter Property="Background" Value="#FDECEA" />
                     <Setter Property="Foreground" Value="Red" />
-                    <Setter Property="ToolTip" Value="Canceled: Driver No-Show reported." />
+                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByDriverToolTip, Source={StaticResource vmProxy}}" />
                 </DataTrigger>
 
                 <!-- ⚠️ Hover and selection have to be declared here, not left to the row
@@ -162,7 +162,7 @@
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Foreground" Value="Gray" />
                     <Setter Property="FontStyle" Value="Italic" />
-                    <Setter Property="ToolTip" Value="This trip was canceled by the office." />
+                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByOfficeToolTip, Source={StaticResource vmProxy}}" />
                 </MultiDataTrigger>
 
                 <MultiDataTrigger>
@@ -171,7 +171,7 @@
                         <Condition Binding="{Binding DriverNoShowReason}" Value="" />
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Foreground" Value="Gray" />
-                    <Setter Property="ToolTip" Value="This trip was canceled by the office." />
+                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByOfficeToolTip, Source={StaticResource vmProxy}}" />
                 </MultiDataTrigger>
             </Style.Triggers>
         </Style>

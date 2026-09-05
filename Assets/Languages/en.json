@@ -681,5 +681,7 @@
     "home.UncancelTrip": "Uncancel trip",
     "home.EditTrip": "Edit trip",
     "home.ChangeHistory": "Change history",
-    "home.LoadingTrips": "Loading trips and locations..."
+    "home.LoadingTrips": "Loading trips and locations...",
+    "home.CanceledByDriver": "Canceled: driver reported a no-show.",
+    "home.CanceledByOffice": "This trip was canceled by the office."
 }
