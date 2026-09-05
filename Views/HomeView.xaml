@@ -29,11 +29,27 @@
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <converters:StatusToVisibilityConverter x:Key="StatusToVisibilityConverter" />
 
+        <!--
+            ⚠️ The stripe is a trigger here and NOT the DataGrid's AlternatingRowBackground.
+            That property is applied by coercion and beats both setters and triggers, which in
+            RE-008 left one row in every two with no status colour at all. Everything that paints
+            a row has to come from this one style, in order, or half the rows lie.
+        -->
         <Style x:Key="HomeTripRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
             <Style.Triggers>
 
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="White" />
+                </Trigger>
+
+                <!-- Status wins over the stripe: later triggers are applied last. -->
+                <DataTrigger Binding="{Binding Status}" Value="Finished">
+                    <Setter Property="Background" Value="#F2F2F2" />
+                </DataTrigger>
+
                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
+                    <Setter Property="Background" Value="#FDECEA" />
                     <Setter Property="Foreground" Value="Red" />
                     <Setter Property="ToolTip" Value="Canceled: Driver No-Show reported." />
                 </DataTrigger>
@@ -1183,20 +1199,37 @@
 
             <Grid Grid.Row="2" x:Name="GridRow2"
                   Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <!-- DATAGRID -->
-                <DataGrid                            
-                    ItemsSource="{Binding TripsView}" 
-                    SelectedItem="{Binding SelectedTrip, Mode=TwoWay}"                                  
-                            
+                <DataGrid x:Name="TripsGrid"
+                    Grid.Row="0"
+                    ItemsSource="{Binding TripsView}"
+                    SelectedItem="{Binding SelectedTrip, Mode=TwoWay}"
+
+                    MouseDoubleClick="TripsGrid_MouseDoubleClick"
+                    Sorting="TripsGrid_Sorting"
+                    Loaded="TripsGrid_Loaded"
+
                     SelectionMode="Single"
                     AutoGenerateColumns="False"
                     IsReadOnly="True"
                     AlternationCount="2"
-                    AlternatingRowBackground="White"
-                                   
+
+                    FrozenColumnCount="3"
+                    RowHeight="{Binding GridRowHeight}"
+
+                    EnableRowVirtualization="True"
+                    EnableColumnVirtualization="True"
+                    ScrollViewer.CanContentScroll="True"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+
                     Style="{StaticResource CustomDataGridStyle}"
                     ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
-                    
+
                     RowStyle="{StaticResource HomeTripRowStyle}"
                     CellStyle="{StaticResource CustomCellStyle}"
                     SelectionUnit="FullRow">
@@ -1273,85 +1306,130 @@
                         </DataGridTemplateColumn>
 
 
-                        <DataGridTextColumn Binding="{Binding Day}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Day], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Day}"
                                         Header="{Binding Data.DayText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Date, StringFormat=\{0:MM/dd/yyyy\}}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Date], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Date, StringFormat=\{0:MM/dd/yyyy\}}"
                                         Header="{Binding Data.DateText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding FromTime, StringFormat=\{0:hh\\:mm\}}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[FromTime], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding FromTime, StringFormat=\{0:hh\\:mm\}}"
                                         Header="{Binding Data.FromTimeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding ToTime, StringFormat=\{0:hh\\:mm\}}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[ToTime], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding ToTime, StringFormat=\{0:hh\\:mm\}}"
                                         Header="{Binding Data.ToTimeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding CustomerName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[CustomerName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding CustomerName}"
                                         Header="{Binding Data.CustomerNameText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupAddress}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupAddress], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupAddress}"
                                         Header="{Binding Data.PickupAddressText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffAddress}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffAddress], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffAddress}"
                                         Header="{Binding Data.DropoffAddressText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding SpaceTypeName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[SpaceTypeName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding SpaceTypeName}"
                                         Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Charge}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Charge], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Charge}"
                                         Header="{Binding Data.ChargeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Paid}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Paid], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Paid}"
                                         Header="{Binding Data.PaidText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupComment}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupComment], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupComment}"
                                         Header="{Binding Data.PickupCommentText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffComment}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffComment], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffComment}"
                                         Header="{Binding Data.DropoffCommentText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Type}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Type], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Type}"
                                         Header="{Binding Data.TypeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Pickup}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Pickup], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Pickup}"
                                         Header="{Binding Data.PickupText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Dropoff}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Dropoff], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Dropoff}"
                                         Header="{Binding Data.DropoffText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupPhone}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupPhone], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupPhone}"
                                         Header="{Binding Data.PickupPhoneText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffPhone}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffPhone], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffPhone}"
                                         Header="{Binding Data.DropoffPhoneText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding TripId}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[TripId], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding TripId}"
                                         Header="{Binding Data.TripIdText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Authorization}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Authorization], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Authorization}"
                                         Header="{Binding Data.AuthorizationText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding FundingSourceName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[FundingSourceName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding FundingSourceName}"
                                         Header="{Binding Data.FundingSourceText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Distance}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Distance], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Distance}"
                                         Header="{Binding Data.DistanceText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding RunName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[RunName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding RunName}"
                                         Header="{Binding Data.RunText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupCity}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupCity], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupCity}"
                                         Header="{Binding Data.PickupCityText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffCity}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffCity], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffCity}"
                                         Header="{Binding Data.DropoffCityText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DriverNoShowReason}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DriverNoShowReason], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DriverNoShowReason}"
                                         Header="{Binding Data.DriverNoShowReasonText, Source={StaticResource vmProxy}}"/>
 
 
                 </DataGrid.Columns>
 
                 </DataGrid>
+
+                <!-- Footer. The three numbers a dispatcher otherwise counts by scrolling, plus
+                     the way to choose which columns are on screen. -->
+                <Border Grid.Row="1" BorderThickness="0,1,0,0" BorderBrush="{StaticResource MainBorderBrush}"
+                        Padding="8,3,8,3">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignToolButton}"
+                                Command="{Binding ChooseColumnsCommand}"
+                                ToolTip="{Binding ChooseColumnsToolTip}" Padding="4,0,4,0">
+                            <materialDesign:PackIcon Kind="ViewColumnOutline" Width="18" Height="18"/>
+                        </Button>
+
+                        <ToggleButton DockPanel.Dock="Right" Margin="0,0,8,0"
+                                      IsChecked="{Binding IsCompactGrid}"
+                                      Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                      ToolTip="{Binding CompactGridToolTip}"/>
+
+                        <TextBlock Text="{Binding GridTotals}" VerticalAlignment="Center" FontSize="12"/>
+                    </DockPanel>
+                </Border>
                 
                 <Border Background="#80FFFFFF" 
                     Visibility="{Binding IsLoadingTrips, Converter={StaticResource BoolToVisibility}}">

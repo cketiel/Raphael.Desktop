@@ -360,6 +360,8 @@ namespace Raphael.Desktop.ViewModels
         public string MissingCoordinatesHint => LocalizationService.Instance["home.MissingCoordinatesHint"];
         public string ZipStateText => LocalizationService.Instance["home.ZipState"];
         public string ZipStateWarning => LocalizationService.Instance["home.ZipStateWarning"];
+        public string ChooseColumnsToolTip => LocalizationService.Instance["home.ChooseColumns"];
+        public string CompactGridToolTip => LocalizationService.Instance["home.CompactGrid"];
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"
@@ -612,6 +614,154 @@ namespace Raphael.Desktop.ViewModels
         #region Trip
 
         /// <summary>
+        /// The three numbers under the grid.
+        /// </summary>
+        /// <remarks>
+        /// Counted over what is shown, not over what was loaded: a total that ignores the filters
+        /// contradicts the list it sits under, and the dispatcher believes the number.
+        /// </remarks>
+        public string GridTotals
+        {
+            get
+            {
+                var shown = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+                return string.Format(
+                    LocalizationService.Instance["home.GridTotals"],
+                    shown.Count,
+                    shown.Count(IsCanceled),
+                    shown.Count(t => string.IsNullOrWhiteSpace(t.RunName)));
+            }
+        }
+
+        /// <summary>Tighter rows, for a dispatcher who would rather see more of the day at once.</summary>
+        [ObservableProperty] private bool _isCompactGrid;
+
+        partial void OnIsCompactGridChanged(bool value)
+        {
+            _config.Save(CompactKey, value);
+            OnPropertyChanged(nameof(GridRowHeight));
+        }
+
+        /// <summary>NaN is WPF's "as tall as the content needs", which is the comfortable setting.</summary>
+        public double GridRowHeight => IsCompactGrid ? 24 : double.NaN;
+
+        private readonly UserConfigService _config = new();
+
+        private const string CompactKey = "HomeGridCompact";
+        private const string ColumnsKey = "HomeGridColumns";
+
+        #region Sort order that survives the session
+
+        private const string SortKey = "HomeGridSort";
+
+        private sealed class SavedSort
+        {
+            public string Property { get; set; }
+            public bool Ascending { get; set; }
+        }
+
+        /// <summary>
+        /// Remembers how the dispatcher sorted the grid.
+        /// </summary>
+        /// <remarks>
+        /// Kept because the sort is how someone works, not what they are looking at: a dispatcher
+        /// who reads the day by pickup time re-sorts on every single load without this.
+        /// </remarks>
+        public void RememberSort(string property, bool ascending)
+        {
+            if (string.IsNullOrWhiteSpace(property)) return;
+
+            _config.Save(SortKey, new SavedSort { Property = property, Ascending = ascending });
+        }
+
+        /// <summary>Puts the remembered sort back on a view that has just been rebuilt.</summary>
+        public void ApplySavedSort()
+        {
+            var saved = _config.Load<SavedSort>(SortKey);
+
+            if (saved == null || string.IsNullOrWhiteSpace(saved.Property) || TripsView == null) return;
+
+            TripsView.SortDescriptions.Clear();
+            TripsView.SortDescriptions.Add(new SortDescription(
+                saved.Property,
+                saved.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending));
+        }
+
+        #endregion
+
+        #region Which columns are on screen
+
+        /// <summary>What each column asks before drawing itself.</summary>
+        public ColumnVisibilityMap ColumnVisibility { get; } = new();
+
+        /// <summary>
+        /// The layout behind <see cref="ColumnVisibility"/>, in the order the dialog shows it.
+        /// </summary>
+        private ObservableCollection<ColumnConfig> _columnLayout = new();
+
+        /// <summary>
+        /// Reads back the layout kept for this grid, or builds the default one.
+        /// </summary>
+        /// <remarks>
+        /// Its own key, not the Schedule tab's: the two grids show different columns, and one
+        /// layout serving both means hiding a column here hides an unrelated one there.
+        /// </remarks>
+        private void InitializeColumns()
+        {
+            var defaults = new[]
+            {
+                ("Day", DayText), ("Date", DateText), ("FromTime", FromTimeText), ("ToTime", ToTimeText),
+                ("CustomerName", CustomerNameText), ("PickupAddress", PickupAddressText),
+                ("DropoffAddress", DropoffAddressText), ("PickupCity", PickupCityText),
+                ("DropoffCity", DropoffCityText), ("SpaceTypeName", SpaceTypeNameText),
+                ("FundingSourceName", FundingSourceText), ("Type", TypeText), ("TripId", TripIdText),
+                ("RunName", RunText), ("Distance", DistanceText), ("Charge", ChargeText),
+                ("Paid", PaidText), ("Authorization", AuthorizationText), ("Pickup", PickupText),
+                ("PickupPhone", PickupPhoneText), ("PickupComment", PickupCommentText),
+                ("Dropoff", DropoffText), ("DropoffPhone", DropoffPhoneText),
+                ("DropoffComment", DropoffCommentText),
+                ("DriverNoShowReason", DriverNoShowReasonText)
+            };
+
+            var saved = _config.LoadColumnConfig(ColumnsKey);
+
+            _columnLayout = new ObservableCollection<ColumnConfig>(
+                defaults.Select(d => new ColumnConfig
+                {
+                    PropertyName = d.Item1,
+                    Header = d.Item2,
+                    IsVisible = saved?.FirstOrDefault(s => s.PropertyName == d.Item1)?.IsVisible ?? true
+                }));
+
+            ColumnVisibility.Apply(_columnLayout);
+
+            IsCompactGrid = _config.Load<bool>(CompactKey);
+        }
+
+        [RelayCommand]
+        private void ChooseColumns()
+        {
+            Action close = null;
+
+            var dialogViewModel = new ScheduleColumnSelectorViewModel(_columnLayout, () => close?.Invoke());
+            var dialog = new Views.Schedules.ColumnSelectorView { DataContext = dialogViewModel };
+
+            close = () => dialog.Close();
+
+            dialog.ShowDialog();
+
+            if (dialogViewModel.DialogResult != true) return;
+
+            _columnLayout = new ObservableCollection<ColumnConfig>(dialogViewModel.Columns);
+
+            ColumnVisibility.Apply(_columnLayout);
+            _config.SaveColumnConfig(ColumnsKey, _columnLayout);
+        }
+
+        #endregion
+
+        /// <summary>
         /// "N of M trips" — what the filters let through, against what the day actually holds.
         /// </summary>
         /// <remarks>
@@ -717,12 +867,16 @@ namespace Raphael.Desktop.ViewModels
         partial void OnTripSearchTextChanged(string value) => RefreshTripsView();
 
         private void OnTripsByDateChanged(object sender, NotifyCollectionChangedEventArgs e)
-            => OnPropertyChanged(nameof(GridSummary));
+        {
+            OnPropertyChanged(nameof(GridSummary));
+            OnPropertyChanged(nameof(GridTotals));
+        }
 
         private void RefreshTripsView()
         {
             TripsView?.Refresh();
             OnPropertyChanged(nameof(GridSummary));
+            OnPropertyChanged(nameof(GridTotals));
         }
 
         private bool PassesExpressFilters(object item)
@@ -1238,6 +1392,8 @@ namespace Raphael.Desktop.ViewModels
 
             Filters.Changed += RefreshTripsView;
 
+            InitializeColumns();
+
             LoadData();
             InitializeData();
 
@@ -1309,7 +1465,18 @@ namespace Raphael.Desktop.ViewModels
                 return;
             }
 
-            var value = newValue;
+            // Selecting a row shows the trip on the map. Editing it is a double click, and the
+            // form is only filled from there — see BeginEditSelectedTrip.
+            if (CurrentMode != HomeMode.EditingTrip) return;
+
+            LoadTripIntoForm(newValue);
+        }
+
+        /// <summary>
+        /// Fills the trip form from a trip and puts the screen into editing.
+        /// </summary>
+        private void LoadTripIntoForm(TripReadDto value)
+        {
 
             // 1. Cargar el Cliente asociado para que se llenen los campos de la izquierda
             var customer = Customers.FirstOrDefault(c => c.Id == value.CustomerId);
@@ -1370,6 +1537,24 @@ namespace Raphael.Desktop.ViewModels
             // Last, on purpose: OnCurrentModeChanged photographs the form for
             // HasUnsavedTripChanges, and it has to see it already filled.
             CurrentMode = HomeMode.EditingTrip;
+        }
+
+        /// <summary>
+        /// Opens the selected trip for editing. This is what a double click means.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ A single click deliberately does NOT come here. Clicking a row is how a dispatcher
+        /// looks at a trip on the map, which is what they want almost every time; until RE-010 it
+        /// also dropped them into full edit mode, and there was no way out of it. Selecting shows,
+        /// double click edits.
+        /// </remarks>
+        [RelayCommand]
+        public void BeginEditSelectedTrip()
+        {
+            var trip = SelectedTrip;
+            if (trip == null || CurrentMode == HomeMode.EditingTrip) return;
+
+            LoadTripIntoForm(trip);
         }
 
         /// <summary>

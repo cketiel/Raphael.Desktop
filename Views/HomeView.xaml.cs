@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using Raphael.Desktop.ViewModels;
 using Raphael.Desktop.Models;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Microsoft.Web.WebView2.Core;
 using System.Text.Json;
 using Raphael.Desktop.Services;
@@ -449,6 +450,40 @@ namespace Raphael.Desktop.Views
 
             e.Handled = ViewModel.TryLeaveTripForm();
         }
+
+        /// <summary>
+        /// Double click opens the trip for editing.
+        /// </summary>
+        /// <remarks>
+        /// Guarded on the row: without it, double-clicking the header or the empty space under
+        /// the last row would open whatever happened to be selected.
+        /// </remarks>
+        private void TripsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (ItemsControl.ContainerFromElement(TripsGrid, e.OriginalSource as DependencyObject)
+                is not DataGridRow) return;
+
+            ViewModel.BeginEditSelectedTrip();
+        }
+
+        /// <summary>
+        /// Keeps the column the dispatcher sorted by, so the next day opens the way they read it.
+        /// </summary>
+        /// <remarks>
+        /// The direction is read after WPF has applied it rather than guessed from the event: the
+        /// grid decides whether a click means ascending or the other way, and reproducing that
+        /// rule here is how a saved sort ends up the opposite of what is on screen.
+        /// </remarks>
+        private void TripsGrid_Sorting(object sender, DataGridSortingEventArgs e)
+        {
+            var column = e.Column;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+                ViewModel.RememberSort(column.SortMemberPath, column.SortDirection != ListSortDirection.Descending)),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void TripsGrid_Loaded(object sender, RoutedEventArgs e) => ViewModel.ApplySavedSort();
 
         /// <summary>Clicking anywhere outside the filter panel puts it away.</summary>
         private void FilterPanelBackdrop_MouseDown(object sender, MouseButtonEventArgs e)

@@ -638,5 +638,8 @@
     "home.MissingCoordinates": "Solo viajes sin coordenadas válidas",
     "home.MissingCoordinatesHint": "Una recogida o entrega en 0,0 es una importación que no consiguió geocodificar. Si se rutea, el vehículo se manda a mitad del océano.",
     "home.ZipState": "Zip / Estado",
+    "home.GridTotals": "{0} viajes  ·  {1} cancelados  ·  {2} sin ruta",
+    "home.ChooseColumns": "Elegir qué columnas se ven",
+    "home.CompactGrid": "Filas compactas",
     "home.ZipStateWarning": "Se lee del texto de la dirección, así que es fiable en viajes importados y no en los creados con Google Places. El condado todavía no se guarda en ningún sitio."
 }

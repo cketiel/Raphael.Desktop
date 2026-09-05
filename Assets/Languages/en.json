@@ -638,5 +638,8 @@
     "home.MissingCoordinates": "Only trips without valid coordinates",
     "home.MissingCoordinatesHint": "A pickup or dropoff sitting at 0,0 is an import that failed to geocode. Route it and the vehicle is sent to the middle of the ocean.",
     "home.ZipState": "Zip / State",
+    "home.GridTotals": "{0} trips  ·  {1} canceled  ·  {2} without a run",
+    "home.ChooseColumns": "Choose which columns to show",
+    "home.CompactGrid": "Compact rows",
     "home.ZipStateWarning": "Read out of the address text, so it is dependable on imported trips and not on ones typed through Google Places. County is not stored anywhere yet."
 }
