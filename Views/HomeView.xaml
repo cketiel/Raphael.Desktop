@@ -12,6 +12,7 @@
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers" 
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              helpers:HelpAssist.TopicId="desktop/home/overview"
+             KeyDown="HomeView_KeyDown"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
@@ -21,6 +22,7 @@
         <!-- vmProxy “captures” the current DataContext (HomeViewModel) -->
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <converters:StatusToVisibilityConverter x:Key="StatusToVisibilityConverter" />
 
@@ -68,7 +70,8 @@
                 </Grid.RowDefinitions>
 
                 <!-- Top row: Client, Billing, Splitter, Map -->
-                <Grid Grid.Row="0" x:Name="GridRow0">
+                <Grid Grid.Row="0" x:Name="GridRow0"
+                      Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition x:Name="CustomerColumn" Width="1*" />  <!-- Customer and Trip data area (initially hidden) -->
                         <ColumnDefinition Width="6" />     <!-- Vertical GridSplitter -->
@@ -99,6 +102,20 @@
                                                           CornerRadius="5">
 
                                     <DockPanel Margin="0,0,0,0">
+
+                                        <!-- The way out of the trip form. Until RE-010 there was
+                                             none: the layout was only ever put back after a
+                                             trip had been saved. -->
+                                        <Button DockPanel.Dock="Right"
+                                                Margin="8,0,0,0"
+                                                Foreground="White"
+                                                ToolTip="{Binding CloseTripFormToolTip}"
+                                                Style="{StaticResource MaterialDesignToolButton}"
+                                                Click="CloseTripForm_Click"
+                                                Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
+                                            <materialDesign:PackIcon Kind="Close" Width="22" Height="22" />
+                                        </Button>
+
                                                 <StackPanel materialDesign:RippleAssist.IsCentered="True"
                                                             Orientation="Horizontal">
 
@@ -383,7 +400,8 @@
                             Padding="10" 
                             Background="{DynamicResource MaterialDesignCardBackground}">
                             
-                            <StackPanel x:Name="TripFilterPanel">
+                            <StackPanel x:Name="TripFilterPanel"
+                                        Visibility="{Binding IsTripFormOpen, Converter={StaticResource InverseBoolToVisibility}}">
 
                                 
                                 <Grid Margin="5" Background="Transparent">
@@ -420,7 +438,7 @@
                                             <Button 
                                                     ToolTip="{Binding ImportButtonToolTip}"
                                                     Command="{Binding ImportCommand}"
-                                                    Style="{StaticResource MaterialDesignToolForegroundButton}" Margin="0,0,10,0" Click="Button_Click">
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}" Margin="0,0,10,0">
                                                 <materialDesign:PackIcon Kind="DatabaseImport" Width="25" Height="25" Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
                                             </Button>
 
@@ -454,7 +472,8 @@
                             <!-- ForDateCalendar -->
 
                             <!-- Adjusted calendar -->
-                            <Calendar x:Name="ForDateCalendar" Visibility="Collapsed"
+                            <Calendar x:Name="ForDateCalendar"
+                                  Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                   Grid.Column="0"
                                   SelectedDate="{Binding FilterDate, Mode=TwoWay}"
                                   VerticalAlignment="Center"
@@ -469,7 +488,8 @@
 
                             <!-- Trips TabControl -->
                         
-                            <TabControl x:Name="TripTabs" Grid.Column="1" Visibility="Collapsed"
+                            <TabControl x:Name="TripTabs" Grid.Column="1"
+                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                     MinHeight="240"
                                     MaxHeight="240"
                                     HorizontalContentAlignment="Left"
@@ -782,7 +802,7 @@
                 <!-- Panel Billing (initially hidden) -->
                 <Border  Grid.Column="2" BorderThickness="1,1,1,1" BorderBrush="{StaticResource MainBorderBrush}">
                     <StackPanel Grid.Column="2" x:Name="BillingPanel"
-                                Visibility="Hidden"
+                                Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                 Margin="10"
                                 
                                 Background="Transparent">
@@ -1038,6 +1058,7 @@
 
                 <!-- Horizontal GridSplitter -->
                 <GridSplitter Grid.Row="1" x:Name="GridRow1"
+                      Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
                       Height="6"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
@@ -1056,7 +1077,8 @@
                 <!-- Bottom DataGrid -->
 
 
-            <Grid Grid.Row="2" x:Name="GridRow2">
+            <Grid Grid.Row="2" x:Name="GridRow2"
+                  Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
                 <!-- DATAGRID -->
                 <DataGrid                            
                     ItemsSource="{Binding TripsByDate}" 
@@ -1254,7 +1276,9 @@
 
 
                 <!-- Sección de Importación de Viajes (Diseño Mejorado) -->
-                <Grid Grid.Row="0" Grid.RowSpan="3" x:Name="ImportTripsGridRow" Visibility="Collapsed" Background="{DynamicResource MaterialDesignPaper}">
+                <Grid Grid.Row="0" Grid.RowSpan="3" x:Name="ImportTripsGridRow"
+                      Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}"
+                      Background="{DynamicResource MaterialDesignPaper}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />

@@ -593,5 +593,9 @@
     "gmaps.PricingTitle": "Tarifas de Google (tramos por volumen mensual)",
     "gmaps.PricingHint": "Estas tarifas viven en la base de datos, no en el código: cuando Google las cambie, se corrigen sin publicar una versión nueva.",
     "gmaps.PricingPer1000": "Todas por 1.000 peticiones. Los tramos son mensuales y por SKU.",
-    "gmaps.Sku": "SKU"
+    "gmaps.Sku": "SKU",
+
+    "home.CloseTripForm": "Cerrar el formulario de viaje (Esc)",
+    "home.DiscardChangesTitle": "Viaje sin guardar",
+    "home.DiscardChangesMessage": "Este viaje tiene cambios sin guardar. ¿Salir de todos modos y perderlos?"
 }

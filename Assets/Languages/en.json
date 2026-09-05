@@ -593,5 +593,9 @@
     "gmaps.PricingTitle": "Google pricing (monthly volume bands)",
     "gmaps.PricingHint": "These prices live in the database rather than in code: when Google changes them, they are corrected without shipping a version.",
     "gmaps.PricingPer1000": "All per 1,000 requests. Bands are monthly and per SKU.",
-    "gmaps.Sku": "SKU"
+    "gmaps.Sku": "SKU",
+
+    "home.CloseTripForm": "Close the trip form (Esc)",
+    "home.DiscardChangesTitle": "Unsaved trip",
+    "home.DiscardChangesMessage": "This trip has changes that have not been saved. Leave anyway and lose them?"
 }

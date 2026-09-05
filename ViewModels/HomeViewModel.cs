@@ -35,7 +35,166 @@ namespace Raphael.Desktop.ViewModels
         [ObservableProperty] private bool _isReturn;
         [ObservableProperty] private bool _isWillCall;
 
-        public Action OnTripSavedSuccess { get; set; }
+        #region Screen mode
+
+        /// <summary>
+        /// What the tab is doing right now. Every panel the screen shows or hides is decided
+        /// from here and nowhere else.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Set this at the *end* of a transition, once the fields it depends on are already
+        /// filled: <c>OnCurrentModeChanged</c> photographs the trip form, and a photograph taken
+        /// before the form is populated turns every later field into a phantom "unsaved change".
+        /// </remarks>
+        [ObservableProperty] private HomeMode _currentMode = HomeMode.Browsing;
+
+        /// <summary>The trip form is on screen, for a new trip or for one being edited.</summary>
+        public bool IsTripFormOpen => CurrentMode is HomeMode.CreatingTrip or HomeMode.EditingTrip;
+
+        /// <summary>The CSV import view has taken over the tab.</summary>
+        public bool IsImporting => CurrentMode is HomeMode.Importing;
+
+        partial void OnCurrentModeChanged(HomeMode value)
+        {
+            OnPropertyChanged(nameof(IsTripFormOpen));
+            OnPropertyChanged(nameof(IsImporting));
+
+            _tripFormOnEntry = IsTripFormOpen ? CaptureTripForm() : null;
+        }
+
+        /// <summary>
+        /// The two ways a booking starts — picking a patient in the search box, or saving a
+        /// brand new one — both land here, so the form opens the same way from either.
+        /// </summary>
+        public void EnterCreateTripMode()
+        {
+            // Moving on to another patient while a trip is open is also leaving that trip.
+            if (CurrentMode == HomeMode.EditingTrip && !TryLeaveTripForm()) return;
+
+            CurrentMode = HomeMode.CreatingTrip;
+
+            // Choosing another patient starts the booking over, so the form as it stands now is
+            // the baseline. Setting the mode it is already in changes nothing and would leave
+            // the previous photograph in place, turning the new patient into an unsaved change.
+            _tripFormOnEntry = CaptureTripForm();
+        }
+
+        /// <summary>
+        /// Opens the CSV import view. It takes over the whole tab, so anything half-typed in
+        /// the trip form has to be settled first.
+        /// </summary>
+        public void EnterImportMode()
+        {
+            if (IsTripFormOpen && !TryLeaveTripForm()) return;
+
+            CurrentMode = HomeMode.Importing;
+        }
+
+        /// <summary>
+        /// The single way out of the trip form: the ✕ button, Esc, or clearing the grid
+        /// selection. Returns false when the dispatcher chose to stay.
+        /// </summary>
+        public bool TryLeaveTripForm()
+        {
+            if (!IsTripFormOpen) return true;
+            if (!ConfirmDiscardTripChanges()) return false;
+
+            _leavingTripForm = true;
+            try
+            {
+                SelectedTrip = null;
+                ClearTripForm();
+                CurrentMode = HomeMode.Browsing;
+            }
+            finally
+            {
+                _leavingTripForm = false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Leaves the import view and goes back to the day's trips.</summary>
+        public void LeaveImportMode() => CurrentMode = HomeMode.Browsing;
+
+        #endregion
+
+        #region Unsaved trip changes
+
+        /// <summary>True while <see cref="TryLeaveTripForm"/> is unwinding, so it is not asked twice.</summary>
+        private bool _leavingTripForm;
+
+        /// <summary>True while the grid selection is being put back, so the trip is not reloaded over the dispatcher's edits.</summary>
+        private bool _restoringSelection;
+
+        /// <summary>
+        /// The trip form as it stood when the form last opened. Null while the form is closed.
+        /// </summary>
+        private TripFormSnapshot _tripFormOnEntry;
+
+        /// <summary>
+        /// Every field of the trip form a dispatcher can change by hand. It is a record for one
+        /// reason: value equality turns "did anything change?" into a single comparison.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ A field added to the trip form and forgotten here is a change the screen will
+        /// discard without asking. Add it in both places or not at all.
+        /// </remarks>
+        private sealed record TripFormSnapshot(
+            int CustomerId,
+            string PickupAddress, string DropoffAddress,
+            string PickupCity, string DropoffCity,
+            double PickupLatitude, double PickupLongitude,
+            double DropoffLatitude, double DropoffLongitude,
+            string PickupName, string PickupPhone, string PickupComment,
+            string DropoffName, string DropoffPhone, string DropoffComment,
+            string Authorization, string Distance,
+            DateTime? PickupTime, DateTime? ApptTime, DateTime? ReturnTime,
+            bool IsRoundTrip, bool IsOneWay, bool IsAppointment, bool IsReturn, bool IsWillCall,
+            int? SpaceTypeId, int? FundingSourceId,
+            DateTime TripDate);
+
+        private TripFormSnapshot CaptureTripForm() => new(
+            IdCustomer,
+            PickupAddress, DropoffAddress,
+            PickupCity, DropoffCity,
+            PickupLatitude, PickupLongitude,
+            DropoffLatitude, DropoffLongitude,
+            PickupName, PickupPhone, PickupComment,
+            DropoffName, DropoffPhone, DropoffComment,
+            Authorization, Distance,
+            PickupTimePicker, ApptTimePicker, ReturnTimePicker,
+            IsRoundTrip, IsOneWay, IsAppointment, IsReturn, IsWillCall,
+            SelectedSpaceType?.Id, SelectedFundingSource?.Id,
+            // The calendar shown next to the form is the trip's own date, not just a filter.
+            FilterDate.Date);
+
+        /// <summary>
+        /// True when the form holds work the server has not been told about.
+        /// </summary>
+        public bool HasUnsavedTripChanges =>
+            _tripFormOnEntry is not null && CaptureTripForm() != _tripFormOnEntry;
+
+        /// <summary>
+        /// Asks before throwing away a half-filled trip. Returns true when it is safe to leave.
+        /// </summary>
+        /// <remarks>
+        /// The comparison is what keeps this bearable: opening a trip from the grid fills the
+        /// form by itself, so prompting on every exit would ask a dispatcher who only wanted to
+        /// look at a trip on the map, dozens of times a day.
+        /// </remarks>
+        private bool ConfirmDiscardTripChanges()
+        {
+            if (!HasUnsavedTripChanges) return true;
+
+            return MessageBox.Show(
+                LocalizationService.Instance["home.DiscardChangesMessage"],
+                LocalizationService.Instance["home.DiscardChangesTitle"],
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        }
+
+        #endregion
 
         [ObservableProperty] private string _pickupName;
         [ObservableProperty] private string _pickupPhone;
@@ -103,6 +262,7 @@ namespace Raphael.Desktop.ViewModels
         public string ShowCanceledCheckBoxContent => LocalizationService.Instance["ShowCanceledCheckBoxContent"]; // "Show Canceled"
         public string ImportButtonToolTip => LocalizationService.Instance["ImportButtonToolTip"]; // "Import Trips"
         public string ExportButtonToolTip => LocalizationService.Instance["ExportButtonToolTip"]; // "Export Trips"
+        public string CloseTripFormToolTip => LocalizationService.Instance["home.CloseTripForm"]; // "Close the trip form (Esc)"
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"
@@ -593,12 +753,23 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// The broker whose file is being imported.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This had its own name but not its own field: until RE-010 it read and wrote
+        /// <c>_selectedFundingSource</c>, so choosing a broker to import from silently changed
+        /// the Funding Source of the trip form — without repainting the combo that shows it,
+        /// and without recalculating its charges. The next trip booked by hand was billed to
+        /// whoever had last been imported.
+        /// </remarks>
+        private FundingSource _selectedFundingSourceImport;
         public FundingSource SelectedFundingSourceImport
         {
-            get => _selectedFundingSource;
+            get => _selectedFundingSourceImport;
             set
             {
-                _selectedFundingSource = value;
+                _selectedFundingSourceImport = value;
                 OnPropertyChanged();             
             }
         }
@@ -705,13 +876,41 @@ namespace Raphael.Desktop.ViewModels
             LocalizationService.Instance["WillCallLockedHint"];
 
         // Este método se dispara automáticamente cuando cambia la propiedad SelectedTrip
-        partial void OnSelectedTripChanged(TripReadDto value)
+        partial void OnSelectedTripChanged(TripReadDto oldValue, TripReadDto newValue)
         {
             // Before the null check: it has to be raised when the selection is cleared too,
             // which is exactly when the form goes back to creating a trip.
             OnPropertyChanged(nameof(CanEditWillCall));
 
-            if (value == null) return;
+            if (newValue == null)
+            {
+                // Clearing the row is one of the ways out of editing. It must not disturb a
+                // trip being booked by hand, and it must not ask twice while TryLeaveTripForm
+                // is already unwinding.
+                //
+                // ⚠️ IsLoadingTrips is in here because reloading the day empties TripsByDate,
+                // and the grid drops its selection with it. That is not a dispatcher walking
+                // away from the form — it happens on every save, and treating it as an exit
+                // would ask them to discard the trip they had just saved.
+                if (_leavingTripForm || IsLoadingTrips || CurrentMode != HomeMode.EditingTrip) return;
+                if (TryLeaveTripForm()) return;
+
+                // The dispatcher wants to stay on this trip, so put the row back. It has to
+                // wait for the grid to finish its own selection change, and it must not replay
+                // the load below — that would overwrite the edits they just chose to keep.
+                var keep = oldValue;
+                Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _restoringSelection = true;
+                    try { SelectedTrip = keep; }
+                    finally { _restoringSelection = false; }
+                }));
+                return;
+            }
+
+            if (_restoringSelection) return;
+
+            var value = newValue;
 
             // 1. Cargar el Cliente asociado para que se llenen los campos de la izquierda
             var customer = Customers.FirstOrDefault(c => c.Id == value.CustomerId);
@@ -763,16 +962,9 @@ namespace Raphael.Desktop.ViewModels
             DropoffPhone = value.DropoffPhone;
             DropoffComment = value.DropoffComment;
 
-            // 5. Notificar a la Vista que debe expandir el layout (esto lo haremos vía un evento o mensajería)
-            // Para no romper nada, usaremos un truco simple: llamaremos a una acción si está definida
-            //TriggerExpandLayout();
-        }
-
-        private void TriggerExpandLayout()
-        {
-            // Reutilizamos la lógica que ya tienes para cuando se salva un cliente
-            // pero aplicada a la selección de un viaje.
-            //OnTripSavedSuccess?.Invoke();
+            // 5. Last, on purpose: OnCurrentModeChanged photographs the form for
+            // HasUnsavedTripChanges, and it has to see it already filled.
+            CurrentMode = HomeMode.EditingTrip;
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)
@@ -1003,10 +1195,7 @@ namespace Raphael.Desktop.ViewModels
             
         }
 
-        private void ImportTrips()
-        {
-            // Por implementar
-        }
+        private void ImportTrips() => EnterImportMode();
 
         private void ExportTrips()
         {
@@ -1212,10 +1401,12 @@ namespace Raphael.Desktop.ViewModels
 
                 await LoadTripsByDateAsync(FilterDate);
 
-                ClearTripForm();
+                // Browsing first: the trip is on the server, so there is nothing unsaved left
+                // and clearing the selection below must not stop to ask about it.
+                CurrentMode = HomeMode.Browsing;
                 SelectedTrip = null; // Limpiar selección después de guardar
-
-                OnTripSavedSuccess?.Invoke();
+                ClearTripForm();
+                SearchText = string.Empty;
             }
             catch (ApiException ex)
             {

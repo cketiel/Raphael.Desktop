@@ -83,7 +83,6 @@ namespace Raphael.Desktop.Views
             InitializeComponent();
             ViewModel = new HomeViewModel();
             DataContext = ViewModel;
-            ViewModel.OnTripSavedSuccess = ResetLayoutToInitialState;
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
             InitializeData();
@@ -303,28 +302,105 @@ namespace Raphael.Desktop.Views
 
         private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "SelectedTrip" && ViewModel.SelectedTrip != null)
+            if (e.PropertyName == nameof(HomeViewModel.CurrentMode))
+            {
+                ApplyHomeMode(ViewModel.CurrentMode);
+                return;
+            }
+
+            if (e.PropertyName == nameof(HomeViewModel.SelectedTrip) && ViewModel.SelectedTrip != null)
             {
                 LoadMap();
-                ExpandLayoutForEditing();
             }
         }
-        private void ExpandLayoutForEditing()
+
+        /// <summary>
+        /// Puts the screen into the shape its mode calls for.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Widths and heights are assigned here by hand rather than by a style trigger,
+        /// and that is deliberate: the GridSplitters over these columns and rows write a *local*
+        /// value when the dispatcher drags them, and in WPF a local value beats a style setter
+        /// for good. A trigger would stop moving the column the first time anyone resized it.
+        /// The panel visibilities have no such problem and are bound in XAML, where each panel
+        /// declares which mode it belongs to — that is the half that has to keep working when
+        /// new panels arrive.
+        /// </remarks>
+        private void ApplyHomeMode(HomeMode mode)
+        {
+            switch (mode)
+            {
+                case HomeMode.CreatingTrip:
+                case HomeMode.EditingTrip:
+                    ApplyTripFormLayout();
+                    break;
+
+                case HomeMode.Browsing:
+                    ApplyBrowsingLayout();
+                    break;
+
+                case HomeMode.Importing:
+                    // The import view covers the whole tab, so the columns underneath keep the
+                    // shape they had. Only its own leftovers are cleared.
+                    PreviewGrid.ItemsSource = null;
+                    ProgressPanel.Visibility = Visibility.Collapsed;
+                    break;
+            }
+        }
+
+        private void ApplyTripFormLayout()
         {
             CustomerColumn.Width = new GridLength(3.2, GridUnitType.Star);
             BillingColumn.Width = new GridLength(2.4, GridUnitType.Star);
             MapColumn.Width = new GridLength(4.4, GridUnitType.Star);
-            BillingPanel.Visibility = Visibility.Visible;
-            ForDateCalendar.Visibility = Visibility.Visible;
-            TripFilterPanel.Visibility = Visibility.Collapsed;
-            TripTabs.Visibility = Visibility.Visible;
 
-            // Ajustar el tamaño de las filas
             TopRow.Height = new GridLength(6.73, GridUnitType.Star);
             BottomRow.Height = new GridLength(3.27, GridUnitType.Star);
 
-            // Mostrar el input de Dropoff en el mapa
-            MapaWebView.ExecuteScriptAsync("showDropoff();");
+            // Show the Dropoff input on the map page
+            RunOnMap("showDropoff();");
+        }
+
+        private void ApplyBrowsingLayout()
+        {
+            CustomerColumn.Width = new GridLength(1, GridUnitType.Star);
+            BillingColumn.Width = new GridLength(0, GridUnitType.Pixel);
+            MapColumn.Width = new GridLength(2, GridUnitType.Star);
+
+            TopRow.Height = new GridLength(4.5, GridUnitType.Star);
+            BottomRow.Height = new GridLength(5.5, GridUnitType.Star);
+
+            // Clears the markers and hides the Dropoff input
+            RunOnMap("prepareNewCustomer();");
+        }
+
+        /// <summary>
+        /// Talks to the map page only once it exists. The mode can change before the WebView
+        /// has finished starting, and asking it to run a script then throws.
+        /// </summary>
+        private void RunOnMap(string script)
+        {
+            if (MapaWebView?.CoreWebView2 == null) return;
+
+            MapaWebView.ExecuteScriptAsync(script);
+        }
+
+        /// <summary>Closes the trip form and goes back to the day's list.</summary>
+        private void CloseTripForm_Click(object sender, RoutedEventArgs e) => ViewModel.TryLeaveTripForm();
+
+        /// <summary>
+        /// Esc leaves the trip form.
+        /// </summary>
+        /// <remarks>
+        /// It listens on the bubbling event rather than the tunnelling one on purpose: a dialog
+        /// or a suggestion popup that wants Esc for itself marks it handled first, and the form
+        /// stays open instead of closing behind whatever the dispatcher was actually dismissing.
+        /// </remarks>
+        private void HomeView_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape || !ViewModel.IsTripFormOpen) return;
+
+            e.Handled = ViewModel.TryLeaveTripForm();
         }
         private async void LoadMap()
         {
@@ -655,62 +731,16 @@ namespace Raphael.Desktop.Views
 
                 //MessageBox.Show(message); // luego crear servicios de mensajes, avisos y alertas
 
-                CustomerColumn.Width = new GridLength(3.2, GridUnitType.Star);
-                BillingColumn.Width = new GridLength(2.4, GridUnitType.Star); // 20%
-                MapColumn.Width = new GridLength(4.4, GridUnitType.Star);
-                MapaWebView.SetValue(Grid.ColumnProperty, 4); // Map moves to column 5 (index 4)
-                BillingPanel.Visibility = Visibility.Visible;
-                ForDateCalendar.Visibility = Visibility.Visible;
-
-
-                // Hide travel filter
-                TripFilterPanel.Visibility = Visibility.Collapsed;
-
-                // Show TabControl
-                TripTabs.Visibility = Visibility.Visible;
-                //TripTabs.SetValue(Grid.RowProperty, 1);
-               // PickupAddressTextBox.Text = GooglePlacesInput.Text;
-
-                // Adjust row size
-                TopRow.Height = new GridLength(6.73, GridUnitType.Star);
-                BottomRow.Height = new GridLength(3.27, GridUnitType.Star);
-
-                // Show Dropoff input in WebView map
-                await MapaWebView.ExecuteScriptAsync("showDropoff();");
+                // A patient saved from scratch is the second way into booking a trip. The other
+                // one is choosing an existing patient in the search box; both go through here so
+                // the form opens the same way from either.
+                ViewModel.EnterCreateTripMode();
             }
             else
             {
                 // MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
-        }
-
-        public void ResetLayoutToInitialState()
-        {
-            // 1. Restaurar anchos de columnas
-            CustomerColumn.Width = new GridLength(1, GridUnitType.Star);
-            BillingColumn.Width = new GridLength(0, GridUnitType.Pixel); // Ocultar Billing
-            MapColumn.Width = new GridLength(2, GridUnitType.Star);
-
-            // 2. Mover el mapa de vuelta a su posición original (Columna 4)
-            MapaWebView.SetValue(Grid.ColumnProperty, 4);
-
-            // 3. Visibilidad de Paneles
-            BillingPanel.Visibility = Visibility.Hidden;
-            ForDateCalendar.Visibility = Visibility.Collapsed;
-            TripTabs.Visibility = Visibility.Collapsed;
-            TripFilterPanel.Visibility = Visibility.Visible; // Mostrar filtros de nuevo
-
-            // 4. Restaurar tamaño de filas (Top 45% / Bottom 55%)
-            TopRow.Height = new GridLength(4.5, GridUnitType.Star);
-            BottomRow.Height = new GridLength(5.5, GridUnitType.Star);
-
-            // 5. Resetear el Mapa (JavaScript)
-            // Esto limpiará los marcadores y ocultará el input de Dropoff
-            MapaWebView.ExecuteScriptAsync("prepareNewCustomer();");
-
-            // 6. Limpiar campos de búsqueda (Opcional)
-            CustomersAutoSuggestBox.Text = string.Empty;
         }
 
         private async void OnNewCustomerClick(object sender, RoutedEventArgs e) {
@@ -730,6 +760,10 @@ namespace Raphael.Desktop.Views
                 vm.SearchText = customer?.FullName;
 
                 ShowPickupInMap();
+
+                // Until RE-010 the form appeared only after pressing Save patient, so booking a
+                // trip for someone already on file meant re-saving a record that had not changed.
+                vm.EnterCreateTripMode();
             }
         }
 
@@ -911,28 +945,7 @@ namespace Raphael.Desktop.Views
 
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            GridRow0.Visibility = Visibility.Collapsed;
-            GridRow1.Visibility = Visibility.Collapsed;
-            GridRow2.Visibility = Visibility.Collapsed;
-            ImportTripsGridRow.Visibility = Visibility.Visible;
-        }
-
-        private void BackToHome_Click(object sender, RoutedEventArgs e)
-        {
-            // Ocultamos la vista de importación
-            ImportTripsGridRow.Visibility = Visibility.Collapsed;
-
-            // Volvemos a mostrar los componentes principales
-            GridRow0.Visibility = Visibility.Visible;
-            GridRow1.Visibility = Visibility.Visible;
-            GridRow2.Visibility = Visibility.Visible;
-
-            // Opcional: Limpiar el DataGrid de vista previa al salir
-            PreviewGrid.ItemsSource = null;
-            ProgressPanel.Visibility = Visibility.Collapsed;
-        }
+        private void BackToHome_Click(object sender, RoutedEventArgs e) => ViewModel.LeaveImportMode();
 
         private async void SelectCsv_Click(object sender, RoutedEventArgs e)
         {
