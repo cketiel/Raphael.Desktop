@@ -1,4 +1,4 @@
-using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Services;
@@ -9,6 +9,8 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+
+using Raphael.Desktop.Helpers;
 
 namespace Raphael.Desktop.Services.Maps
 {
@@ -102,6 +104,12 @@ namespace Raphael.Desktop.Services.Maps
 
                 first = false;
             }
+
+            // ⚠️ Every line of this is a map Google will bill for. Dynamic Maps is charged per
+            // map created, and each of these navigations creates one. It is logged because the
+            // question "how many did opening that tab cost?" was being answered from a billing
+            // dashboard that reports a day late, and it can be answered here in seconds.
+            FileLogger.Log($"Google map page loaded: {page}");
 
             webView.CoreWebView2.Navigate(url.ToString());
         }

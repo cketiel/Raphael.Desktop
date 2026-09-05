@@ -546,6 +546,33 @@ namespace Raphael.Desktop.Views
         }
 
         /// <summary>
+        /// Puts a single invisible marker on the empty map.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ An experiment about Google's billing, not a feature. It reproduces what the day-wide
+        /// pins did to the page — the one difference anybody noticed between a tab that seemed to
+        /// bill for opening and one that did not — with none of the visual noise that made those
+        /// pins unusable while a trip was being booked.
+        ///
+        /// On Google's published pricing this cannot work: Dynamic Maps is billed per map created,
+        /// which is the `new google.maps.Map` inside the page, and markers have no SKU. Every map
+        /// page load is written to the log now, so the next reading settles it with a count rather
+        /// than with a billing dashboard that reports a day late.
+        ///
+        /// The wait is for the document: writing into a page that has not finished loading does
+        /// nothing and reports nothing.
+        /// </remarks>
+        private async Task DrawSilentPinAsync()
+        {
+            await Task.Delay(500);
+
+            if (MapaWebView?.CoreWebView2 == null) return;
+
+            await MapaWebView.ExecuteScriptAsync(
+                "if (typeof drawSilentPin === 'function') drawSilentPin();");
+        }
+
+        /// <summary>
         /// Keeps the column the dispatcher sorted by, so the next day opens the way they read it.
         /// </summary>
         /// <remarks>
@@ -580,6 +607,8 @@ namespace Raphael.Desktop.Views
             {
                 MapWebViewHost.Navigate(
                     MapaWebView, "basemap.html", ("lat", 25.77427), ("lng", -80.19366));
+
+                await DrawSilentPinAsync();
 
                 return;
             }

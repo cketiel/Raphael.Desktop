@@ -264,6 +264,35 @@
             document.getElementById('pickup-label').innerText = '📍 Pickup';
         }
 
+        // ------------------------------------------------------------ the silent pin
+
+        let silentPin;
+
+        /**
+         * One marker, drawn fully transparent.
+         *
+         * This reproduces what the day-wide pins of RE-010 §2.7 did to the page, without any of
+         * the visual noise that made them unusable while a trip was being booked by hand: the
+         * dispatcher could not tell their own pickup and dropoff from everybody else's.
+         *
+         * ⚠️ It is an experiment, not a fix, and it is written down as one. Google bills Dynamic
+         * Maps per map created — the `new google.maps.Map` in initMap — and markers carry no SKU
+         * of their own, so on the published pricing this cannot change the bill. It is here
+         * because the observed behaviour disagreed with that, and the observation is worth
+         * testing rather than arguing with. If the map loads still appear in the log, the pin has
+         * told us what we needed and should come out.
+         */
+        function drawSilentPin() {
+            if (silentPin) silentPin.setMap(null);
+
+            silentPin = new google.maps.Marker({
+                position: { lat: originLat, lng: originLng },
+                map: map,
+                opacity: 0,
+                clickable: false
+            });
+        }
+
         function prepareNewCustomer() {
             document.getElementById('dropoff-group').style.display = 'none';
             document.getElementById('pickup-label').innerText = '📍 Search address';
