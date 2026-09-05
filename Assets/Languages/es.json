@@ -670,5 +670,7 @@
     "home.DividerSummary": "{0} viajes, {1} charges, {2} paid",
     "home.StepsCardTitle": "Dar de alta un viaje",
     "home.HelperCards": "Mostrar u ocultar las tarjetas flotantes",
-    "home.SpaceTypeFilter": "Tipo de espacio"
+    "home.SpaceTypeFilter": "Tipo de espacio",
+    "home.ShowMap": "Mostrar el mapa",
+    "home.MapNotLoaded": "El mapa se abre al seleccionar un viaje o al empezar a crear uno. Antes no se carga, porque crear un mapa es una petición facturada a Google."
 }

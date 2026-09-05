@@ -94,10 +94,47 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>The CSV import view has taken over the tab.</summary>
         public bool IsImporting => CurrentMode is HomeMode.Importing;
 
+        #region The map is not loaded until it is wanted
+
+        /// <summary>
+        /// The dispatcher asked for the map without having a trip open.
+        /// </summary>
+        /// <remarks>
+        /// The map page has an address search of its own, which is a real reason to want it while
+        /// browsing. It just stops being something everybody pays for on the way past.
+        /// </remarks>
+        [ObservableProperty] private bool _showMapOnDemand;
+
+        partial void OnShowMapOnDemandChanged(bool value) => OnPropertyChanged(nameof(IsMapVisible));
+
+        /// <summary>
+        /// Whether there is any reason to have a map on screen.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is a bill, not a preference. Loading either map page loads Google's Maps
+        /// JavaScript and creates a map, which Google charges for as a Dynamic Map — and opening
+        /// the Home tab did exactly that, every time, to show an empty view of Miami that answered
+        /// nothing. Markers do not change it: a single transparent one was tried, and the load
+        /// count in the log did not move.
+        ///
+        /// ⚠️ Whoever changes this: the guard that reads it lives in LoadMap, and hiding the
+        /// WebView without it buys the map anyway. That exact half-change shipped once and looked
+        /// like the idea had failed.
+        /// </remarks>
+        public bool IsMapVisible => SelectedTrip != null || IsTripFormOpen || ShowMapOnDemand;
+
+        [RelayCommand] private void ShowMap() => ShowMapOnDemand = true;
+
+        public string ShowMapLabel => LocalizationService.Instance["home.ShowMap"];
+        public string MapNotLoadedHint => LocalizationService.Instance["home.MapNotLoaded"];
+
+        #endregion
+
         partial void OnCurrentModeChanged(HomeMode value)
         {
             OnPropertyChanged(nameof(IsTripFormOpen));
             OnPropertyChanged(nameof(IsImporting));
+            OnPropertyChanged(nameof(IsMapVisible));
             RefreshHelperCards();
 
             _tripFormOnEntry = IsTripFormOpen ? CaptureTripForm() : null;
@@ -1911,6 +1948,9 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         partial void OnSelectedTripChanged(TripReadDto oldValue, TripReadDto newValue)
         {
+            // Whether a map is worth loading changes with the selection, and a map is a bill.
+            OnPropertyChanged(nameof(IsMapVisible));
+
             // Putting a row back after the dispatcher declined to leave. The form already holds
             // their work; replaying the load would write the stored trip over it.
             if (_restoringSelection) return;
