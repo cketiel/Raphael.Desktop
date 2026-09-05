@@ -349,6 +349,14 @@ namespace Raphael.Desktop.ViewModels
         public string SaveViewLabel => LocalizationService.Instance["home.SaveView"];
         public string MyFiltersHint => LocalizationService.Instance["home.MyFilters"];
         public string StatusFilterText => LocalizationService.Instance["home.StatusFilter"];
+
+        /// <summary>
+        /// ⚠️ Its own property. The filter panel's first Expander was bound to SpaceTypeText,
+        /// which no ViewModel ever declared: WPF resolves a missing path to nothing and draws an
+        /// empty header, with no error anywhere. The list of checkboxes underneath looked like it
+        /// belonged to nobody.
+        /// </summary>
+        public string SpaceTypeFilterText => LocalizationService.Instance["home.SpaceTypeFilter"];
         public string CitiesFilterText => LocalizationService.Instance["home.CitiesFilter"];
         public string CityScopeText => LocalizationService.Instance["home.CityScope"];
         public string ScopeBothText => LocalizationService.Instance["home.ScopeBoth"];

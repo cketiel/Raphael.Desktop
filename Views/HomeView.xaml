@@ -476,9 +476,12 @@
                         
                         <!-- 📅 Trip Filters -->
                         
-                        <materialDesign:Card Margin="2"
-                            Grid.Row="1"                                             
-                            Padding="10" 
+                        <!-- The -12 is not a fudge: it is exactly what the divider below grew
+                             by, 6px to 18px, and that height came out of this row. Without it the
+                             date, Show Canceled and the two buttons are cut off at the bottom. -->
+                        <materialDesign:Card Margin="2,-12,2,2"
+                            Grid.Row="1"
+                            Padding="10"
                             Background="{DynamicResource MaterialDesignCardBackground}">
                             
                             <StackPanel x:Name="TripFilterPanel"
@@ -1250,30 +1253,27 @@
                      of their own: this band is already there, it is exactly where the form ends
                      and the list begins, and it costs the layout nothing to read it. The text is
                      IsHitTestVisible=False so the whole band still drags. -->
-                <Grid Grid.Row="1"
-                      Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
-
-                <TextBlock Text="{Binding DividerSummary}" Panel.ZIndex="1"
-                           IsHitTestVisible="False"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                           FontSize="11" FontWeight="SemiBold" Opacity=".75"/>
-
-                <GridSplitter x:Name="GridRow1"
+                <GridSplitter x:Name="GridRow1" Grid.Row="1"
+                      Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
                       Height="18"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
-                      Background="#40CCCCCC"
+                      Background="{DynamicResource MaterialDesign.Brush.Primary}"
                       ShowsPreview="True"
-                      Cursor="SizeNS">
-                    <!--<GridSplitter.Template>
-                        <ControlTemplate TargetType="GridSplitter">
-                            <Grid Background="{TemplateBinding Background}">
-                                <Rectangle Fill="#808080" Height="2" VerticalAlignment="Center" RadiusX="1" RadiusY="1" />
-                            </Grid>
-                        </ControlTemplate>
-                    </GridSplitter.Template>-->
-                </GridSplitter>
-                </Grid>
+                      Cursor="SizeNS" />
+
+                <!-- ⚠️ The figures are a SIBLING of the splitter in the same cell, never its
+                     parent or its child. A GridSplitter decides which rows it resizes by looking
+                     at the Grid it sits in: wrapped in a Grid of its own it had no siblings to
+                     move, and the band stopped dragging altogether. Overlapping two children in
+                     one cell keeps the splitter where it belongs and still puts the text on top.
+
+                     IsHitTestVisible=False so the whole band, text included, drags. -->
+                <TextBlock Grid.Row="1" Text="{Binding DividerSummary}" Panel.ZIndex="1"
+                           Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
+                           IsHitTestVisible="False"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="White" FontSize="11" FontWeight="SemiBold" />
 
                 <!-- Bottom DataGrid -->
 
@@ -1987,7 +1987,7 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8,12,0">
                                 <StackPanel>
 
-                                    <Expander Header="{Binding SpaceTypeText}" IsExpanded="True">
+                                    <Expander Header="{Binding SpaceTypeFilterText}" IsExpanded="True">
                                         <ItemsControl ItemsSource="{Binding Filters.SpaceTypes}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>

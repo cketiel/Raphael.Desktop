@@ -669,5 +669,6 @@
     "home.ZipStateWarning": "Read out of the address text, so it is dependable on imported trips and not on ones typed through Google Places. County is not stored anywhere yet.",
     "home.DividerSummary": "{0} trips, {1} charges, {2} paid",
     "home.StepsCardTitle": "Booking a trip",
-    "home.HelperCards": "Show or hide the floating helpers"
+    "home.HelperCards": "Show or hide the floating helpers",
+    "home.SpaceTypeFilter": "Space type"
 }
