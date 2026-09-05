@@ -917,6 +917,11 @@ namespace Raphael.Desktop.Views
             {              
                 Customer customer = vm.Customers.FirstOrDefault(c => c.Id == int.Parse(e.NewValue.ToString()));
 
+                // The list has done its job. MaterialDesign leaves it open, and setting SearchText
+                // from the chosen patient re-runs the filter, which opens it straight back over
+                // the form underneath.
+                CustomersAutoSuggestBox.IsSuggestionOpen = false;
+
                 // MessageBox.Show(a?.FullName + " a.FullName");
                 // Until RE-010 the form appeared only after pressing Save patient, so booking a
                 // trip for someone already on file meant re-saving a record that had not changed.

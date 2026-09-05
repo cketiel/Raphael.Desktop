@@ -670,5 +670,7 @@
     "home.DividerSummary": "{0} trips, {1} charges, {2} paid",
     "home.StepsCardTitle": "Booking a trip",
     "home.HelperCards": "Show or hide the floating helpers",
-    "home.SpaceTypeFilter": "Space type"
+    "home.SpaceTypeFilter": "Space type",
+    "home.ShowMap": "Show the map",
+    "home.MapNotLoaded": "The map opens when you select a trip or start booking one. It is not loaded before that, because loading it is a billed request to Google."
 }
