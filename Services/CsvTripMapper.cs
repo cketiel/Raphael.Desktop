@@ -281,20 +281,17 @@ namespace Raphael.Desktop.Services
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
-                        $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
-                        "Error del servidor",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // Logged, not shown. A service has no business opening a dialog, and this
+                    // one sits inside a loop over every record of the file: a broker sending 400
+                    // rows with one bad column meant 400 modal dialogs, one at a time, with the
+                    // import stopped behind each of them. The caller reports what failed, per row,
+                    // once it has finished.
+                    FileLogger.Log($"CSV mapping - API error {ex.StatusCode}: {ex.ErrorDetails}");
                     throw new InvalidOperationException($"No se pudo crear ni recuperar Trip: {raw.RideId}", ex);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
-                        $"Error inesperado: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    FileLogger.Log($"CSV mapping - unexpected error: {ex.Message}");
                     throw new InvalidOperationException($"No se pudo crear ni recuperar Trip: {raw.RideId}", ex);
                 }
 
@@ -637,20 +634,17 @@ namespace Raphael.Desktop.Services
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
-                        $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
-                        "Error del servidor",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // Logged, not shown. A service has no business opening a dialog, and this
+                    // one sits inside a loop over every record of the file: a broker sending 400
+                    // rows with one bad column meant 400 modal dialogs, one at a time, with the
+                    // import stopped behind each of them. The caller reports what failed, per row,
+                    // once it has finished.
+                    FileLogger.Log($"CSV mapping - API error {ex.StatusCode}: {ex.ErrorDetails}");
                     throw new InvalidOperationException($"Trip could not be created or retrieved: {raw.RideId}", ex);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
-                        $"Error inesperado: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    FileLogger.Log($"CSV mapping - unexpected error: {ex.Message}");
                     throw new InvalidOperationException($"Trip could not be created or retrieved: {raw.RideId}", ex);
                 }
 
@@ -668,20 +662,17 @@ namespace Raphael.Desktop.Services
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
-                        $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
-                        "Error del servidor",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // Logged, not shown. A service has no business opening a dialog, and this
+                    // one sits inside a loop over every record of the file: a broker sending 400
+                    // rows with one bad column meant 400 modal dialogs, one at a time, with the
+                    // import stopped behind each of them. The caller reports what failed, per row,
+                    // once it has finished.
+                    FileLogger.Log($"CSV mapping - API error {ex.StatusCode}: {ex.ErrorDetails}");
                     throw new InvalidOperationException($"Trip could not be updated: {raw.RideId}", ex);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
-                        $"Error inesperado: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    FileLogger.Log($"CSV mapping - unexpected error: {ex.Message}");
                     throw new InvalidOperationException($"Trip could not be updated: {raw.RideId}", ex);
                 }
               

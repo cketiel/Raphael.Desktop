@@ -366,6 +366,15 @@ namespace Raphael.Desktop.ViewModels
         public string Step2Label => LocalizationService.Instance["home.Step2"];
         public string Step3Label => LocalizationService.Instance["home.Step3"];
         public string Step4Label => LocalizationService.Instance["home.Step4"];
+        public string BackToHomeLabel => LocalizationService.Instance["home.BackToHome"];
+        public string ImportHeaderLabel => LocalizationService.Instance["home.ImportHeader"];
+
+        /// <summary>
+        /// ⚠️ "Results", not "preview". The grid under this label is filled <b>after</b> the trips
+        /// have been sent, so calling it a preview told the dispatcher they still had a chance to
+        /// look before anything happened.
+        /// </summary>
+        public string ImportResultsLabel => LocalizationService.Instance["home.ImportResults"];
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"

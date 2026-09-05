@@ -1619,12 +1619,12 @@
                     ToolTip="Back to Home">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="ArrowLeft" VerticalAlignment="Center" />
-                                    <TextBlock Text="VOLVER A INICIO" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding BackToHomeLabel}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
                                 </StackPanel>
                             </Button>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                 <materialDesign:PackIcon Kind="DatabaseImport" Width="24" Height="24" />
-                                <TextBlock Text="IMPORTACIÓN DE VIAJES" Margin="12,0,0,0" Style="{StaticResource MaterialDesignHeadline6TextBlock}" />
+                                <TextBlock Text="{Binding ImportHeaderLabel}" Margin="12,0,0,0" Style="{StaticResource MaterialDesignHeadline6TextBlock}" />
                             </StackPanel>
                         </DockPanel>
                     </materialDesign:ColorZone>
@@ -1696,7 +1696,7 @@
                                 </Grid.RowDefinitions>
 
                                 <Border Background="{DynamicResource MaterialDesignDivider}" Padding="12,8">
-                                    <TextBlock Text="VISTA PREVIA DE DATOS A IMPORTAR" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Opacity="0.6" />
+                                    <TextBlock Text="{Binding ImportResultsLabel}" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Opacity="0.6" />
                                 </Border>
 
                                 <DataGrid Grid.Row="1"
@@ -1716,7 +1716,7 @@
                 <!-- Import Trips-->
                 <!--<Grid Grid.Row="0" x:Name="ImportTripsGridRow" Visibility="Collapsed" Margin="10">
                     <StackPanel>
-                        <Button Content="Seleccionar archivo CSV" Click="SelectCsv_Click" Margin="0 0 0 10"/>
+                        <Button Content="{Binding SelectCsvButtonContent}" Click="SelectCsv_Click" Margin="0 0 0 10"/>
                         <DataGrid x:Name="PreviewGrid" AutoGenerateColumns="True" Height="350"/>
                     </StackPanel>
                 </Grid>-->
