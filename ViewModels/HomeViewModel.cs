@@ -127,10 +127,15 @@ namespace Raphael.Desktop.ViewModels
         /// Whether the new-patient button is worth a place in the header row.
         /// </summary>
         /// <remarks>
-        /// With a patient already on screen it means nothing, and the row it sits in has no space
-        /// to spare: it was pushing the way out of the trip form off the end.
+        /// It steps aside exactly while the trip form is open, which is when the ✕ that closes
+        /// that form needs its place and when starting a patient from scratch means nothing
+        /// anyway. Closing the form gives it back.
+        ///
+        /// ⚠️ Tied to the form and not to <c>SelectedCustomer</c>. Keyed on the patient it never
+        /// came back: ✕ leaves the patient on screen, so the button stayed hidden with no way to
+        /// bring it out again.
         /// </remarks>
-        public bool CanStartNewPatient => SelectedCustomer == null;
+        public bool CanStartNewPatient => !IsTripFormOpen;
 
         [RelayCommand] private void ShowMap() => ShowMapOnDemand = true;
 
@@ -144,6 +149,7 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(IsTripFormOpen));
             OnPropertyChanged(nameof(IsImporting));
             OnPropertyChanged(nameof(IsMapVisible));
+            OnPropertyChanged(nameof(CanStartNewPatient));
             RefreshHelperCards();
 
             _tripFormOnEntry = IsTripFormOpen ? CaptureTripForm() : null;
@@ -1734,7 +1740,6 @@ namespace Raphael.Desktop.ViewModels
             {
                 _selectedCustomer = value; 
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CanStartNewPatient));
                 if (value != null)
                 {
                     SearchText = value.FullName; // Patch to autocomplete bug.

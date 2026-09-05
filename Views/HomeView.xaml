@@ -332,34 +332,34 @@
                                                 <StackPanel Grid.Column="2" Orientation="Horizontal"
                                                             VerticalAlignment="Center">
 
-                                                <Button
-                                                    Margin="10,0,0,0"
+                                                <Button Padding="3,0,3,0"
+                                                    Margin="2,0,0,0"
                                                 
                                                     ToolTip="{Binding SaveCustomerToolTip}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding SaveCustomerCommand}" Click="OnSaveCustomerClick">
 
-                                                    <materialDesign:PackIcon Kind="ContentSave" Width="25" Height="25" />
+                                                    <materialDesign:PackIcon Kind="ContentSave" Width="21" Height="21" />
                                                 </Button>
 
-                                            <Button
-                                                    Margin="5,0,0,0"
+                                            <Button Padding="3,0,3,0"
+                                                    Margin="2,0,0,0"
                                                 
                                                     ToolTip="{Binding NewCustomerToolTip}"
                                                     Visibility="{Binding CanStartNewPatient, Converter={StaticResource BoolToVisibility}}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding NewCustomerCommand}" Click="OnNewCustomerClick">
 
-                                                <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="25" Height="25"/>
+                                                <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="21" Height="21"/>
                                             </Button>
 
                                             <!-- The way out of the trip form. -->
-                                            <Button Margin="5,0,0,0"
+                                            <Button Padding="3,0,3,0" Margin="2,0,0,0"
                                                     ToolTip="{Binding CloseTripFormToolTip}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Click="CloseTripForm_Click"
                                                     Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
-                                                <materialDesign:PackIcon Kind="Close" Width="25" Height="25"/>
+                                                <materialDesign:PackIcon Kind="Close" Width="21" Height="21"/>
                                             </Button>
 
                                             <!-- ⚠️ In the row, not docked to its right edge. A
@@ -368,18 +368,18 @@
                                                  that last child is this StackPanel, which is
                                                  wider than what remained, so save and new patient
                                                  simply ran underneath these three. -->
-                                            <Button Margin="8,0,0,0"
+                                            <Button Padding="3,0,3,0" Margin="2,0,0,0"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding StartTourCommand}"
                                                     ToolTip="{Binding TourHelpToolTip}">
-                                                <materialDesign:PackIcon Kind="HelpCircleOutline" Width="25" Height="25"/>
+                                                <materialDesign:PackIcon Kind="HelpCircleOutline" Width="21" Height="21"/>
                                             </Button>
 
-                                            <Button Margin="5,0,0,0"
+                                            <Button Padding="3,0,3,0" Margin="2,0,0,0"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding ToggleHelperCardsCommand}"
                                                     ToolTip="{Binding HelperCardsToolTip}">
-                                                <materialDesign:PackIcon Kind="InformationOutline" Width="25" Height="25"/>
+                                                <materialDesign:PackIcon Kind="InformationOutline" Width="21" Height="21"/>
                                             </Button>
 
 
