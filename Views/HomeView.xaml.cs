@@ -308,11 +308,41 @@ namespace Raphael.Desktop.Views
                 return;
             }
 
+            if (e.PropertyName == nameof(HomeViewModel.IsFilterPanelOpen))
+            {
+                SlideFilterPanel(ViewModel.IsFilterPanelOpen);
+                return;
+            }
+
             if (e.PropertyName == nameof(HomeViewModel.SelectedTrip) && ViewModel.SelectedTrip != null)
             {
                 LoadMap();
             }
         }
+
+        /// <summary>
+        /// Slides the filter panel in and out.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Driven from here rather than from a Style trigger for a plain WPF reason: a
+        /// Storyboard declared inside a Style cannot name an element, so the transform it has to
+        /// move is out of its reach. Same family as the column widths — the declarative route
+        /// exists and simply does not reach this particular property.
+        /// </remarks>
+        private void SlideFilterPanel(bool open)
+        {
+            FilterPanelSlide.BeginAnimation(
+                TranslateTransform.XProperty,
+                new DoubleAnimation
+                {
+                    To = open ? 0 : FilterPanelWidth,
+                    Duration = TimeSpan.FromMilliseconds(open ? 180 : 150),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+        }
+
+        /// <summary>How far off-screen the filter panel sits when it is closed.</summary>
+        private const double FilterPanelWidth = 380;
 
         /// <summary>
         /// Puts the screen into the shape its mode calls for.
@@ -404,11 +434,25 @@ namespace Raphael.Desktop.Views
         /// </remarks>
         private void HomeView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key != Key.Escape || !ViewModel.IsTripFormOpen) return;
+            if (e.Key != Key.Escape) return;
             if (RootDialogHost.IsOpen) return;
+
+            // The panel is on top of everything, so it is what Esc means while it is out.
+            if (ViewModel.IsFilterPanelOpen)
+            {
+                ViewModel.IsFilterPanelOpen = false;
+                e.Handled = true;
+                return;
+            }
+
+            if (!ViewModel.IsTripFormOpen) return;
 
             e.Handled = ViewModel.TryLeaveTripForm();
         }
+
+        /// <summary>Clicking anywhere outside the filter panel puts it away.</summary>
+        private void FilterPanelBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
+            => ViewModel.IsFilterPanelOpen = false;
         private async void LoadMap()
         {
             var trip = ViewModel.SelectedTrip;

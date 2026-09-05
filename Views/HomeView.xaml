@@ -23,6 +23,9 @@
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
+        <converters:InverseBooleanConverter x:Key="InverseBoolConverter" />
+        <converters:EnumMatchConverter x:Key="EnumMatchConverter" />
+        <converters:TimeSpanToDateConverter x:Key="TimeSpanToDateConverter" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <converters:StatusToVisibilityConverter x:Key="StatusToVisibilityConverter" />
 
@@ -418,14 +421,82 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Date -->
-                                        <DatePicker 
-                                            x:Name="ForDatePicker"
-                                            Grid.Column="0"
-                                        
-                                            SelectedDate="{Binding FilterDate, Mode=TwoWay}" 
-                                            materialDesign:HintAssist.Hint="{Binding ForDatePickerHint}"
-                                            Style="{StaticResource MaterialDesignFilledDatePicker}" Margin="0,0,8,0"/>
+                                        <!-- Date. One control: it reads a day, or the two ends of
+                                             a span, and opens the same popup either way. -->
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                                    VerticalAlignment="Center" Margin="0,0,8,0">
+
+                                            <Button x:Name="DateSpanButton"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    Command="{Binding OpenDatePopupCommand}"
+                                                    ToolTip="{Binding DatePickerToolTip}"
+                                                    Padding="10,2,10,2" MinWidth="120">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CalendarMonth" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding DateSpanLabel}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <!-- The way back to a single day. Without it a range is
+                                                 a state people get stuck in. -->
+                                            <Border Margin="6,0,0,0" CornerRadius="10" Padding="8,1,4,1"
+                                                    Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                                    Visibility="{Binding IsDateRange, Converter={StaticResource BoolToVisibility}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding RangeChipText}" Foreground="White"
+                                                               VerticalAlignment="Center" FontSize="11"/>
+                                                    <Button Style="{StaticResource MaterialDesignToolButton}"
+                                                            Command="{Binding ClearDateRangeCommand}"
+                                                            ToolTip="{Binding ClearRangeToolTip}"
+                                                            Foreground="White" Padding="2" Margin="4,0,0,0">
+                                                        <materialDesign:PackIcon Kind="Close" Width="13" Height="13"/>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Popup IsOpen="{Binding IsDatePopupOpen, Mode=TwoWay}"
+                                                   PlacementTarget="{Binding ElementName=DateSpanButton}"
+                                                   Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                                <materialDesign:Card Margin="4" Padding="10"
+                                                                     materialDesign:ElevationAssist.Elevation="Dp4">
+                                                    <StackPanel MinWidth="250">
+
+                                                        <!-- One day is where this starts, every time. -->
+                                                        <UniformGrid Columns="2" Margin="0,0,0,8">
+                                                            <RadioButton Content="{Binding SingleDayLabel}"
+                                                                         GroupName="DateSpanMode"
+                                                                         IsChecked="{Binding RangeMode, Converter={StaticResource InverseBoolConverter}}"
+                                                                         Command="{Binding UseSingleDayCommand}"
+                                                                         Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                                                            <RadioButton Content="{Binding RangeLabel}"
+                                                                         GroupName="DateSpanMode"
+                                                                         IsChecked="{Binding RangeMode, Mode=OneWay}"
+                                                                         Command="{Binding UseRangeCommand}"
+                                                                         Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                                                        </UniformGrid>
+
+                                                        <TextBlock Text="{Binding RangePickHint}" FontStyle="Italic"
+                                                                   Margin="0,0,0,4" TextWrapping="Wrap" Opacity=".8"/>
+
+                                                        <Calendar SelectedDate="{Binding PickedDate, Mode=TwoWay}"
+                                                                  HorizontalAlignment="Center"/>
+
+                                                        <Separator Margin="0,6,0,6"/>
+
+                                                        <UniformGrid Columns="2">
+                                                            <Button Content="{Binding PresetTodayLabel}" Command="{Binding PresetTodayCommand}"
+                                                                    Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                            <Button Content="{Binding PresetTomorrowLabel}" Command="{Binding PresetTomorrowCommand}"
+                                                                    Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                            <Button Content="{Binding PresetThisWeekLabel}" Command="{Binding PresetThisWeekCommand}"
+                                                                    Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                            <Button Content="{Binding PresetNextSevenLabel}" Command="{Binding PresetNextSevenCommand}"
+                                                                    Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                        </UniformGrid>
+                                                    </StackPanel>
+                                                </materialDesign:Card>
+                                            </Popup>
+                                        </StackPanel>
 
                                         <!-- One box for the broker's trip id, our id, the patient
                                              and the addresses. #123 forces our id, TripId:xxx the
@@ -462,8 +533,31 @@
                                     </Grid>
 
                                     <Grid Grid.Row="1" Margin="0 5 0 0">
-                                        <TextBlock Text="{Binding GridSummary}" FontWeight="Bold"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding GridSummary}" FontWeight="Bold" VerticalAlignment="Center"/>
 
+                                            <!-- What is hiding rows, on screen. This is what stops
+                                                 "the list is empty and I do not know why". -->
+                                            <ItemsControl ItemsSource="{Binding Filters.ActiveChips}" Margin="10,0,0,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border CornerRadius="9" Margin="0,0,4,0" Padding="8,1,8,1"
+                                                                Background="{DynamicResource MaterialDesignChipBackground}">
+                                                            <TextBlock Text="{Binding}" FontSize="11"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <Button Content="{Binding ClearAllFiltersLabel}"
+                                                    Command="{Binding Filters.ClearAllCommand}"
+                                                    Style="{StaticResource MaterialDesignToolButton}"
+                                                    FontSize="11" Padding="6,0,6,0"
+                                                    Visibility="{Binding Filters.HasActiveFilters, Converter={StaticResource BoolToVisibility}}"/>
+                                        </StackPanel>
                                     </Grid>
                                     
                                 </Grid>
@@ -1112,9 +1206,20 @@
                         <DataGridTemplateColumn Width="Auto">
                             <DataGridTemplateColumn.HeaderTemplate>
                                 <DataTemplate>
-                                    <Button Command="{Binding DataContext.FilterSettingsCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    <Button Command="{Binding DataContext.ToggleFilterPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            ToolTip="{Binding DataContext.FiltersHeader, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             Style="{StaticResource MaterialDesignToolButton}">
-                                        <materialDesign:PackIcon Kind="FilterSettings" Width="20" Height="20"/>
+                                        <Grid>
+                                            <materialDesign:PackIcon Kind="FilterSettings" Width="20" Height="20"/>
+                                            <!-- The dot is the only thing that tells a dispatcher
+                                                 the list is short because they filtered it. -->
+                                            <Ellipse Width="7" Height="7" Fill="#D32F2F"
+                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                     Margin="0,-1,-1,0"
+                                                     Visibility="{Binding DataContext.Filters.HasActiveFilters,
+                                                                  RelativeSource={RelativeSource AncestorType=UserControl},
+                                                                  Converter={StaticResource BoolToVisibility}}"/>
+                                        </Grid>
                                     </Button>
                                 </DataTemplate>
                             </DataGridTemplateColumn.HeaderTemplate>
@@ -1406,6 +1511,209 @@
                 </Grid>-->
         
             
+
+                <!-- ================= Complex filters (2.4) =================
+                     It slides over the grid instead of pushing it aside: the list stays visible
+                     and refilters as the ticks change, which is the only way to see whether a
+                     filter did what you meant. Clicking anywhere outside closes it, and so does
+                     Esc — see HomeView_PreviewKeyDown. -->
+                <Grid Grid.Row="0" Grid.RowSpan="3"
+                      Visibility="{Binding IsFilterPanelOpen, Converter={StaticResource BoolToVisibility}}">
+
+                    <!-- Almost invisible, but not Transparent-by-omission: a Grid with no brush
+                         does not receive mouse events at all, so the click outside would land on
+                         whatever is underneath instead of closing the panel. -->
+                    <Rectangle Fill="#20000000" MouseDown="FilterPanelBackdrop_MouseDown"/>
+
+                    <Border HorizontalAlignment="Right" Width="380"
+                            Background="{DynamicResource MaterialDesignPaper}"
+                            BorderBrush="{StaticResource MainBorderBrush}" BorderThickness="1,0,0,0"
+                            materialDesign:ElevationAssist.Elevation="Dp4">
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="FilterPanelSlide" X="380"/>
+                        </Border.RenderTransform>
+
+                        <DockPanel>
+
+                            <!-- Header: how much is getting through, and the way out of all of it -->
+                            <materialDesign:ColorZone DockPanel.Dock="Top" Mode="PrimaryMid" Padding="12,8,8,8">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                            Command="{Binding CloseFilterPanelCommand}" Padding="2">
+                                        <materialDesign:PackIcon Kind="Close" Width="20" Height="20"/>
+                                    </Button>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding FiltersHeader}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding GridSummary}" FontSize="11" Opacity=".85"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </materialDesign:ColorZone>
+
+                            <!-- Footer: clear everything, and keep this set under a name -->
+                            <StackPanel DockPanel.Dock="Bottom" Margin="12,6,12,12">
+                                <Button Content="{Binding ClearAllFiltersLabel}"
+                                        Command="{Binding Filters.ClearAllCommand}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="{Binding SaveViewLabel}"
+                                            Command="{Binding Filters.SaveViewCommand}"
+                                            Style="{StaticResource MaterialDesignFlatButton}"/>
+                                    <TextBox Text="{Binding Filters.NewViewName, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="{Binding MyFiltersHint}"
+                                             Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,8,0"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Filters.SavedViews}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="10" Margin="0,0,4,4" Padding="8,1,2,1"
+                                                    Background="{DynamicResource MaterialDesignChipBackground}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="{Binding}" Padding="0"
+                                                            Style="{StaticResource MaterialDesignToolButton}"
+                                                            Command="{Binding DataContext.Filters.ApplyViewCommand,
+                                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                    <Button Style="{StaticResource MaterialDesignToolButton}" Padding="2"
+                                                            Command="{Binding DataContext.Filters.DeleteViewCommand,
+                                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}">
+                                                        <materialDesign:PackIcon Kind="Close" Width="12" Height="12"/>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8,12,0">
+                                <StackPanel>
+
+                                    <Expander Header="{Binding SpaceTypeText}" IsExpanded="True">
+                                        <ItemsControl ItemsSource="{Binding Filters.SpaceTypes}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+
+                                    <Expander Header="{Binding FundingSourceText}">
+                                        <ItemsControl ItemsSource="{Binding Filters.FundingSources}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+
+                                    <Expander Header="{Binding StatusFilterText}">
+                                        <ItemsControl ItemsSource="{Binding Filters.Statuses}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+
+                                    <Expander Header="{Binding TypeText}">
+                                        <ItemsControl ItemsSource="{Binding Filters.Types}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+
+                                    <Expander Header="{Binding CitiesFilterText}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding CityScopeText}" FontSize="11" Opacity=".8" Margin="0,0,0,4"/>
+                                            <UniformGrid Columns="3" Margin="0,0,0,6">
+                                                <RadioButton Content="{Binding ScopeBothText}" GroupName="CityScope"
+                                                             IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Both}"/>
+                                                <RadioButton Content="{Binding PickupText}" GroupName="CityScope"
+                                                             IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Pickup}"/>
+                                                <RadioButton Content="{Binding DropoffText}" GroupName="CityScope"
+                                                             IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Dropoff}"/>
+                                            </UniformGrid>
+                                            <ItemsControl ItemsSource="{Binding Filters.Cities}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Expander>
+
+                                    <Expander Header="{Binding PickupWindowText}">
+                                        <StackPanel>
+                                            <materialDesign:TimePicker Is24Hours="True"
+                                                SelectedTime="{Binding Filters.PickupFrom, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
+                                                materialDesign:HintAssist.Hint="{Binding FromTimeText}"/>
+                                            <materialDesign:TimePicker Is24Hours="True" Margin="0,6,0,0"
+                                                SelectedTime="{Binding Filters.PickupTo, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
+                                                materialDesign:HintAssist.Hint="{Binding ToTimeText}"/>
+                                        </StackPanel>
+                                    </Expander>
+
+                                    <Expander Header="{Binding OtherFiltersText}" IsExpanded="True">
+                                        <StackPanel>
+                                            <TextBlock Text="Will Call" FontSize="11" Opacity=".8" Margin="0,4,0,2"/>
+                                            <UniformGrid Columns="3">
+                                                <RadioButton Content="{Binding FlagAnyText}" GroupName="WillCallFilter"
+                                                             IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
+                                                <RadioButton Content="{Binding FlagYesText}" GroupName="WillCallFilter"
+                                                             IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
+                                                <RadioButton Content="{Binding FlagNoText}" GroupName="WillCallFilter"
+                                                             IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
+                                            </UniformGrid>
+
+                                            <TextBlock Text="{Binding RunText}" FontSize="11" Opacity=".8" Margin="0,8,0,2"/>
+                                            <UniformGrid Columns="3">
+                                                <RadioButton Content="{Binding FlagAnyText}" GroupName="RunFilter"
+                                                             IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
+                                                <RadioButton Content="{Binding FlagYesText}" GroupName="RunFilter"
+                                                             IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
+                                                <RadioButton Content="{Binding FlagNoText}" GroupName="RunFilter"
+                                                             IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
+                                            </UniformGrid>
+
+                                            <CheckBox Margin="0,10,0,0" IsChecked="{Binding Filters.OnlyMissingCoordinates}"
+                                                      Content="{Binding MissingCoordinatesText}"/>
+                                            <TextBlock Text="{Binding MissingCoordinatesHint}" FontSize="10" Opacity=".7"
+                                                       TextWrapping="Wrap" Margin="26,0,0,0"/>
+                                        </StackPanel>
+                                    </Expander>
+
+                                    <Expander Header="{Binding ZipStateText}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding ZipStateWarning}" FontSize="10" Opacity=".75"
+                                                       TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                            <TextBox Text="{Binding Filters.Zip, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                                                     materialDesign:HintAssist.Hint="{Binding ZipHint}"
+                                                     Style="{StaticResource MaterialDesignFilledTextBox}"/>
+                                            <TextBox Margin="0,6,0,0"
+                                                     Text="{Binding Filters.State, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                                                     materialDesign:HintAssist.Hint="{Binding StateHint}"
+                                                     Style="{StaticResource MaterialDesignFilledTextBox}"/>
+                                        </StackPanel>
+                                    </Expander>
+
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+
             </Grid>
 
         </Border>

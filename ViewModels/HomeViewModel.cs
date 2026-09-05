@@ -334,6 +334,32 @@ namespace Raphael.Desktop.ViewModels
         public string ExportButtonToolTip => LocalizationService.Instance["ExportButtonToolTip"]; // "Export Trips"
         public string CloseTripFormToolTip => LocalizationService.Instance["home.CloseTripForm"]; // "Close the trip form (Esc)"
         public string TripSearchHint => LocalizationService.Instance["home.TripSearchHint"]; // "Search patient, address, #id, TripId:..."
+        public string DatePickerToolTip => LocalizationService.Instance["home.DatePickerToolTip"];
+        public string SingleDayLabel => LocalizationService.Instance["home.SingleDay"];
+        public string RangeLabel => LocalizationService.Instance["home.Range"];
+        public string ClearRangeToolTip => LocalizationService.Instance["home.ClearRange"];
+        public string RangeChipText => LocalizationService.Instance["home.RangeChip"];
+        public string PresetTodayLabel => LocalizationService.Instance["home.PresetToday"];
+        public string PresetTomorrowLabel => LocalizationService.Instance["home.PresetTomorrow"];
+        public string PresetThisWeekLabel => LocalizationService.Instance["home.PresetThisWeek"];
+        public string PresetNextSevenLabel => LocalizationService.Instance["home.PresetNextSeven"];
+        public string FiltersHeader => LocalizationService.Instance["home.FiltersHeader"];
+        public string ClearAllFiltersLabel => LocalizationService.Instance["home.ClearAllFilters"];
+        public string SaveViewLabel => LocalizationService.Instance["home.SaveView"];
+        public string MyFiltersHint => LocalizationService.Instance["home.MyFilters"];
+        public string StatusFilterText => LocalizationService.Instance["home.StatusFilter"];
+        public string CitiesFilterText => LocalizationService.Instance["home.CitiesFilter"];
+        public string CityScopeText => LocalizationService.Instance["home.CityScope"];
+        public string ScopeBothText => LocalizationService.Instance["home.ScopeBoth"];
+        public string PickupWindowText => LocalizationService.Instance["home.PickupWindow"];
+        public string OtherFiltersText => LocalizationService.Instance["home.OtherFilters"];
+        public string FlagAnyText => LocalizationService.Instance["home.FlagAny"];
+        public string FlagYesText => LocalizationService.Instance["home.FlagYes"];
+        public string FlagNoText => LocalizationService.Instance["home.FlagNo"];
+        public string MissingCoordinatesText => LocalizationService.Instance["home.MissingCoordinates"];
+        public string MissingCoordinatesHint => LocalizationService.Instance["home.MissingCoordinatesHint"];
+        public string ZipStateText => LocalizationService.Instance["home.ZipState"];
+        public string ZipStateWarning => LocalizationService.Instance["home.ZipStateWarning"];
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"
@@ -703,9 +729,27 @@ namespace Raphael.Desktop.ViewModels
         {
             if (item is not TripReadDto trip) return false;
             if (!ShowCanceled && IsCanceled(trip)) return false;
+            if (!MatchesSearch(trip)) return false;
 
-            return MatchesSearch(trip);
+            return Filters.Matches(trip);
         }
+
+        /// <summary>
+        /// The filters behind the sliding panel. Everything they need is already in the loaded
+        /// trips, so opening the panel and ticking things costs no request.
+        /// </summary>
+        public HomeFiltersViewModel Filters { get; } = new();
+
+        /// <summary>
+        /// Whether the panel is out. It slides over the grid rather than pushing it aside, so the
+        /// list stays visible and refilters as the ticks change — which is the only way to tell
+        /// whether a filter did what you meant.
+        /// </summary>
+        [ObservableProperty] private bool _isFilterPanelOpen;
+
+        [RelayCommand] private void ToggleFilterPanel() => IsFilterPanelOpen = !IsFilterPanelOpen;
+
+        [RelayCommand] private void CloseFilterPanel() => IsFilterPanelOpen = false;
 
         private static bool IsCanceled(TripReadDto trip) =>
             trip.IsCancelled ||
@@ -759,10 +803,162 @@ namespace Raphael.Desktop.ViewModels
 
                 _filterDate = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(DateSpanLabel));
 
-                LoadTripsByDateAsync(_filterDate);
+                LoadTripsAsync();
             }
         }
+
+        #region Date span
+
+        private DateTime? _filterEndDate;
+        /// <summary>
+        /// The last day of the span, or null when the grid is on a single day.
+        /// </summary>
+        /// <remarks>
+        /// Null is the normal state and the one the tab opens in. A range is something a
+        /// dispatcher asks for; it is never where they are put by default, because a list holding
+        /// a week of trips answers a different question from the one this screen exists for.
+        /// </remarks>
+        public DateTime? FilterEndDate
+        {
+            get => _filterEndDate;
+            private set
+            {
+                _filterEndDate = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsDateRange));
+                OnPropertyChanged(nameof(DateSpanLabel));
+            }
+        }
+
+        public bool IsDateRange => FilterEndDate.HasValue;
+
+        /// <summary>What the date button reads: one day, or the two ends of a span.</summary>
+        public string DateSpanLabel => IsDateRange
+            ? $"{FilterDate:dd/MM} – {FilterEndDate:dd/MM/yyyy}"
+            : FilterDate.ToString("dd/MM/yyyy");
+
+        [ObservableProperty] private bool _isDatePopupOpen;
+
+        /// <summary>
+        /// Whether the popup is asking for a span rather than a day. Starts off, every time.
+        /// </summary>
+        [ObservableProperty] private bool _rangeMode;
+
+        partial void OnRangeModeChanged(bool value)
+        {
+            _rangeAnchor = null;
+            OnPropertyChanged(nameof(RangePickHint));
+        }
+
+        /// <summary>The first of the two clicks of a range, once it has been made.</summary>
+        private DateTime? _rangeAnchor;
+
+        /// <summary>
+        /// The line under the calendar. A two-click control that does not say which click it is
+        /// waiting for is a control people click twice and then undo.
+        /// </summary>
+        public string RangePickHint => !RangeMode
+            ? LocalizationService.Instance["home.PickDay"]
+            : _rangeAnchor == null
+                ? LocalizationService.Instance["home.PickFirstDay"]
+                : LocalizationService.Instance["home.PickLastDay"];
+
+        /// <summary>
+        /// The calendar's own selection. Its setter is the two-click flow.
+        /// </summary>
+        [ObservableProperty] private DateTime? _pickedDate;
+
+        partial void OnPickedDateChanged(DateTime? value)
+        {
+            if (value == null) return;
+
+            if (!RangeMode)
+            {
+                ApplyDateSpan(value.Value, null);
+                IsDatePopupOpen = false;
+                return;
+            }
+
+            if (_rangeAnchor == null)
+            {
+                _rangeAnchor = value.Value;
+                OnPropertyChanged(nameof(RangePickHint));
+                return;
+            }
+
+            // Clicked backwards on purpose or by accident: the earlier of the two is the start.
+            var first = _rangeAnchor.Value;
+            var second = value.Value;
+
+            ApplyDateSpan(first <= second ? first : second, first <= second ? second : first);
+
+            _rangeAnchor = null;
+            IsDatePopupOpen = false;
+        }
+
+        /// <summary>
+        /// Moves the grid to a day or a span and reloads it once.
+        /// </summary>
+        /// <remarks>
+        /// It writes the fields rather than the properties so that changing both ends of a span
+        /// fetches once instead of twice — the setters each reload on their own.
+        /// </remarks>
+        private void ApplyDateSpan(DateTime start, DateTime? end)
+        {
+            _filterDate = start.Date;
+            _filterEndDate = end?.Date;
+
+            OnPropertyChanged(nameof(FilterDate));
+            OnPropertyChanged(nameof(FilterEndDate));
+            OnPropertyChanged(nameof(IsDateRange));
+            OnPropertyChanged(nameof(DateSpanLabel));
+
+            LoadTripsAsync();
+        }
+
+        /// <summary>
+        /// Opens the popup on a clean slate: whatever half-made range was abandoned last time is
+        /// not what the dispatcher is asking for now.
+        /// </summary>
+        [RelayCommand]
+        private void OpenDatePopup()
+        {
+            RangeMode = IsDateRange;
+            _rangeAnchor = null;
+            PickedDate = null;
+
+            OnPropertyChanged(nameof(RangePickHint));
+
+            IsDatePopupOpen = true;
+        }
+
+        [RelayCommand] private void UseSingleDay() => RangeMode = false;
+
+        [RelayCommand] private void UseRange() => RangeMode = true;
+
+        [RelayCommand] private void PresetToday() => ApplyDateSpan(DateTime.Today, null);
+
+        [RelayCommand] private void PresetTomorrow() => ApplyDateSpan(DateTime.Today.AddDays(1), null);
+
+        /// <summary>Monday to Sunday of the week the dispatcher is standing in.</summary>
+        [RelayCommand]
+        private void PresetThisWeek()
+        {
+            var today = DateTime.Today;
+            var monday = today.AddDays(-((int)today.DayOfWeek + 6) % 7);
+
+            ApplyDateSpan(monday, monday.AddDays(6));
+        }
+
+        [RelayCommand]
+        private void PresetNextSeven() => ApplyDateSpan(DateTime.Today, DateTime.Today.AddDays(6));
+
+        /// <summary>Drops the span back to its first day. This is the chip's ✕.</summary>
+        [RelayCommand] private void ClearDateRange() => ApplyDateSpan(FilterDate, null);
+
+        #endregion
 
         /// <summary>
         /// Moves the grid to another day when the caller loads that day itself, so it is not
@@ -1039,6 +1235,8 @@ namespace Raphael.Desktop.ViewModels
             UncancelTripCommand = new AsyncRelayCommand<object>(ExecuteUncancelTripAsync);
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
+
+            Filters.Changed += RefreshTripsView;
 
             LoadData();
             InitializeData();
@@ -1320,7 +1518,25 @@ namespace Raphael.Desktop.ViewModels
                 CapacityTypes.Add(capacity);
         }
 
-        public async Task LoadTripsByDateAsync(DateTime date)
+        /// <summary>
+        /// Reloads the grid for whatever the date control is currently asking for.
+        /// </summary>
+        /// <remarks>
+        /// Everything that refreshes the list calls this rather than the single-day method, so a
+        /// dispatcher who cancels a trip while looking at a week does not silently drop back to
+        /// one day.
+        /// </remarks>
+        public Task LoadTripsAsync() => IsDateRange
+            ? LoadTripsByDateRangeAsync(FilterDate, FilterEndDate.Value)
+            : LoadTripsByDateAsync(FilterDate);
+
+        public Task LoadTripsByDateAsync(DateTime date) =>
+            FillGridAsync(service => service.GetTripsByDateAsync(date));
+
+        public Task LoadTripsByDateRangeAsync(DateTime start, DateTime end) =>
+            FillGridAsync(service => service.GetTripsByDateRangeAsync(start, end));
+
+        private async Task FillGridAsync(Func<TripService, Task<List<TripReadDto>>> fetch)
         {
             IsLoadingTrips = true;
             TripsByDate.Clear();
@@ -1328,7 +1544,7 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 TripService _tripService = new TripService();
-                var sources = await _tripService.GetTripsByDateAsync(date);
+                var sources = await fetch(_tripService);
 
 
                 //var geocodingTasks = sources.Select(trip => PopulateCitiesForTravel(trip)).ToList();
@@ -1353,6 +1569,12 @@ namespace Raphael.Desktop.ViewModels
             {
                 IsLoadingTrips = false;
             }
+
+            // The panel offers what this day actually holds, with counts, and keeps whatever was
+            // already ticked.
+            Filters.Rebuild(TripsByDate);
+            Filters.WatchOptions();
+            RefreshTripsView();
 
             // The grid dropped its selection when the day was emptied. If the form is still on a
             // trip that belongs to this day, light its row again: a trip being edited with no row
@@ -1652,7 +1874,7 @@ namespace Raphael.Desktop.ViewModels
                 // The grid follows the trip: booked or moved to another day, it still has to be
                 // in front of the dispatcher who just saved it.
                 MoveGridTo(tripDate);
-                await LoadTripsByDateAsync(_filterDate);
+                await LoadTripsAsync();
 
                 // Browsing first: the trip is on the server, so there is nothing unsaved left
                 // and clearing the selection below must not stop to ask about it.
@@ -1775,7 +1997,7 @@ namespace Raphael.Desktop.ViewModels
                     await _tripService.UpdateFromDispatchAsync(tripToEdit.Id, updatedDto);
 
                     // We reload the trips from the current date to see the changes
-                    await LoadTripsByDateAsync(this.FilterDate);
+                    await LoadTripsAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1799,7 +2021,7 @@ namespace Raphael.Desktop.ViewModels
                     await _tripService.CancelTripAsync(tripToCancel.Id);
                     MessageBox.Show("Trip canceled successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                   
-                    await LoadTripsByDateAsync(this.FilterDate);
+                    await LoadTripsAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1823,7 +2045,7 @@ namespace Raphael.Desktop.ViewModels
                     await _tripService.UncancelTripAsync(tripToUncancel.Id);
                     MessageBox.Show("Trip restored successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                   
-                    await LoadTripsByDateAsync(this.FilterDate);
+                    await LoadTripsAsync();
                 }
                 catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
