@@ -684,5 +684,12 @@
     "home.LoadingTrips": "Cargando viajes y ubicaciones...",
     "home.CanceledByDriver": "Cancelado: el conductor reportó un no-show.",
     "home.CanceledByOffice": "Este viaje fue cancelado por la oficina.",
-    "home.MapOnDemand": "Mapa a demanda"
+    "home.MapOnDemand": "Mapa a demanda",
+    "home.PlateTrips": "viajes",
+    "home.PlateCanceled": "cancelados",
+    "home.PlateNoRun": "sin ruta",
+    "home.MapPickupHelp": "Recogida: donde espera el paciente",
+    "home.MapDropoffHelp": "Destino: a donde va el paciente",
+    "home.MapRouteHelp": "La ruta, de la recogida al destino",
+    "home.MapCardDrag": "Arrastra para mover esta tarjeta"
 }

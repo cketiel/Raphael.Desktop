@@ -176,6 +176,351 @@
             </Style.Triggers>
         </Style>
         
+        <!-- ===== The map plate =====
+             Drawn at 560x200, which is close to the shape this panel actually is: the map column
+             is two thirds of the width and the top row is 45% of the height, so it lands around
+             2.8:1. The square-ish drawing that was here first was cropped to a strip, and the
+             compass, the clinic and half the pins went with it.
+
+             The card sits over the middle - roughly a third of the width and two thirds of the
+             height - so everything that MUST be seen is kept out of there on purpose. Compass top
+             left, pickup bottom left, clinic and dropoff on the right, and the route along the
+             bottom and up the outside of the card, where every inch of it is in view.
+
+             The base is a brush; the route and the pins are real elements on a Canvas over it, so
+             they can carry tooltips and an animation. A brush can do neither. -->
+        <DrawingBrush x:Key="MapPlateBrush" Stretch="Fill"
+                      Viewbox="0,0,560,200" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+
+                    <!-- Land. -->
+                    <GeometryDrawing Brush="#FFF4EFE4">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,560,200" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The bay, with the coastline drawn as a line of its own: without it the
+                         water is a flat shape, with it it is a shore. -->
+                    <GeometryDrawing Brush="#FF9CCFE8">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FF7FB8D4" Thickness="1.6" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M505,0 C512,34 498,62 504,90 C510,118 496,148 502,176 C505,190 504,196 503,200 L560,200 L560,0 Z" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- An island out in the bay, which is what this city looks like from above. -->
+                    <GeometryDrawing Brush="#FFF4EFE4">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="518,76,34,28" RadiusX="8" RadiusY="8" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Parks. -->
+                    <GeometryDrawing Brush="#FFC7E3B4">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="12,96,46,28" RadiusX="6" RadiusY="6" />
+                                <RectangleGeometry Rect="378,136,58,32" RadiusX="6" RadiusY="6" />
+                                <RectangleGeometry Rect="526,82,18,14" RadiusX="4" RadiusY="4" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- City blocks: texture, so the space between the streets is not bare paper. -->
+                    <GeometryDrawing Brush="#FFE9E2D4">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                            <RectangleGeometry Rect="78,6,60,24" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="168,6,70,24" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="262,6,68,24" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="356,6,44,24" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="460,6,38,24" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="14,46,38,36" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="168,46,70,36" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="262,46,68,36" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="356,46,40,36" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="78,98,62,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="168,98,70,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="262,98,68,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="356,98,40,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="78,140,60,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="168,140,70,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="262,140,68,30" RadiusX="2" RadiusY="2" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The clinic the route ends at. -->
+                    <GeometryDrawing Brush="#FFF6DEDE">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="404,52,84,58" RadiusX="3" RadiusY="3" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Streets: a warm casing first, white on top. One flat line is a wireframe;
+                         two are a road. -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFE3DBCA" Thickness="8" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,36"  EndPoint="502,36" />
+                                <LineGeometry StartPoint="0,90"  EndPoint="500,90" />
+                                <LineGeometry StartPoint="0,178" EndPoint="502,178" />
+                                <LineGeometry StartPoint="60,0"  EndPoint="60,200" />
+                                <LineGeometry StartPoint="250,0" EndPoint="250,200" />
+                                <LineGeometry StartPoint="340,0" EndPoint="340,200" />
+                                <LineGeometry StartPoint="446,0" EndPoint="446,200" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFFFFFF" Thickness="6" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,36"  EndPoint="502,36" />
+                                <LineGeometry StartPoint="0,90"  EndPoint="500,90" />
+                                <LineGeometry StartPoint="0,178" EndPoint="502,178" />
+                                <LineGeometry StartPoint="60,0"  EndPoint="60,200" />
+                                <LineGeometry StartPoint="250,0" EndPoint="250,200" />
+                                <LineGeometry StartPoint="340,0" EndPoint="340,200" />
+                                <LineGeometry StartPoint="446,0" EndPoint="446,200" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Arterials and the causeway out to the island. Amber is what every map in
+                         the world uses for the road you are meant to take. -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFE0BE63" Thickness="13" StartLineCap="Round" EndLineCap="Round" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,134" EndPoint="500,134" />
+                                <LineGeometry StartPoint="150,0" EndPoint="150,200" />
+                                <LineGeometry StartPoint="505,112" EndPoint="560,108" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFBDD8A" Thickness="10" StartLineCap="Round" EndLineCap="Round" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,134" EndPoint="500,134" />
+                                <LineGeometry StartPoint="150,0" EndPoint="150,200" />
+                                <LineGeometry StartPoint="505,112" EndPoint="560,108" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The roundabout where the two arterials meet. Placed left of centre on
+                         purpose: dead centre it would have been under the card. -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFE0BE63" Thickness="13" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="150,134" RadiusX="15" RadiusY="15" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFC7E3B4">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFBDD8A" Thickness="10" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="150,134" RadiusX="15" RadiusY="15" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The clinic marker. A white disc with a red cross reads as a hospital in
+                         every country, which a tinted rectangle did not. -->
+                    <GeometryDrawing Brush="#FFFFFFFF">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFD9534F" Thickness="2" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="420,70" RadiusX="12" RadiusY="12" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFD9534F">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="412.5,67.5,15,5" RadiusX="1.2" RadiusY="1.2" />
+                                <RectangleGeometry Rect="417.5,62.5,5,15" RadiusX="1.2" RadiusY="1.2" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- A compass, because real maps have one. -->
+                    <GeometryDrawing Brush="#FFFFFFFF">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFD8D0BE" Thickness="1.5" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="34,20" RadiusX="14" RadiusY="14" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFD9534F">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M34,9 L39,20 L34,17.4 L29,20 Z" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFB9B0A0">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M34,31 L29,20 L34,22.6 L39,20 Z" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <!-- ===== The figures under the list, on number plates =====
+             A dispatcher's day is measured in vehicles, so the three counts are set the way a
+             registration plate is set: the number large because that is the information, the
+             fleet name and the strapline tiny because they are furniture. It is the one place on
+             this screen where the decoration says what the company does.
+
+             Fixed width on all three, like real plates, so they line up as a set rather than as
+             three labels of different lengths.
+
+             Tag carries the count and Content the word, because the plate prints them at two
+             different sizes and one string could only ever be one size. The spaced-out letters
+             are the poor-man's letter-spacing: WPF has no such property on TextBlock. -->
+        <Style x:Key="NumberPlate" TargetType="ContentControl">
+            <Setter Property="Width" Value="126" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Border CornerRadius="5" Padding="2"
+                                Background="{DynamicResource MaterialDesign.Brush.Primary}">
+                            <Border CornerRadius="3.5" Padding="5,1,5,1"
+                                    Background="{DynamicResource MaterialDesignPaper}">
+                                <StackPanel>
+                                    <TextBlock Text="R A P H A E L" HorizontalAlignment="Center"
+                                               FontSize="6" FontWeight="Bold" Margin="0,0,0,-1"
+                                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{TemplateBinding Tag}"
+                                                   FontSize="16" FontWeight="Bold"
+                                                   LineHeight="17" LineStackingStrategy="BlockLineHeight"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Text="{TemplateBinding Content}"
+                                                   FontSize="9.5" Opacity=".75" Margin="3,0,0,2"
+                                                   VerticalAlignment="Bottom" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="D R I V I N G   H E A L T H" HorizontalAlignment="Center"
+                                               FontSize="5" FontWeight="Bold" Margin="0,-1,0,0" Opacity=".8"
+                                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                </StackPanel>
+                            </Border>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- The date lives on its own so it can be shown once while the bar around it is
+             shown twice. It also settles the duplicate calendar: there is exactly one
+             popup now, anchored to the one button that opens it. -->
+        <DataTemplate x:Key="TripDatePicker">
+                            <!-- Date. One control: it reads a day, or the two ends of
+                                 a span, and opens the same popup either way. -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                        VerticalAlignment="Center" Margin="0,0,8,0">
+
+                                <Button x:Name="DateSpanButton"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        Command="{Binding OpenDatePopupCommand}"
+                                        ToolTip="{Binding DatePickerToolTip}"
+                                        Padding="10,2,10,2" MinWidth="120">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CalendarMonth" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding DateSpanLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- The way back to a single day. Without it a range is
+                                     a state people get stuck in. -->
+                                <Border Margin="6,0,0,0" CornerRadius="10" Padding="8,1,4,1"
+                                        Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                        Visibility="{Binding IsDateRange, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding RangeChipText}" Foreground="White"
+                                                   VerticalAlignment="Center" FontSize="11"/>
+                                        <Button Style="{StaticResource MaterialDesignToolButton}"
+                                                Command="{Binding ClearDateRangeCommand}"
+                                                ToolTip="{Binding ClearRangeToolTip}"
+                                                Foreground="White" Padding="2" Margin="4,0,0,0">
+                                            <materialDesign:PackIcon Kind="Close" Width="13" Height="13"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <Popup IsOpen="{Binding IsDatePopupOpen, Mode=TwoWay}"
+                                       PlacementTarget="{Binding ElementName=DateSpanButton}"
+                                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                    <materialDesign:Card Margin="4" Padding="10"
+                                                         materialDesign:ElevationAssist.Elevation="Dp4">
+                                        <StackPanel MinWidth="250">
+
+                                            <!-- One day is where this starts, every time. -->
+                                            <UniformGrid Columns="2" Margin="0,0,0,8">
+                                                <RadioButton Content="{Binding SingleDayLabel}"
+                                                             GroupName="DateSpanMode"
+                                                             IsChecked="{Binding RangeMode, Converter={StaticResource InverseBoolConverter}}"
+                                                             Command="{Binding UseSingleDayCommand}"
+                                                             Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                                                <RadioButton Content="{Binding RangeLabel}"
+                                                             GroupName="DateSpanMode"
+                                                             IsChecked="{Binding RangeMode, Mode=OneWay}"
+                                                             Command="{Binding UseRangeCommand}"
+                                                             Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                                            </UniformGrid>
+
+                                            <TextBlock Text="{Binding RangePickHint}" FontStyle="Italic"
+                                                       Margin="0,0,0,4" TextWrapping="Wrap" Opacity=".8"/>
+
+                                            <Calendar SelectedDate="{Binding PickedDate, Mode=TwoWay}"
+                                                      HorizontalAlignment="Center"/>
+
+                                            <Separator Margin="0,6,0,6"/>
+
+                                            <UniformGrid Columns="2">
+                                                <Button Content="{Binding PresetTodayLabel}" Command="{Binding PresetTodayCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                <Button Content="{Binding PresetTomorrowLabel}" Command="{Binding PresetTomorrowCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                <Button Content="{Binding PresetThisWeekLabel}" Command="{Binding PresetThisWeekCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                <Button Content="{Binding PresetNextSevenLabel}" Command="{Binding PresetNextSevenCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                            </UniformGrid>
+                                        </StackPanel>
+            </materialDesign:Card>
+                                </Popup>
+                            </StackPanel>
+        </DataTemplate>
+
         <!-- ===== The express filter bar, defined once =====
              It is on screen twice on purpose, and only for as long as it takes to decide where it
              belongs: above the list, where it is now, or down in the status bar. Two COPIES of
@@ -189,129 +534,52 @@
              two renders is removed. x:Name inside a DataTemplate is fine - each render gets its
              own namescope, so the two DateSpanButtons never collide. -->
         <DataTemplate x:Key="ExpressFilterBar">
-                        <Grid>
-
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Date. One control: it reads a day, or the two ends of
-                                 a span, and opens the same popup either way. -->
-                            <StackPanel Grid.Column="0" Orientation="Horizontal"
-                                        VerticalAlignment="Center" Margin="0,0,8,0">
-
-                                <Button x:Name="DateSpanButton"
-                                        Style="{StaticResource MaterialDesignOutlinedButton}"
-                                        Command="{Binding OpenDatePopupCommand}"
-                                        ToolTip="{Binding DatePickerToolTip}"
-                                        Padding="10,2,10,2" MinWidth="120">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="CalendarMonth" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <TextBlock Text="{Binding DateSpanLabel}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-
-                                <!-- The way back to a single day. Without it a range is
-                                     a state people get stuck in. -->
-                                <Border Margin="6,0,0,0" CornerRadius="10" Padding="8,1,4,1"
-                                        Background="{DynamicResource MaterialDesign.Brush.Primary}"
-                                        Visibility="{Binding IsDateRange, Converter={StaticResource BoolToVisibility}}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding RangeChipText}" Foreground="White"
-                                                   VerticalAlignment="Center" FontSize="11"/>
-                                        <Button Style="{StaticResource MaterialDesignToolButton}"
-                                                Command="{Binding ClearDateRangeCommand}"
-                                                ToolTip="{Binding ClearRangeToolTip}"
-                                                Foreground="White" Padding="2" Margin="4,0,0,0">
-                                            <materialDesign:PackIcon Kind="Close" Width="13" Height="13"/>
-                                        </Button>
-                                    </StackPanel>
-                                </Border>
-
-                                <Popup IsOpen="{Binding IsDatePopupOpen, Mode=TwoWay}"
-                                       PlacementTarget="{Binding ElementName=DateSpanButton}"
-                                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
-                                    <materialDesign:Card Margin="4" Padding="10"
-                                                         materialDesign:ElevationAssist.Elevation="Dp4">
-                                        <StackPanel MinWidth="250">
-
-                                            <!-- One day is where this starts, every time. -->
-                                            <UniformGrid Columns="2" Margin="0,0,0,8">
-                                                <RadioButton Content="{Binding SingleDayLabel}"
-                                                             GroupName="DateSpanMode"
-                                                             IsChecked="{Binding RangeMode, Converter={StaticResource InverseBoolConverter}}"
-                                                             Command="{Binding UseSingleDayCommand}"
-                                                             Style="{StaticResource MaterialDesignTabRadioButton}"/>
-                                                <RadioButton Content="{Binding RangeLabel}"
-                                                             GroupName="DateSpanMode"
-                                                             IsChecked="{Binding RangeMode, Mode=OneWay}"
-                                                             Command="{Binding UseRangeCommand}"
-                                                             Style="{StaticResource MaterialDesignTabRadioButton}"/>
-                                            </UniformGrid>
-
-                                            <TextBlock Text="{Binding RangePickHint}" FontStyle="Italic"
-                                                       Margin="0,0,0,4" TextWrapping="Wrap" Opacity=".8"/>
-
-                                            <Calendar SelectedDate="{Binding PickedDate, Mode=TwoWay}"
-                                                      HorizontalAlignment="Center"/>
-
-                                            <Separator Margin="0,6,0,6"/>
-
-                                            <UniformGrid Columns="2">
-                                                <Button Content="{Binding PresetTodayLabel}" Command="{Binding PresetTodayCommand}"
-                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
-                                                <Button Content="{Binding PresetTomorrowLabel}" Command="{Binding PresetTomorrowCommand}"
-                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
-                                                <Button Content="{Binding PresetThisWeekLabel}" Command="{Binding PresetThisWeekCommand}"
-                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
-                                                <Button Content="{Binding PresetNextSevenLabel}" Command="{Binding PresetNextSevenCommand}"
-                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
-                                            </UniformGrid>
-                                        </StackPanel>
-            </materialDesign:Card>
-                                </Popup>
-                            </StackPanel>
-
-                            <!-- The broker's trip id only. It is the number a
-                                 dispatcher is holding when they reach for this, and
-                                 it is the only one that fits on this row. -->
-                            <TextBox Grid.Column="1" Width="130" Height="26"
-                                Text="{Binding TripSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
-                                materialDesign:HintAssist.Hint="{Binding TripSearchHint}"
-                                materialDesign:TextFieldAssist.HasClearButton="True"
-                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                                materialDesign:TextFieldAssist.LeadingIcon="Magnify"
-                                materialDesign:TextFieldAssist.TextBoxViewMargin="1,0,1,0"
-                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                FontSize="12" Padding="4,0,4,0"
-                                VerticalContentAlignment="Center"
-                                VerticalAlignment="Center" Margin="0,0,8,0"/>
-
-                            <!-- Checkbox -->
-                            <CheckBox Grid.Column="2"
-                                Content="{Binding ShowCanceledCheckBoxContent}"
-                                IsChecked="{Binding ShowCanceled}" 
-                                Style="{StaticResource MaterialDesignCheckBox}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-
-                            <!-- Buttons -->
-                            <StackPanel Grid.Column="3" Orientation="Horizontal">
-                                <Button 
-                                        ToolTip="{Binding ImportButtonToolTip}"
-                                        Command="{Binding ImportCommand}"
-                                        Style="{StaticResource TripActionButtonStyle}" Margin="0,0,10,0">
-                                    <materialDesign:PackIcon Kind="DatabaseImport" Width="25" Height="25" Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
-                                </Button>
-
-                                <Button  
-                                    ToolTip="{Binding ExportButtonToolTip}"
-                                    Command="{Binding ExportCommand}"
-                                    Style="{StaticResource TripActionButtonStyle}">
-                                    <materialDesign:PackIcon Kind="MicrosoftExcel" Width="25" Height="25" Foreground="Green"/>
-                                </Button>
-                            </StackPanel>
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- The broker's trip id only. It is the number a
+                                 dispatcher is holding when they reach for this, and
+                                 it is the only one that fits on this row. -->
+                            <TextBox Grid.Column="1" Width="130" Height="26"
+                                Text="{Binding TripSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                materialDesign:HintAssist.Hint="{Binding TripSearchHint}"
+                                materialDesign:TextFieldAssist.HasClearButton="True"
+                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                                materialDesign:TextFieldAssist.TextBoxViewMargin="1,0,1,0"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                FontSize="12" Padding="4,0,4,0"
+                                VerticalContentAlignment="Center"
+                                VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                            <!-- Checkbox -->
+                            <CheckBox Grid.Column="2"
+                                Content="{Binding ShowCanceledCheckBoxContent}"
+                                IsChecked="{Binding ShowCanceled}" 
+                                Style="{StaticResource MaterialDesignCheckBox}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+                            <!-- Buttons -->
+                            <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                <Button 
+                                        ToolTip="{Binding ImportButtonToolTip}"
+                                        Command="{Binding ImportCommand}"
+                                        Style="{StaticResource TripActionButtonStyle}" Margin="0,0,10,0">
+                                    <materialDesign:PackIcon Kind="DatabaseImport" Width="25" Height="25" Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
+                                </Button>
+
+                                <Button  
+                                    ToolTip="{Binding ExportButtonToolTip}"
+                                    Command="{Binding ExportCommand}"
+                                    Style="{StaticResource TripActionButtonStyle}">
+                                    <materialDesign:PackIcon Kind="MicrosoftExcel" Width="25" Height="25" Foreground="Green"/>
+                                </Button>
+                            </StackPanel>
                         </Grid>
         </DataTemplate>
 
@@ -340,7 +608,12 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Customer data area -->
-                <Grid Grid.Column="0"  Background="Transparent">
+                <!-- Paper, not Transparent. Everything in this column is a rounded card, and a
+                     rounded card shows its parent at the corners: transparent meant the window's
+                     own shade, a hair off the card's, and every corner read as a grey nick. The
+                     column and the cards on it are painted with the SAME brush, so the corners
+                     cannot show anything at all. -->
+                <Grid Grid.Column="0" Background="{DynamicResource MaterialDesignPaper}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto"/>
@@ -548,10 +821,13 @@
                                          template is MaterialDesign's, and what it does with
                                          BorderBrush is theirs to change. A Border of our own is
                                          ours. -->
-                                    <materialDesign:Card Padding="0" UniformCornerRadius="8"
-                                                         materialDesign:ElevationAssist.Elevation="Dp2"
-                                                         Background="{DynamicResource MaterialDesignCardBackground}">
-                                      <Border BorderThickness="1.5" CornerRadius="8" Padding="4"
+                                    <!-- A line, not a relief. The elevation that was here cast a
+                                         grey halo round the corners, which is the other half of
+                                         the same complaint the Transparent column caused: on a
+                                         white screen, every soft shadow reads as dirt. -->
+                                    <materialDesign:Card Padding="0" UniformCornerRadius="4"
+                                                         Background="{DynamicResource MaterialDesignPaper}">
+                                      <Border BorderThickness="1" CornerRadius="4" Padding="4"
                                               BorderBrush="{StaticResource MainBorderBrush}">
                                         <StackPanel>
                                             
@@ -736,15 +1012,13 @@
                         <materialDesign:Card Margin="2,-12,2,2"
                             Grid.Row="1"
                             Padding="0"
-                            UniformCornerRadius="8"
-                            ClipToBounds="True"
-                            materialDesign:ElevationAssist.Elevation="Dp4"
-                            Background="{DynamicResource MaterialDesignCardBackground}">
-                          <!-- A kerb on top, a hairline underneath so the area visibly ends, and
-                               a wash of the theme's purple at 8% so it has a body instead of being
-                               a hole in the card. The wash is alpha over whatever is behind it, so
-                               it stays a tint in either theme rather than a painted-on colour. -->
-                          <Border BorderThickness="0,4,0,1"
+                            UniformCornerRadius="4"
+                            Background="{DynamicResource MaterialDesignPaper}">
+                          <!-- Framed on all four sides in the same hairline as the form above it,
+                               and washed with the theme's purple at 8% so it has a body instead of
+                               being a hole in the card. The wash is alpha over whatever is behind
+                               it, so it stays a tint in either theme rather than a painted colour. -->
+                          <Border BorderThickness="1" CornerRadius="4"
                                   BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
                                   Background="#14673AB7"
                                   Padding="10">
@@ -759,8 +1033,19 @@
                                         <RowDefinition Height="*" />                                      
                                     </Grid.RowDefinitions>
 
-                                    <ContentControl Grid.Row="0" Content="{Binding}"
-                                                    ContentTemplate="{StaticResource ExpressFilterBar}" />
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ContentControl Grid.Column="0" Content="{Binding}"
+                                                        VerticalAlignment="Center" Margin="0,0,8,0"
+                                                        ContentTemplate="{StaticResource TripDatePicker}" />
+
+                                        <ContentControl Grid.Column="1" Content="{Binding}"
+                                                        ContentTemplate="{StaticResource ExpressFilterBar}" />
+                                    </Grid>
 
                                     <Grid Grid.Row="1" Margin="0 5 0 0">
                                         <StackPanel Orientation="Horizontal">
@@ -1425,297 +1710,136 @@
                          one every time to show an empty view of Miami. The guard that saves the
                          money is in LoadMap; this fills the space it leaves.
 
-                         It is DRAWN, not photographed. A captured screenshot would be Google
-                         content stored indefinitely, it would blur the moment the splitter resized
-                         this panel, and a photoreal map invites a dispatcher to drag something
-                         that cannot move.
+                         It is not wallpaper. The route runs the right way and says so - three fixed
+                         chevrons plus an arrow that drives it on a loop - and the two pins and the
+                         route answer when you point at them. Someone meeting this tab for the first
+                         time learns what red and blue mean here before a real map has cost anything.
 
-                         The palette is a real map's palette - cream land, white streets on a warm
-                         casing, amber arterials, bay blue, park green - because the greys it had
-                         before read as a dead panel rather than a place. It stays in daylight
-                         colours in both themes, the way a map widget does inside any dark
-                         dashboard: it is content, not chrome.
-
-                         The story on it is ours: a red dot where the patient waits, a purple route
-                         through town, a blue pin landing on a block with a medical cross. That is
-                         the business in one picture, and it teaches the live map's legend before
-                         the live map is ever loaded. -->
-                    <Grid Grid.Column="4"
+                         The palette is a real map's, not a set of greys: cream land, white streets
+                         on a warm casing, amber arterials, bay blue, park green. It stays in
+                         daylight colours in both themes the way a map widget does inside any dark
+                         dashboard - it is content, not chrome. -->
+                    <Grid Grid.Column="4" ClipToBounds="True"
                           Visibility="{Binding IsMapVisible, Converter={StaticResource InverseBoolToVisibility}}">
 
                         <Border Background="#FFF4EFE4" />
 
-                        <Rectangle>
-                            <Rectangle.Fill>
-                                <DrawingBrush Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"
-                                              Viewbox="0,0,400,300" ViewboxUnits="Absolute">
-                                    <DrawingBrush.Drawing>
-                                        <DrawingGroup>
+                        <Viewbox Stretch="UniformToFill">
+                            <Canvas Width="560" Height="200">
 
-                                            <!-- Land. -->
-                                            <GeometryDrawing Brush="#FFF4EFE4">
-                                                <GeometryDrawing.Geometry>
-                                                    <RectangleGeometry Rect="0,0,400,300" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <Rectangle Width="560" Height="200" Fill="{StaticResource MapPlateBrush}" />
 
-                                            <!-- The bay, and the coastline drawn as a line of its
-                                                 own: without it the water is a flat shape, with it
-                                                 it is a shore. -->
-                                            <GeometryDrawing Brush="#FF9CCFE8">
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FF7FB8D4" Thickness="1.6" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <PathGeometry Figures="M312,0 C318,40 302,74 308,112 C314,150 298,186 306,226 C312,258 308,282 304,300 L400,300 L400,0 Z" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <!-- The route, cased the way the live map cases it. -->
+                                <Path Data="M60,178 L446,178 L446,90" Stroke="#FF4527A0" StrokeThickness="8.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
 
-                                            <!-- An island out in the bay, which is what this city
-                                                 looks like from above. -->
-                                            <GeometryDrawing Brush="#FFF4EFE4">
-                                                <GeometryDrawing.Geometry>
-                                                    <RectangleGeometry Rect="344,140,44,34" RadiusX="9" RadiusY="9" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <Path Data="M60,178 L446,178 L446,90" Stroke="#FF7E57C2" StrokeThickness="5.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      ToolTip="{Binding MapRouteHelp}" />
 
-                                            <!-- Parks. -->
-                                            <GeometryDrawing Brush="#FFC7E3B4">
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <RectangleGeometry Rect="40,182,68,58" RadiusX="8" RadiusY="8" />
-                                                        <RectangleGeometry Rect="222,32,44,30" RadiusX="6" RadiusY="6" />
-                                                        <RectangleGeometry Rect="352,148,22,16" RadiusX="5" RadiusY="5" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <!-- Chevrons that stay put, so the direction is readable in a
+                                     screenshot and by anyone the animation does not reach. -->
+                                <Path Data="M196,172 L204,178 L196,184 M320,172 L328,178 L320,184 M440,126 L446,119 L452,126"
+                                      Stroke="#FFFFFFFF" StrokeThickness="2.2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
 
-                                            <!-- City blocks. Texture, so the space between the
-                                                 streets is not empty paper. -->
-                                            <GeometryDrawing Brush="#FFE9E2D4">
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <RectangleGeometry Rect="16,18,42,28" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="84,18,40,28" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="146,18,40,28" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="16,74,42,30" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="84,74,40,30" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="146,74,40,30" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="16,130,42,32" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="84,130,40,32" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="146,130,40,32" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="216,130,40,32" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="146,186,40,32" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="216,186,40,32" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="84,244,40,26" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="146,244,40,26" RadiusX="2" RadiusY="2" />
-                                                        <RectangleGeometry Rect="216,244,40,26" RadiusX="2" RadiusY="2" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <!-- And one that drives it, pickup to dropoff, for as long as the
+                                     panel is on screen. DoesRotateWithTangent turns the arrow into
+                                     the corner; without it the arrow goes round the bend sideways
+                                     and reads as a bug. -->
+                                <Path Data="M-5,-4.5 L5.5,0 L-5,4.5 L-2,0 Z"
+                                      Fill="#FFFFFFFF" Stroke="#FF4527A0" StrokeThickness="1.1"
+                                      StrokeLineJoin="Round" IsHitTestVisible="False">
+                                    <Path.RenderTransform>
+                                        <MatrixTransform />
+                                    </Path.RenderTransform>
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsVisible" Value="True">
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard x:Name="RouteFlow">
+                                                            <Storyboard>
+                                                                <MatrixAnimationUsingPath
+                                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(MatrixTransform.Matrix)"
+                                                                    DoesRotateWithTangent="True"
+                                                                    Duration="0:0:4.5" RepeatBehavior="Forever">
+                                                                    <MatrixAnimationUsingPath.PathGeometry>
+                                                                        <PathGeometry Figures="M60,178 L446,178 L446,90" />
+                                                                    </MatrixAnimationUsingPath.PathGeometry>
+                                                                </MatrixAnimationUsingPath>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                    <Trigger.ExitActions>
+                                                        <StopStoryboard BeginStoryboardName="RouteFlow" />
+                                                    </Trigger.ExitActions>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                </Path>
 
-                                            <!-- The clinic the route ends at. -->
-                                            <GeometryDrawing Brush="#FFF6DEDE">
-                                                <GeometryDrawing.Geometry>
-                                                    <RectangleGeometry Rect="204,62,54,54" RadiusX="3" RadiusY="3" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <!-- Pickup: red, where the patient waits. -->
+                                <Ellipse Canvas.Left="53" Canvas.Top="171" Width="14" Height="14"
+                                         Fill="#FFD32F2F" Stroke="#FFFFFFFF" StrokeThickness="3"
+                                         ToolTip="{Binding MapPickupHelp}" Cursor="Hand" />
 
-                                            <GeometryDrawing Brush="#FFD9534F">
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <RectangleGeometry Rect="209.5,75.8,13,4.4" RadiusX="1" RadiusY="1" />
-                                                        <RectangleGeometry Rect="213.8,71.5,4.4,13" RadiusX="1" RadiusY="1" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
+                                <!-- Dropoff: blue, the same teardrop as the live map, tip down on
+                                     the clinic. -->
+                                <Path Data="M446,60 C440.2,60 435.5,64.7 435.5,70.5 C435.5,78.4 446,90 446,90 C446,90 456.5,78.4 456.5,70.5 C456.5,64.7 451.8,60 446,60 Z M446,74.3 A3.75,3.75 0 1 1 446,66.8 A3.75,3.75 0 0 1 446,74.3 Z"
+                                      Fill="#FF1565C0" Stroke="#FFFFFFFF" StrokeThickness="1.8"
+                                      ToolTip="{Binding MapDropoffHelp}" Cursor="Hand" />
+                            </Canvas>
+                        </Viewbox>
 
-                                            <!-- Streets: a warm casing first, white on top. One
-                                                 flat line is a wireframe; two are a road. -->
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFE3DBCA" Thickness="7.5" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <LineGeometry StartPoint="0,58"  EndPoint="310,58" />
-                                                        <LineGeometry StartPoint="0,114" EndPoint="308,114" />
-                                                        <LineGeometry StartPoint="0,170" EndPoint="302,170" />
-                                                        <LineGeometry StartPoint="72,0"  EndPoint="72,300" />
-                                                        <LineGeometry StartPoint="136,0" EndPoint="136,300" />
-                                                        <LineGeometry StartPoint="262,0" EndPoint="262,300" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFFFFFFF" Thickness="5.5" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <LineGeometry StartPoint="0,58"  EndPoint="310,58" />
-                                                        <LineGeometry StartPoint="0,114" EndPoint="308,114" />
-                                                        <LineGeometry StartPoint="0,170" EndPoint="302,170" />
-                                                        <LineGeometry StartPoint="72,0"  EndPoint="72,300" />
-                                                        <LineGeometry StartPoint="136,0" EndPoint="136,300" />
-                                                        <LineGeometry StartPoint="262,0" EndPoint="262,300" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <!-- Arterials, and the causeway out to the island.
-                                                 Amber is what every map in the world uses for the
-                                                 road you are meant to take. -->
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFE0BE63" Thickness="12" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <LineGeometry StartPoint="200,0" EndPoint="200,300" />
-                                                        <LineGeometry StartPoint="0,226" EndPoint="305,226" />
-                                                        <LineGeometry StartPoint="307,157" EndPoint="400,151" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFFBDD8A" Thickness="9" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <GeometryGroup>
-                                                        <LineGeometry StartPoint="200,0" EndPoint="200,300" />
-                                                        <LineGeometry StartPoint="0,226" EndPoint="305,226" />
-                                                        <LineGeometry StartPoint="307,157" EndPoint="400,151" />
-                                                    </GeometryGroup>
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <!-- The roundabout where the two arterials meet. -->
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFE0BE63" Thickness="12" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <EllipseGeometry Center="200,226" RadiusX="14" RadiusY="14" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <GeometryDrawing Brush="#FFC7E3B4">
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFFBDD8A" Thickness="9" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <EllipseGeometry Center="200,226" RadiusX="14" RadiusY="14" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <!-- The route, cased the same way the live map cases
-                                                 it, so the two look like the same product. -->
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FF4527A0" Thickness="8.5"
-                                                         StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <PathGeometry Figures="M72,226 L72,170 L136,170 L136,114 L240,114" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <GeometryDrawing>
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FF7E57C2" Thickness="5.5"
-                                                         StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <PathGeometry Figures="M72,226 L72,170 L136,170 L136,114 L240,114" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <!-- Pickup: red, where the patient waits. -->
-                                            <GeometryDrawing Brush="#FFD32F2F">
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFFFFFFF" Thickness="3" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <EllipseGeometry Center="72,226" RadiusX="7" RadiusY="7" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <!-- Dropoff: blue, the same teardrop as the live map,
-                                                 tip down on the clinic. -->
-                                            <GeometryDrawing Brush="#FF1565C0">
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFFFFFFF" Thickness="1.8" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <PathGeometry Figures="M240,84 C234.2,84 229.5,88.7 229.5,94.5 C229.5,102.4 240,114 240,114 C240,114 250.5,102.4 250.5,94.5 C250.5,88.7 245.8,84 240,84 Z M240,98.3 A3.75,3.75 0 1 1 240,90.8 A3.75,3.75 0 0 1 240,98.3 Z" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <!-- A compass, because real maps have one. -->
-                                            <GeometryDrawing Brush="#FFFFFFFF">
-                                                <GeometryDrawing.Pen>
-                                                    <Pen Brush="#FFD8D0BE" Thickness="1.4" />
-                                                </GeometryDrawing.Pen>
-                                                <GeometryDrawing.Geometry>
-                                                    <EllipseGeometry Center="30,32" RadiusX="12" RadiusY="12" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <GeometryDrawing Brush="#FFD9534F">
-                                                <GeometryDrawing.Geometry>
-                                                    <PathGeometry Figures="M30,22 L34.5,32 L30,29.5 L25.5,32 Z" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                            <GeometryDrawing Brush="#FFB9B0A0">
-                                                <GeometryDrawing.Geometry>
-                                                    <PathGeometry Figures="M30,42 L25.5,32 L30,34.5 L34.5,32 Z" />
-                                                </GeometryDrawing.Geometry>
-                                            </GeometryDrawing>
-
-                                        </DrawingGroup>
-                                    </DrawingBrush.Drawing>
-                                </DrawingBrush>
-                            </Rectangle.Fill>
-                        </Rectangle>
-
-                        <!-- The card. The purple head is what stops this reading as a grey
-                             apology: the tab's own colour says the panel is deliberate and the
-                             map is a click away, rather than something that failed to load. -->
-                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                                MaxWidth="340" CornerRadius="16"
-                                Background="{DynamicResource MaterialDesignPaper}"
-                                materialDesign:ElevationAssist.Elevation="Dp5">
-                            <StackPanel>
-                                <Border Background="{DynamicResource MaterialDesign.Brush.Primary}"
-                                        CornerRadius="16,16,0,0" Padding="0,16,0,14">
-                                    <StackPanel>
-                                        <Border Width="46" Height="46" CornerRadius="23"
-                                                Background="#33FFFFFF" HorizontalAlignment="Center">
-                                            <materialDesign:PackIcon Kind="MapSearchOutline" Width="26" Height="26"
+                        <!-- The card is see-through and can be pushed aside, because it covers the
+                             middle of a drawing the user is now invited to read. The purple head is
+                             the grip: a title bar, which is where everyone already tries to drag
+                             from, and it holds no control that a drag could steal a click from. -->
+                        <Border x:Name="MapHintCard"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                MaxWidth="300" CornerRadius="16" Opacity="0.88">
+                            <Border.RenderTransform>
+                                <TranslateTransform />
+                            </Border.RenderTransform>
+                            <Border CornerRadius="16" Background="{DynamicResource MaterialDesignPaper}"
+                                    materialDesign:ElevationAssist.Elevation="Dp5">
+                                <StackPanel>
+                                    <Border Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                            CornerRadius="16,16,0,0" Padding="0,5,0,11"
+                                            Cursor="SizeAll" ToolTip="{Binding MapCardDragHint}"
+                                            MouseLeftButtonDown="MapCard_DragStart"
+                                            MouseMove="MapCard_Drag"
+                                            MouseLeftButtonUp="MapCard_DragEnd">
+                                        <StackPanel>
+                                            <materialDesign:PackIcon Kind="DragHorizontalVariant"
+                                                                     Width="20" Height="11" Opacity=".55"
                                                                      Foreground="White"
-                                                                     HorizontalAlignment="Center"
-                                                                     VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Text="{Binding MapOnDemandTitle}" Foreground="White"
-                                                   HorizontalAlignment="Center" Margin="0,10,0,0"
-                                                   FontSize="14" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Border>
+                                                                     HorizontalAlignment="Center"/>
+                                            <Border Width="40" Height="40" CornerRadius="20"
+                                                    Background="#33FFFFFF" HorizontalAlignment="Center">
+                                                <materialDesign:PackIcon Kind="MapSearchOutline" Width="23" Height="23"
+                                                                         Foreground="White"
+                                                                         HorizontalAlignment="Center"
+                                                                         VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding MapOnDemandTitle}" Foreground="White"
+                                                       HorizontalAlignment="Center" Margin="0,8,0,0"
+                                                       FontSize="13" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
 
-                                <StackPanel Margin="22,14,22,18">
-                                    <TextBlock Text="{Binding MapNotLoadedHint}" TextWrapping="Wrap"
-                                               TextAlignment="Center" FontSize="12" Opacity=".8"
-                                               Margin="0,0,0,16"/>
-                                    <Button Content="{Binding ShowMapLabel}" Command="{Binding ShowMapCommand}"
-                                            Style="{StaticResource MaterialDesignRaisedButton}"
-                                            HorizontalAlignment="Center" Height="32" FontSize="12"/>
+                                    <StackPanel Margin="18,11,18,15">
+                                        <TextBlock Text="{Binding MapNotLoadedHint}" TextWrapping="Wrap"
+                                                   TextAlignment="Center" FontSize="11.5" Opacity=".8"
+                                                   Margin="0,0,0,13"/>
+                                        <Button Content="{Binding ShowMapLabel}" Command="{Binding ShowMapCommand}"
+                                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                                HorizontalAlignment="Center" Height="30" FontSize="11.5"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
+                            </Border>
                         </Border>
                     </Grid>
                 </Grid>
@@ -2067,8 +2191,14 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Column="0" Text="{Binding GridTotals}"
-                                   VerticalAlignment="Center" FontSize="12"/>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ContentControl Style="{StaticResource NumberPlate}"
+                                            Tag="{Binding PlateTripsCount}" Content="{Binding PlateTripsLabel}" />
+                            <ContentControl Style="{StaticResource NumberPlate}"
+                                            Tag="{Binding PlateCanceledCount}" Content="{Binding PlateCanceledLabel}" />
+                            <ContentControl Style="{StaticResource NumberPlate}"
+                                            Tag="{Binding PlateNoRunCount}" Content="{Binding PlateNoRunLabel}" />
+                        </StackPanel>
 
                         <Grid Grid.Column="1" Margin="16,0,16,0">
                             <Grid.ColumnDefinitions>

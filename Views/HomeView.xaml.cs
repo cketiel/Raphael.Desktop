@@ -511,6 +511,61 @@ namespace Raphael.Desktop.Views
             _dragLast = now;
         }
 
+        // ------------------------------------------------------------------ the map card
+
+        private Point _mapCardLast;
+        private bool _mapCardDragging;
+
+        /// <summary>
+        /// Lets the "map on demand" card be pushed out of the way.
+        /// </summary>
+        /// <remarks>
+        /// It sits over the middle of a drawing the user is meant to read, so it has to move. This
+        /// is deliberately NOT the helper-card drag above: that one persists its placement through
+        /// the ViewModel because those cards are a working surface. This card is scenery over a
+        /// placeholder, and where somebody shoved it once is not worth a setting.
+        ///
+        /// The grip is the card's purple head rather than the whole card, so the button in the
+        /// body never has a click turned into a drag.
+        /// </remarks>
+        private void MapCard_DragStart(object sender, MouseButtonEventArgs e)
+        {
+            _mapCardDragging = true;
+            _mapCardLast = e.GetPosition(HomeRoot);
+
+            ((UIElement)sender).CaptureMouse();
+        }
+
+        private void MapCard_Drag(object sender, MouseEventArgs e)
+        {
+            if (!_mapCardDragging) return;
+
+            var now = e.GetPosition(HomeRoot);
+
+            if (MapHintCard.RenderTransform is not TranslateTransform moved) return;
+
+            // Clamped to half the panel each way, so the card's centre can never leave it. The
+            // panel clips, and a card shoved out of a clipped panel is a card nobody can get back.
+            var panel = (FrameworkElement)MapHintCard.Parent;
+
+            moved.X = Clamp(moved.X + now.X - _mapCardLast.X, panel.ActualWidth / 2);
+            moved.Y = Clamp(moved.Y + now.Y - _mapCardLast.Y, panel.ActualHeight / 2);
+
+            _mapCardLast = now;
+        }
+
+        private static double Clamp(double value, double limit) =>
+            Math.Max(-limit, Math.Min(limit, value));
+
+        private void MapCard_DragEnd(object sender, MouseButtonEventArgs e)
+        {
+            if (!_mapCardDragging) return;
+
+            _mapCardDragging = false;
+
+            ((UIElement)sender).ReleaseMouseCapture();
+        }
+
         private void HelperCard_DragEnd(object sender, MouseButtonEventArgs e)
         {
             if (_draggingCard == null) return;

@@ -684,5 +684,12 @@
     "home.LoadingTrips": "Loading trips and locations...",
     "home.CanceledByDriver": "Canceled: driver reported a no-show.",
     "home.CanceledByOffice": "This trip was canceled by the office.",
-    "home.MapOnDemand": "Map on demand"
+    "home.MapOnDemand": "Map on demand",
+    "home.PlateTrips": "trips",
+    "home.PlateCanceled": "canceled",
+    "home.PlateNoRun": "without a run",
+    "home.MapPickupHelp": "Pickup - where the patient is waiting",
+    "home.MapDropoffHelp": "Dropoff - where the patient is going",
+    "home.MapRouteHelp": "The route, from pickup to dropoff",
+    "home.MapCardDrag": "Drag to move this card"
 }

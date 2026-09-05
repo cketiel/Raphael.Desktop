@@ -164,6 +164,10 @@ namespace Raphael.Desktop.ViewModels
         public string ShowMapLabel => LocalizationService.Instance["home.ShowMap"];
         public string MapNotLoadedHint => LocalizationService.Instance["home.MapNotLoaded"];
         public string MapOnDemandTitle => LocalizationService.Instance["home.MapOnDemand"];
+        public string MapPickupHelp => LocalizationService.Instance["home.MapPickupHelp"];
+        public string MapDropoffHelp => LocalizationService.Instance["home.MapDropoffHelp"];
+        public string MapRouteHelp => LocalizationService.Instance["home.MapRouteHelp"];
+        public string MapCardDragHint => LocalizationService.Instance["home.MapCardDrag"];
 
         #endregion
 
@@ -765,6 +769,40 @@ namespace Raphael.Desktop.ViewModels
         /// Counted over what is shown, not over what was loaded: a total that ignores the filters
         /// contradicts the list it sits under, and the dispatcher believes the number.
         /// </remarks>
+        /// <summary>
+        /// The rows the grid is actually showing. Every figure under the list counts these, not
+        /// the loaded set: what is on screen is what the numbers have to describe.
+        /// </summary>
+        private List<TripReadDto> ShownTrips =>
+            TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+        /// <summary>
+        /// The three figures on the status bar, split into a count and a word.
+        /// </summary>
+        /// <remarks>
+        /// Split because the status bar prints them as number plates, and a plate puts the
+        /// registration large and everything else small. One string would have had to be
+        /// rendered at one size.
+        /// </remarks>
+        public string PlateTripsCount => ShownTrips.Count.ToString();
+        public string PlateCanceledCount => ShownTrips.Count(IsCanceled).ToString();
+        public string PlateNoRunCount =>
+            ShownTrips.Count(t => string.IsNullOrWhiteSpace(t.RunName)).ToString();
+
+        public string PlateTripsLabel => LocalizationService.Instance["home.PlateTrips"];
+        public string PlateCanceledLabel => LocalizationService.Instance["home.PlateCanceled"];
+        public string PlateNoRunLabel => LocalizationService.Instance["home.PlateNoRun"];
+
+        /// <summary>Everything under the list is counted from the same set, so it is raised
+        /// together or it disagrees with itself.</summary>
+        private void RaiseFooterFigures()
+        {
+            OnPropertyChanged(nameof(GridTotals));
+            OnPropertyChanged(nameof(PlateTripsCount));
+            OnPropertyChanged(nameof(PlateCanceledCount));
+            OnPropertyChanged(nameof(PlateNoRunCount));
+        }
+
         public string GridTotals
         {
             get
@@ -1443,7 +1481,7 @@ namespace Raphael.Desktop.ViewModels
         private void OnTripsByDateChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             OnPropertyChanged(nameof(GridSummary));
-            OnPropertyChanged(nameof(GridTotals));
+            RaiseFooterFigures();
             OnPropertyChanged(nameof(DividerSummary));
         }
 
@@ -1451,7 +1489,7 @@ namespace Raphael.Desktop.ViewModels
         {
             TripsView?.Refresh();
             OnPropertyChanged(nameof(GridSummary));
-            OnPropertyChanged(nameof(GridTotals));
+            RaiseFooterFigures();
             OnPropertyChanged(nameof(DividerSummary));
         }
 
@@ -1551,9 +1589,17 @@ namespace Raphael.Desktop.ViewModels
         public bool IsDateRange => FilterEndDate.HasValue;
 
         /// <summary>What the date button reads: one day, or the two ends of a span.</summary>
+        /// <summary>
+        /// What the date button reads: one day, or the two ends of a span.
+        /// </summary>
+        /// <remarks>
+        /// Month first, and zero-padded on purpose. The order is the office's - these are US
+        /// broker dates - and the padding keeps the button one width, so the controls beside it
+        /// do not shuffle sideways every time the day rolls from the 9th to the 10th.
+        /// </remarks>
         public string DateSpanLabel => IsDateRange
-            ? $"{FilterDate:dd/MM} – {FilterEndDate:dd/MM/yyyy}"
-            : FilterDate.ToString("dd/MM/yyyy");
+            ? $"{FilterDate:MM/dd} – {FilterEndDate:MM/dd/yyyy}"
+            : FilterDate.ToString("MM/dd/yyyy");
 
         [ObservableProperty] private bool _isDatePopupOpen;
 
