@@ -87,6 +87,9 @@ namespace Raphael.Desktop.Views
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
             ViewModel.DiscardCustomerRequested += RestoreCustomerFields;
 
+            Loaded += HomeView_Loaded;
+            Unloaded += HomeView_Unloaded;
+
             InitializeData();
 
             //SetupAutocompleteOverlay();
@@ -95,6 +98,31 @@ namespace Raphael.Desktop.Views
             // For this reason, WebView_Loaded() was used.
             //MapaWebView.CoreWebView2InitializationCompleted += MapaWebView_CoreWebView2InitializationCompleted;
         }
+        /// <summary>
+        /// Follows the language while this tab is on screen.
+        /// </summary>
+        /// <remarks>
+        /// Tied to Loaded and Unloaded rather than taken once in the constructor: LanguageChanged
+        /// is an event on a singleton, and MainWindow builds a new HomeView every time the tab is
+        /// opened. A subscription held for the life of the ViewModel would keep every one of them
+        /// alive, with the collections, the views and the handlers they carry.
+        ///
+        /// The refresh on Loaded is what covers the language being switched while this tab was in
+        /// the background.
+        /// </remarks>
+        private void HomeView_Loaded(object sender, RoutedEventArgs e)
+        {
+            LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
+            LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
+
+            ViewModel.RefreshLocalizedText();
+        }
+
+        private void HomeView_Unloaded(object sender, RoutedEventArgs e)
+            => LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
+
+        private void OnLanguageChanged() => ViewModel.RefreshLocalizedText();
+
         private async void InitializeData()
         {
             //ViewModel.LoadTripsFromApi();

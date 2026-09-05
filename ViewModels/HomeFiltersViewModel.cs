@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Models;
@@ -219,7 +219,14 @@ namespace Raphael.Desktop.ViewModels
 
         public bool HasActiveFilters => ActiveChips.Count > 0;
 
-        private void RaiseChipsChanged()
+        /// <summary>
+        /// Rebuilds the chips, which is also how they follow a change of language.
+        /// </summary>
+        /// <remarks>
+        /// They are built strings rather than bindings, so notifying a property does not reach
+        /// inside them: the words only change when the list is made again.
+        /// </remarks>
+        public void RaiseChipsChanged()
         {
             ActiveChips.Clear();
 
@@ -229,14 +236,27 @@ namespace Raphael.Desktop.ViewModels
             if (PickupFrom.HasValue || PickupTo.HasValue)
                 ActiveChips.Add($"{PickupFrom:hh\\:mm} – {PickupTo:hh\\:mm}");
 
-            if (WillCall != TripFlagFilter.Any) ActiveChips.Add($"Will Call: {WillCall}");
-            if (HasRoute != TripFlagFilter.Any) ActiveChips.Add($"Run: {HasRoute}");
-            if (OnlyMissingCoordinates) ActiveChips.Add("No coordinates");
-            if (!string.IsNullOrWhiteSpace(Zip)) ActiveChips.Add($"Zip {Zip}");
-            if (!string.IsNullOrWhiteSpace(State)) ActiveChips.Add($"State {State}");
+            if (WillCall != TripFlagFilter.Any)
+                ActiveChips.Add($"{Text("home.WillCallLabel")}: {Flag(WillCall)}");
+
+            if (HasRoute != TripFlagFilter.Any)
+                ActiveChips.Add($"{Text("Run")}: {Flag(HasRoute)}");
+
+            if (OnlyMissingCoordinates) ActiveChips.Add(Text("home.MissingCoordinates"));
+            if (!string.IsNullOrWhiteSpace(Zip)) ActiveChips.Add($"{Text("Zip")} {Zip}");
+            if (!string.IsNullOrWhiteSpace(State)) ActiveChips.Add($"{Text("State")} {State}");
 
             OnPropertyChanged(nameof(HasActiveFilters));
         }
+
+        private static string Text(string key) => LocalizationService.Instance[key];
+
+        private static string Flag(TripFlagFilter value) => value switch
+        {
+            TripFlagFilter.Yes => Text("home.FlagYes"),
+            TripFlagFilter.No => Text("home.FlagNo"),
+            _ => Text("home.FlagAny")
+        };
 
         private void Raise()
         {

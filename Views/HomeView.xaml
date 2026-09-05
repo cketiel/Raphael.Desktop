@@ -249,7 +249,7 @@
                                                             Orientation="Horizontal">
 
                                                     <TextBlock 
-                                                        Text="Search passenger by: "
+                                                        Text="{Binding SearchPassengerByLabel}"
                                                         VerticalAlignment="Center">
                                                     
                                                     </TextBlock>
@@ -299,11 +299,11 @@
                                                                                 <TextBlock FontWeight="Bold" Text="{Binding FullName}"/>
                                                                                 <TextBlock Margin="5 0 0 0" Text="{Binding Address}"/>
                                                                                 <StackPanel Margin="5 0 0 0" Orientation="Horizontal">
-                                                                                    <TextBlock Text="Phone" Margin="0 0 8 0" FontWeight="Bold"/>
+                                                                                    <TextBlock Text="{Binding PhoneTextBoxHint}" Margin="0 0 8 0" FontWeight="Bold"/>
                                                                                     <TextBlock Text="{Binding Phone}"/>
                                                                                 </StackPanel>
                                                                                 <StackPanel Margin="5 0 0 0" Orientation="Horizontal">
-                                                                                    <TextBlock Text="Cient Code" Margin="0 0 8 0" FontWeight="Bold"/>
+                                                                                    <TextBlock Text="{Binding ClientCodeTextBoxHint}" Margin="0 0 8 0" FontWeight="Bold"/>
                                                                                     <TextBlock Text="{Binding ClientCode}"/>
                                                                                 </StackPanel>
                                                                             </StackPanel>
@@ -938,7 +938,7 @@
                                                  the patient; the server ignores it on every update
                                                  route, so a live box here would tick, save, and
                                                  change nothing without saying so. -->
-                                            <CheckBox x:Name="WillCallCheckBox" Content="Will Call"
+                                            <CheckBox x:Name="WillCallCheckBox" Content="{Binding WillCallLabel}"
                                                       IsChecked="{Binding IsWillCall}"
                                                       IsEnabled="{Binding CanEditWillCall}"
                                                       ToolTip="{Binding WillCallLockedToolTip}"
@@ -987,12 +987,12 @@
 
                                         <!-- DataGrid Additional Passengers -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top">
-                                            <TextBlock Text="Additional Passengers:" Margin="0,0,0,5"/>
+                                            <TextBlock Text="{Binding AdditionalPassengersLabel}" Margin="0,0,0,5"/>
                                             <DataGrid x:Name="AdditionalPassengersDataGrid" AutoGenerateColumns="False" Height="200">
                                                 <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Space" Binding="{Binding Space}" Width="*"/>
-                                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*"/>
-                                                    <DataGridTextColumn Header="Count" Binding="{Binding Count}" Width="*"/>
+                                                    <DataGridTextColumn Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}" Binding="{Binding Space}" Width="*"/>
+                                                    <DataGridTextColumn Header="{Binding Data.ChargesDescriptionText, Source={StaticResource vmProxy}}" Binding="{Binding Description}" Width="2*"/>
+                                                    <DataGridTextColumn Header="{Binding Data.CountLabel, Source={StaticResource vmProxy}}" Binding="{Binding Count}" Width="*"/>
                                                 </DataGrid.Columns>
                                             </DataGrid>
                                         </StackPanel>
@@ -1485,7 +1485,7 @@
                                         <Button Command="{Binding DataContext.CancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TripActionButtonStyle}"
-                                            ToolTip="Cancel Trip">
+                                            ToolTip="{Binding Data.CancelTripLabel, Source={StaticResource vmProxy}}">
                                             <Button.Visibility>
                                                 <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="NotCanceled" />
                                             </Button.Visibility>
@@ -1496,7 +1496,7 @@
                                         <Button Command="{Binding DataContext.UncancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TripActionButtonStyle}"
-                                            ToolTip="Uncancel trip">
+                                            ToolTip="{Binding Data.UncancelTripLabel, Source={StaticResource vmProxy}}">
                                             <Button.Visibility>
                                                 <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="Canceled" />
                                             </Button.Visibility>
@@ -1507,7 +1507,7 @@
                                         <Button Command="{Binding DataContext.EditTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TripActionButtonStyle}"
-                                            ToolTip="Edit Trip">
+                                            ToolTip="{Binding Data.EditTripLabel, Source={StaticResource vmProxy}}">
                                             <materialDesign:PackIcon Kind="FileEdit" Foreground="Orange"/>
                                         </Button>
 
@@ -1515,7 +1515,7 @@
                                         <Button Command="{Binding DataContext.ShowHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource TripActionButtonStyle}"
-                                            ToolTip="Change History">
+                                            ToolTip="{Binding Data.ChangeHistoryLabel, Source={StaticResource vmProxy}}">
                                             <materialDesign:PackIcon Kind="History" Foreground="Blue" Width="20" Height="20" />
                                         </Button>
 
@@ -1656,7 +1656,7 @@
                         <ProgressBar IsIndeterminate="True"
                          Style="{StaticResource MaterialDesignCircularProgressBar}"
                          Width="50" Height="50" />
-                        <TextBlock Text="Loading trips and locations..."
+                        <TextBlock Text="{Binding LoadingTripsLabel}"
                        Margin="0,15,0,0"
                        FontSize="16"
                        FontWeight="Bold" />
@@ -1679,7 +1679,7 @@
                     <DataGridTextColumn Header="Patient" Binding="{Binding CustomerName}"/>
                     <DataGridTextColumn Header="Pickup Address" Binding="{Binding PickupAddress}"/>
                     <DataGridTextColumn Header="Dropoff Address" Binding="{Binding DropoffAddress}"/>
-                    <DataGridTextColumn Header="Space" Binding="{Binding SpaceTypeName}"/>
+                    <DataGridTextColumn Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}" Binding="{Binding SpaceTypeName}"/>
                     <DataGridTextColumn Header="Charge" Binding="{Binding Charge}"/>
                     <DataGridTextColumn Header="Paid" Binding="{Binding Paid}"/>
                     <DataGridTextColumn Header="Pickup Comment" Binding="{Binding PickupComment}"/>
@@ -1702,7 +1702,7 @@
                             <Button  
                     Foreground="White"
                     Click="BackToHome_Click"
-                    ToolTip="Back to Home">
+                    ToolTip="{Binding BackToHomeLabel}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="ArrowLeft" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding BackToHomeLabel}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
@@ -1753,7 +1753,7 @@
                         materialDesign:ButtonAssist.CornerRadius="5">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="FileCsv" Margin="0,0,8,0" />
-                                        <TextBlock Text="SELECCIONAR CSV" />
+                                        <TextBlock Text="{Binding SelectCsvButtonContent}" />
                                     </StackPanel>
                                 </Button>
 
@@ -2271,7 +2271,7 @@
                                                 </StackPanel>
                                             </Expander.Header>
                                             <StackPanel Margin="26,2,0,4">
-                                                <TextBlock Text="Will Call" Style="{StaticResource FilterSubLabel}"/>
+                                                <TextBlock Text="{Binding WillCallLabel}" Style="{StaticResource FilterSubLabel}"/>
                                                 <UniformGrid Columns="3">
                                                     <RadioButton Content="{Binding FlagAnyText}" GroupName="WillCallFilter" FontSize="11"
                                                                  IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>

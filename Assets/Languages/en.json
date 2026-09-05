@@ -672,5 +672,14 @@
     "home.HelperCards": "Show or hide the floating helpers",
     "home.SpaceTypeFilter": "Space type",
     "home.ShowMap": "Show the map",
-    "home.MapNotLoaded": "The map opens when you select a trip or start booking one. It is not loaded before that, because creating a map is a billed request to Google."
+    "home.MapNotLoaded": "The map opens when you select a trip or start booking one. It is not loaded before that, because creating a map is a billed request to Google.",
+    "home.SearchPassengerBy": "Search passenger by:",
+    "home.WillCallLabel": "Will Call",
+    "home.AdditionalPassengers": "Additional passengers:",
+    "home.Count": "Count",
+    "home.CancelTrip": "Cancel trip",
+    "home.UncancelTrip": "Uncancel trip",
+    "home.EditTrip": "Edit trip",
+    "home.ChangeHistory": "Change history",
+    "home.LoadingTrips": "Loading trips and locations..."
 }

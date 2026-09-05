@@ -672,5 +672,14 @@
     "home.HelperCards": "Mostrar u ocultar las tarjetas flotantes",
     "home.SpaceTypeFilter": "Tipo de espacio",
     "home.ShowMap": "Mostrar el mapa",
-    "home.MapNotLoaded": "El mapa se abre al seleccionar un viaje o al empezar a crear uno. Antes no se carga, porque crear un mapa es una petición facturada a Google."
+    "home.MapNotLoaded": "El mapa se abre al seleccionar un viaje o al empezar a crear uno. Antes no se carga, porque crear un mapa es una petición facturada a Google.",
+    "home.SearchPassengerBy": "Buscar pasajero por:",
+    "home.WillCallLabel": "Will Call",
+    "home.AdditionalPassengers": "Acompañantes:",
+    "home.Count": "Cantidad",
+    "home.CancelTrip": "Cancelar viaje",
+    "home.UncancelTrip": "Descancelar viaje",
+    "home.EditTrip": "Editar viaje",
+    "home.ChangeHistory": "Historial de cambios",
+    "home.LoadingTrips": "Cargando viajes y ubicaciones..."
 }

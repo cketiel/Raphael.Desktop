@@ -38,6 +38,28 @@ namespace Raphael.Desktop.ViewModels
         [ObservableProperty] private bool _isReturn;
         [ObservableProperty] private bool _isWillCall;
 
+        /// <summary>
+        /// Re-reads every label on the screen, after the dispatcher switches language.
+        /// </summary>
+        /// <remarks>
+        /// An empty name is WPF's "all properties changed", which is the only practical answer
+        /// here: this tab reads some seventy strings out of LocalizationService through get-only
+        /// properties, and one notification per string is seventy chances to forget one.
+        ///
+        /// ⚠️ It is the VIEW that subscribes, on Loaded, and unsubscribes on Unloaded — not this
+        /// constructor. LanguageChanged belongs to a singleton and MainWindow builds a new
+        /// HomeView every time the tab is opened, so a subscription taken here would hold every
+        /// ViewModel ever built, with its collections and its handlers, for the life of the
+        /// application. BaseViewModel does exactly that; this one does not.
+        /// </remarks>
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(string.Empty);
+
+            // The chips are strings already built, so no notification reaches inside them.
+            Filters.RaiseChipsChanged();
+        }
+
         #region Screen mode
 
         /// <summary>
@@ -432,6 +454,15 @@ namespace Raphael.Desktop.ViewModels
         public string ZipStateWarning => LocalizationService.Instance["home.ZipStateWarning"];
         public string ChooseColumnsToolTip => LocalizationService.Instance["home.ChooseColumns"];
         public string CompactGridToolTip => LocalizationService.Instance["home.CompactGrid"];
+        public string SearchPassengerByLabel => LocalizationService.Instance["home.SearchPassengerBy"];
+        public string WillCallLabel => LocalizationService.Instance["home.WillCallLabel"];
+        public string AdditionalPassengersLabel => LocalizationService.Instance["home.AdditionalPassengers"];
+        public string CountLabel => LocalizationService.Instance["home.Count"];
+        public string CancelTripLabel => LocalizationService.Instance["home.CancelTrip"];
+        public string UncancelTripLabel => LocalizationService.Instance["home.UncancelTrip"];
+        public string EditTripLabel => LocalizationService.Instance["home.EditTrip"];
+        public string ChangeHistoryLabel => LocalizationService.Instance["home.ChangeHistory"];
+        public string LoadingTripsLabel => LocalizationService.Instance["home.LoadingTrips"];
         public string Step1Label => LocalizationService.Instance["home.Step1"];
         public string Step2Label => LocalizationService.Instance["home.Step2"];
         public string Step3Label => LocalizationService.Instance["home.Step3"];
