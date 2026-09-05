@@ -1731,7 +1731,7 @@
                      logic. It runs by itself exactly once; after that it is the ? button.
                 -->
                 <!-- Balloon 1 -->
-                <Popup IsOpen="{Binding IsTourStep1}" PlacementTarget="{Binding ElementName=CustomersAutoSuggestBox}"
+                <Popup IsOpen="{Binding IsTourStep1, Mode=OneWay}" PlacementTarget="{Binding ElementName=CustomersAutoSuggestBox}"
                        Placement="Bottom" AllowsTransparency="True" StaysOpen="True">
                     <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
                                          materialDesign:ElevationAssist.Elevation="Dp5">
@@ -1758,7 +1758,7 @@
                 </Popup>
 
                 <!-- Balloon 2 -->
-                <Popup IsOpen="{Binding IsTourStep2}" PlacementTarget="{Binding ElementName=DropoffAddressTextBox}"
+                <Popup IsOpen="{Binding IsTourStep2, Mode=OneWay}" PlacementTarget="{Binding ElementName=DropoffAddressTextBox}"
                        Placement="Right" AllowsTransparency="True" StaysOpen="True">
                     <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
                                          materialDesign:ElevationAssist.Elevation="Dp5">
@@ -1785,7 +1785,7 @@
                 </Popup>
 
                 <!-- Balloon 3 -->
-                <Popup IsOpen="{Binding IsTourStep3}" PlacementTarget="{Binding ElementName=PickupTimePicker}"
+                <Popup IsOpen="{Binding IsTourStep3, Mode=OneWay}" PlacementTarget="{Binding ElementName=PickupTimePicker}"
                        Placement="Right" AllowsTransparency="True" StaysOpen="True">
                     <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
                                          materialDesign:ElevationAssist.Elevation="Dp5">
@@ -1812,7 +1812,7 @@
                 </Popup>
 
                 <!-- Balloon 4 -->
-                <Popup IsOpen="{Binding IsTourStep4}" PlacementTarget="{Binding ElementName=SaveTab1FloatingButton}"
+                <Popup IsOpen="{Binding IsTourStep4, Mode=OneWay}" PlacementTarget="{Binding ElementName=SaveTab1FloatingButton}"
                        Placement="Top" AllowsTransparency="True" StaysOpen="True">
                     <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
                                          materialDesign:ElevationAssist.Elevation="Dp5">
