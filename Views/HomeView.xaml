@@ -475,7 +475,7 @@
                             <Calendar x:Name="ForDateCalendar"
                                   Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                   Grid.Column="0"
-                                  SelectedDate="{Binding FilterDate, Mode=TwoWay}"
+                                  SelectedDate="{Binding TripDate, Mode=TwoWay}"
                                   VerticalAlignment="Center"
                                   HorizontalAlignment="Center"
                                   Margin="0"

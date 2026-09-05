@@ -51,6 +51,43 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>The trip form is on screen, for a new trip or for one being edited.</summary>
         public bool IsTripFormOpen => CurrentMode is HomeMode.CreatingTrip or HomeMode.EditingTrip;
 
+        /// <summary>
+        /// The trip the form is editing, or null when the form is booking a new one.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is deliberately NOT <c>SelectedTrip</c>. The grid drops its selection every time
+        /// the day is reloaded — saving, cancelling a trip, changing the day — and <c>SaveTrip</c>
+        /// used to read create-or-update from it. A selection cleared underneath the form turned an
+        /// edit into an insert: the trip was written a second time and the original left untouched
+        /// on its old day, so the patient had two trips where they had booked one. Editing is
+        /// editing; it never creates. What the form is editing is the form's own state, and no
+        /// change in the grid may decide it.
+        /// </remarks>
+        private TripReadDto _tripBeingEdited;
+        public TripReadDto TripBeingEdited
+        {
+            get => _tripBeingEdited;
+            private set
+            {
+                _tripBeingEdited = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEditWillCall));
+            }
+        }
+
+        /// <summary>
+        /// The day the trip on the form happens. This is what the calendar beside the form sets.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Not a filter, and it never reloads the grid. While the form is open nothing is being
+        /// filtered — a trip is being booked or edited — so the two date controls of this tab mean
+        /// two different things: <c>ForDatePicker</c>, only visible while browsing, is the filter
+        /// (<see cref="FilterDate"/>); <c>ForDateCalendar</c>, only visible with the form open, is
+        /// this. They shared one property until RE-010, which is what made setting a trip's date
+        /// reload the day underneath the form.
+        /// </remarks>
+        [ObservableProperty] private DateTime _tripDate = DateTime.Today;
+
         /// <summary>The CSV import view has taken over the tab.</summary>
         public bool IsImporting => CurrentMode is HomeMode.Importing;
 
@@ -70,6 +107,11 @@ namespace Raphael.Desktop.ViewModels
         {
             // Moving on to another patient while a trip is open is also leaving that trip.
             if (CurrentMode == HomeMode.EditingTrip && !TryLeaveTripForm()) return;
+
+            // Nothing is being edited, and a new booking is for the day being looked at until
+            // the calendar beside the form says otherwise.
+            TripBeingEdited = null;
+            TripDate = FilterDate.Date;
 
             CurrentMode = HomeMode.CreatingTrip;
 
@@ -102,6 +144,7 @@ namespace Raphael.Desktop.ViewModels
             _leavingTripForm = true;
             try
             {
+                TripBeingEdited = null;
                 SelectedTrip = null;
                 ClearTripForm();
                 CurrentMode = HomeMode.Browsing;
@@ -166,8 +209,7 @@ namespace Raphael.Desktop.ViewModels
             PickupTimePicker, ApptTimePicker, ReturnTimePicker,
             IsRoundTrip, IsOneWay, IsAppointment, IsReturn, IsWillCall,
             SelectedSpaceType?.Id, SelectedFundingSource?.Id,
-            // The calendar shown next to the form is the trip's own date, not just a filter.
-            FilterDate.Date);
+            TripDate.Date);
 
         /// <summary>
         /// True when the form holds work the server has not been told about.
@@ -561,25 +603,40 @@ namespace Raphael.Desktop.ViewModels
         }
 
         private DateTime _filterDate;
+        /// <summary>
+        /// The day the grid is showing. A filter, and only that.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Until RE-010 this doubled as the date of the trip being booked, which is why the
+        /// calendar inside the form was bound to it: setting a trip's date reloaded the day
+        /// underneath the form and emptied the grid's selection. The trip's date is
+        /// <see cref="TripDate"/> now. The old null branch below is gone with it — <c>DateTime</c>
+        /// is never null, so it could not run.
+        /// </remarks>
         public DateTime FilterDate
         {
             get => _filterDate;
             set
             {
+                if (_filterDate == value) return;
+
                 _filterDate = value;
                 OnPropertyChanged();
 
-                if (_filterDate != null)
-                {                   
-                    LoadTripsByDateAsync(_filterDate);
-                    //TripsByDate = Trips.FirstOrDefault(t => t.Date.Date == _filterDate.Date);                    
-                }
-                else
-                {
-                    SelectedSpaceType = null;
-                    SelectedFundingSource = null;
-                }
+                LoadTripsByDateAsync(_filterDate);
             }
+        }
+
+        /// <summary>
+        /// Moves the grid to another day when the caller loads that day itself, so it is not
+        /// fetched twice.
+        /// </summary>
+        private void MoveGridTo(DateTime date)
+        {
+            if (_filterDate == date) return;
+
+            _filterDate = date;
+            OnPropertyChanged(nameof(FilterDate));
         }
 
         public DateTime? TripFilterDate { get; set; } = DateTime.Today;
@@ -870,7 +927,7 @@ namespace Raphael.Desktop.ViewModels
         /// patient. The server ignores it on every update route, so leaving the box live
         /// here would let a dispatcher tick it, save, and be told nothing had gone wrong.
         /// </remarks>
-        public bool CanEditWillCall => SelectedTrip is null || SelectedTrip.Id <= 0;
+        public bool CanEditWillCall => TripBeingEdited is null || TripBeingEdited.Id <= 0;
 
         public string WillCallLockedToolTip =>
             LocalizationService.Instance["WillCallLockedHint"];
@@ -878,10 +935,6 @@ namespace Raphael.Desktop.ViewModels
         // Este método se dispara automáticamente cuando cambia la propiedad SelectedTrip
         partial void OnSelectedTripChanged(TripReadDto oldValue, TripReadDto newValue)
         {
-            // Before the null check: it has to be raised when the selection is cleared too,
-            // which is exactly when the form goes back to creating a trip.
-            OnPropertyChanged(nameof(CanEditWillCall));
-
             if (newValue == null)
             {
                 // Clearing the row is one of the ways out of editing. It must not disturb a
@@ -962,7 +1015,13 @@ namespace Raphael.Desktop.ViewModels
             DropoffPhone = value.DropoffPhone;
             DropoffComment = value.DropoffComment;
 
-            // 5. Last, on purpose: OnCurrentModeChanged photographs the form for
+            // 5. What the form is editing, and for what day. TripBeingEdited raises
+            // CanEditWillCall by itself, which is why the old notification at the top of this
+            // method is gone: the grid's selection is not what decides it any more.
+            TripBeingEdited = value;
+            TripDate = value.Date.Date;
+
+            // Last, on purpose: OnCurrentModeChanged photographs the form for
             // HasUnsavedTripChanges, and it has to see it already filled.
             CurrentMode = HomeMode.EditingTrip;
         }
@@ -1214,15 +1273,17 @@ namespace Raphael.Desktop.ViewModels
 
 
                 // We force UTC conversion not to be applied
-                DateTime tripDate = DateTime.SpecifyKind(FilterDate.Date, DateTimeKind.Unspecified); // tells the system: "Don't touch the time, send it as is."
+                DateTime tripDate = DateTime.SpecifyKind(TripDate.Date, DateTimeKind.Unspecified); // tells the system: "Don't touch the time, send it as is."
 
-                // Si SelectedTrip tiene valor, es una EDICIÓN
-                if (SelectedTrip != null && SelectedTrip.Id > 0)
+                // An edit is an edit. TripBeingEdited, never SelectedTrip: the grid clears its
+                // selection on every reload, and reading create-or-update from it is what used to
+                // write the trip a second time instead of updating it.
+                if (TripBeingEdited != null && TripBeingEdited.Id > 0)
                 {
                     var tripReadDto = new TripReadDto
                     {
-                        Id = SelectedTrip.Id,
-                        TripId = SelectedTrip.TripId, // Mantener el ID externo original
+                        Id = TripBeingEdited.Id,
+                        TripId = TripBeingEdited.TripId, // Mantener el ID externo original
                         Date = tripDate,
                         Day = tripDate.DayOfWeek.ToString(),
 
@@ -1258,15 +1319,15 @@ namespace Raphael.Desktop.ViewModels
                         Distance = double.TryParse(Distance?.Split(' ')[0], out var dist) ? dist : 0.0,
 
                         // Estado y Metadatos (IMPORTANTE: Enviar el status actual para no fallar validación)
-                        Status = SelectedTrip.Status ?? TripStatus.Accepted,
+                        Status = TripBeingEdited.Status ?? TripStatus.Accepted,
 
                         // ⚠️ The trip's own value, not the checkbox. Editing a trip cannot
                         // move Will Call: it goes through Activate / Back to Will Call on
                         // the open-trips grid of Schedule, and the server ignores it here.
-                        WillCall = SelectedTrip.WillCall,
+                        WillCall = TripBeingEdited.WillCall,
                         Type = IsReturn ? "Return" : "Appointment",
-                        Created = SelectedTrip.Created,
-                        VehicleRouteId = SelectedTrip.VehicleRouteId // Mantener la ruta asignada si existe
+                        Created = TripBeingEdited.Created,
+                        VehicleRouteId = TripBeingEdited.VehicleRouteId // Mantener la ruta asignada si existe
 
                     };
 
@@ -1399,10 +1460,14 @@ namespace Raphael.Desktop.ViewModels
                     MessageBox.Show(IsRoundTrip ? "Round Trip created successfully!" : "Trip created successfully!");
                 }          
 
-                await LoadTripsByDateAsync(FilterDate);
+                // The grid follows the trip: booked or moved to another day, it still has to be
+                // in front of the dispatcher who just saved it.
+                MoveGridTo(tripDate);
+                await LoadTripsByDateAsync(_filterDate);
 
                 // Browsing first: the trip is on the server, so there is nothing unsaved left
                 // and clearing the selection below must not stop to ask about it.
+                TripBeingEdited = null;
                 CurrentMode = HomeMode.Browsing;
                 SelectedTrip = null; // Limpiar selección después de guardar
                 ClearTripForm();
