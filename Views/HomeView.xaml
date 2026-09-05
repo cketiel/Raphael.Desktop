@@ -194,9 +194,9 @@
                       Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition x:Name="CustomerColumn" Width="1*" />  <!-- Customer and Trip data area (initially hidden) -->
-                        <ColumnDefinition Width="6" />     <!-- Vertical GridSplitter -->
+                        <ColumnDefinition Width="12" />    <!-- Vertical GridSplitter: the rings -->
                         <ColumnDefinition x:Name="BillingColumn" Width="0" />  <!-- Billing (initially hidden) -->
-                        <ColumnDefinition Width="6" />     <!-- Vertical GridSplitter -->
+                        <ColumnDefinition Width="12" />    <!-- Vertical GridSplitter: the seam -->
                         <ColumnDefinition x:Name="MapColumn" Width="2*" />    <!-- Map -->
                     </Grid.ColumnDefinitions>
 
@@ -562,10 +562,32 @@
                         <!-- The -12 is not a fudge: it is exactly what the divider below grew
                              by, 6px to 18px, and that height came out of this row. Without it the
                              date, Show Canceled and the two buttons are cut off at the bottom. -->
+                        <!-- ===== Where the form ends and the day's controls begin =====
+                             These two read as one surface until something says otherwise: same
+                             paper, same corner radius, no gap - and the negative margin below puts
+                             them physically on top of each other, so a dispatcher could not tell
+                             where the trip they were filling in stopped and the filters started.
+
+                             Three things separate them now, and it takes all three. The kerb along
+                             the top is the theme's primary, the same purple as the road forty
+                             pixels down, so the eye files them as the same kind of edge. The
+                             elevation puts this bar on a plane ABOVE the form rather than beside
+                             it, which is what the overlap was always implying. The corner radius
+                             finishes the bar as its own object.
+
+                             The -12 stays: it is exactly what the road grew by, 6px to 18px, and
+                             that height came out of this row. Without it the date, Show Canceled
+                             and the two buttons are cut off at the bottom. -->
                         <materialDesign:Card Margin="2,-12,2,2"
                             Grid.Row="1"
-                            Padding="10"
+                            Padding="0"
+                            UniformCornerRadius="8"
+                            ClipToBounds="True"
+                            materialDesign:ElevationAssist.Elevation="Dp4"
                             Background="{DynamicResource MaterialDesignCardBackground}">
+                          <Border BorderThickness="0,4,0,0"
+                                  BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                                  Padding="10">
                             
                             <StackPanel x:Name="TripFilterPanel"
                                         Visibility="{Binding IsTripFormOpen, Converter={StaticResource InverseBoolToVisibility}}">
@@ -659,7 +681,7 @@
                                                                     Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
                                                         </UniformGrid>
                                                     </StackPanel>
-                                                </materialDesign:Card>
+                        </materialDesign:Card>
                                             </Popup>
                                         </StackPanel>
 
@@ -730,6 +752,7 @@
                                     
                                 </Grid>
                             </StackPanel>
+                          </Border>
                         </materialDesign:Card>
 
                         <!-- Trip Data Area-->                       
@@ -1089,16 +1112,86 @@
 
                     </Grid>
 
-                <!-- Vertical GridSplitter -->
+                <!-- ===== Vertical divider, candidate A: THE RINGS =====
+                     A spiral binding seen head-on: two sheets held together by wire loops. It says
+                     "these two areas are bound to each other", where a grey bar says nothing.
+
+                     Drawn, not decorated: the pattern is a tiled DrawingBrush on a Border BEHIND
+                     the splitter, and the splitter itself stays transparent and does nothing but
+                     drag. Painting it onto GridSplitter.Background does not work - the control
+                     draws its own mouse-over and focus states straight over its background, which
+                     is exactly what washed the horizontal band out before it was built this way. -->
+                    <Border Grid.Column="1" Background="{DynamicResource MaterialDesignPaper}" />
+
+                    <Rectangle Grid.Column="1" IsHitTestVisible="False">
+                        <Rectangle.Fill>
+                            <DrawingBrush TileMode="Tile" Stretch="Fill"
+                                          Viewport="0,0,12,26" ViewportUnits="Absolute"
+                                          Viewbox="0,0,12,26" ViewboxUnits="Absolute">
+                                <DrawingBrush.Drawing>
+                                    <DrawingGroup>
+
+                                        <!-- The gutter: darker at both edges, so the two panels
+                                             read as sheets and this reads as the gap between. -->
+                                        <GeometryDrawing>
+                                            <GeometryDrawing.Brush>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop Offset="0"    Color="#1F000000" />
+                                                    <GradientStop Offset="0.35" Color="#00000000" />
+                                                    <GradientStop Offset="0.65" Color="#00000000" />
+                                                    <GradientStop Offset="1"    Color="#1F000000" />
+                                                </LinearGradientBrush>
+                                            </GeometryDrawing.Brush>
+                                            <GeometryDrawing.Geometry>
+                                                <RectangleGeometry Rect="0,0,12,26" />
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+
+                                        <!-- The two punched holes the wire passes through. -->
+                                        <GeometryDrawing Brush="#38000000">
+                                            <GeometryDrawing.Geometry>
+                                                <GeometryGroup>
+                                                    <EllipseGeometry Center="1.6,13" RadiusX="1.3" RadiusY="1.3" />
+                                                    <EllipseGeometry Center="10.4,13" RadiusX="1.3" RadiusY="1.3" />
+                                                </GeometryGroup>
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+
+                                        <!-- The wire loop. Lit from above, like every other
+                                             elevated thing in Material. -->
+                                        <GeometryDrawing>
+                                            <GeometryDrawing.Brush>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Offset="0"   Color="#FFD8DCE3" />
+                                                    <GradientStop Offset="0.5" Color="#FF9AA2AF" />
+                                                    <GradientStop Offset="1"   Color="#FF6E7683" />
+                                                </LinearGradientBrush>
+                                            </GeometryDrawing.Brush>
+                                            <GeometryDrawing.Geometry>
+                                                <RectangleGeometry Rect="0.6,9.4,10.8,7.2" RadiusX="3.6" RadiusY="3.6" />
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+
+                                        <!-- The highlight along the top of the wire. -->
+                                        <GeometryDrawing Brush="#99FFFFFF">
+                                            <GeometryDrawing.Geometry>
+                                                <RectangleGeometry Rect="2.2,10.4,7.6,1.5" RadiusX="0.8" RadiusY="0.8" />
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+
+                                    </DrawingGroup>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+
                     <GridSplitter Grid.Column="1"
-                                  Width="6"
+                                  Width="12"
                                   HorizontalAlignment="Stretch"
                                   VerticalAlignment="Stretch"
-                                  Background="#40CCCCCC"
+                                  Background="Transparent"
                                   ShowsPreview="True"
-                                  Cursor="SizeWE">
-                        
-                    </GridSplitter>
+                                  Cursor="SizeWE" />
                     
                 <!-- Panel Billing (initially hidden) -->
                 <Border  Grid.Column="2" BorderThickness="1,1,1,1" BorderBrush="{StaticResource MainBorderBrush}">
@@ -1342,39 +1435,202 @@
 
                 </Border>
                     
-                <!-- Vertical GridSplitter -->
+                <!-- ===== Vertical divider, candidate B: THE SEAM =====
+                     The other reading of the same problem: not two sheets bolted together but two
+                     panels SEWN together. A hairline for the seam itself and a whip stitch over
+                     it, in the theme's own purple rather than a metal that belongs to no palette.
+
+                     Quieter than the rings and says nothing about the business - which is the
+                     trade-off to look at with all three on screen at once. -->
+                    <Border Grid.Column="3" Background="{DynamicResource MaterialDesignPaper}" />
+
+                    <Rectangle Grid.Column="3" IsHitTestVisible="False">
+                        <Rectangle.Fill>
+                            <DrawingBrush TileMode="Tile" Stretch="Fill"
+                                          Viewport="0,0,12,18" ViewportUnits="Absolute"
+                                          Viewbox="0,0,12,18" ViewboxUnits="Absolute">
+                                <DrawingBrush.Drawing>
+                                    <DrawingGroup>
+
+                                        <!-- The seam the stitches close. -->
+                                        <GeometryDrawing Brush="#1F000000">
+                                            <GeometryDrawing.Geometry>
+                                                <RectangleGeometry Rect="5.6,0,0.8,18" />
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+
+                                        <!-- The thread, crossing back and forth over it. -->
+                                        <GeometryDrawing>
+                                            <GeometryDrawing.Pen>
+                                                <Pen Brush="#B3673AB7" Thickness="1.7"
+                                                     StartLineCap="Round" EndLineCap="Round" />
+                                            </GeometryDrawing.Pen>
+                                            <GeometryDrawing.Geometry>
+                                                <GeometryGroup>
+                                                    <LineGeometry StartPoint="2.6,1.5" EndPoint="9.4,7" />
+                                                    <LineGeometry StartPoint="9.4,10.5" EndPoint="2.6,16" />
+                                                </GeometryGroup>
+                                            </GeometryDrawing.Geometry>
+                                        </GeometryDrawing>
+
+                                    </DrawingGroup>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+
                     <GridSplitter Grid.Column="3" x:Name="BillingGridSplitter"
-                                  Width="6"
+                                  Width="12"
                                   HorizontalAlignment="Stretch"
                                   VerticalAlignment="Stretch"
-                                  Background="#40CCCCCC"
+                                  Background="Transparent"
                                   ShowsPreview="True"
-                                  Cursor="SizeWE">
-                        
-                    </GridSplitter>
+                                  Cursor="SizeWE" />
 
                     <!-- WebView2 con el mapa -->
                     <wv2:WebView2 Grid.Column="4" x:Name="MapaWebView" Loaded="WebView_Loaded"
                                   Visibility="{Binding IsMapVisible, Converter={StaticResource BoolToVisibility}}" />
 
-                    <!-- What stands in for the map until there is a reason to load one. Creating a
-                         Google map is a billed Dynamic Map, and opening this tab bought one every
-                         time to show an empty view of Miami. The guard that actually saves it is
-                         in LoadMap; this only explains the empty space. -->
-                    <Border Grid.Column="4"
-                            Visibility="{Binding IsMapVisible, Converter={StaticResource InverseBoolToVisibility}}"
-                            Background="{DynamicResource MaterialDesignChipBackground}">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
-                            <materialDesign:PackIcon Kind="MapOutline" Width="46" Height="46"
-                                                     HorizontalAlignment="Center" Opacity=".35"/>
-                            <TextBlock Text="{Binding MapNotLoadedHint}" TextWrapping="Wrap"
-                                       TextAlignment="Center" MaxWidth="260" Margin="0,10,0,12"
-                                       FontSize="12" Opacity=".75"/>
-                            <Button Content="{Binding ShowMapLabel}" Command="{Binding ShowMapCommand}"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                                    HorizontalAlignment="Center" Height="30" FontSize="12"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- ===== What stands in for the map until there is a reason to load one =====
+                         Creating a Google map is a billed Dynamic Map, and opening this tab bought
+                         one every time to show an empty view of Miami. The guard that actually
+                         saves the money is in LoadMap; this fills the space it leaves.
+
+                         The plate is DRAWN, not photographed. A captured screenshot of a real map
+                         would be Google content stored indefinitely, it would blur the moment the
+                         splitter resized this panel, and - worst of it - a realistic map invites a
+                         dispatcher to drag and zoom something that cannot move. This is deliberately
+                         a diagram: legible as "a map goes here", never mistakable for one.
+
+                         Every colour is alpha over the theme's own paper, so the plate works in
+                         light and dark without a second copy. The dashed route with a red dot and a
+                         blue pin is the live map's legend, taught before a map is ever loaded. -->
+                    <Grid Grid.Column="4"
+                          Visibility="{Binding IsMapVisible, Converter={StaticResource InverseBoolToVisibility}}">
+
+                        <Border Background="{DynamicResource MaterialDesignPaper}" />
+
+                        <Rectangle>
+                            <Rectangle.Fill>
+                                <DrawingBrush Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"
+                                              Viewbox="0,0,400,300" ViewboxUnits="Absolute">
+                                    <DrawingBrush.Drawing>
+                                        <DrawingGroup>
+
+                                            <!-- Water, east. Miami's own geography, roughly. -->
+                                            <GeometryDrawing Brush="#2642A5F5">
+                                                <GeometryDrawing.Geometry>
+                                                    <PathGeometry Figures="M328,0 L400,0 L400,300 L300,300 C322,232 316,170 320,104 C322,64 324,32 328,0 Z" />
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                            <!-- A park, so the grid is not uniform. Cities never are. -->
+                                            <GeometryDrawing Brush="#264CAF50">
+                                                <GeometryDrawing.Geometry>
+                                                    <RectangleGeometry Rect="150,150,58,54" RadiusX="6" RadiusY="6" />
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                            <!-- The street grid. Grey with alpha, never black: the
+                                                 same drawing has to read on a dark theme too. -->
+                                            <GeometryDrawing>
+                                                <GeometryDrawing.Pen>
+                                                    <Pen Brush="#26808080" Thickness="3" />
+                                                </GeometryDrawing.Pen>
+                                                <GeometryDrawing.Geometry>
+                                                    <GeometryGroup>
+                                                        <LineGeometry StartPoint="0,42"  EndPoint="330,42" />
+                                                        <LineGeometry StartPoint="0,96"  EndPoint="324,96" />
+                                                        <LineGeometry StartPoint="0,150" EndPoint="320,150" />
+                                                        <LineGeometry StartPoint="0,204" EndPoint="318,204" />
+                                                        <LineGeometry StartPoint="0,258" EndPoint="308,258" />
+                                                        <LineGeometry StartPoint="46,0"  EndPoint="46,300" />
+                                                        <LineGeometry StartPoint="102,0" EndPoint="102,300" />
+                                                        <LineGeometry StartPoint="150,0" EndPoint="150,300" />
+                                                        <LineGeometry StartPoint="208,0" EndPoint="208,300" />
+                                                        <LineGeometry StartPoint="262,0" EndPoint="262,300" />
+                                                    </GeometryGroup>
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                            <!-- One avenue on the diagonal and one causeway out to
+                                                 the water. Without them it is graph paper. -->
+                                            <GeometryDrawing>
+                                                <GeometryDrawing.Pen>
+                                                    <Pen Brush="#33808080" Thickness="7" StartLineCap="Round" EndLineCap="Round" />
+                                                </GeometryDrawing.Pen>
+                                                <GeometryDrawing.Geometry>
+                                                    <GeometryGroup>
+                                                        <LineGeometry StartPoint="-10,288" EndPoint="316,20" />
+                                                        <LineGeometry StartPoint="262,124" EndPoint="400,116" />
+                                                    </GeometryGroup>
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                            <!-- The route: the same purple and the same two colours
+                                                 the live map uses, so the legend is already learnt. -->
+                                            <GeometryDrawing>
+                                                <GeometryDrawing.Pen>
+                                                    <Pen Brush="#807E57C2" Thickness="5"
+                                                         StartLineCap="Round" EndLineCap="Round" LineJoin="Round"
+                                                         DashCap="Round">
+                                                        <Pen.DashStyle>
+                                                            <DashStyle Dashes="1.6,1.4" />
+                                                        </Pen.DashStyle>
+                                                    </Pen>
+                                                </GeometryDrawing.Pen>
+                                                <GeometryDrawing.Geometry>
+                                                    <PathGeometry Figures="M78,244 L78,178 L176,178 L176,110 L246,110 L246,66" />
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                            <!-- Pickup: red, where the patient waits. -->
+                                            <GeometryDrawing Brush="#CCD32F2F">
+                                                <GeometryDrawing.Pen>
+                                                    <Pen Brush="#B3FFFFFF" Thickness="2.4" />
+                                                </GeometryDrawing.Pen>
+                                                <GeometryDrawing.Geometry>
+                                                    <EllipseGeometry Center="78,244" RadiusX="7" RadiusY="7" />
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                            <!-- Dropoff: blue, and the same teardrop as the map. -->
+                                            <GeometryDrawing Brush="#CC1565C0">
+                                                <GeometryDrawing.Pen>
+                                                    <Pen Brush="#B3FFFFFF" Thickness="1.6" />
+                                                </GeometryDrawing.Pen>
+                                                <GeometryDrawing.Geometry>
+                                                    <PathGeometry Figures="M246,42 C240.2,42 235.5,46.7 235.5,52.5 C235.5,60.4 246,72 246,72 C246,72 256.5,60.4 256.5,52.5 C256.5,46.7 251.8,42 246,42 Z M246,56.3 A3.75,3.75 0 1 1 246,48.8 A3.75,3.75 0 0 1 246,56.3 Z" />
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+
+                                        </DrawingGroup>
+                                    </DrawingBrush.Drawing>
+                                </DrawingBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+
+                        <!-- The message sits on its own surface. Text straight onto the plate is
+                             legible right up until the panel is resized and a street runs under a
+                             word. -->
+                        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                                MaxWidth="320" CornerRadius="12" Padding="26,20,26,20"
+                                Background="{DynamicResource MaterialDesignPaper}"
+                                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1"
+                                materialDesign:ElevationAssist.Elevation="Dp3">
+                            <StackPanel>
+                                <materialDesign:PackIcon Kind="MapSearchOutline" Width="42" Height="42"
+                                                         HorizontalAlignment="Center" Opacity=".5"
+                                                         Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
+                                <TextBlock Text="{Binding MapNotLoadedHint}" TextWrapping="Wrap"
+                                           TextAlignment="Center" Margin="0,10,0,14"
+                                           FontSize="12" Opacity=".8"/>
+                                <Button Content="{Binding ShowMapLabel}" Command="{Binding ShowMapCommand}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        HorizontalAlignment="Center" Height="30" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Grid>
 
                 <!-- Horizontal GridSplitter. The figures ride on top of it rather than in a row
@@ -1389,6 +1645,65 @@
                 <Border Grid.Row="1"
                         Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
                         Background="{DynamicResource MaterialDesign.Brush.Primary}" />
+
+                <!-- ===== The road =====
+                     The band was already there and already purple. A dashed centre line turns it
+                     from a bar into a stretch of road, which is the one thing this business
+                     actually does - and it costs the layout nothing, because the height was
+                     already spent.
+
+                     The dashes are a tiled brush rather than a StrokeDashArray so they can be
+                     SCROLLED, and that is the loading animation: traffic moves while the trips
+                     are coming and stops when they have arrived.
+
+                     Two details make it work. The strip hangs 30px past each end of the band -
+                     exactly one tile - so sliding it a whole tile leaves no gap at either edge,
+                     and the Border clips the overhang. And it moves the RECTANGLE, not the brush:
+                     animating a brush's Transform through a property path works right up until
+                     something freezes the brush, and then it throws where nothing can catch it.
+                     RenderTransform on the element is the boring version, and this band is drawn
+                     on every single tab open. -->
+                <Border Grid.Row="1" ClipToBounds="True" Panel.ZIndex="1" IsHitTestVisible="False"
+                        Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
+                    <Rectangle Height="3" VerticalAlignment="Center" Margin="-30,0,-30,0">
+                        <Rectangle.RenderTransform>
+                            <TranslateTransform />
+                        </Rectangle.RenderTransform>
+                        <Rectangle.Fill>
+                            <DrawingBrush TileMode="Tile" Stretch="Fill"
+                                          Viewport="0,0,30,3" ViewportUnits="Absolute"
+                                          Viewbox="0,0,30,3" ViewboxUnits="Absolute">
+                                <DrawingBrush.Drawing>
+                                    <GeometryDrawing Brush="#66FFFFFF">
+                                        <GeometryDrawing.Geometry>
+                                            <RectangleGeometry Rect="0,0,17,3" RadiusX="1.5" RadiusY="1.5" />
+                                        </GeometryDrawing.Geometry>
+                                    </GeometryDrawing>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Rectangle.Fill>
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLoadingTrips}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard x:Name="TrafficFlow">
+                                                <Storyboard>
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                        From="0" To="30" Duration="0:0:0.9" RepeatBehavior="Forever" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="TrafficFlow" />
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                </Border>
 
                 <GridSplitter x:Name="GridRow1" Grid.Row="1"
                       Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
@@ -1406,11 +1721,15 @@
                      one cell keeps the splitter where it belongs and still puts the text on top.
 
                      IsHitTestVisible=False so the whole band, text included, drags. -->
-                <TextBlock Grid.Row="1" Text="{Binding DividerSummary}" Panel.ZIndex="1"
-                           Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
-                           IsHitTestVisible="False"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                           Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                <Border Grid.Row="1" Panel.ZIndex="2"
+                        Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Height="16" CornerRadius="8" Padding="12,0,12,0"
+                        Background="#33000000" BorderBrush="#4DFFFFFF" BorderThickness="1">
+                    <TextBlock Text="{Binding DividerSummary}" VerticalAlignment="Center"
+                               Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                </Border>
 
                 <!-- Bottom DataGrid -->
 
