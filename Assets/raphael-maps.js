@@ -247,7 +247,25 @@
             '.rm-item:last-child{border-bottom:none}',
             '.rm-item.rm-active,.rm-item:hover{background:#e8f0fe}',
             '.rm-main{color:#202124}',
-            '.rm-secondary{color:#70757a;font-size:12px}'
+            '.rm-secondary{color:#70757a;font-size:12px}',
+
+            // ===== The route summary =====
+            // A card of our own instead of Google's InfoWindow. The InfoWindow arrives with white
+            // chrome, a tail and a close button we never wanted, it sat in the middle of the road
+            // it was describing, and there is no way to restyle any of that. This is anchored to
+            // a corner, out of the route's way, and looks like the rest of the application.
+            '.rm-route{position:absolute;left:12px;bottom:22px;z-index:5;display:none;',
+            'background:rgba(255,255,255,.97);border-radius:12px;padding:10px 14px;',
+            'box-shadow:0 6px 18px rgba(0,0,0,.22);border:1px solid rgba(0,0,0,.06);',
+            'font:13px/1.2 system-ui,Segoe UI,sans-serif;color:#202124;',
+            'backdrop-filter:blur(2px)}',
+            '.rm-route.rm-on{display:flex;align-items:center;gap:14px}',
+            '.rm-stat{display:flex;align-items:center;gap:7px}',
+            '.rm-stat svg{width:17px;height:17px;fill:#673AB7;flex:none}',
+            '.rm-value{font-weight:600;font-size:15px;letter-spacing:-.2px}',
+            '.rm-unit{color:#70757a;font-size:11px;margin-left:1px}',
+            // The hairline between the two figures, so they read as two facts and not one string.
+            '.rm-sep{width:1px;height:26px;background:rgba(0,0,0,.10)}'
         ].join('');
 
         document.head.appendChild(style);
@@ -493,6 +511,8 @@
      * The page cannot call Raphael.Api itself, and should not: that would mean handing a session
      * token to a document that also runs Google's script.
      */
+    var routeCasing;
+
     function requestRoute(origin, destination) {
         if (!origin || !destination) return;
 
@@ -505,9 +525,85 @@
         });
     }
 
+    /**
+     * The pins.
+     *
+     * Letters in a balloon are what a demo looks like. These are the two shapes every mapping
+     * product has settled on, and they are read without a legend: the journey STARTS at a dot and
+     * ARRIVES at a pin. Colour carries the same meaning a second time — the brand purple for where
+     * the patient is waiting, green for where they are going — so neither shape nor colour is
+     * carrying it alone, which matters for whoever cannot tell the two apart.
+     *
+     * Symbols, not images: vector at every zoom, no file to ship, and nothing else to fetch.
+     */
+    function pickupSymbol() {
+        return {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#673AB7',
+            fillOpacity: 1,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 3.5
+        };
+    }
+
+    function dropoffSymbol() {
+        return {
+            // Material's place mark, on its own 24x24 grid.
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z'
+                + 'm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z',
+            fillColor: '#2E7D32',
+            fillOpacity: 1,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 1.6,
+            scale: 1.5,
+            // The tip of the pin is the place, not its middle.
+            anchor: new google.maps.Point(12, 22)
+        };
+    }
+
+    function routeCard() {
+        var card = document.getElementById('rm-route');
+
+        if (card) return card;
+
+        injectStyles();
+
+        card = document.createElement('div');
+        card.id = 'rm-route';
+        card.className = 'rm-route';
+
+        (document.getElementById('map') || document.body).appendChild(card);
+
+        return card;
+    }
+
+    var CLOCK_ICON = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm'
+        + '1 10.6V6h-2v7.4l5.2 3.1 1-1.7-4.2-2.2z"/></svg>';
+
+    var ROAD_ICON = '<svg viewBox="0 0 24 24"><path d="M18.4 3H16l1.2 18h3.3L18.4 3zM5.6 3 3.5 21h'
+        + '3.3L8 3H5.6zM13 3h-2v3.5h2V3zm0 6h-2v3.5h2V9zm0 6h-2v3.5h2V15z"/></svg>';
+
+    function showRouteSummary(eta, distance) {
+        var card = routeCard();
+
+        if (!eta && !distance) { card.className = 'rm-route'; return; }
+
+        card.innerHTML =
+            '<div class="rm-stat">' + CLOCK_ICON + '<span class="rm-value">' + (eta || '—') + '</span></div>'
+            + '<div class="rm-sep"></div>'
+            + '<div class="rm-stat">' + ROAD_ICON + '<span class="rm-value">' + (distance || '—')
+            + '<span class="rm-unit">mi</span></span></div>';
+
+        card.className = 'rm-route rm-on';
+    }
+
     function clearRoute() {
         if (routeLine) { routeLine.setMap(null); routeLine = null; }
+        if (routeCasing) { routeCasing.setMap(null); routeCasing = null; }
         if (routeWindow) { routeWindow.close(); routeWindow = null; }
+
+        showRouteSummary(null, null);
     }
 
     /**
@@ -523,36 +619,51 @@
 
         var path = google.maps.geometry.encoding.decodePath(payload.encodedPolyline);
 
+        // ===== Two lines, not one =====
+        // A single stroke disappears over a motorway of about its own width and colour. The wide
+        // dark casing underneath gives the route an edge, so it reads as one continuous path over
+        // any part of the map — which is what every serious mapping product draws and why theirs
+        // are legible and a bare polyline is not.
+        routeCasing = new google.maps.Polyline({
+            path: path,
+            map: map,
+            strokeColor: '#311B92',
+            strokeOpacity: 0.55,
+            strokeWeight: 10,
+            zIndex: 1
+        });
+
         routeLine = new google.maps.Polyline({
             path: path,
             map: map,
-            strokeColor: '#4285F4',
-            strokeOpacity: 0.9,
-            strokeWeight: 6,
+            strokeColor: '#7E57C2',
+            strokeOpacity: 1,
+            strokeWeight: 5,
+            zIndex: 2,
+            // Arrows say which way, so they only have to be readable, not loud. Every 140px rather
+            // than every 50: the old spacing turned the route into a dotted caterpillar and the
+            // direction was harder to see, not easier.
             icons: [{
                 icon: {
                     path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                    scale: 4,
-                    strokeColor: '#4285F4',
-                    strokeWeight: 2
+                    scale: 2.6,
+                    fillColor: '#FFFFFF',
+                    fillOpacity: 1,
+                    strokeColor: '#311B92',
+                    strokeWeight: 1
                 },
-                offset: '100%',
-                repeat: '50px'
+                offset: '6%',
+                repeat: '140px'
             }]
         });
 
         var bounds = new google.maps.LatLngBounds();
         path.forEach(function (point) { bounds.extend(point); });
-        map.fitBounds(bounds);
 
-        if (payload.label) {
-            routeWindow = new google.maps.InfoWindow({
-                content: '<b>' + payload.label + '</b>',
-                position: path[Math.floor(path.length / 2)]
-            });
+        // Room for the summary card in the bottom-left corner, so it never sits on the route.
+        map.fitBounds(bounds, { top: 40, right: 40, bottom: 80, left: 40 });
 
-            routeWindow.open(map);
-        }
+        showRouteSummary(payload.eta, payload.distance);
     }
 
     window.RaphaelMaps = {
@@ -570,7 +681,9 @@
         attachAutocomplete: attachAutocomplete,
         requestRoute: requestRoute,
         clearRoute: clearRoute,
-        showRoute: showRoute
+        showRoute: showRoute,
+        pickupSymbol: pickupSymbol,
+        dropoffSymbol: dropoffSymbol
     };
 
     // The host calls these by name through ExecuteScriptAsync. Renaming one breaks the map

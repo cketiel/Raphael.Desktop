@@ -361,10 +361,16 @@ namespace Raphael.Desktop.Services.Maps
                 return leg;
             }
 
+            // ⚠️ The two figures travel apart, not as one sentence. The page lays them out into
+            // its own summary card with an icon each, which it cannot do with a string that has
+            // already had "ETA:" and an em dash baked into it. DescribeLeg stays for the callers
+            // that want the one-liner.
             var payload = new
             {
                 encodedPolyline = leg.EncodedPolyline,
-                label = DescribeLeg(leg)
+                label = DescribeLeg(leg),
+                eta = FormatDuration(leg.DurationInTrafficSeconds ?? leg.DurationSeconds),
+                distance = leg.DistanceMiles.ToString("0.0", CultureInfo.InvariantCulture)
             };
 
             await webView.ExecuteScriptAsync(

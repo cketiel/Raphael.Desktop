@@ -140,7 +140,8 @@
                 draggable: true,
                 animation: google.maps.Animation.DROP,
                 position: position,
-                label: 'P',
+                icon: RaphaelMaps.pickupSymbol(),
+                title: 'Pickup',
                 map: map
             });
 
@@ -203,7 +204,8 @@
                 draggable: true,
                 animation: google.maps.Animation.DROP,
                 position: position,
-                label: 'D',
+                icon: RaphaelMaps.dropoffSymbol(),
+                title: 'Dropoff',
                 map: map
             });
 
