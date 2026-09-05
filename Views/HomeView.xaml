@@ -44,6 +44,46 @@
             The pulse animates the badge's own Opacity, which is why it is allowed to live inside
             a Style at all: a Storyboard declared here cannot name another element.
         -->
+        <!-- ===== The filter panel's furniture =====
+             The sections used to be bare Expanders on a flat sheet: nothing told the eye where one
+             filter ended and the next began, so a panel with eight of them read as one long list
+             of controls floating in space. Each section is a card now — its own surface, its own
+             hairline, its own breathing room — and the body behind them is tinted a few percent
+             darker so the cards sit ON something instead of in the air. -->
+        <Style x:Key="FilterSectionCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Padding" Value="10,2,10,6" />
+        </Style>
+
+        <Style x:Key="FilterSectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+
+        <Style x:Key="FilterSectionIcon" TargetType="materialDesign:PackIcon">
+            <Setter Property="Width" Value="17" />
+            <Setter Property="Height" Value="17" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+        </Style>
+
+        <Style x:Key="FilterOptionCheckBox" TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+            <Setter Property="Margin" Value="0,3,0,3" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="FilterSubLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Opacity" Value=".7" />
+            <Setter Property="Margin" Value="0,6,0,3" />
+        </Style>
+
         <Style x:Key="StepBadgeStyle" TargetType="Border">
             <Setter Property="Width" Value="19" />
             <Setter Property="Height" Value="19" />
@@ -87,7 +127,11 @@
                     <Setter Property="Background" Value="White" />
                 </Trigger>
 
-                <!-- Status wins over the stripe: later triggers are applied last. -->
+                <!-- Status tints come BEFORE hover and selection, so those win. Later triggers
+                     are applied last, and a cancelled row that kept its pink while selected
+                     would hide the one thing the dispatcher is looking for: which row they are
+                     on. The red text survives either way — the row sets Foreground, and the
+                     cell style deliberately leaves Foreground alone. -->
                 <DataTrigger Binding="{Binding Status}" Value="Finished">
                     <Setter Property="Background" Value="#F2F2F2" />
                 </DataTrigger>
@@ -97,6 +141,19 @@
                     <Setter Property="Foreground" Value="Red" />
                     <Setter Property="ToolTip" Value="Canceled: Driver No-Show reported." />
                 </DataTrigger>
+
+                <!-- ⚠️ Hover and selection have to be declared here, not left to the row
+                     template. The Background setter at the top of this style is a style value
+                     and beats a template trigger, which is exactly why the Schedule grid's
+                     selection was invisible until it was moved here. Same brushes, on purpose:
+                     the two grids show the same kind of row and must read the same. -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverTripRowBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectedTripRowBrush}" />
+                    <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+                </Trigger>
 
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
@@ -166,10 +223,18 @@
 
                                     <DockPanel Margin="0,0,0,0">
 
-                                        <!-- The helpers live in floating cards now, not in rows
-                                             of their own: the zones of this tab are sized to each
-                                             other, and two extra rows pushed the save button under
-                                             the splitter. This button brings the cards back. -->
+                                        <!-- (1) Who is travelling. The number goes on the control
+                                             it names, which costs no layout at all — it was the
+                                             ROW of numbers that had to go, not the numbers. -->
+                                        <Border DockPanel.Dock="Left" Margin="0,0,8,0"
+                                                Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step1State}">
+                                            <TextBlock Text="1" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
+
+                                        <!-- The floating helpers live outside the layout now: the
+                                             zones of this tab are sized to each other, and two
+                                             extra rows pushed the save button under the splitter.
+                                             This button brings the cards back. -->
                                         <Button DockPanel.Dock="Right" Margin="4,0,0,0"
                                                 Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                 Command="{Binding ToggleHelperCardsCommand}"
@@ -583,11 +648,16 @@
                                         <!-- The broker's trip id only. It is the number a
                                              dispatcher is holding when they reach for this, and
                                              it is the only one that fits on this row. -->
-                                        <TextBox Grid.Column="1" Width="120"
+                                        <TextBox Grid.Column="1" Width="130" Height="26"
                                             Text="{Binding TripSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
                                             materialDesign:HintAssist.Hint="{Binding TripSearchHint}"
                                             materialDesign:TextFieldAssist.HasClearButton="True"
-                                            Style="{StaticResource MaterialDesignFilledTextBox}"
+                                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                            materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                                            materialDesign:TextFieldAssist.TextBoxViewMargin="1,0,1,0"
+                                            Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                            FontSize="12" Padding="4,0,4,0"
+                                            VerticalContentAlignment="Center"
                                             VerticalAlignment="Center" Margin="0,0,8,0"/>
 
                                         <!-- Checkbox -->
@@ -740,6 +810,13 @@
                                             Style="{StaticResource MaterialDesignFilledTextBox}" 
                                             TextChanged="GooglePlacesInput_TextChanged"/>
 
+                                        <!-- (2) Where they are going. -->
+                                        <Border Grid.Row="1" Grid.Column="0" Panel.ZIndex="20"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,6,0"
+                                                Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step2State}">
+                                            <TextBlock Text="2" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
+
                                         <TextBox
                                             x:Name="DropoffAddressTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,0,2"
                                             Text="{Binding DropoffAddress, UpdateSourceTrigger=PropertyChanged}"
@@ -761,6 +838,12 @@
                                     <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal"
                                                 Panel.ZIndex="100" Margin="12,19,16,-17"
                                                 HorizontalAlignment="Left" VerticalAlignment="Bottom">
+
+                                        <!-- (4) And create it. -->
+                                        <Border Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step4State}"
+                                                Margin="0,0,6,0">
+                                            <TextBlock Text="4" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
 
                                         <Button x:Name="SaveTab1FloatingButton" Width="30" Height="30"
                                             IsEnabled="{Binding CanCreateTrip}"
@@ -786,6 +869,13 @@
                                         </StackPanel>
 
                                         <!-- Right column -->                                   
+
+                                        <!-- (3) When. -->
+                                        <Border Grid.Row="0" Grid.Column="1" Panel.ZIndex="20"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,6,0"
+                                                Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step3State}">
+                                            <TextBlock Text="3" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
 
                                         <materialDesign:TimePicker Grid.Row="0" Grid.Column="1"
                                             x:Name="PickupTimePicker"
@@ -1253,12 +1343,21 @@
                      of their own: this band is already there, it is exactly where the form ends
                      and the list begins, and it costs the layout nothing to read it. The text is
                      IsHitTestVisible=False so the whole band still drags. -->
+                <!-- ⚠️ The colour is on a Border behind the splitter, not on the splitter.
+                     A GridSplitter paints its own visual states over its Background, so unfocused
+                     it washed out — and white figures on a washed-out purple are figures nobody
+                     can read. The Border is always the theme's primary; the splitter above it is
+                     transparent and does nothing but drag. -->
+                <Border Grid.Row="1"
+                        Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
+                        Background="{DynamicResource MaterialDesign.Brush.Primary}" />
+
                 <GridSplitter x:Name="GridRow1" Grid.Row="1"
                       Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
                       Height="18"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
-                      Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                      Background="Transparent"
                       ShowsPreview="True"
                       Cursor="SizeNS" />
 
@@ -1312,8 +1411,9 @@
                     ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
 
                     RowStyle="{StaticResource HomeTripRowStyle}"
-                    CellStyle="{StaticResource CustomCellStyle}"
-                    SelectionUnit="FullRow">
+                    CellStyle="{StaticResource TripSelectionCellStyle}"
+                    SelectionUnit="FullRow"
+                    Cursor="Hand">
 
                     <DataGrid.Columns>
 
@@ -1930,32 +2030,40 @@
                         <DockPanel>
 
                             <!-- Header: how much is getting through, and the way out of all of it -->
-                            <materialDesign:ColorZone DockPanel.Dock="Top" Mode="PrimaryMid" Padding="12,8,8,8">
+                            <materialDesign:ColorZone DockPanel.Dock="Top" Mode="PrimaryMid" Padding="14,10,8,10"
+                                                      materialDesign:ElevationAssist.Elevation="Dp2">
                                 <DockPanel>
                                     <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                            Command="{Binding CloseFilterPanelCommand}" Padding="2">
+                                            Command="{Binding CloseFilterPanelCommand}" Padding="2"
+                                            VerticalAlignment="Top">
                                         <materialDesign:PackIcon Kind="Close" Width="20" Height="20"/>
                                     </Button>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="FilterVariant"
+                                                             Width="22" Height="22" Margin="0,1,10,0"
+                                                             VerticalAlignment="Top"/>
                                     <StackPanel>
-                                        <TextBlock Text="{Binding FiltersHeader}" FontWeight="Bold"/>
-                                        <TextBlock Text="{Binding GridSummary}" FontSize="11" Opacity=".85"/>
+                                        <TextBlock Text="{Binding FiltersHeader}" FontWeight="Bold" FontSize="15"/>
+                                        <TextBlock Text="{Binding GridSummary}" FontSize="11" Opacity=".85" Margin="0,1,0,0"/>
                                     </StackPanel>
                                 </DockPanel>
                             </materialDesign:ColorZone>
 
                             <!-- Footer: clear everything, and keep this set under a name -->
-                            <StackPanel DockPanel.Dock="Bottom" Margin="12,6,12,12">
+                            <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,0"
+                                        Background="{DynamicResource MaterialDesignPaper}">
+                                <Separator Margin="0" Opacity=".5"/>
+                                <StackPanel Margin="12,10,12,12">
                                 <Button Content="{Binding ClearAllFiltersLabel}"
                                         Command="{Binding Filters.ClearAllCommand}"
                                         Style="{StaticResource MaterialDesignOutlinedButton}"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,10" Height="30" FontSize="12"/>
                                 <DockPanel>
                                     <Button DockPanel.Dock="Right" Content="{Binding SaveViewLabel}"
                                             Command="{Binding Filters.SaveViewCommand}"
-                                            Style="{StaticResource MaterialDesignFlatButton}"/>
+                                            Style="{StaticResource MaterialDesignFlatButton}" FontSize="12"/>
                                     <TextBox Text="{Binding Filters.NewViewName, UpdateSourceTrigger=PropertyChanged}"
-                                             materialDesign:HintAssist.Hint="{Binding MyFiltersHint}"
-                                             Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,8,0"/>
+                                             materialDesign:HintAssist.Hint="{Binding MyFiltersHint}" FontSize="12"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,8,0"/>
                                 </DockPanel>
                                 <ItemsControl ItemsSource="{Binding Filters.SavedViews}" Margin="0,6,0,0">
                                     <ItemsControl.ItemsPanel>
@@ -1982,128 +2090,204 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                </StackPanel>
                             </StackPanel>
 
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="12,8,12,0">
-                                <StackPanel>
-
-                                    <Expander Header="{Binding SpaceTypeFilterText}" IsExpanded="True">
-                                        <ItemsControl ItemsSource="{Binding Filters.SpaceTypes}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Expander>
-
-                                    <Expander Header="{Binding FundingSourceText}">
-                                        <ItemsControl ItemsSource="{Binding Filters.FundingSources}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Expander>
-
-                                    <Expander Header="{Binding StatusFilterText}">
-                                        <ItemsControl ItemsSource="{Binding Filters.Statuses}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Expander>
-
-                                    <Expander Header="{Binding TypeText}">
-                                        <ItemsControl ItemsSource="{Binding Filters.Types}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Expander>
-
-                                    <Expander Header="{Binding CitiesFilterText}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding CityScopeText}" FontSize="11" Opacity=".8" Margin="0,0,0,4"/>
-                                            <UniformGrid Columns="3" Margin="0,0,0,6">
-                                                <RadioButton Content="{Binding ScopeBothText}" GroupName="CityScope"
-                                                             IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Both}"/>
-                                                <RadioButton Content="{Binding PickupText}" GroupName="CityScope"
-                                                             IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Pickup}"/>
-                                                <RadioButton Content="{Binding DropoffText}" GroupName="CityScope"
-                                                             IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Dropoff}"/>
-                                            </UniformGrid>
-                                            <ItemsControl ItemsSource="{Binding Filters.Cities}">
+                            <!-- Tinted a few percent so the section cards read as sitting on a
+                                 surface rather than floating on the same sheet they are drawn on. -->
+                            <Border Background="#0A000000">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,12,4">
+                                    <StackPanel>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="True" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Wheelchair" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding SpaceTypeFilterText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.SpaceTypes}" Margin="26,2,0,4">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"/>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
-                                        </StackPanel>
-                                    </Expander>
+                                        </Expander>
+                                    </Border>
 
-                                    <Expander Header="{Binding PickupWindowText}">
-                                        <StackPanel>
-                                            <materialDesign:TimePicker Is24Hours="True"
-                                                SelectedTime="{Binding Filters.PickupFrom, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
-                                                materialDesign:HintAssist.Hint="{Binding FromTimeText}"/>
-                                            <materialDesign:TimePicker Is24Hours="True" Margin="0,6,0,0"
-                                                SelectedTime="{Binding Filters.PickupTo, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
-                                                materialDesign:HintAssist.Hint="{Binding ToTimeText}"/>
-                                        </StackPanel>
-                                    </Expander>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CashMultiple" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding FundingSourceText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.FundingSources}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
 
-                                    <Expander Header="{Binding OtherFiltersText}" IsExpanded="True">
-                                        <StackPanel>
-                                            <TextBlock Text="Will Call" FontSize="11" Opacity=".8" Margin="0,4,0,2"/>
-                                            <UniformGrid Columns="3">
-                                                <RadioButton Content="{Binding FlagAnyText}" GroupName="WillCallFilter"
-                                                             IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
-                                                <RadioButton Content="{Binding FlagYesText}" GroupName="WillCallFilter"
-                                                             IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
-                                                <RadioButton Content="{Binding FlagNoText}" GroupName="WillCallFilter"
-                                                             IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
-                                            </UniformGrid>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="FlagVariant" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding StatusFilterText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.Statuses}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
 
-                                            <TextBlock Text="{Binding RunText}" FontSize="11" Opacity=".8" Margin="0,8,0,2"/>
-                                            <UniformGrid Columns="3">
-                                                <RadioButton Content="{Binding FlagAnyText}" GroupName="RunFilter"
-                                                             IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
-                                                <RadioButton Content="{Binding FlagYesText}" GroupName="RunFilter"
-                                                             IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
-                                                <RadioButton Content="{Binding FlagNoText}" GroupName="RunFilter"
-                                                             IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
-                                            </UniformGrid>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="SwapHorizontal" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding TypeText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.Types}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
 
-                                            <CheckBox Margin="0,10,0,0" IsChecked="{Binding Filters.OnlyMissingCoordinates}"
-                                                      Content="{Binding MissingCoordinatesText}"/>
-                                            <TextBlock Text="{Binding MissingCoordinatesHint}" FontSize="10" Opacity=".7"
-                                                       TextWrapping="Wrap" Margin="26,0,0,0"/>
-                                        </StackPanel>
-                                    </Expander>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CityVariantOutline" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding CitiesFilterText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,2,0,4">
+                                                <TextBlock Text="{Binding CityScopeText}" Style="{StaticResource FilterSubLabel}" Margin="0,0,0,3"/>
+                                                <UniformGrid Columns="3" Margin="0,0,0,4">
+                                                    <RadioButton Content="{Binding ScopeBothText}" GroupName="CityScope" FontSize="11"
+                                                                 IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Both}"/>
+                                                    <RadioButton Content="{Binding PickupText}" GroupName="CityScope" FontSize="11"
+                                                                 IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Pickup}"/>
+                                                    <RadioButton Content="{Binding DropoffText}" GroupName="CityScope" FontSize="11"
+                                                                 IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Dropoff}"/>
+                                                </UniformGrid>
+                                                <Separator Margin="0,2,0,4" Opacity=".4"/>
+                                                <ItemsControl ItemsSource="{Binding Filters.Cities}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                      Style="{StaticResource FilterOptionCheckBox}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
 
-                                    <Expander Header="{Binding ZipStateText}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding ZipStateWarning}" FontSize="10" Opacity=".75"
-                                                       TextWrapping="Wrap" Margin="0,0,0,6"/>
-                                            <TextBox Text="{Binding Filters.Zip, UpdateSourceTrigger=PropertyChanged, Delay=300}"
-                                                     materialDesign:HintAssist.Hint="{Binding ZipHint}"
-                                                     Style="{StaticResource MaterialDesignFilledTextBox}"/>
-                                            <TextBox Margin="0,6,0,0"
-                                                     Text="{Binding Filters.State, UpdateSourceTrigger=PropertyChanged, Delay=300}"
-                                                     materialDesign:HintAssist.Hint="{Binding StateHint}"
-                                                     Style="{StaticResource MaterialDesignFilledTextBox}"/>
-                                        </StackPanel>
-                                    </Expander>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="ClockOutline" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding PickupWindowText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,4,0,4">
+                                                <materialDesign:TimePicker Is24Hours="True" FontSize="12"
+                                                    SelectedTime="{Binding Filters.PickupFrom, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
+                                                    materialDesign:HintAssist.Hint="{Binding FromTimeText}"/>
+                                                <materialDesign:TimePicker Is24Hours="True" Margin="0,10,0,0" FontSize="12"
+                                                    SelectedTime="{Binding Filters.PickupTo, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
+                                                    materialDesign:HintAssist.Hint="{Binding ToTimeText}"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
 
-                                </StackPanel>
-                            </ScrollViewer>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="True" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="TuneVariant" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding OtherFiltersText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,2,0,4">
+                                                <TextBlock Text="Will Call" Style="{StaticResource FilterSubLabel}"/>
+                                                <UniformGrid Columns="3">
+                                                    <RadioButton Content="{Binding FlagAnyText}" GroupName="WillCallFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
+                                                    <RadioButton Content="{Binding FlagYesText}" GroupName="WillCallFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
+                                                    <RadioButton Content="{Binding FlagNoText}" GroupName="WillCallFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
+                                                </UniformGrid>
+
+                                                <TextBlock Text="{Binding RunText}" Style="{StaticResource FilterSubLabel}"/>
+                                                <UniformGrid Columns="3">
+                                                    <RadioButton Content="{Binding FlagAnyText}" GroupName="RunFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
+                                                    <RadioButton Content="{Binding FlagYesText}" GroupName="RunFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
+                                                    <RadioButton Content="{Binding FlagNoText}" GroupName="RunFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
+                                                </UniformGrid>
+
+                                                <Separator Margin="0,8,0,4" Opacity=".4"/>
+                                                <CheckBox IsChecked="{Binding Filters.OnlyMissingCoordinates}"
+                                                          Content="{Binding MissingCoordinatesText}"
+                                                          Style="{StaticResource FilterOptionCheckBox}"/>
+                                                <TextBlock Text="{Binding MissingCoordinatesHint}" FontSize="10" Opacity=".7"
+                                                           TextWrapping="Wrap" Margin="26,0,0,0"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="MapMarkerOutline" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding ZipStateText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,4,0,4">
+                                                <TextBlock Text="{Binding ZipStateWarning}" FontSize="10" Opacity=".7"
+                                                           TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                                <TextBox Text="{Binding Filters.Zip, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                                                         materialDesign:HintAssist.Hint="{Binding ZipHint}" FontSize="12"
+                                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                <TextBox Margin="0,10,0,0"
+                                                         Text="{Binding Filters.State, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                                                         materialDesign:HintAssist.Hint="{Binding StateHint}" FontSize="12"
+                                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
+
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Border>
                         </DockPanel>
                     </Border>
                 </Popup>

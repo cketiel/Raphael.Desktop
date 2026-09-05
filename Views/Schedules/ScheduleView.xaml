@@ -86,31 +86,11 @@
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
         </Style>
 
-        <!-- ===== The accent bar, painted and not laid out =====
-             The bar used to be a 4px left BorderThickness on the row. A border insets the row's
-             content, so every column in the body slid four pixels away from its own header and
-             the dividing lines stopped meeting. These brushes draw the same bar inside the row's
-             background instead: MappingMode="Absolute" makes the gradient measure in pixels, so
-             the first 4px are solid accent and everything past them is the wash. Nothing moves,
-             and the column lines run unbroken from the header to the last row.
+        <!-- SelectedTripRowBrush and HoverTripRowBrush now live in Styles/CustomDataGridStyles.xaml:
+             the Home grid wears them too, and one accent bar with two definitions is one that
+             stops matching the first time either screen is touched. -->
 
-             The wash is deliberately far lighter than the bar — the bar says WHICH row, the wash
-             says the row is selected, and they must not compete. -->
-        <LinearGradientBrush x:Key="SelectedTripRowBrush"
-                             MappingMode="Absolute" StartPoint="0,0" EndPoint="8,0" SpreadMethod="Pad">
-            <GradientStop Color="#FF673AB7" Offset="0"/>
-            <GradientStop Color="#FF673AB7" Offset="0.499"/>
-            <GradientStop Color="#38673AB7" Offset="0.5"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="HoverTripRowBrush"
-                             MappingMode="Absolute" StartPoint="0,0" EndPoint="8,0" SpreadMethod="Pad">
-            <GradientStop Color="#80673AB7" Offset="0"/>
-            <GradientStop Color="#80673AB7" Offset="0.499"/>
-            <GradientStop Color="#14673AB7" Offset="0.5"/>
-        </LinearGradientBrush>
-
-        <!-- Same reason as UnscheduledTripCellStyle below: a selected cell that fills itself
+        <!-- Same reason as TripSelectionCellStyle: a selected cell that fills itself
              hides the row underneath, and on this grid what it hides is the warning that the
              driver will be late. -->
         <Style x:Key="ScheduleEventCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource CustomCellStyle}">
@@ -129,14 +109,6 @@
              do not paint. Handing the selected cell a transparent background lets the row show
              through. Foreground is left alone on purpose: the row sets it, and a cancelled trip
              has to stay red even while it is the selected one. -->
-        <Style x:Key="UnscheduledTripCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource CustomCellStyle}">
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderBrush" Value="Transparent"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
 
         <Style x:Key="UnscheduledTripRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
@@ -962,7 +934,7 @@
                          recycled container can carry a running animation to whatever row it is
                          next used for. Standard still only builds the rows on screen — which is
                          the whole win — and builds a fresh container for each. -->
-                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource UnscheduledTripCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
+                    <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="165">
                                 <!-- The backlog counter lives in the header of the action column:
