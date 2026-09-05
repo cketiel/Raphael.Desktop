@@ -392,13 +392,20 @@ namespace Raphael.Desktop.Views
         /// Esc leaves the trip form.
         /// </summary>
         /// <remarks>
-        /// It listens on the bubbling event rather than the tunnelling one on purpose: a dialog
-        /// or a suggestion popup that wants Esc for itself marks it handled first, and the form
-        /// stays open instead of closing behind whatever the dispatcher was actually dismissing.
+        /// ⚠️ Tunnelling, not bubbling. It was bubbling first, so that anything wanting Esc for
+        /// itself could mark it handled — and the patient search box does exactly that. Escape
+        /// inside the AutoSuggestBox never reached this handler, so Esc worked after clicking a
+        /// trip in the grid and did nothing after choosing a patient, which is the one case where
+        /// focus is still in that box. Coming down the tree instead, it always arrives.
+        ///
+        /// The one thing that must keep Esc for itself is a dialog on top: that is what the
+        /// dispatcher is looking at, and closing the form behind it would leave them dismissing a
+        /// dialog onto a screen that had already moved on.
         /// </remarks>
-        private void HomeView_KeyDown(object sender, KeyEventArgs e)
+        private void HomeView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Escape || !ViewModel.IsTripFormOpen) return;
+            if (RootDialogHost.IsOpen) return;
 
             e.Handled = ViewModel.TryLeaveTripForm();
         }

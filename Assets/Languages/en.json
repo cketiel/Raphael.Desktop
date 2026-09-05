@@ -597,5 +597,15 @@
 
     "home.CloseTripForm": "Close the trip form (Esc)",
     "home.DiscardChangesTitle": "Unsaved trip",
-    "home.DiscardChangesMessage": "This trip has changes that have not been saved. Leave anyway and lose them?"
+    "home.DiscardChangesMessage": "This trip has changes that have not been saved. Leave anyway and lose them?",
+
+    "home.GridSummary": "{0} of {1} trips",
+    "home.TripSearchHint": "Search patient, address, #id or TripId:...",
+
+    "home.ExportTitle": "Export trips",
+    "home.ExportNoRows": "There is nothing to export: no trip is showing with the current filters.",
+    "home.ExportPhiTitle": "Patient data is about to leave the system",
+    "home.ExportPhiMessage": "This file will hold the names, addresses and phone numbers of {0} trips, and nothing tracks it once it is saved. Your user name is recorded against this export.",
+    "home.ExportDone": "Exported to:\n{0}\n\nOpen it now?",
+    "home.ExportFailed": "Could not export: "
 }

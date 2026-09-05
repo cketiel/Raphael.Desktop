@@ -10,6 +10,9 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Data;
 
 using System.Diagnostics;
 using System.Linq;
@@ -330,6 +333,7 @@ namespace Raphael.Desktop.ViewModels
         public string ImportButtonToolTip => LocalizationService.Instance["ImportButtonToolTip"]; // "Import Trips"
         public string ExportButtonToolTip => LocalizationService.Instance["ExportButtonToolTip"]; // "Export Trips"
         public string CloseTripFormToolTip => LocalizationService.Instance["home.CloseTripForm"]; // "Close the trip form (Esc)"
+        public string TripSearchHint => LocalizationService.Instance["home.TripSearchHint"]; // "Search patient, address, #id, TripId:..."
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"
@@ -581,16 +585,18 @@ namespace Raphael.Desktop.ViewModels
 
         #region Trip
 
-        private string _gridSummary;
-        public string GridSummary 
-        {
-            get => _gridSummary;
-            set
-            {
-                _gridSummary = value;
-                OnPropertyChanged();
-            }
-        }
+        /// <summary>
+        /// "N of M trips" — what the filters let through, against what the day actually holds.
+        /// </summary>
+        /// <remarks>
+        /// It used to be the total alone, and the total alone cannot answer the question a
+        /// dispatcher asks when the list looks wrong: whether the trips are missing or hidden.
+        /// </remarks>
+        public string GridSummary =>
+            string.Format(
+                LocalizationService.Instance["home.GridSummary"],
+                TripsView?.Cast<object>().Count() ?? TripsByDate?.Count ?? 0,
+                TripsByDate?.Count ?? 0);
         public TimeSpan FromTime { get; set; }
 
         private ObservableCollection<TripReadDto> _trips;
@@ -622,10 +628,116 @@ namespace Raphael.Desktop.ViewModels
             get => _tripsByDate;
             set
             {
-                _tripsByDate = value;              
-                OnPropertyChanged();               
+                if (_tripsByDate != null)
+                    _tripsByDate.CollectionChanged -= OnTripsByDateChanged;
+
+                _tripsByDate = value;
+
+                if (_tripsByDate != null)
+                    _tripsByDate.CollectionChanged += OnTripsByDateChanged;
+
+                // The grid binds to the view, not to this. Replacing the collection has to
+                // replace the view with it or the grid keeps showing the old day forever.
+                TripsView = _tripsByDate == null
+                    ? null
+                    : CollectionViewSource.GetDefaultView(_tripsByDate);
+
+                if (TripsView != null) TripsView.Filter = PassesExpressFilters;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TripsView));
+                OnPropertyChanged(nameof(GridSummary));
             }
         }
+
+        #region Express filters
+
+        /// <summary>
+        /// What the grid shows: <see cref="TripsByDate"/> seen through the filters above it.
+        /// </summary>
+        /// <remarks>
+        /// The grid binds here and not to the collection. Filtering through an ICollectionView is
+        /// what lets the checkbox and the search box hide rows without touching what was loaded,
+        /// so nothing has to be fetched again to show a canceled trip.
+        /// </remarks>
+        public ICollectionView TripsView { get; private set; }
+
+        /// <summary>
+        /// Whether canceled trips stay in the list. On by default.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ It was a plain auto-property with no notification and nothing reading it: the
+        /// checkbox had been on the screen since 1.3.0 and had never done anything. On by default
+        /// because a canceled trip is still information a dispatcher needs — someone will ring
+        /// about it — and because a filter that starts by hiding rows is how a list ends up
+        /// looking empty for no visible reason.
+        /// </remarks>
+        [ObservableProperty] private bool _showCanceled = true;
+
+        partial void OnShowCanceledChanged(bool value) => RefreshTripsView();
+
+        /// <summary>
+        /// One box that searches the broker's trip id, the internal id, the patient and the
+        /// addresses at once.
+        /// </summary>
+        /// <remarks>
+        /// <c>TripId</c> and <c>Id</c> are different numbers for the same trip: the first is what
+        /// the broker put in their file and what they quote on the phone, the second is ours.
+        /// Typing either finds the trip; <c>#123</c> and <c>TripId:xxx</c> say which one is meant
+        /// when it matters.
+        /// </remarks>
+        [ObservableProperty] private string _tripSearchText;
+
+        partial void OnTripSearchTextChanged(string value) => RefreshTripsView();
+
+        private void OnTripsByDateChanged(object sender, NotifyCollectionChangedEventArgs e)
+            => OnPropertyChanged(nameof(GridSummary));
+
+        private void RefreshTripsView()
+        {
+            TripsView?.Refresh();
+            OnPropertyChanged(nameof(GridSummary));
+        }
+
+        private bool PassesExpressFilters(object item)
+        {
+            if (item is not TripReadDto trip) return false;
+            if (!ShowCanceled && IsCanceled(trip)) return false;
+
+            return MatchesSearch(trip);
+        }
+
+        private static bool IsCanceled(TripReadDto trip) =>
+            trip.IsCancelled ||
+            string.Equals(trip.Status, TripStatus.Canceled, StringComparison.OrdinalIgnoreCase);
+
+        private bool MatchesSearch(TripReadDto trip)
+        {
+            var query = TripSearchText?.Trim();
+            if (string.IsNullOrEmpty(query)) return true;
+
+            if (query.StartsWith("#"))
+                return int.TryParse(query.Substring(1), out var id) && trip.Id == id;
+
+            const string byTripId = "TripId:";
+            if (query.StartsWith(byTripId, StringComparison.OrdinalIgnoreCase))
+                return Holds(trip.TripId, query.Substring(byTripId.Length).Trim());
+
+            return Holds(trip.TripId, query)
+                || trip.Id.ToString() == query
+                || Holds(trip.CustomerName, query)
+                || Holds(trip.PickupAddress, query)
+                || Holds(trip.DropoffAddress, query)
+                || Holds(trip.PickupCity, query)
+                || Holds(trip.DropoffCity, query);
+        }
+
+        private static bool Holds(string text, string part) =>
+            !string.IsNullOrEmpty(text) &&
+            !string.IsNullOrEmpty(part) &&
+            text.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        #endregion
 
         private DateTime _filterDate;
         /// <summary>
@@ -665,7 +777,6 @@ namespace Raphael.Desktop.ViewModels
         }
 
         public DateTime? TripFilterDate { get; set; } = DateTime.Today;
-        public bool ShowCanceled { get; set; }
 
        
 
@@ -1218,7 +1329,6 @@ namespace Raphael.Desktop.ViewModels
             {
                 TripService _tripService = new TripService();
                 var sources = await _tripService.GetTripsByDateAsync(date);
-                GridSummary = sources.Count().ToString();
 
 
                 //var geocodingTasks = sources.Select(trip => PopulateCitiesForTravel(trip)).ToList();
@@ -1325,9 +1435,19 @@ namespace Raphael.Desktop.ViewModels
 
         private void ImportTrips() => EnterImportMode();
 
+        /// <summary>
+        /// Sends the trips on screen to a spreadsheet.
+        /// </summary>
+        /// <remarks>
+        /// What leaves is what the dispatcher can see: the rows the filters let through, in the
+        /// order the grid has them. Reading the view rather than the collection is the whole
+        /// point — a file holding trips the screen was hiding is one nobody can check.
+        /// </remarks>
         private void ExportTrips()
         {
-            // Por implementar
+            var onScreen = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+            new TripExcelExportService().Export(onScreen, FilterDate);
         }
 
         private async void SaveTrip()

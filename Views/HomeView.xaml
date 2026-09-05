@@ -12,7 +12,7 @@
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers" 
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              helpers:HelpAssist.TopicId="desktop/home/overview"
-             KeyDown="HomeView_KeyDown"
+             PreviewKeyDown="HomeView_PreviewKeyDown"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
@@ -58,7 +58,7 @@
         
     </UserControl.Resources>
 
-    <materialDesign:DialogHost Identifier="RootDialogHost">
+    <materialDesign:DialogHost x:Name="RootDialogHost" Identifier="RootDialogHost">
         
     <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource MainBorderBrush}">
 
@@ -413,7 +413,8 @@
 
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="1.6*" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
@@ -426,14 +427,24 @@
                                             materialDesign:HintAssist.Hint="{Binding ForDatePickerHint}"
                                             Style="{StaticResource MaterialDesignFilledDatePicker}" Margin="0,0,8,0"/>
 
+                                        <!-- One box for the broker's trip id, our id, the patient
+                                             and the addresses. #123 forces our id, TripId:xxx the
+                                             broker's, because they are different numbers. -->
+                                        <TextBox Grid.Column="1"
+                                            Text="{Binding TripSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                            materialDesign:HintAssist.Hint="{Binding TripSearchHint}"
+                                            materialDesign:TextFieldAssist.HasClearButton="True"
+                                            Style="{StaticResource MaterialDesignFilledTextBox}"
+                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
+
                                         <!-- Checkbox -->
-                                        <CheckBox Grid.Column="1"
+                                        <CheckBox Grid.Column="2"
                                             Content="{Binding ShowCanceledCheckBoxContent}"
                                             IsChecked="{Binding ShowCanceled}" 
                                             Style="{StaticResource MaterialDesignCheckBox}" Margin="0,0,8,0" VerticalAlignment="Center"/>
 
                                         <!-- Buttons -->
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal">
                                             <Button 
                                                     ToolTip="{Binding ImportButtonToolTip}"
                                                     Command="{Binding ImportCommand}"
@@ -1080,7 +1091,7 @@
                   Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
                 <!-- DATAGRID -->
                 <DataGrid                            
-                    ItemsSource="{Binding TripsByDate}" 
+                    ItemsSource="{Binding TripsView}" 
                     SelectedItem="{Binding SelectedTrip, Mode=TwoWay}"                                  
                             
                     SelectionMode="Single"
