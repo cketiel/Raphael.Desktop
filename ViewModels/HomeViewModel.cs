@@ -362,6 +362,10 @@ namespace Raphael.Desktop.ViewModels
         public string ZipStateWarning => LocalizationService.Instance["home.ZipStateWarning"];
         public string ChooseColumnsToolTip => LocalizationService.Instance["home.ChooseColumns"];
         public string CompactGridToolTip => LocalizationService.Instance["home.CompactGrid"];
+        public string Step1Label => LocalizationService.Instance["home.Step1"];
+        public string Step2Label => LocalizationService.Instance["home.Step2"];
+        public string Step3Label => LocalizationService.Instance["home.Step3"];
+        public string Step4Label => LocalizationService.Instance["home.Step4"];
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"
@@ -650,6 +654,184 @@ namespace Raphael.Desktop.ViewModels
 
         private const string CompactKey = "HomeGridCompact";
         private const string ColumnsKey = "HomeGridColumns";
+
+
+        #region Guidance (2.2)
+
+        /// <summary>
+        /// How far along booking a trip is.
+        /// </summary>
+        /// <remarks>
+        /// One machine, three faces. The badges over the controls, the stepper above the form and
+        /// the first-run tour all read this and hold no rules of their own, so whichever of the
+        /// three turns out to be the one people use, the others can be switched off without
+        /// touching any logic.
+        /// </remarks>
+        public TripCreationStep CurrentStep =>
+            !Step1Done ? TripCreationStep.Patient
+            : !Step2Done ? TripCreationStep.Addresses
+            : !Step3Done ? TripCreationStep.Schedule
+            : TripCreationStep.Create;
+
+        public bool Step1Done => IdCustomer > 0;
+
+        public bool Step2Done => Step1Done
+            && !string.IsNullOrWhiteSpace(PickupAddress)
+            && !string.IsNullOrWhiteSpace(DropoffAddress);
+
+        /// <summary>
+        /// A time, or Will Call — which is the deliberate absence of one — plus what the trip
+        /// needs to be priced.
+        /// </summary>
+        public bool Step3Done => Step2Done
+            && SelectedSpaceType != null
+            && SelectedFundingSource != null
+            && (IsWillCall || PickupTimePicker.HasValue || ApptTimePicker.HasValue || ReturnTimePicker.HasValue);
+
+        public string Step1State => StateOf(TripCreationStep.Patient, Step1Done);
+        public string Step2State => StateOf(TripCreationStep.Addresses, Step2Done);
+        public string Step3State => StateOf(TripCreationStep.Schedule, Step3Done);
+        public string Step4State => StateOf(TripCreationStep.Create, false);
+
+        private string StateOf(TripCreationStep step, bool done) =>
+            done ? "done" : CurrentStep == step ? "current" : "pending";
+
+        /// <summary>
+        /// Why the Create button is refusing, in the dispatcher's words, or null when it is not.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This has to say exactly what <c>SaveTrip</c> checks, in the same order. A button that
+        /// claims to be ready and then opens a dialog saying otherwise is worse than one that was
+        /// simply missing.
+        ///
+        /// The button stays visible and goes grey rather than disappearing: a control that is not
+        /// there teaches nobody anything, and one that is there saying "Missing: dropoff address"
+        /// teaches the whole screen.
+        /// </remarks>
+        public string CreateTripBlockedReason
+        {
+            get
+            {
+                if (IdCustomer <= 0) return Missing("home.StepPatient");
+                if (string.IsNullOrWhiteSpace(DropoffAddress)) return Missing("home.StepDropoff");
+                if (SelectedSpaceType == null) return Missing("home.StepSpaceType");
+                if (SelectedFundingSource == null) return Missing("home.StepFundingSource");
+
+                return null;
+            }
+        }
+
+        private static string Missing(string key) => string.Format(
+            LocalizationService.Instance["home.Missing"], LocalizationService.Instance[key]);
+
+        public bool CanCreateTrip => CreateTripBlockedReason == null;
+
+        /// <summary>What the label beside the Create button says: the blocker, or that it is ready.</summary>
+        public string CreateTripHint =>
+            CreateTripBlockedReason ?? LocalizationService.Instance["home.ReadyToCreate"];
+
+        /// <summary>
+        /// Re-reads everything the guidance is made of. Called from every field it depends on.
+        /// </summary>
+        private void RefreshGuidance()
+        {
+            OnPropertyChanged(nameof(CurrentStep));
+            OnPropertyChanged(nameof(Step1Done));
+            OnPropertyChanged(nameof(Step2Done));
+            OnPropertyChanged(nameof(Step3Done));
+            OnPropertyChanged(nameof(Step1State));
+            OnPropertyChanged(nameof(Step2State));
+            OnPropertyChanged(nameof(Step3State));
+            OnPropertyChanged(nameof(Step4State));
+            OnPropertyChanged(nameof(CreateTripBlockedReason));
+            OnPropertyChanged(nameof(CanCreateTrip));
+            OnPropertyChanged(nameof(CreateTripHint));
+        }
+
+        partial void OnPickupAddressChanged(string value) => RefreshGuidance();
+        partial void OnDropoffAddressChanged(string value) => RefreshGuidance();
+        partial void OnPickupTimePickerChanged(DateTime? value) => RefreshGuidance();
+        partial void OnApptTimePickerChanged(DateTime? value) => RefreshGuidance();
+        partial void OnReturnTimePickerChanged(DateTime? value) => RefreshGuidance();
+        partial void OnIsWillCallChanged(bool value) => RefreshGuidance();
+
+        #endregion
+
+        #region The first-run tour
+
+        private const string TourSeenKey = "HomeTourSeen";
+
+        [ObservableProperty] private bool _isTourOpen;
+
+        /// <summary>Which balloon is showing, 1 to 4.</summary>
+        [ObservableProperty] private int _tourStep = 1;
+
+        partial void OnTourStepChanged(int value) => RefreshTourFlags();
+        partial void OnIsTourOpenChanged(bool value) => RefreshTourFlags();
+
+        public bool IsTourStep1 => IsTourOpen && TourStep == 1;
+        public bool IsTourStep2 => IsTourOpen && TourStep == 2;
+        public bool IsTourStep3 => IsTourOpen && TourStep == 3;
+        public bool IsTourStep4 => IsTourOpen && TourStep == 4;
+
+        public string TourBody1 => LocalizationService.Instance["home.Tour1"];
+        public string TourBody2 => LocalizationService.Instance["home.Tour2"];
+        public string TourBody3 => LocalizationService.Instance["home.Tour3"];
+        public string TourBody4 => LocalizationService.Instance["home.Tour4"];
+        public string TourNextLabel => LocalizationService.Instance["home.TourNext"];
+        public string TourDoneLabel => LocalizationService.Instance["home.TourDone"];
+        public string TourHelpToolTip => LocalizationService.Instance["home.TourHelp"];
+
+        private void RefreshTourFlags()
+        {
+            OnPropertyChanged(nameof(IsTourStep1));
+            OnPropertyChanged(nameof(IsTourStep2));
+            OnPropertyChanged(nameof(IsTourStep3));
+            OnPropertyChanged(nameof(IsTourStep4));
+        }
+
+        /// <summary>
+        /// Shows the tour, from the ? button or from F1.
+        /// </summary>
+        /// <remarks>
+        /// It runs by itself only once, ever. A tour that reappears is a tour people learn to
+        /// dismiss without reading, which costs the one chance it had.
+        /// </remarks>
+        [RelayCommand]
+        public void StartTour()
+        {
+            TourStep = 1;
+            IsTourOpen = true;
+        }
+
+        [RelayCommand]
+        private void NextTourStep()
+        {
+            if (TourStep >= 4)
+            {
+                EndTour();
+                return;
+            }
+
+            TourStep++;
+        }
+
+        [RelayCommand]
+        private void EndTour()
+        {
+            IsTourOpen = false;
+
+            _config.Save(TourSeenKey, true);
+        }
+
+        private void ShowTourIfNeverSeen()
+        {
+            if (_config.Load<bool>(TourSeenKey)) return;
+
+            StartTour();
+        }
+
+        #endregion
 
         #region Sort order that survives the session
 
@@ -1275,6 +1457,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 _selectedSpaceType = value;
                 OnPropertyChanged();
+                RefreshGuidance();
                 UpdateSelectedCharges();
                 UpdateNonDefaultCharges();
             }
@@ -1291,6 +1474,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 _selectedFundingSource = value;
                 OnPropertyChanged();
+                RefreshGuidance();
                 UpdateSelectedCharges();
                 UpdateNonDefaultCharges();
             }
@@ -1345,6 +1529,7 @@ namespace Raphael.Desktop.ViewModels
             set
             {
                 _idCustomer = value;
+                RefreshGuidance();
                 OnPropertyChanged();
             }
         }
@@ -1393,6 +1578,7 @@ namespace Raphael.Desktop.ViewModels
             Filters.Changed += RefreshTripsView;
 
             InitializeColumns();
+            ShowTourIfNeverSeen();
 
             LoadData();
             InitializeData();
