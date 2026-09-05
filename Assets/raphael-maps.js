@@ -259,13 +259,21 @@
             'box-shadow:0 6px 18px rgba(0,0,0,.22);border:1px solid rgba(0,0,0,.06);',
             'font:13px/1.2 system-ui,Segoe UI,sans-serif;color:#202124;',
             'backdrop-filter:blur(2px)}',
-            '.rm-route.rm-on{display:flex;align-items:center;gap:14px}',
-            '.rm-stat{display:flex;align-items:center;gap:7px}',
-            '.rm-stat svg{width:17px;height:17px;fill:#673AB7;flex:none}',
-            '.rm-value{font-weight:600;font-size:15px;letter-spacing:-.2px}',
-            '.rm-unit{color:#70757a;font-size:11px;margin-left:1px}',
+            '.rm-route.rm-on{display:flex;align-items:center;gap:16px}',
+            '.rm-stat{display:flex;flex-direction:column;gap:3px}',
+            // The word above the figure. A clock and a road are quick to read once you know what
+            // they are, and ambiguous the first time; the label removes the guess for good.
+            '.rm-label{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;',
+            'color:#70757a;line-height:1}',
+            '.rm-figure{display:flex;align-items:center;gap:7px}',
+            // ⚠️ Stroke, not fill. Filled at 17px a clock face swallows its own hands and reads as
+            // a plain disc, which is exactly what it looked like. An outline keeps them.
+            '.rm-stat svg{width:17px;height:17px;flex:none;fill:none;stroke:#673AB7;',
+            'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
+            '.rm-value{font-weight:600;font-size:15px;letter-spacing:-.2px;line-height:1}',
+            '.rm-unit{color:#70757a;font-size:11px;margin-left:2px;font-weight:500}',
             // The hairline between the two figures, so they read as two facts and not one string.
-            '.rm-sep{width:1px;height:26px;background:rgba(0,0,0,.10)}'
+            '.rm-sep{width:1px;height:34px;background:rgba(0,0,0,.10)}'
         ].join('');
 
         document.head.appendChild(style);
@@ -578,11 +586,22 @@
         return card;
     }
 
-    var CLOCK_ICON = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm'
-        + '1 10.6V6h-2v7.4l5.2 3.1 1-1.7-4.2-2.2z"/></svg>';
+    // A ring with two hands on it. Unmistakable at 17px, which the filled disc was not.
+    var CLOCK_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/>'
+        + '<path d="M12 7.2V12l3.4 2"/></svg>';
 
-    var ROAD_ICON = '<svg viewBox="0 0 24 24"><path d="M18.4 3H16l1.2 18h3.3L18.4 3zM5.6 3 3.5 21h'
-        + '3.3L8 3H5.6zM13 3h-2v3.5h2V3zm0 6h-2v3.5h2V9zm0 6h-2v3.5h2V15z"/></svg>';
+    // Two kerbs and a broken centre line.
+    var ROAD_ICON = '<svg viewBox="0 0 24 24"><path d="M6.5 3 4.5 21"/><path d="M17.5 3l2 18"/>'
+        + '<path d="M12 3.5v3M12 10.5v3M12 17.5v3"/></svg>';
+
+    function stat(label, icon, value, unit) {
+        return '<div class="rm-stat">'
+            + '<span class="rm-label">' + label + '</span>'
+            + '<span class="rm-figure">' + icon
+            + '<span class="rm-value">' + value
+            + (unit ? '<span class="rm-unit">' + unit + '</span>' : '')
+            + '</span></span></div>';
+    }
 
     function showRouteSummary(eta, distance) {
         var card = routeCard();
@@ -590,10 +609,9 @@
         if (!eta && !distance) { card.className = 'rm-route'; return; }
 
         card.innerHTML =
-            '<div class="rm-stat">' + CLOCK_ICON + '<span class="rm-value">' + (eta || '—') + '</span></div>'
+            stat('ETA', CLOCK_ICON, eta || '—', '')
             + '<div class="rm-sep"></div>'
-            + '<div class="rm-stat">' + ROAD_ICON + '<span class="rm-value">' + (distance || '—')
-            + '<span class="rm-unit">mi</span></span></div>';
+            + stat('Distance', ROAD_ICON, distance || '—', 'mi');
 
         card.className = 'rm-route rm-on';
     }
