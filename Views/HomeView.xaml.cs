@@ -756,14 +756,18 @@ namespace Raphael.Desktop.Views
                 Customer customer = vm.Customers.FirstOrDefault(c => c.Id == int.Parse(e.NewValue.ToString()));
 
                 // MessageBox.Show(a?.FullName + " a.FullName");
-                vm.SelectedCustomer = customer;
-                vm.SearchText = customer?.FullName;
-
-                ShowPickupInMap();
-
                 // Until RE-010 the form appeared only after pressing Save patient, so booking a
                 // trip for someone already on file meant re-saving a record that had not changed.
-                vm.EnterCreateTripMode();
+                // The ViewModel owns the switch because it has to be able to refuse it: moving to
+                // another patient throws away whatever the form is holding.
+                if (!vm.TryBeginTripForCustomer(customer))
+                {
+                    // They chose to stay. Put the box back on the patient still on the form.
+                    CustomersAutoSuggestBox.Text = vm.SelectedCustomer?.FullName ?? string.Empty;
+                    return;
+                }
+
+                ShowPickupInMap();
             }
         }
 

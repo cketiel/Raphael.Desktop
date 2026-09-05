@@ -100,12 +100,32 @@ namespace Raphael.Desktop.ViewModels
         }
 
         /// <summary>
+        /// Starts booking a trip for the patient the search box has just landed on.
+        /// </summary>
+        /// <remarks>
+        /// The confirmation comes first, before <c>SelectedCustomer</c> moves: saying no has to
+        /// leave the form exactly as the dispatcher left it, patient included. Returns false when
+        /// they chose to stay, so the caller can put the search box back.
+        /// </remarks>
+        public bool TryBeginTripForCustomer(Customer customer)
+        {
+            if (IsTripFormOpen && !ConfirmDiscardTripChanges()) return false;
+
+            SelectedCustomer = customer;
+            SearchText = customer?.FullName;
+
+            EnterCreateTripMode();
+            return true;
+        }
+
+        /// <summary>
         /// The two ways a booking starts — picking a patient in the search box, or saving a
         /// brand new one — both land here, so the form opens the same way from either.
         /// </summary>
         public void EnterCreateTripMode()
         {
-            // Moving on to another patient while a trip is open is also leaving that trip.
+            // Moving on from a trip being edited is leaving it. TryBeginTripForCustomer has
+            // already asked by the time it calls this, and a clean form never asks twice.
             if (CurrentMode == HomeMode.EditingTrip && !TryLeaveTripForm()) return;
 
             // Nothing is being edited, and a new booking is for the day being looked at until
@@ -144,8 +164,8 @@ namespace Raphael.Desktop.ViewModels
             _leavingTripForm = true;
             try
             {
-                TripBeingEdited = null;
                 SelectedTrip = null;
+                TripBeingEdited = null;
                 ClearTripForm();
                 CurrentMode = HomeMode.Browsing;
             }
@@ -176,22 +196,29 @@ namespace Raphael.Desktop.ViewModels
         private TripFormSnapshot _tripFormOnEntry;
 
         /// <summary>
-        /// Every field of the trip form a dispatcher can change by hand. It is a record for one
+        /// Every field of the trip form a dispatcher can type or pick. It is a record for one
         /// reason: value equality turns "did anything change?" into a single comparison.
         /// </summary>
         /// <remarks>
-        /// ⚠️ A field added to the trip form and forgotten here is a change the screen will
-        /// discard without asking. Add it in both places or not at all.
+        /// ⚠️ Only what a person edits goes in here. **Derived values must stay out**, however
+        /// much they look like form fields: <c>Distance</c>, <c>ETA</c> and the four coordinates
+        /// are written by the map and the routing service, not typed. Distance in particular is
+        /// a read-only TextBlock that <c>DrawTripRouteAsync</c> overwrites some hundreds of
+        /// milliseconds after a trip is selected, and in another format — "12.3 mi" priced by the
+        /// router against "12.34 mi" carried by the DTO. It was in this record until RE-010's
+        /// review, and that is why the screen asked "discard changes?" on *every* exit, including
+        /// the one where the dispatcher had only glanced at a trip and pressed Esc.
+        ///
+        /// A field a person edits and that is missing here is the opposite failure: a change the
+        /// screen discards without asking. Add it in both places or not at all.
         /// </remarks>
         private sealed record TripFormSnapshot(
             int CustomerId,
             string PickupAddress, string DropoffAddress,
             string PickupCity, string DropoffCity,
-            double PickupLatitude, double PickupLongitude,
-            double DropoffLatitude, double DropoffLongitude,
             string PickupName, string PickupPhone, string PickupComment,
             string DropoffName, string DropoffPhone, string DropoffComment,
-            string Authorization, string Distance,
+            string Authorization,
             DateTime? PickupTime, DateTime? ApptTime, DateTime? ReturnTime,
             bool IsRoundTrip, bool IsOneWay, bool IsAppointment, bool IsReturn, bool IsWillCall,
             int? SpaceTypeId, int? FundingSourceId,
@@ -201,11 +228,9 @@ namespace Raphael.Desktop.ViewModels
             IdCustomer,
             PickupAddress, DropoffAddress,
             PickupCity, DropoffCity,
-            PickupLatitude, PickupLongitude,
-            DropoffLatitude, DropoffLongitude,
             PickupName, PickupPhone, PickupComment,
             DropoffName, DropoffPhone, DropoffComment,
-            Authorization, Distance,
+            Authorization,
             PickupTimePicker, ApptTimePicker, ReturnTimePicker,
             IsRoundTrip, IsOneWay, IsAppointment, IsReturn, IsWillCall,
             SelectedSpaceType?.Id, SelectedFundingSource?.Id,
@@ -932,36 +957,48 @@ namespace Raphael.Desktop.ViewModels
         public string WillCallLockedToolTip =>
             LocalizationService.Instance["WillCallLockedHint"];
 
-        // Este método se dispara automáticamente cuando cambia la propiedad SelectedTrip
+        /// <summary>
+        /// The grid selection moved. Everything the form does about it is decided here.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The order of the guards is the whole method. Moving off the trip on the form is an
+        /// exit **whatever the selection moved to** — to no row at all, or straight to another
+        /// trip. RE-010 first shipped with the confirmation on the null branch only, so picking a
+        /// second trip in the grid threw away the edits to the first without a word.
+        /// </remarks>
         partial void OnSelectedTripChanged(TripReadDto oldValue, TripReadDto newValue)
         {
-            if (newValue == null)
-            {
-                // Clearing the row is one of the ways out of editing. It must not disturb a
-                // trip being booked by hand, and it must not ask twice while TryLeaveTripForm
-                // is already unwinding.
-                //
-                // ⚠️ IsLoadingTrips is in here because reloading the day empties TripsByDate,
-                // and the grid drops its selection with it. That is not a dispatcher walking
-                // away from the form — it happens on every save, and treating it as an exit
-                // would ask them to discard the trip they had just saved.
-                if (_leavingTripForm || IsLoadingTrips || CurrentMode != HomeMode.EditingTrip) return;
-                if (TryLeaveTripForm()) return;
+            // Putting a row back after the dispatcher declined to leave. The form already holds
+            // their work; replaying the load would write the stored trip over it.
+            if (_restoringSelection) return;
 
-                // The dispatcher wants to stay on this trip, so put the row back. It has to
-                // wait for the grid to finish its own selection change, and it must not replay
-                // the load below — that would overwrite the edits they just chose to keep.
-                var keep = oldValue;
-                Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    _restoringSelection = true;
-                    try { SelectedTrip = keep; }
-                    finally { _restoringSelection = false; }
-                }));
+            // Reloading the day empties TripsByDate and the grid drops its selection with it.
+            // That is not the dispatcher going anywhere — it happens on every save and on every
+            // cancel — so the form keeps the trip it is editing, and LoadTripsByDateAsync lights
+            // the row again when the day comes back down.
+            if (IsLoadingTrips) return;
+
+            // Already on the way out through TryLeaveTripForm, which asked once.
+            if (_leavingTripForm) return;
+
+            // The one confirmation, for every direction the selection can move.
+            if (CurrentMode == HomeMode.EditingTrip && !ConfirmDiscardTripChanges())
+            {
+                RestoreSelection(oldValue);
                 return;
             }
 
-            if (_restoringSelection) return;
+            if (newValue == null)
+            {
+                if (CurrentMode == HomeMode.EditingTrip)
+                {
+                    TripBeingEdited = null;
+                    ClearTripForm();
+                    CurrentMode = HomeMode.Browsing;
+                }
+
+                return;
+            }
 
             var value = newValue;
 
@@ -1024,6 +1061,24 @@ namespace Raphael.Desktop.ViewModels
             // Last, on purpose: OnCurrentModeChanged photographs the form for
             // HasUnsavedTripChanges, and it has to see it already filled.
             CurrentMode = HomeMode.EditingTrip;
+        }
+
+        /// <summary>
+        /// Puts the grid selection back on a trip the dispatcher chose not to leave.
+        /// </summary>
+        /// <remarks>
+        /// Posted rather than assigned: the grid is in the middle of its own selection change and
+        /// refuses a new one until it is done. <c>_restoringSelection</c> is what stops the trip
+        /// being loaded over the edits they just kept.
+        /// </remarks>
+        private void RestoreSelection(TripReadDto trip)
+        {
+            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _restoringSelection = true;
+                try { SelectedTrip = trip; }
+                finally { _restoringSelection = false; }
+            }));
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)
@@ -1186,9 +1241,23 @@ namespace Raphael.Desktop.ViewModels
             }
             finally
             {
-                IsLoadingTrips = false; 
+                IsLoadingTrips = false;
             }
 
+            // The grid dropped its selection when the day was emptied. If the form is still on a
+            // trip that belongs to this day, light its row again: a trip being edited with no row
+            // selected is how the selection gets "lost for some other reason", and the next thing
+            // that touches it reads as the dispatcher moving away from work they never left.
+            if (TripBeingEdited != null)
+            {
+                var row = TripsByDate.FirstOrDefault(t => t.Id == TripBeingEdited.Id);
+                if (row != null && !ReferenceEquals(row, SelectedTrip))
+                {
+                    _restoringSelection = true;
+                    try { SelectedTrip = row; }
+                    finally { _restoringSelection = false; }
+                }
+            }
         }
 
         private async Task PopulateCitiesForTravel(TripReadDto trip)
