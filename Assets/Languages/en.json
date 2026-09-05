@@ -683,5 +683,6 @@
     "home.ChangeHistory": "Change history",
     "home.LoadingTrips": "Loading trips and locations...",
     "home.CanceledByDriver": "Canceled: driver reported a no-show.",
-    "home.CanceledByOffice": "This trip was canceled by the office."
+    "home.CanceledByOffice": "This trip was canceled by the office.",
+    "home.MapOnDemand": "Map on demand"
 }

@@ -163,6 +163,7 @@ namespace Raphael.Desktop.ViewModels
 
         public string ShowMapLabel => LocalizationService.Instance["home.ShowMap"];
         public string MapNotLoadedHint => LocalizationService.Instance["home.MapNotLoaded"];
+        public string MapOnDemandTitle => LocalizationService.Instance["home.MapOnDemand"];
 
         #endregion
 
