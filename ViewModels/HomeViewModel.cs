@@ -98,6 +98,7 @@ namespace Raphael.Desktop.ViewModels
         {
             OnPropertyChanged(nameof(IsTripFormOpen));
             OnPropertyChanged(nameof(IsImporting));
+            RefreshHelperCards();
 
             _tripFormOnEntry = IsTripFormOpen ? CaptureTripForm() : null;
         }
@@ -627,6 +628,34 @@ namespace Raphael.Desktop.ViewModels
         #region Trip
 
         /// <summary>
+        /// The day's figures, on the band between the form and the list.
+        /// </summary>
+        /// <remarks>
+        /// Counted over the rows the filters are letting through, so the money always answers for
+        /// the list underneath it rather than for the day the server sent.
+        ///
+        /// ⚠️ The currency is formatted invariant on purpose. These are US dollars whatever the
+        /// machine's regional settings say, and a Spanish-locale machine would otherwise print
+        /// 396,06 — which is the same digits meaning a different number to anyone reading it.
+        /// </remarks>
+        public string DividerSummary
+        {
+            get
+            {
+                var shown = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+                return string.Format(
+                    LocalizationService.Instance["home.DividerSummary"],
+                    shown.Count,
+                    Money(shown.Sum(t => t.Charge ?? 0)),
+                    Money(shown.Sum(t => t.Paid ?? 0)));
+            }
+        }
+
+        private static string Money(double amount) =>
+            "$" + amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
         /// The three numbers under the grid.
         /// </summary>
         /// <remarks>
@@ -865,6 +894,7 @@ namespace Raphael.Desktop.ViewModels
 
             OnPropertyChanged(nameof(CustomerStateLabel));
             OnPropertyChanged(nameof(CustomerStateTag));
+            RefreshHelperCards();
             OnPropertyChanged(nameof(HasCustomerChanges));
             OnPropertyChanged(nameof(CustomerValidationMessage));
             OnPropertyChanged(nameof(CanSaveCustomer));
@@ -993,6 +1023,102 @@ namespace Raphael.Desktop.ViewModels
             if (_config.Load<bool>(TourSeenKey)) return;
 
             StartTour();
+        }
+
+        #endregion
+
+
+        #region The floating helper cards
+
+        private const string HelperCardsKey = "HomeHelperCards";
+
+        private sealed class HelperCardPlacement
+        {
+            public bool Shown { get; set; } = true;
+            public double StepsX { get; set; } = 20;
+            public double StepsY { get; set; } = 70;
+            public double PatientX { get; set; } = 20;
+            public double PatientY { get; set; } = 300;
+        }
+
+        /// <summary>
+        /// Whether the two floating cards are on screen at all.
+        /// </summary>
+        /// <remarks>
+        /// They are helpers, not part of the form. Someone who knows the screen can put them away
+        /// and get the whole tab back; the ⓘ button in the patient header brings them out again.
+        /// </remarks>
+        [ObservableProperty] private bool _showHelperCards = true;
+
+        [ObservableProperty] private double _stepsCardX = 20;
+        [ObservableProperty] private double _stepsCardY = 70;
+        [ObservableProperty] private double _patientCardX = 20;
+        [ObservableProperty] private double _patientCardY = 300;
+
+        partial void OnShowHelperCardsChanged(bool value) => RefreshHelperCards();
+
+        /// <summary>The step guide is only meaningful while a trip is being booked or edited.</summary>
+        public bool IsStepsCardOpen => ShowHelperCards && IsTripFormOpen;
+
+        /// <summary>And the patient card only while there is a patient to say something about.</summary>
+        public bool IsPatientCardOpen => ShowHelperCards && CustomerState != CustomerFormState.Empty;
+
+        public string StepsCardTitle => LocalizationService.Instance["home.StepsCardTitle"];
+        public string HelperCardsToolTip => LocalizationService.Instance["home.HelperCards"];
+
+        private void RefreshHelperCards()
+        {
+            OnPropertyChanged(nameof(IsStepsCardOpen));
+            OnPropertyChanged(nameof(IsPatientCardOpen));
+        }
+
+        [RelayCommand] private void ToggleHelperCards() => ShowHelperCards = !ShowHelperCards;
+
+        [RelayCommand] private void HideHelperCards() => ShowHelperCards = false;
+
+        /// <summary>
+        /// Moves a card by what the mouse moved, kept inside the tab.
+        /// </summary>
+        /// <remarks>
+        /// Clamped because a card dragged off the edge is a card nobody can drag back, and the ⓘ
+        /// button would then bring back something invisible.
+        /// </remarks>
+        public void MoveHelperCard(string card, double dx, double dy, double maxX, double maxY)
+        {
+            if (card == "steps")
+            {
+                StepsCardX = Clamp(StepsCardX + dx, maxX);
+                StepsCardY = Clamp(StepsCardY + dy, maxY);
+            }
+            else
+            {
+                PatientCardX = Clamp(PatientCardX + dx, maxX);
+                PatientCardY = Clamp(PatientCardY + dy, maxY);
+            }
+        }
+
+        private static double Clamp(double value, double max) => Math.Max(0, Math.Min(value, Math.Max(0, max)));
+
+        public void SaveHelperCardPlacement() => _config.Save(HelperCardsKey, new HelperCardPlacement
+        {
+            Shown = ShowHelperCards,
+            StepsX = StepsCardX,
+            StepsY = StepsCardY,
+            PatientX = PatientCardX,
+            PatientY = PatientCardY
+        });
+
+        private void InitializeHelperCards()
+        {
+            var saved = _config.Load<HelperCardPlacement>(HelperCardsKey);
+
+            if (saved == null) return;
+
+            StepsCardX = saved.StepsX;
+            StepsCardY = saved.StepsY;
+            PatientCardX = saved.PatientX;
+            PatientCardY = saved.PatientY;
+            ShowHelperCards = saved.Shown;
         }
 
         #endregion
@@ -1215,6 +1341,7 @@ namespace Raphael.Desktop.ViewModels
         {
             OnPropertyChanged(nameof(GridSummary));
             OnPropertyChanged(nameof(GridTotals));
+            OnPropertyChanged(nameof(DividerSummary));
         }
 
         private void RefreshTripsView()
@@ -1222,6 +1349,7 @@ namespace Raphael.Desktop.ViewModels
             TripsView?.Refresh();
             OnPropertyChanged(nameof(GridSummary));
             OnPropertyChanged(nameof(GridTotals));
+            OnPropertyChanged(nameof(DividerSummary));
         }
 
         private bool PassesExpressFilters(object item)
@@ -1727,6 +1855,7 @@ namespace Raphael.Desktop.ViewModels
             Filters.Changed += RefreshTripsView;
 
             InitializeColumns();
+            InitializeHelperCards();
             ShowTourIfNeverSeen();
 
             LoadData();

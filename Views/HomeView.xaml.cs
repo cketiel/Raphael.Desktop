@@ -437,6 +437,55 @@ namespace Raphael.Desktop.Views
             ViewModel.BeginEditSelectedTrip();
         }
 
+        private string _draggingCard;
+        private Point _dragLast;
+
+        /// <summary>
+        /// Drags a floating helper card.
+        /// </summary>
+        /// <remarks>
+        /// The delta is measured against HomeRoot rather than the card itself. The card moves
+        /// under the cursor as it is dragged, so a position read relative to the card barely
+        /// changes and the card crawls; HomeRoot does not move, so the difference between two
+        /// readings is the distance the mouse actually travelled.
+        /// </remarks>
+        private void HelperCard_DragStart(object sender, MouseButtonEventArgs e)
+        {
+            var grip = (FrameworkElement)sender;
+
+            _draggingCard = grip.Tag as string;
+            _dragLast = e.GetPosition(HomeRoot);
+
+            grip.CaptureMouse();
+        }
+
+        private void HelperCard_Drag(object sender, MouseEventArgs e)
+        {
+            if (_draggingCard == null) return;
+
+            var now = e.GetPosition(HomeRoot);
+
+            ViewModel.MoveHelperCard(
+                _draggingCard,
+                now.X - _dragLast.X,
+                now.Y - _dragLast.Y,
+                Math.Max(0, HomeRoot.ActualWidth - 120),
+                Math.Max(0, HomeRoot.ActualHeight - 40));
+
+            _dragLast = now;
+        }
+
+        private void HelperCard_DragEnd(object sender, MouseButtonEventArgs e)
+        {
+            if (_draggingCard == null) return;
+
+            ((FrameworkElement)sender).ReleaseMouseCapture();
+
+            _draggingCard = null;
+
+            ViewModel.SaveHelperCardPlacement();
+        }
+
         /// <summary>
         /// Hands the patient panel's current text to the ViewModel.
         /// </summary>
