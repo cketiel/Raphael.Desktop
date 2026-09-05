@@ -125,7 +125,7 @@
         
     <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource MainBorderBrush}">
 
-            <Grid Margin="5" Background="Transparent">
+            <Grid x:Name="HomeRoot" Margin="5" Background="Transparent">
                 <Grid.RowDefinitions>
                     <RowDefinition x:Name="TopRow" Height="4.5*" /> <!-- 45% Upper area -->
                     <RowDefinition Height="6" />  <!-- Horizontal GridSplitter -->
@@ -514,7 +514,7 @@
 
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="1.6*" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
@@ -596,10 +596,10 @@
                                             </Popup>
                                         </StackPanel>
 
-                                        <!-- One box for the broker's trip id, our id, the patient
-                                             and the addresses. #123 forces our id, TripId:xxx the
-                                             broker's, because they are different numbers. -->
-                                        <TextBox Grid.Column="1"
+                                        <!-- The broker's trip id only. It is the number a
+                                             dispatcher is holding when they reach for this, and
+                                             it is the only one that fits on this row. -->
+                                        <TextBox Grid.Column="1" Width="120"
                                             Text="{Binding TripSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
                                             materialDesign:HintAssist.Hint="{Binding TripSearchHint}"
                                             materialDesign:TextFieldAssist.HasClearButton="True"
@@ -1843,21 +1843,24 @@
                      and refilters as the ticks change, which is the only way to see whether a
                      filter did what you meant. Clicking anywhere outside closes it, and so does
                      Esc — see HomeView_PreviewKeyDown. -->
-                <Grid Grid.Row="0" Grid.RowSpan="3"
-                      Visibility="{Binding IsFilterPanelOpen, Converter={StaticResource BoolToVisibility}}">
+                <!-- ⚠️ A Popup, not a panel inside the layout, and that is the whole point.
+                     MapaWebView is a WebView2: an HWND hosted inside WPF, which Windows always
+                     draws on top of WPF content in the same window whatever the z-order says.
+                     A Border laid over the map was simply not visible where it crossed it. A
+                     Popup gets a top-level window of its own, so it draws above the map.
 
-                    <!-- Almost invisible, but not Transparent-by-omission: a Grid with no brush
-                         does not receive mouse events at all, so the click outside would land on
-                         whatever is underneath instead of closing the panel. -->
-                    <Rectangle Fill="#20000000" MouseDown="FilterPanelBackdrop_MouseDown"/>
-
-                    <Border HorizontalAlignment="Right" Width="380"
+                     StaysOpen=False is what closes it on a click outside; IsOpen binds two ways
+                     so that closing itself is reported back. Esc is handled in the code-behind,
+                     which still sees the key because a Popup's content stays in the logical tree. -->
+                <Popup IsOpen="{Binding IsFilterPanelOpen, Mode=TwoWay}"
+                       PlacementTarget="{Binding ElementName=HomeRoot}"
+                       Placement="Right" HorizontalOffset="-380"
+                       StaysOpen="False" AllowsTransparency="True" Focusable="True">
+                    <Border Width="380"
+                            Height="{Binding ActualHeight, ElementName=HomeRoot}"
                             Background="{DynamicResource MaterialDesignPaper}"
                             BorderBrush="{StaticResource MainBorderBrush}" BorderThickness="1,0,0,0"
                             materialDesign:ElevationAssist.Elevation="Dp4">
-                        <Border.RenderTransform>
-                            <TranslateTransform x:Name="FilterPanelSlide" X="380"/>
-                        </Border.RenderTransform>
 
                         <DockPanel>
 
@@ -2038,7 +2041,7 @@
                             </ScrollViewer>
                         </DockPanel>
                     </Border>
-                </Grid>
+                </Popup>
 
             </Grid>
 

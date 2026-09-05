@@ -785,6 +785,17 @@ namespace Raphael.Desktop.ViewModels
         private CustomerFields _customerOnEntry;
         private CustomerFields _customerNow;
 
+        /// <summary>
+        /// The patient exactly as the server has them, for the view to restore from.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Restoring has to come from here and never from <c>SelectedCustomer</c>. The panel's
+        /// boxes are bound TwoWay straight into that object, so the first keystroke has already
+        /// overwritten it: putting the boxes back from it puts back exactly what is on screen,
+        /// which is why the Discard button appeared to do nothing at all.
+        /// </remarks>
+        public CustomerFields CustomerBaseline => _customerOnEntry;
+
         [ObservableProperty] private CustomerFormState _customerState = CustomerFormState.Empty;
 
         public string CustomerStateLabel => CustomerState switch
@@ -1188,14 +1199,13 @@ namespace Raphael.Desktop.ViewModels
         partial void OnShowCanceledChanged(bool value) => RefreshTripsView();
 
         /// <summary>
-        /// One box that searches the broker's trip id, the internal id, the patient and the
-        /// addresses at once.
+        /// The broker's trip id, and only that.
         /// </summary>
         /// <remarks>
-        /// <c>TripId</c> and <c>Id</c> are different numbers for the same trip: the first is what
-        /// the broker put in their file and what they quote on the phone, the second is ours.
-        /// Typing either finds the trip; <c>#123</c> and <c>TripId:xxx</c> say which one is meant
-        /// when it matters.
+        /// It searched the patient and both addresses as well, and the box it needed for that ate
+        /// the width of the row it sits in. <c>TripId</c> is the one a dispatcher is holding when
+        /// they need this: it is the number the broker quotes on the telephone. Everything else
+        /// is in the filter panel, which has room for it.
         /// </remarks>
         [ObservableProperty] private string _tripSearchText;
 
@@ -1247,22 +1257,8 @@ namespace Raphael.Desktop.ViewModels
         private bool MatchesSearch(TripReadDto trip)
         {
             var query = TripSearchText?.Trim();
-            if (string.IsNullOrEmpty(query)) return true;
 
-            if (query.StartsWith("#"))
-                return int.TryParse(query.Substring(1), out var id) && trip.Id == id;
-
-            const string byTripId = "TripId:";
-            if (query.StartsWith(byTripId, StringComparison.OrdinalIgnoreCase))
-                return Holds(trip.TripId, query.Substring(byTripId.Length).Trim());
-
-            return Holds(trip.TripId, query)
-                || trip.Id.ToString() == query
-                || Holds(trip.CustomerName, query)
-                || Holds(trip.PickupAddress, query)
-                || Holds(trip.DropoffAddress, query)
-                || Holds(trip.PickupCity, query)
-                || Holds(trip.DropoffCity, query);
+            return string.IsNullOrEmpty(query) || Holds(trip.TripId, query);
         }
 
         private static bool Holds(string text, string part) =>

@@ -264,55 +264,6 @@
             document.getElementById('pickup-label').innerText = '📍 Pickup';
         }
 
-        // ------------------------------------------------------------ the whole day at once
-
-        let dayMarkers = [];
-
-        /**
-         * Drops a pin for every trip the grid is showing.
-         *
-         * ⚠️ Not one Google request. The coordinates arrive with the trips the day was loaded
-         * with, so this draws from what is already in hand — no geocoding, no routing, nothing
-         * per stop in a loop. MAPS_POLICY §5.2 is about exactly this shape of screen.
-         */
-        function showDayTrips(payload) {
-            clearDayTrips();
-
-            const trips = JSON.parse(payload);
-            if (!trips.length) return;
-
-            const bounds = new google.maps.LatLngBounds();
-
-            trips.forEach(trip => {
-                dropDayPin(trip.plat, trip.plng, 'P', trip.title, bounds);
-                dropDayPin(trip.dlat, trip.dlng, 'D', trip.title, bounds);
-            });
-
-            if (!bounds.isEmpty()) map.fitBounds(bounds);
-        }
-
-        function dropDayPin(lat, lng, label, title, bounds) {
-            // 0,0 is what a failed geocode leaves behind. Drawing it would put the day's map in
-            // the Gulf of Guinea and hide every real pin.
-            if (!lat || !lng) return;
-
-            const position = { lat: lat, lng: lng };
-
-            dayMarkers.push(new google.maps.Marker({
-                position: position,
-                label: label,
-                title: title,
-                map: map
-            }));
-
-            bounds.extend(position);
-        }
-
-        function clearDayTrips() {
-            dayMarkers.forEach(marker => marker.setMap(null));
-            dayMarkers = [];
-        }
-
         function prepareNewCustomer() {
             document.getElementById('dropoff-group').style.display = 'none';
             document.getElementById('pickup-label').innerText = '📍 Search address';

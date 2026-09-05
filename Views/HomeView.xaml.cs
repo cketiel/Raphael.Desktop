@@ -310,49 +310,11 @@ namespace Raphael.Desktop.Views
                 return;
             }
 
-            if (e.PropertyName == nameof(HomeViewModel.IsFilterPanelOpen))
-            {
-                SlideFilterPanel(ViewModel.IsFilterPanelOpen);
-                return;
-            }
-
             if (e.PropertyName == nameof(HomeViewModel.SelectedTrip))
             {
                 LoadMap();
-                return;
-            }
-
-            // Filtering changes which trips the map should be showing, but only while it is
-            // showing the day rather than one trip.
-            if (e.PropertyName == nameof(HomeViewModel.GridTotals) && ViewModel.SelectedTrip == null)
-            {
-                LoadMap();
             }
         }
-
-        /// <summary>
-        /// Slides the filter panel in and out.
-        /// </summary>
-        /// <remarks>
-        /// ⚠️ Driven from here rather than from a Style trigger for a plain WPF reason: a
-        /// Storyboard declared inside a Style cannot name an element, so the transform it has to
-        /// move is out of its reach. Same family as the column widths — the declarative route
-        /// exists and simply does not reach this particular property.
-        /// </remarks>
-        private void SlideFilterPanel(bool open)
-        {
-            FilterPanelSlide.BeginAnimation(
-                TranslateTransform.XProperty,
-                new DoubleAnimation
-                {
-                    To = open ? 0 : FilterPanelWidth,
-                    Duration = TimeSpan.FromMilliseconds(open ? 180 : 150),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                });
-        }
-
-        /// <summary>How far off-screen the filter panel sits when it is closed.</summary>
-        private const double FilterPanelWidth = 380;
 
         /// <summary>
         /// Puts the screen into the shape its mode calls for.
@@ -499,55 +461,32 @@ namespace Raphael.Desktop.Views
         private void CustomerDate_Changed(object sender, SelectionChangedEventArgs e) => ReportCustomerFields();
 
         /// <summary>Puts the boxes back as the server has the patient.</summary>
+        /// <remarks>
+        /// ⚠️ From the ViewModel's baseline, not from SelectedCustomer. The boxes are bound TwoWay
+        /// into that Customer object, so by the time anyone presses Discard it already holds the
+        /// edits — reading it back wrote the same text into the same boxes, and the button looked
+        /// broken because nothing on screen moved.
+        /// </remarks>
         private void RestoreCustomerFields()
         {
-            var customer = ViewModel.SelectedCustomer;
+            var was = ViewModel.CustomerBaseline;
 
-            FullNameTextBox.Text = customer?.FullName ?? string.Empty;
-            ClientCodeTextBox.Text = customer?.ClientCode ?? string.Empty;
-            PhoneTextBox.Text = customer?.Phone ?? string.Empty;
-            MobilePhoneTextBox.Text = customer?.MobilePhone ?? string.Empty;
-            GooglePlacesInput.Text = customer?.Address ?? string.Empty;
-            City.Text = customer?.City ?? string.Empty;
-            State.Text = customer?.State ?? string.Empty;
-            Zip.Text = customer?.Zip ?? string.Empty;
-            DOBDatePicker.SelectedDate = customer?.DOB;
+            if (was == null) return;
+
+            FullNameTextBox.Text = was.FullName ?? string.Empty;
+            ClientCodeTextBox.Text = was.ClientCode ?? string.Empty;
+            PhoneTextBox.Text = was.Phone ?? string.Empty;
+            MobilePhoneTextBox.Text = was.MobilePhone ?? string.Empty;
+            GooglePlacesInput.Text = was.Address ?? string.Empty;
+            City.Text = was.City ?? string.Empty;
+            State.Text = was.State ?? string.Empty;
+            Zip.Text = was.Zip ?? string.Empty;
+            DOBDatePicker.SelectedDate = was.Dob;
+
+            MaleRadioButton.IsChecked = was.Male;
+            FemaleRadioButton.IsChecked = !was.Male;
 
             ReportCustomerFields();
-        }
-
-        /// <summary>
-        /// Puts a pin on the map for every trip the grid is showing.
-        /// </summary>
-        /// <remarks>
-        /// This is what a dispatcher wants when nothing is selected: the shape of the day, not an
-        /// empty map centred on Miami. It costs nothing at Google — the coordinates came down with
-        /// the trips — so it obeys MAPS_POLICY §5.2 by having nothing to buy in the first place.
-        ///
-        /// The wait is for the document, the same half second the trip route waits for. Writing
-        /// into a page that has not finished loading does nothing and reports nothing.
-        /// </remarks>
-        private async Task ShowFilteredTripsOnMapAsync()
-        {
-            var shown = ViewModel.TripsView?.Cast<TripReadDto>().ToList();
-
-            if (shown == null || shown.Count == 0) return;
-
-            var payload = JsonSerializer.Serialize(shown.Select(t => new
-            {
-                plat = t.PickupLatitude,
-                plng = t.PickupLongitude,
-                dlat = t.DropoffLatitude,
-                dlng = t.DropoffLongitude,
-                title = t.CustomerName + " · " + (t.FromTime?.ToString(@"hh\:mm") ?? string.Empty)
-            }));
-
-            await Task.Delay(500);
-
-            if (MapaWebView?.CoreWebView2 == null) return;
-
-            await MapaWebView.ExecuteScriptAsync(
-                $"if (typeof showDayTrips === 'function') showDayTrips({JsonSerializer.Serialize(payload)});");
         }
 
         /// <summary>
@@ -569,9 +508,6 @@ namespace Raphael.Desktop.Views
 
         private void TripsGrid_Loaded(object sender, RoutedEventArgs e) => ViewModel.ApplySavedSort();
 
-        /// <summary>Clicking anywhere outside the filter panel puts it away.</summary>
-        private void FilterPanelBackdrop_MouseDown(object sender, MouseButtonEventArgs e)
-            => ViewModel.IsFilterPanelOpen = false;
         private async void LoadMap()
         {
             var trip = ViewModel.SelectedTrip;
@@ -588,8 +524,6 @@ namespace Raphael.Desktop.Views
             {
                 MapWebViewHost.Navigate(
                     MapaWebView, "basemap.html", ("lat", 25.77427), ("lng", -80.19366));
-
-                await ShowFilteredTripsOnMapAsync();
 
                 return;
             }

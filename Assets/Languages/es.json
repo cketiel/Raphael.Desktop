@@ -594,21 +594,17 @@
     "gmaps.PricingHint": "Estas tarifas viven en la base de datos, no en el código: cuando Google las cambie, se corrigen sin publicar una versión nueva.",
     "gmaps.PricingPer1000": "Todas por 1.000 peticiones. Los tramos son mensuales y por SKU.",
     "gmaps.Sku": "SKU",
-
     "home.CloseTripForm": "Cerrar el formulario de viaje (Esc)",
     "home.DiscardChangesTitle": "Viaje sin guardar",
     "home.DiscardChangesMessage": "Este viaje tiene cambios sin guardar. ¿Salir de todos modos y perderlos?",
-
     "home.GridSummary": "{0} de {1} viajes",
-    "home.TripSearchHint": "Buscar paciente, dirección, #id o TripId:...",
-
+    "home.TripSearchHint": "Trip Id",
     "home.ExportTitle": "Exportar viajes",
     "home.ExportNoRows": "No hay nada que exportar: con los filtros actuales no se muestra ningún viaje.",
     "home.ExportPhiTitle": "Van a salir datos de pacientes del sistema",
     "home.ExportPhiMessage": "El fichero va a contener nombres, direcciones y teléfonos de {0} viajes, y una vez guardado nada lo controla. Tu usuario queda registrado en esta exportación.",
     "home.ExportDone": "Exportado a:\n{0}\n\n¿Lo abro ahora?",
     "home.ExportFailed": "No se pudo exportar: ",
-
     "home.DatePickerToolTip": "Elegir el día, o un rango de días",
     "home.SingleDay": "Un día",
     "home.Range": "Rango",
@@ -621,7 +617,6 @@
     "home.PresetTomorrow": "Mañana",
     "home.PresetThisWeek": "Esta semana",
     "home.PresetNextSeven": "Próximos 7 días",
-
     "home.FiltersHeader": "Filtros",
     "home.ClearAllFilters": "Limpiar todo",
     "home.SaveView": "Guardar",
