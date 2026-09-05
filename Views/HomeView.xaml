@@ -231,36 +231,6 @@
                                             <TextBlock Text="1" Style="{StaticResource StepBadgeTextStyle}"/>
                                         </Border>
 
-                                        <!-- The floating helpers live outside the layout now: the
-                                             zones of this tab are sized to each other, and two
-                                             extra rows pushed the save button under the splitter.
-                                             This button brings the cards back. -->
-                                        <Button DockPanel.Dock="Right" Margin="4,0,0,0"
-                                                Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                                Command="{Binding ToggleHelperCardsCommand}"
-                                                ToolTip="{Binding HelperCardsToolTip}">
-                                            <materialDesign:PackIcon Kind="InformationOutline" Width="22" Height="22"/>
-                                        </Button>
-
-                                        <Button DockPanel.Dock="Right" Margin="4,0,0,0"
-                                                Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                                Command="{Binding StartTourCommand}"
-                                                ToolTip="{Binding TourHelpToolTip}">
-                                            <materialDesign:PackIcon Kind="HelpCircleOutline" Width="22" Height="22"/>
-                                        </Button>
-
-                                        <!-- The way out of the trip form. Until RE-010 there was
-                                             none: the layout was only ever put back after a
-                                             trip had been saved. -->
-                                        <Button DockPanel.Dock="Right"
-                                                Margin="8,0,0,0"
-                                                ToolTip="{Binding CloseTripFormToolTip}"
-                                                Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                                Click="CloseTripForm_Click"
-                                                Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
-                                            <materialDesign:PackIcon Kind="Close" Width="25" Height="25" />
-                                        </Button>
-
                                                 <StackPanel materialDesign:RippleAssist.IsCentered="True"
                                                             Orientation="Horizontal">
 
@@ -363,6 +333,35 @@
                                                     Command="{Binding NewCustomerCommand}" Click="OnNewCustomerClick">
 
                                                 <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="25" Height="25"/>
+                                            </Button>
+
+                                            <!-- ⚠️ In the row, not docked to its right edge. A
+                                                 DockPanel hands its docked children their edge
+                                                 first and lets the LAST child fill what is left;
+                                                 that last child is this StackPanel, which is
+                                                 wider than what remained, so save and new patient
+                                                 simply ran underneath these three. -->
+                                            <Button Margin="8,0,0,0"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Command="{Binding StartTourCommand}"
+                                                    ToolTip="{Binding TourHelpToolTip}">
+                                                <materialDesign:PackIcon Kind="HelpCircleOutline" Width="25" Height="25"/>
+                                            </Button>
+
+                                            <Button Margin="5,0,0,0"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Command="{Binding ToggleHelperCardsCommand}"
+                                                    ToolTip="{Binding HelperCardsToolTip}">
+                                                <materialDesign:PackIcon Kind="InformationOutline" Width="25" Height="25"/>
+                                            </Button>
+
+                                            <!-- The way out of the trip form. -->
+                                            <Button Margin="5,0,0,0"
+                                                    ToolTip="{Binding CloseTripFormToolTip}"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Click="CloseTripForm_Click"
+                                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
+                                                <materialDesign:PackIcon Kind="Close" Width="25" Height="25"/>
                                             </Button>
 
                                         </StackPanel>
@@ -1408,7 +1407,7 @@
                     VirtualizingPanel.VirtualizationMode="Recycling"
 
                     Style="{StaticResource CustomDataGridStyle}"
-                    ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
+                    ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
 
                     RowStyle="{StaticResource HomeTripRowStyle}"
                     CellStyle="{StaticResource TripSelectionCellStyle}"
@@ -1422,7 +1421,7 @@
                                 <DataTemplate>
                                     <Button Command="{Binding DataContext.ToggleFilterPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             ToolTip="{Binding DataContext.FiltersHeader, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            Style="{StaticResource MaterialDesignToolButton}">
+                                            Style="{StaticResource TripActionButtonStyle}">
                                         <Grid>
                                             <materialDesign:PackIcon Kind="FilterSettings" Width="20" Height="20"/>
                                             <!-- The dot is the only thing that tells a dispatcher
@@ -1446,7 +1445,7 @@
                                         <!-- Cancel Button (Visible if not canceled) -->
                                         <Button Command="{Binding DataContext.CancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Style="{StaticResource TripActionButtonStyle}"
                                             ToolTip="Cancel Trip">
                                             <Button.Visibility>
                                                 <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="NotCanceled" />
@@ -1457,7 +1456,7 @@
                                         <!-- Restore Button (Visible if YES is cancelled) -->
                                         <Button Command="{Binding DataContext.UncancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Style="{StaticResource TripActionButtonStyle}"
                                             ToolTip="Uncancel trip">
                                             <Button.Visibility>
                                                 <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="Canceled" />
@@ -1468,7 +1467,7 @@
                                         <!-- Edit button -->
                                         <Button Command="{Binding DataContext.EditTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Style="{StaticResource TripActionButtonStyle}"
                                             ToolTip="Edit Trip">
                                             <materialDesign:PackIcon Kind="FileEdit" Foreground="Orange"/>
                                         </Button>
@@ -1476,7 +1475,7 @@
                                         <!-- NEW BUTTON: Change History -->
                                         <Button Command="{Binding DataContext.ShowHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Style="{StaticResource TripActionButtonStyle}"
                                             ToolTip="Change History">
                                             <materialDesign:PackIcon Kind="History" Foreground="Blue" Width="20" Height="20" />
                                         </Button>

@@ -224,7 +224,14 @@ namespace Raphael.Desktop.Views
                                 if (vm.SelectedCustomer != null)
                                     vm.SelectedCustomer.Address = result.address;
 
-                                // Guardar coordenadas en el ViewModel
+                                // ⚠️ The trip's pickup, not only the patient's record.
+                                // The map page posts an address chosen from the autocomplete as
+                                // type 'autocomplete' and only a pin DRAGGED afterwards as type
+                                // 'pickup'. This branch wrote the coordinates and the city but
+                                // never the address itself, so the Pickup Address box stayed
+                                // empty and the step guide could not get past Addresses however
+                                // carefully the dispatcher placed both pins.
+                                vm.PickupAddress = (string)result.address;
                                 vm.PickupLatitude = (double)result.lat;
                                 vm.PickupLongitude = (double)result.lng;
 

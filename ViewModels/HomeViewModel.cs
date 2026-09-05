@@ -118,6 +118,12 @@ namespace Raphael.Desktop.ViewModels
             SelectedCustomer = customer;
             SearchText = customer?.FullName;
 
+            // A trip starts at the patient's own address, which is what SaveTrip has always sent.
+            // Seeding it here is what makes the read-only Pickup Address box agree with the trip
+            // that is about to be created, instead of sitting blank until somebody touches the map.
+            PickupAddress = customer?.Address;
+            PickupCity = customer?.City;
+
             EnterCreateTripMode();
             return true;
         }
