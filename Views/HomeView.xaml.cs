@@ -85,6 +85,7 @@ namespace Raphael.Desktop.Views
             ViewModel = new HomeViewModel();
             DataContext = ViewModel;
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+            ViewModel.DiscardCustomerRequested += RestoreCustomerFields;
 
             InitializeData();
 
@@ -315,7 +316,15 @@ namespace Raphael.Desktop.Views
                 return;
             }
 
-            if (e.PropertyName == nameof(HomeViewModel.SelectedTrip) && ViewModel.SelectedTrip != null)
+            if (e.PropertyName == nameof(HomeViewModel.SelectedTrip))
+            {
+                LoadMap();
+                return;
+            }
+
+            // Filtering changes which trips the map should be showing, but only while it is
+            // showing the day rather than one trip.
+            if (e.PropertyName == nameof(HomeViewModel.GridTotals) && ViewModel.SelectedTrip == null)
             {
                 LoadMap();
             }
@@ -467,6 +476,81 @@ namespace Raphael.Desktop.Views
         }
 
         /// <summary>
+        /// Hands the patient panel's current text to the ViewModel.
+        /// </summary>
+        /// <remarks>
+        /// The panel's boxes are bound to the Customer object and read back by name when saving,
+        /// so the text on screen lives nowhere else. Rather than rewrite the whole panel onto
+        /// ViewModel properties — a slice of its own — the view reports what it holds and the
+        /// ViewModel keeps every rule about what it means.
+        /// </remarks>
+        private void ReportCustomerFields()
+        {
+            if (ViewModel == null || FullNameTextBox == null) return;
+
+            ViewModel.ReportCustomerFields(new HomeViewModel.CustomerFields(
+                FullNameTextBox.Text, ClientCodeTextBox.Text, PhoneTextBox.Text, MobilePhoneTextBox.Text,
+                GooglePlacesInput.Text, City.Text, State.Text, Zip.Text,
+                DOBDatePicker.SelectedDate, MaleRadioButton.IsChecked == true));
+        }
+
+        private void CustomerField_Changed(object sender, TextChangedEventArgs e) => ReportCustomerFields();
+
+        private void CustomerDate_Changed(object sender, SelectionChangedEventArgs e) => ReportCustomerFields();
+
+        /// <summary>Puts the boxes back as the server has the patient.</summary>
+        private void RestoreCustomerFields()
+        {
+            var customer = ViewModel.SelectedCustomer;
+
+            FullNameTextBox.Text = customer?.FullName ?? string.Empty;
+            ClientCodeTextBox.Text = customer?.ClientCode ?? string.Empty;
+            PhoneTextBox.Text = customer?.Phone ?? string.Empty;
+            MobilePhoneTextBox.Text = customer?.MobilePhone ?? string.Empty;
+            GooglePlacesInput.Text = customer?.Address ?? string.Empty;
+            City.Text = customer?.City ?? string.Empty;
+            State.Text = customer?.State ?? string.Empty;
+            Zip.Text = customer?.Zip ?? string.Empty;
+            DOBDatePicker.SelectedDate = customer?.DOB;
+
+            ReportCustomerFields();
+        }
+
+        /// <summary>
+        /// Puts a pin on the map for every trip the grid is showing.
+        /// </summary>
+        /// <remarks>
+        /// This is what a dispatcher wants when nothing is selected: the shape of the day, not an
+        /// empty map centred on Miami. It costs nothing at Google — the coordinates came down with
+        /// the trips — so it obeys MAPS_POLICY §5.2 by having nothing to buy in the first place.
+        ///
+        /// The wait is for the document, the same half second the trip route waits for. Writing
+        /// into a page that has not finished loading does nothing and reports nothing.
+        /// </remarks>
+        private async Task ShowFilteredTripsOnMapAsync()
+        {
+            var shown = ViewModel.TripsView?.Cast<TripReadDto>().ToList();
+
+            if (shown == null || shown.Count == 0) return;
+
+            var payload = JsonSerializer.Serialize(shown.Select(t => new
+            {
+                plat = t.PickupLatitude,
+                plng = t.PickupLongitude,
+                dlat = t.DropoffLatitude,
+                dlng = t.DropoffLongitude,
+                title = t.CustomerName + " · " + (t.FromTime?.ToString(@"hh\:mm") ?? string.Empty)
+            }));
+
+            await Task.Delay(500);
+
+            if (MapaWebView?.CoreWebView2 == null) return;
+
+            await MapaWebView.ExecuteScriptAsync(
+                $"if (typeof showDayTrips === 'function') showDayTrips({JsonSerializer.Serialize(payload)});");
+        }
+
+        /// <summary>
         /// Keeps the column the dispatcher sorted by, so the next day opens the way they read it.
         /// </summary>
         /// <remarks>
@@ -504,6 +588,8 @@ namespace Raphael.Desktop.Views
             {
                 MapWebViewHost.Navigate(
                     MapaWebView, "basemap.html", ("lat", 25.77427), ("lng", -80.19366));
+
+                await ShowFilteredTripsOnMapAsync();
 
                 return;
             }
@@ -852,6 +938,14 @@ namespace Raphael.Desktop.Views
                     CustomersAutoSuggestBox.Text = vm.SelectedCustomer?.FullName ?? string.Empty;
                     return;
                 }
+
+                // What the server has for this patient, so later keystrokes can be told apart
+                // from it. Posted because the bindings fill the boxes after this returns.
+                Dispatcher.BeginInvoke(new Action(() =>
+                    vm.BaselineCustomer(new HomeViewModel.CustomerFields(
+                        customer?.FullName, customer?.ClientCode, customer?.Phone, customer?.MobilePhone,
+                        customer?.Address, customer?.City, customer?.State, customer?.Zip,
+                        customer?.DOB, customer?.Gender == Gender.Male))));
 
                 ShowPickupInMap();
             }

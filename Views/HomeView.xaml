@@ -26,6 +26,7 @@
         <converters:InverseBooleanConverter x:Key="InverseBoolConverter" />
         <converters:EnumMatchConverter x:Key="EnumMatchConverter" />
         <converters:TimeSpanToDateConverter x:Key="TimeSpanToDateConverter" />
+        <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <converters:StatusToVisibilityConverter x:Key="StatusToVisibilityConverter" />
 
@@ -293,6 +294,38 @@
 
                             </StackPanel>
 
+                            <!-- (2.8) What the panel is holding. The three states look identical
+                                 without it, and booking a trip against a patient the server has
+                                 never seen is the failure that follows. -->
+                            <Border Margin="4,2,4,2" Padding="8,3,8,3" CornerRadius="4"
+                                    Visibility="{Binding CustomerStateLabel, Converter={StaticResource EmptyStringToVisibilityConverter}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#EEEEEE"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CustomerStateTag}" Value="unsaved">
+                                                <Setter Property="Background" Value="#FFF4E5"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="{Binding DiscardChangesLabel}"
+                                            Command="{Binding DiscardCustomerChangesCommand}"
+                                            Style="{StaticResource MaterialDesignToolButton}" FontSize="11"
+                                            Visibility="{Binding HasCustomerChanges, Converter={StaticResource BoolToVisibility}}"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding CustomerStateLabel}" FontWeight="Bold" FontSize="11"/>
+                                        <TextBlock Text="{Binding CustomerValidationMessage}" FontSize="11" Foreground="#C62828"
+                                                   TextWrapping="Wrap"
+                                                   Visibility="{Binding CustomerValidationMessage, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding DuplicateCustomerWarning}" FontSize="11" Foreground="#E65100"
+                                                   TextWrapping="Wrap"
+                                                   Visibility="{Binding DuplicateCustomerWarning, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+
                             <!-- 🧾 Customer Info Section -->
                             <!-- <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0">-->                        
                         
@@ -312,7 +345,7 @@
 
                                                 <!-- Left Column -->
                                                 <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                                    <TextBox x:Name="FullNameTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="FullNameTextBox"
                                                              Text="{Binding SelectedCustomer.FullName}"
                                                              materialDesign:TextFieldAssist.HasClearButton="True"
                                                      
@@ -330,21 +363,21 @@
                                                     </TextBox.Text>-->
                                                         
                                                     </TextBox>
-                                                    <TextBox x:Name="ClientCodeTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="ClientCodeTextBox"
                                                              Text="{Binding SelectedCustomer.ClientCode}" 
                                                              materialDesign:HintAssist.Hint="{Binding ClientCodeTextBoxHint}" 
                                                              materialDesign:TextFieldAssist.HasClearButton="True"
                                                              materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                              materialDesign:TextFieldAssist.LeadingIcon="Barcode"
                                                              Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="PhoneTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="PhoneTextBox"
                                                                 Text="{Binding SelectedCustomer.Phone}" 
                                                                  materialDesign:HintAssist.Hint="{Binding PhoneTextBoxHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                                  materialDesign:TextFieldAssist.LeadingIcon="Phone"
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="MobilePhoneTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="MobilePhoneTextBox"
                                                                 Text="{Binding SelectedCustomer.MobilePhone}" 
                                                                  materialDesign:HintAssist.Hint="{Binding MobilePhoneTextBoxHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
@@ -404,19 +437,19 @@
                                                         
                                                     </Grid>
 
-                                                    <TextBox x:Name="City" Text="{Binding SelectedCustomer.City}" 
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="City" Text="{Binding SelectedCustomer.City}" 
                                                                  materialDesign:HintAssist.Hint="{Binding CityHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                                  materialDesign:TextFieldAssist.LeadingIcon="City"
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="State" Text="{Binding SelectedCustomer.State}" 
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="State" Text="{Binding SelectedCustomer.State}" 
                                                                  materialDesign:HintAssist.Hint="{Binding StateHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                                  materialDesign:TextFieldAssist.LeadingIcon="Estate"
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="Zip" Text="{Binding SelectedCustomer.Zip}" 
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="Zip" Text="{Binding SelectedCustomer.Zip}" 
                                                                  materialDesign:HintAssist.Hint="{Binding ZipHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
@@ -424,7 +457,7 @@
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
 
 
-                                                    <DatePicker x:Name="DOBDatePicker" SelectedDate="{Binding SelectedCustomer.DOB}" 
+                                                    <DatePicker SelectedDateChanged="CustomerDate_Changed" x:Name="DOBDatePicker" SelectedDate="{Binding SelectedCustomer.DOB}" 
                                                                 materialDesign:HintAssist.Hint="{Binding DOBDatePickerHint}" 
                                                                 materialDesign:TextFieldAssist.HasClearButton="True"
                                                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"

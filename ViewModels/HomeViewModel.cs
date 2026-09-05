@@ -757,6 +757,150 @@ namespace Raphael.Desktop.ViewModels
 
         #endregion
 
+
+        #region The patient panel says what it is holding (2.8)
+
+        /// <summary>
+        /// The fields of the patient panel, as they stand on screen.
+        /// </summary>
+        /// <remarks>
+        /// The panel's boxes are bound to the Customer object itself and read back by name when
+        /// saving, so there is nowhere else the current text lives. The view hands it over on
+        /// every keystroke and this decides what it means.
+        /// </remarks>
+        public sealed record CustomerFields(
+            string FullName, string ClientCode, string Phone, string MobilePhone,
+            string Address, string City, string State, string Zip,
+            DateTime? Dob, bool Male);
+
+        private CustomerFields _customerOnEntry;
+        private CustomerFields _customerNow;
+
+        [ObservableProperty] private CustomerFormState _customerState = CustomerFormState.Empty;
+
+        public string CustomerStateLabel => CustomerState switch
+        {
+            CustomerFormState.NewUnsaved => LocalizationService.Instance["home.PatientNew"],
+            CustomerFormState.Existing => LocalizationService.Instance["home.PatientExisting"],
+            CustomerFormState.ModifiedUnsaved => LocalizationService.Instance["home.PatientModified"],
+            _ => string.Empty
+        };
+
+        /// <summary>Amber while anything is unsaved, plain grey once it matches the server.</summary>
+        public string CustomerStateTag => CustomerState switch
+        {
+            CustomerFormState.NewUnsaved => "unsaved",
+            CustomerFormState.ModifiedUnsaved => "unsaved",
+            CustomerFormState.Existing => "saved",
+            _ => "empty"
+        };
+
+        public bool HasCustomerChanges =>
+            CustomerState is CustomerFormState.NewUnsaved or CustomerFormState.ModifiedUnsaved;
+
+        /// <summary>
+        /// The first thing wrong with the patient panel, or null when there is nothing.
+        /// </summary>
+        /// <remarks>
+        /// Live and in one line, in place of the chain of MessageBoxes that used to fire one at a
+        /// time on save — each of which sent the dispatcher back to fix one field and press save
+        /// again to find the next.
+        /// </remarks>
+        public string CustomerValidationMessage
+        {
+            get
+            {
+                var f = _customerNow;
+                if (f == null) return null;
+
+                if (string.IsNullOrWhiteSpace(f.FullName)) return Missing("home.PatientName");
+                if (string.IsNullOrWhiteSpace(f.Phone) && string.IsNullOrWhiteSpace(f.MobilePhone))
+                    return Missing("home.PatientPhone");
+                if (string.IsNullOrWhiteSpace(f.Address)) return Missing("home.PatientAddress");
+                if (f.Dob == null) return Missing("home.PatientDob");
+
+                return null;
+            }
+        }
+
+        public bool CanSaveCustomer => CustomerValidationMessage == null && HasCustomerChanges;
+
+        /// <summary>
+        /// Told by the view whenever a box in the patient panel changes.
+        /// </summary>
+        public void ReportCustomerFields(CustomerFields fields)
+        {
+            _customerNow = fields;
+
+            var empty = fields == null ||
+                        (string.IsNullOrWhiteSpace(fields.FullName) &&
+                         string.IsNullOrWhiteSpace(fields.Phone) &&
+                         string.IsNullOrWhiteSpace(fields.Address));
+
+            CustomerState =
+                empty && SelectedCustomer == null ? CustomerFormState.Empty
+                : SelectedCustomer == null ? CustomerFormState.NewUnsaved
+                : _customerOnEntry != null && fields != _customerOnEntry ? CustomerFormState.ModifiedUnsaved
+                : CustomerFormState.Existing;
+
+            OnPropertyChanged(nameof(CustomerStateLabel));
+            OnPropertyChanged(nameof(CustomerStateTag));
+            OnPropertyChanged(nameof(HasCustomerChanges));
+            OnPropertyChanged(nameof(CustomerValidationMessage));
+            OnPropertyChanged(nameof(CanSaveCustomer));
+            OnPropertyChanged(nameof(DuplicateCustomerWarning));
+        }
+
+        /// <summary>Photographs the patient as the server has them, for the comparison above.</summary>
+        public void BaselineCustomer(CustomerFields fields)
+        {
+            _customerOnEntry = fields;
+
+            ReportCustomerFields(fields);
+        }
+
+        /// <summary>
+        /// A patient already on file with the same name and phone.
+        /// </summary>
+        /// <remarks>
+        /// Only a warning, never a block: two people at the same address really do share a phone,
+        /// and a dispatcher on the telephone cannot be stopped by a guess. What it prevents is the
+        /// silent third and fourth copy of the same patient that nobody notices until billing.
+        /// </remarks>
+        public string DuplicateCustomerWarning
+        {
+            get
+            {
+                if (SelectedCustomer != null || _customerNow == null) return null;
+                if (string.IsNullOrWhiteSpace(_customerNow.FullName)) return null;
+
+                var phone = _customerNow.Phone ?? _customerNow.MobilePhone;
+
+                var twin = Customers?.FirstOrDefault(c =>
+                    string.Equals(c.FullName?.Trim(), _customerNow.FullName.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(phone) &&
+                    (string.Equals(c.Phone, phone, StringComparison.Ordinal) ||
+                     string.Equals(c.MobilePhone, phone, StringComparison.Ordinal)));
+
+                return twin == null
+                    ? null
+                    : string.Format(LocalizationService.Instance["home.PatientDuplicate"], twin.ClientCode);
+            }
+        }
+
+        public bool HasDuplicateWarning => DuplicateCustomerWarning != null;
+
+        /// <summary>Raised when the view should put the boxes back as the server has them.</summary>
+        public event Action DiscardCustomerRequested;
+
+        [RelayCommand]
+        private void DiscardCustomerChanges() => DiscardCustomerRequested?.Invoke();
+
+        public string PatientStateHeader => LocalizationService.Instance["home.PatientState"];
+        public string DiscardChangesLabel => LocalizationService.Instance["home.DiscardPatient"];
+
+        #endregion
+
         #region The first-run tour
 
         private const string TourSeenKey = "HomeTourSeen";
