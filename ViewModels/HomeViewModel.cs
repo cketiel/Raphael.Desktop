@@ -123,6 +123,15 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         public bool IsMapVisible => SelectedTrip != null || IsTripFormOpen || ShowMapOnDemand;
 
+        /// <summary>
+        /// Whether the new-patient button is worth a place in the header row.
+        /// </summary>
+        /// <remarks>
+        /// With a patient already on screen it means nothing, and the row it sits in has no space
+        /// to spare: it was pushing the way out of the trip form off the end.
+        /// </remarks>
+        public bool CanStartNewPatient => SelectedCustomer == null;
+
         [RelayCommand] private void ShowMap() => ShowMapOnDemand = true;
 
         public string ShowMapLabel => LocalizationService.Instance["home.ShowMap"];
@@ -153,7 +162,10 @@ namespace Raphael.Desktop.ViewModels
             if (IsTripFormOpen && !ConfirmDiscardTripChanges()) return false;
 
             SelectedCustomer = customer;
-            SearchText = customer?.FullName;
+
+            _applyingSuggestion = true;
+            try { SearchText = customer?.FullName; }
+            finally { _applyingSuggestion = false; }
 
             // A trip starts at the patient's own address, which is what SaveTrip has always sent.
             // Seeding it here is what makes the read-only Pickup Address box agree with the trip
@@ -1721,7 +1733,8 @@ namespace Raphael.Desktop.ViewModels
             set
             {
                 _selectedCustomer = value; 
-                OnPropertyChanged();              
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanStartNewPatient));
                 if (value != null)
                 {
                     SearchText = value.FullName; // Patch to autocomplete bug.
@@ -1759,6 +1772,9 @@ namespace Raphael.Desktop.ViewModels
             }
         }*/
 
+        /// <summary>True while the box is being filled from a patient the dispatcher just picked.</summary>
+        private bool _applyingSuggestion;
+
         public string SearchText
         {
             get => _searchText;            
@@ -1766,6 +1782,12 @@ namespace Raphael.Desktop.ViewModels
             {
                 _searchText = value;
                 OnPropertyChanged();
+
+                // ⚠️ Choosing a patient puts their name in this box, and re-running the search on
+                // that name rebuilds the suggestion list — which is what reopened the popup over
+                // the form no matter how many times the view closed it.
+                if (_applyingSuggestion) return;
+
                 if (string.IsNullOrEmpty(value))
                 {
                     SelectedCustomer = null; 

@@ -346,10 +346,20 @@
                                                     Margin="5,0,0,0"
                                                 
                                                     ToolTip="{Binding NewCustomerToolTip}"
+                                                    Visibility="{Binding CanStartNewPatient, Converter={StaticResource BoolToVisibility}}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding NewCustomerCommand}" Click="OnNewCustomerClick">
 
                                                 <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="25" Height="25"/>
+                                            </Button>
+
+                                            <!-- The way out of the trip form. -->
+                                            <Button Margin="5,0,0,0"
+                                                    ToolTip="{Binding CloseTripFormToolTip}"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Click="CloseTripForm_Click"
+                                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
+                                                <materialDesign:PackIcon Kind="Close" Width="25" Height="25"/>
                                             </Button>
 
                                             <!-- ⚠️ In the row, not docked to its right edge. A
@@ -372,14 +382,6 @@
                                                 <materialDesign:PackIcon Kind="InformationOutline" Width="25" Height="25"/>
                                             </Button>
 
-                                            <!-- The way out of the trip form. -->
-                                            <Button Margin="5,0,0,0"
-                                                    ToolTip="{Binding CloseTripFormToolTip}"
-                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                                    Click="CloseTripForm_Click"
-                                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
-                                                <materialDesign:PackIcon Kind="Close" Width="25" Height="25"/>
-                                            </Button>
 
                                         </StackPanel>
                                     </Grid>

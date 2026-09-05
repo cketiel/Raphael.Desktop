@@ -927,10 +927,13 @@ namespace Raphael.Desktop.Views
             {              
                 Customer customer = vm.Customers.FirstOrDefault(c => c.Id == int.Parse(e.NewValue.ToString()));
 
-                // The list has done its job. MaterialDesign leaves it open, and setting SearchText
-                // from the chosen patient re-runs the filter, which opens it straight back over
-                // the form underneath.
-                CustomersAutoSuggestBox.IsSuggestionOpen = false;
+                // ⚠️ Closed AFTER everything settles, not before. Closing it here and then
+                // filling the box reopened it: the box's own text change is what raises the
+                // suggestion popup, and it happens after this method returns. Posted at
+                // Background priority so it runs once the bindings are done arguing.
+                Dispatcher.BeginInvoke(
+                    new Action(() => CustomersAutoSuggestBox.IsSuggestionOpen = false),
+                    System.Windows.Threading.DispatcherPriority.Background);
 
                 // MessageBox.Show(a?.FullName + " a.FullName");
                 // Until RE-010 the form appeared only after pressing Save patient, so booking a
