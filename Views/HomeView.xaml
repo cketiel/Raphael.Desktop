@@ -177,27 +177,35 @@
         </Style>
         
         <!-- ===== The map plate =====
-             Drawn at 560x200, which is close to the shape this panel actually is: the map column
-             is two thirds of the width and the top row is 45% of the height, so it lands around
-             2.8:1. The square-ish drawing that was here first was cropped to a strip, and the
-             compass, the clinic and half the pins went with it.
+             ⚠️ 640x200, and the numbers matter. This panel is about 3.2:1 - the map column is two
+             thirds of the width, the top row is 45% of the height - and the brush is UniformToFill,
+             so whatever the drawing does not match in aspect gets CROPPED, not letterboxed. The
+             first version was drawn 4:3 and the second 2.8:1, and both times the bottom of the
+             drawing was cut off with the pickup pin on it.
 
-             The card sits over the middle - roughly a third of the width and two thirds of the
-             height - so everything that MUST be seen is kept out of there on purpose. Compass top
-             left, pickup bottom left, clinic and dropoff on the right, and the route along the
-             bottom and up the outside of the card, where every inch of it is in view.
+             Two rules follow, and everything below obeys them.
+
+             SAFE AREA - x 100..540, y 29..171. That rectangle survives panel ratios from 2.2:1 to
+             4.5:1, which is as narrow and as wide as the splitter can reasonably make this. Every
+             pin, the compass, the clinic and the whole route live inside it. Blocks, water and the
+             island are outside it on purpose: they are texture, and losing an edge of them costs
+             nothing.
+
+             CARD FOOTPRINT - about x 253..387, y 52..148 at the sizes the card is set to. Nothing
+             that has to be read goes there. Compass and roundabout to its left, pickup and the
+             route below it, clinic and dropoff to its right.
 
              The base is a brush; the route and the pins are real elements on a Canvas over it, so
              they can carry tooltips and an animation. A brush can do neither. -->
         <DrawingBrush x:Key="MapPlateBrush" Stretch="Fill"
-                      Viewbox="0,0,560,200" ViewboxUnits="Absolute">
+                      Viewbox="0,0,640,200" ViewboxUnits="Absolute">
             <DrawingBrush.Drawing>
                 <DrawingGroup>
 
                     <!-- Land. -->
                     <GeometryDrawing Brush="#FFF4EFE4">
                         <GeometryDrawing.Geometry>
-                            <RectangleGeometry Rect="0,0,560,200" />
+                            <RectangleGeometry Rect="0,0,640,200" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
@@ -208,14 +216,14 @@
                             <Pen Brush="#FF7FB8D4" Thickness="1.6" />
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M505,0 C512,34 498,62 504,90 C510,118 496,148 502,176 C505,190 504,196 503,200 L560,200 L560,0 Z" />
+                            <PathGeometry Figures="M580,0 C587,34 573,62 579,90 C585,118 571,148 577,176 C580,190 579,196 578,200 L640,200 L640,0 Z" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
                     <!-- An island out in the bay, which is what this city looks like from above. -->
                     <GeometryDrawing Brush="#FFF4EFE4">
                         <GeometryDrawing.Geometry>
-                            <RectangleGeometry Rect="518,76,34,28" RadiusX="8" RadiusY="8" />
+                            <RectangleGeometry Rect="596,100,36,28" RadiusX="8" RadiusY="8" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
@@ -223,9 +231,9 @@
                     <GeometryDrawing Brush="#FFC7E3B4">
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <RectangleGeometry Rect="12,96,46,28" RadiusX="6" RadiusY="6" />
-                                <RectangleGeometry Rect="378,136,58,32" RadiusX="6" RadiusY="6" />
-                                <RectangleGeometry Rect="526,82,18,14" RadiusX="4" RadiusY="4" />
+                                <RectangleGeometry Rect="104,98,58,30" RadiusX="6" RadiusY="6" />
+                                <RectangleGeometry Rect="394,122,44,28" RadiusX="6" RadiusY="6" />
+                                <RectangleGeometry Rect="604,106,20,16" RadiusX="4" RadiusY="4" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -234,22 +242,22 @@
                     <GeometryDrawing Brush="#FFE9E2D4">
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                            <RectangleGeometry Rect="78,6,60,24" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="168,6,70,24" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="262,6,68,24" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="356,6,44,24" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="460,6,38,24" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="14,46,38,36" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="168,46,70,36" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="262,46,68,36" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="356,46,40,36" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="78,98,62,30" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="168,98,70,30" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="262,98,68,30" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="356,98,40,30" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="78,140,60,30" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="168,140,70,30" RadiusX="2" RadiusY="2" />
-                            <RectangleGeometry Rect="262,140,68,30" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="16,4,72,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,4,98,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,4,58,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="406,4,48,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="490,4,58,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="16,38,72,42" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,38,98,42" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,38,58,42" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,98,98,44" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,98,58,44" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="16,166,72,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="110,166,44,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,166,98,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,166,58,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="406,166,48,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="490,166,58,28" RadiusX="2" RadiusY="2" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -257,7 +265,7 @@
                     <!-- The clinic the route ends at. -->
                     <GeometryDrawing Brush="#FFF6DEDE">
                         <GeometryDrawing.Geometry>
-                            <RectangleGeometry Rect="404,52,84,58" RadiusX="3" RadiusY="3" />
+                            <RectangleGeometry Rect="428,50,84,58" RadiusX="3" RadiusY="3" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
@@ -269,13 +277,15 @@
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <LineGeometry StartPoint="0,36"  EndPoint="502,36" />
-                                <LineGeometry StartPoint="0,90"  EndPoint="500,90" />
-                                <LineGeometry StartPoint="0,178" EndPoint="502,178" />
-                                <LineGeometry StartPoint="60,0"  EndPoint="60,200" />
-                                <LineGeometry StartPoint="250,0" EndPoint="250,200" />
-                                <LineGeometry StartPoint="340,0" EndPoint="340,200" />
-                                <LineGeometry StartPoint="446,0" EndPoint="446,200" />
+                                <LineGeometry StartPoint="0,30"  EndPoint="578,30" />
+                                <LineGeometry StartPoint="0,88"  EndPoint="574,88" />
+                                <LineGeometry StartPoint="0,158" EndPoint="576,158" />
+                                <LineGeometry StartPoint="100,0" EndPoint="100,200" />
+                                <LineGeometry StartPoint="170,0" EndPoint="170,200" />
+                                <LineGeometry StartPoint="300,0" EndPoint="300,200" />
+                                <LineGeometry StartPoint="390,0" EndPoint="390,200" />
+                                <LineGeometry StartPoint="470,0" EndPoint="470,200" />
+                                <LineGeometry StartPoint="560,0" EndPoint="560,200" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -286,13 +296,15 @@
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <LineGeometry StartPoint="0,36"  EndPoint="502,36" />
-                                <LineGeometry StartPoint="0,90"  EndPoint="500,90" />
-                                <LineGeometry StartPoint="0,178" EndPoint="502,178" />
-                                <LineGeometry StartPoint="60,0"  EndPoint="60,200" />
-                                <LineGeometry StartPoint="250,0" EndPoint="250,200" />
-                                <LineGeometry StartPoint="340,0" EndPoint="340,200" />
-                                <LineGeometry StartPoint="446,0" EndPoint="446,200" />
+                                <LineGeometry StartPoint="0,30"  EndPoint="578,30" />
+                                <LineGeometry StartPoint="0,88"  EndPoint="574,88" />
+                                <LineGeometry StartPoint="0,158" EndPoint="576,158" />
+                                <LineGeometry StartPoint="100,0" EndPoint="100,200" />
+                                <LineGeometry StartPoint="170,0" EndPoint="170,200" />
+                                <LineGeometry StartPoint="300,0" EndPoint="300,200" />
+                                <LineGeometry StartPoint="390,0" EndPoint="390,200" />
+                                <LineGeometry StartPoint="470,0" EndPoint="470,200" />
+                                <LineGeometry StartPoint="560,0" EndPoint="560,200" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -305,9 +317,9 @@
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <LineGeometry StartPoint="0,134" EndPoint="500,134" />
-                                <LineGeometry StartPoint="150,0" EndPoint="150,200" />
-                                <LineGeometry StartPoint="505,112" EndPoint="560,108" />
+                                <LineGeometry StartPoint="0,112" EndPoint="576,112" />
+                                <LineGeometry StartPoint="210,0" EndPoint="210,200" />
+                                <LineGeometry StartPoint="580,140" EndPoint="640,136" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -318,21 +330,21 @@
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <LineGeometry StartPoint="0,134" EndPoint="500,134" />
-                                <LineGeometry StartPoint="150,0" EndPoint="150,200" />
-                                <LineGeometry StartPoint="505,112" EndPoint="560,108" />
+                                <LineGeometry StartPoint="0,112" EndPoint="576,112" />
+                                <LineGeometry StartPoint="210,0" EndPoint="210,200" />
+                                <LineGeometry StartPoint="580,140" EndPoint="640,136" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
-                    <!-- The roundabout where the two arterials meet. Placed left of centre on
-                         purpose: dead centre it would have been under the card. -->
+                    <!-- The roundabout where the two arterials meet. Left of centre on purpose:
+                         dead centre it would sit under the card. -->
                     <GeometryDrawing>
                         <GeometryDrawing.Pen>
                             <Pen Brush="#FFE0BE63" Thickness="13" />
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="150,134" RadiusX="15" RadiusY="15" />
+                            <EllipseGeometry Center="210,112" RadiusX="15" RadiusY="15" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
@@ -341,7 +353,7 @@
                             <Pen Brush="#FFFBDD8A" Thickness="10" />
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="150,134" RadiusX="15" RadiusY="15" />
+                            <EllipseGeometry Center="210,112" RadiusX="15" RadiusY="15" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
@@ -352,15 +364,15 @@
                             <Pen Brush="#FFD9534F" Thickness="2" />
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="420,70" RadiusX="12" RadiusY="12" />
+                            <EllipseGeometry Center="444,68" RadiusX="12" RadiusY="12" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
                     <GeometryDrawing Brush="#FFD9534F">
                         <GeometryDrawing.Geometry>
                             <GeometryGroup>
-                                <RectangleGeometry Rect="412.5,67.5,15,5" RadiusX="1.2" RadiusY="1.2" />
-                                <RectangleGeometry Rect="417.5,62.5,5,15" RadiusX="1.2" RadiusY="1.2" />
+                                <RectangleGeometry Rect="436.5,65.5,15,5" RadiusX="1.2" RadiusY="1.2" />
+                                <RectangleGeometry Rect="441.5,60.5,5,15" RadiusX="1.2" RadiusY="1.2" />
                             </GeometryGroup>
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
@@ -371,19 +383,19 @@
                             <Pen Brush="#FFD8D0BE" Thickness="1.5" />
                         </GeometryDrawing.Pen>
                         <GeometryDrawing.Geometry>
-                            <EllipseGeometry Center="34,20" RadiusX="14" RadiusY="14" />
+                            <EllipseGeometry Center="140,50" RadiusX="14" RadiusY="14" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
                     <GeometryDrawing Brush="#FFD9534F">
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M34,9 L39,20 L34,17.4 L29,20 Z" />
+                            <PathGeometry Figures="M140,39 L145,50 L140,47.4 L135,50 Z" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
                     <GeometryDrawing Brush="#FFB9B0A0">
                         <GeometryDrawing.Geometry>
-                            <PathGeometry Figures="M34,31 L29,20 L34,22.6 L39,20 Z" />
+                            <PathGeometry Figures="M140,61 L135,50 L140,52.6 L145,50 Z" />
                         </GeometryDrawing.Geometry>
                     </GeometryDrawing>
 
@@ -1725,21 +1737,21 @@
                         <Border Background="#FFF4EFE4" />
 
                         <Viewbox Stretch="UniformToFill">
-                            <Canvas Width="560" Height="200">
+                            <Canvas Width="640" Height="200">
 
-                                <Rectangle Width="560" Height="200" Fill="{StaticResource MapPlateBrush}" />
+                                <Rectangle Width="640" Height="200" Fill="{StaticResource MapPlateBrush}" />
 
                                 <!-- The route, cased the way the live map cases it. -->
-                                <Path Data="M60,178 L446,178 L446,90" Stroke="#FF4527A0" StrokeThickness="8.5"
+                                <Path Data="M170,158 L470,158 L470,88" Stroke="#FF4527A0" StrokeThickness="8.5"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
 
-                                <Path Data="M60,178 L446,178 L446,90" Stroke="#FF7E57C2" StrokeThickness="5.5"
+                                <Path Data="M170,158 L470,158 L470,88" Stroke="#FF7E57C2" StrokeThickness="5.5"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       ToolTip="{Binding MapRouteHelp}" />
 
                                 <!-- Chevrons that stay put, so the direction is readable in a
                                      screenshot and by anyone the animation does not reach. -->
-                                <Path Data="M196,172 L204,178 L196,184 M320,172 L328,178 L320,184 M440,126 L446,119 L452,126"
+                                <Path Data="M252,152 L260,158 L252,164 M382,152 L390,158 L382,164 M464,120 L470,113 L476,120"
                                       Stroke="#FFFFFFFF" StrokeThickness="2.2"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
 
@@ -1765,7 +1777,7 @@
                                                                     DoesRotateWithTangent="True"
                                                                     Duration="0:0:4.5" RepeatBehavior="Forever">
                                                                     <MatrixAnimationUsingPath.PathGeometry>
-                                                                        <PathGeometry Figures="M60,178 L446,178 L446,90" />
+                                                                        <PathGeometry Figures="M170,158 L470,158 L470,88" />
                                                                     </MatrixAnimationUsingPath.PathGeometry>
                                                                 </MatrixAnimationUsingPath>
                                                             </Storyboard>
@@ -1781,13 +1793,13 @@
                                 </Path>
 
                                 <!-- Pickup: red, where the patient waits. -->
-                                <Ellipse Canvas.Left="53" Canvas.Top="171" Width="14" Height="14"
+                                <Ellipse Canvas.Left="163" Canvas.Top="151" Width="14" Height="14"
                                          Fill="#FFD32F2F" Stroke="#FFFFFFFF" StrokeThickness="3"
                                          ToolTip="{Binding MapPickupHelp}" Cursor="Hand" />
 
                                 <!-- Dropoff: blue, the same teardrop as the live map, tip down on
                                      the clinic. -->
-                                <Path Data="M446,60 C440.2,60 435.5,64.7 435.5,70.5 C435.5,78.4 446,90 446,90 C446,90 456.5,78.4 456.5,70.5 C456.5,64.7 451.8,60 446,60 Z M446,74.3 A3.75,3.75 0 1 1 446,66.8 A3.75,3.75 0 0 1 446,74.3 Z"
+                                <Path Data="M470,58 C464.2,58 459.5,62.7 459.5,68.5 C459.5,76.4 470,88 470,88 C470,88 480.5,76.4 480.5,68.5 C480.5,62.7 475.8,58 470,58 Z M470,72.3 A3.75,3.75 0 1 1 470,64.8 A3.75,3.75 0 0 1 470,72.3 Z"
                                       Fill="#FF1565C0" Stroke="#FFFFFFFF" StrokeThickness="1.8"
                                       ToolTip="{Binding MapDropoffHelp}" Cursor="Hand" />
                             </Canvas>

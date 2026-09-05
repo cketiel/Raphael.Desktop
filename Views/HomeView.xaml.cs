@@ -121,7 +121,21 @@ namespace Raphael.Desktop.Views
         private void HomeView_Unloaded(object sender, RoutedEventArgs e)
             => LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
 
-        private void OnLanguageChanged() => ViewModel.RefreshLocalizedText();
+        private void OnLanguageChanged()
+        {
+            ViewModel.RefreshLocalizedText();
+
+            // The map's own labels, controls and error text come from Google, and the Maps script
+            // fixes its language at the moment it is fetched. There is no API for changing it
+            // afterwards, so the only way to make the map follow the setting is to load the page
+            // again.
+            //
+            // WARNING: that reload is one Dynamic Map, billed. LoadMap is guarded on IsMapVisible,
+            // so with no map on screen this costs nothing - which is the usual case, because the
+            // map is not loaded until a trip is selected. With one on screen it costs exactly one
+            // map load, and switching language is not something anyone does twice an hour.
+            LoadMap();
+        }
 
         private async void InitializeData()
         {

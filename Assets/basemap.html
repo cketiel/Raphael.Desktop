@@ -100,8 +100,12 @@
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 5,
+                mapTypeId: RaphaelMaps.mapTypeId(),
                 center: { lat: originLat, lng: originLng }
             });
+
+            // Whatever the dispatcher switches to here is what the next map opens on.
+            RaphaelMaps.rememberMapType(map);
 
             // The shared module draws the route onto whichever map the page put here.
             window.__raphaelMap = map;

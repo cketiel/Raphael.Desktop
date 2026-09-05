@@ -44,6 +44,42 @@
         return query.get(name) === '1';
     }
 
+    /** Reads a query-string string, e.g. the language the host is running in. */
+    function text(name, fallback) {
+        var raw = query.get(name);
+
+        return raw === null || raw === '' ? fallback : raw;
+    }
+
+    /**
+     * The map type the dispatcher last left this application on.
+     *
+     * Google's own control writes four values and two of them are the labels switch: `satellite`
+     * is imagery alone and `hybrid` is imagery with street names on it. So keeping the map type
+     * keeps the labels choice too - there is nothing else to store.
+     *
+     * It arrives on the query string rather than in the injected configuration because the
+     * injection happens once per WebView2, at start-up, and this changes while the application is
+     * running. The host puts the current value on every navigation.
+     */
+    function mapTypeId() {
+        return text('maptype', 'roadmap');
+    }
+
+    /**
+     * Tells the host when the dispatcher picks a different map type, so the next map opens on it.
+     *
+     * Without this every map opened on roadmap: a `google.maps.Map` is built fresh for each trip,
+     * and a fresh map knows nothing about the one before it.
+     */
+    function rememberMapType(map) {
+        if (!map) return;
+
+        map.addListener('maptypeid_changed', function () {
+            post({ type: 'maptype', mapTypeId: map.getMapTypeId() });
+        });
+    }
+
     /** Posts to the WPF host. Silent when the page is opened outside WebView2. */
     function post(message) {
         if (window.chrome && window.chrome.webview) {
@@ -94,10 +130,14 @@
 
             var script = document.createElement('script');
 
+            // ⚠️ The language is fixed at the moment this script is fetched. There is no
+            // API for changing it afterwards, which is why switching the application's language
+            // has to reload the page - and why that reload costs one Dynamic Map.
             script.src = 'https://maps.googleapis.com/maps/api/js'
                 + '?key=' + encodeURIComponent(config.apiKey)
                 + '&v=weekly'
                 + '&libraries=places,geometry'
+                + '&language=' + encodeURIComponent(text('lang', 'en'))
                 + '&callback=' + callbackName;
 
             script.async = true;
@@ -696,6 +736,9 @@
         ready: ready,
         num: num,
         flag: flag,
+        text: text,
+        mapTypeId: mapTypeId,
+        rememberMapType: rememberMapType,
         post: post,
         ask: ask,
         resolve: resolve,

@@ -41,6 +41,33 @@ namespace Raphael.Desktop.Services.Maps
         /// <summary>The origin the map pages are served from, and the referrer to restrict to.</summary>
         public const string VirtualHostName = "raphael.maps";
 
+        private const string MapTypeKey = "map-type";
+
+        private static readonly UserConfigService Preferences = new();
+
+        /// <summary>
+        /// The map type the dispatcher last chose, on any map in the application.
+        /// </summary>
+        /// <remarks>
+        /// Every map is a brand new <c>google.maps.Map</c> - one per trip opened - and a new map
+        /// knows nothing about the one before it, so without this each one opened on roadmap and
+        /// the choice had to be made again. Google's four values carry the labels switch as well:
+        /// <c>satellite</c> is imagery alone, <c>hybrid</c> is imagery with street names, so
+        /// keeping the type keeps both halves of the choice.
+        ///
+        /// It is a per-user preference, not a setting: it follows the last thing they did rather
+        /// than something they have to go and configure.
+        /// </remarks>
+        public static string MapTypeId
+        {
+            get
+            {
+                var saved = Preferences.Load<string>(MapTypeKey);
+
+                return string.IsNullOrWhiteSpace(saved) ? "roadmap" : saved;
+            }
+        }
+
         /// <summary>Folder served under that host. The map pages and their script live here.</summary>
         public static string AssetsRoot =>
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
@@ -79,6 +106,40 @@ namespace Raphael.Desktop.Services.Maps
 
             await core.AddScriptToExecuteOnDocumentCreatedAsync(
                 "window.RAPHAEL_MAPS = " + JsonSerializer.Serialize(config, Json) + ";");
+
+            // Every map page reports its own type changes, so this is subscribed here once rather
+            // than in each of the three views that host a map. Adding a second handler to the same
+            // event is harmless; the views keep their own for the messages they care about.
+            core.WebMessageReceived += (_, args) => TryRememberMapType(args.WebMessageAsJson);
+        }
+
+        /// <summary>
+        /// Keeps the map type a page reports, if that is what this message is.
+        /// </summary>
+        public static bool TryRememberMapType(string json)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+
+                if (!document.RootElement.TryGetProperty("type", out var type)
+                    || type.GetString() != "maptype")
+                {
+                    return false;
+                }
+
+                if (!document.RootElement.TryGetProperty("mapTypeId", out var chosen)) return true;
+
+                var value = chosen.GetString();
+
+                if (!string.IsNullOrWhiteSpace(value)) Preferences.Save(MapTypeKey, value);
+
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
 
         /// <summary>Opens a map page, passing its coordinates in the query string.</summary>
@@ -104,6 +165,19 @@ namespace Raphael.Desktop.Services.Maps
 
                 first = false;
             }
+
+            // The two things that are decided outside the page and change while the application
+            // runs. They travel on the query string rather than in the configuration injected at
+            // start-up, because that injection happens once per WebView2 and these do not.
+            //
+            // The language is the one the user picked in settings: Google's own labels, controls
+            // and error text follow it. It is fixed when the Maps script is fetched, so a page
+            // already open keeps the language it loaded with until it is navigated again.
+            url.Append(first ? '?' : '&')
+               .Append("lang=")
+               .Append(Uri.EscapeDataString(LocalizationService.Instance.CurrentLanguage ?? "en"))
+               .Append("&maptype=")
+               .Append(Uri.EscapeDataString(MapTypeId));
 
             // ⚠️ Every line of this is a map Google will bill for. Dynamic Maps is charged per
             // map created, and each of these navigations creates one. It is logged because the
