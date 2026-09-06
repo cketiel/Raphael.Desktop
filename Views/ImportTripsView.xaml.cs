@@ -1,11 +1,9 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using Microsoft.Win32;
-using Raphael.Desktop.Models.Import;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.ViewModels;
 
@@ -37,8 +35,6 @@ namespace Raphael.Desktop.Views
 
             DataContext = model;
             model.PropertyChanged += OnViewModelChanged;
-
-            PaintStepper(model.Step);
         }
 
         // ------------------------------------------------------------------ language
@@ -60,36 +56,10 @@ namespace Raphael.Desktop.Views
 
         private void OnViewModelChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName is nameof(ImportTripsViewModel.Step) or "")
-            {
-                PaintStepper(ViewModel?.Step ?? ImportStep.Prepare);
-            }
-
             if (e.PropertyName == nameof(ImportTripsViewModel.Log))
             {
                 ScrollLogToEnd();
             }
-        }
-
-        /// <summary>
-        /// Fills the chip for the step we are on.
-        /// </summary>
-        /// <remarks>
-        /// In code rather than in three style triggers because the chips are siblings and the
-        /// rule is about which ONE is on — expressing that in XAML means the same comparison
-        /// written out three times, and the fourth step somebody adds one day will be the one they
-        /// forget to write.
-        /// </remarks>
-        private void PaintStepper(ImportStep step)
-        {
-            if (Step1Chip == null) return;
-
-            var on = (Style)FindResource("StepChipOn");
-            var off = (Style)FindResource("StepChip");
-
-            Step1Chip.Style = step == ImportStep.Prepare ? on : off;
-            Step2Chip.Style = step == ImportStep.Running ? on : off;
-            Step3Chip.Style = step == ImportStep.Review ? on : off;
         }
 
         /// <summary>Keeps the newest line of the running account in view.</summary>

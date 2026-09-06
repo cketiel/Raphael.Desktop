@@ -33,6 +33,26 @@ namespace Raphael.Desktop.Services
         public string? Message { get; set; }
 
         public Models.Import.ImportSeverity Severity { get; set; } = Models.Import.ImportSeverity.Info;
+
+        // ---- one request's own bar --------------------------------------------------------
+        //
+        // Declared up front with the work it holds, so the overall figure is the sum of them and
+        // never resets. The single bar this replaced ran 0 to 100 for geocoding and then 0 to 100
+        // again for the trips: on a file costing three requests it reached the end twice.
+
+        /// <summary>Identity of the request being reported. Null when this is not about one.</summary>
+        public string? StepKey { get; set; }
+
+        public string? StepLabel { get; set; }
+
+        public int StepTotal { get; set; }
+
+        public int StepCompleted { get; set; }
+
+        public Models.Import.ImportStepState? StepState { get; set; }
+
+        /// <summary>What the request came to, once it has.</summary>
+        public string? StepSummary { get; set; }
     }
 
     /// <summary>One row as it ended up: what was sent, and what the server said about it.</summary>
@@ -221,9 +241,17 @@ namespace Raphael.Desktop.Services
             Say(progress, "Reading", ImportSeverity.Info,
                 string.Format(Text("import.log.FileRead"), records.Count));
 
+            // ⚠️ Every request is declared BEFORE the first one is sent, and that is the whole
+            // point. Declaring them as they come round meant the denominator grew mid-run: the
+            // geocoding bar reached 100%, the batches were then announced, and the overall figure
+            // fell back to 57%. A percentage that goes backwards is worse than no percentage.
+            var addresses = DistinctAddresses(records, isSaferide);
+
+            DeclareRequests(progress, addresses.Count, records.Count);
+
             // 1. Every address in the file, resolved in one or two requests.
             var coordinates = await ResolveCoordinatesAsync(
-                records, isSaferide, outcome, progress, cancellationToken);
+                addresses, outcome, progress, cancellationToken);
 
             // 2. Map in memory. A row that cannot be mapped is reported here and never sent.
             var items = new List<TripImportItemDto>(records.Count);
@@ -298,19 +326,26 @@ namespace Raphael.Desktop.Services
         /// nearly every row, so eight hundred addresses are usually two or three hundred
         /// lookups, and the server has most of them cached already.
         /// </remarks>
-        private async Task<Dictionary<string, Coordinates>> ResolveCoordinatesAsync(
-            List<CsvTripRawModel> records,
-            bool isSaferide,
-            TripImportOutcome outcome,
-            IProgress<TripImportProgress> progress,
-            CancellationToken cancellationToken)
+        /// <summary>
+        /// Every distinct address in the file, or none when the file carries its own coordinates.
+        /// </summary>
+        /// <remarks>
+        /// Distinct is what makes the saving: a day's file names the same dozen clinics on nearly
+        /// every row, so eight hundred addresses are usually two or three hundred lookups, and the
+        /// server has most of them cached already.
+        ///
+        /// <para>
+        /// Split out of the pass below so the count is known before anything runs, which is what
+        /// lets the geocoding request be declared alongside the batches instead of after them.
+        /// </para>
+        /// </remarks>
+        private static List<string> DistinctAddresses(List<CsvTripRawModel> records, bool isSaferide)
         {
-            var resolved = new Dictionary<string, Coordinates>(StringComparer.Ordinal);
+            var addresses = new List<string>();
 
             // Ride2md and its like carry their own coordinates. Asking would be paying twice.
-            if (!isSaferide) return resolved;
+            if (!isSaferide) return addresses;
 
-            var addresses = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var record in records)
@@ -328,8 +363,24 @@ namespace Raphael.Desktop.Services
                 }
             }
 
+            return addresses;
+        }
+
+        private async Task<Dictionary<string, Coordinates>> ResolveCoordinatesAsync(
+            List<string> addresses,
+            TripImportOutcome outcome,
+            IProgress<TripImportProgress> progress,
+            CancellationToken cancellationToken)
+        {
+            var resolved = new Dictionary<string, Coordinates>(StringComparer.Ordinal);
+
+            if (addresses.Count == 0) return resolved;
+
             Say(progress, "Geocoding", ImportSeverity.Info,
                 string.Format(Text("import.log.GeocodeStart"), addresses.Count));
+
+            Step(progress, GeocodeStepKey, Text("import.step.Geocode"),
+                 addresses.Count, 0, ImportStepState.Running);
 
             var done = 0;
             var unresolved = 0;
@@ -355,12 +406,8 @@ namespace Raphael.Desktop.Services
 
                 done += chunk.Count;
 
-                progress?.Report(new TripImportProgress
-                {
-                    Stage = "Geocoding",
-                    Completed = done,
-                    Total = addresses.Count
-                });
+                Step(progress, GeocodeStepKey, Text("import.step.Geocode"),
+                     addresses.Count, done, ImportStepState.Running);
             }
 
             foreach (var address in addresses)
@@ -376,6 +423,10 @@ namespace Raphael.Desktop.Services
             Say(progress, "Geocoding",
                 unresolved == 0 ? ImportSeverity.Success : ImportSeverity.Warning,
                 string.Format(Text("import.log.GeocodeDone"), resolved.Count, addresses.Count, unresolved));
+
+            Step(progress, GeocodeStepKey, Text("import.step.Geocode"),
+                 addresses.Count, addresses.Count, ImportStepState.Done,
+                 string.Format(Text("import.step.GeocodeSummary"), resolved.Count, unresolved));
 
             return resolved;
         }
@@ -420,6 +471,10 @@ namespace Raphael.Desktop.Services
                 Say(progress, "Sending", ImportSeverity.Info,
                     string.Format(Text("import.log.ChunkSending"), chunkNumber, chunkTotal, count));
 
+                Step(progress, ChunkStepKey(chunkNumber),
+                     string.Format(Text("import.step.Batch"), chunkNumber, chunkTotal),
+                     count, 0, ImportStepState.Running);
+
                 try
                 {
                     result = await PostChunkAsync(request, outcome, progress, cancellationToken);
@@ -438,6 +493,10 @@ namespace Raphael.Desktop.Services
                     // that are already in the system.
                     Say(progress, "Sending", ImportSeverity.Error,
                         string.Format(Text("import.log.Aborted"), ex.Message));
+
+                    Step(progress, ChunkStepKey(chunkNumber),
+                         string.Format(Text("import.step.Batch"), chunkNumber, chunkTotal),
+                         count, 0, ImportStepState.Failed, Text("import.step.BatchFailed"));
 
                     for (var i = offset; i < items.Count; i++)
                     {
@@ -489,12 +548,21 @@ namespace Raphael.Desktop.Services
                 progress?.Report(new TripImportProgress
                 {
                     Stage = "Importing",
-                    Completed = sent,
-                    Total = items.Count,
                     Severity = result.FailedCount == 0 ? ImportSeverity.Success : ImportSeverity.Warning,
                     Message = string.Format(
                         Text("import.log.ChunkDone"),
                         chunkNumber,
+                        result.CreatedCount,
+                        result.UpdatedCount,
+                        result.FailedCount),
+
+                    StepKey = ChunkStepKey(chunkNumber),
+                    StepLabel = string.Format(Text("import.step.Batch"), chunkNumber, chunkTotal),
+                    StepTotal = count,
+                    StepCompleted = count,
+                    StepState = ImportStepState.Done,
+                    StepSummary = string.Format(
+                        Text("import.step.BatchSummary"),
                         result.CreatedCount,
                         result.UpdatedCount,
                         result.FailedCount)
@@ -691,11 +759,11 @@ namespace Raphael.Desktop.Services
                 var item = items[i];
                 var row = rowsBySentIndex[i];
 
-                var code = FirstProblemWith(item);
+                var code = ImportPreflight.FirstProblemWith(item);
 
                 if (code == null)
                 {
-                    if (!HasCoordinates(item))
+                    if (!ImportPreflight.HasCoordinates(item))
                     {
                         row.LocalCode = ImportLocalCode.NoCoordinates;
                         outcome.Warnings.Add(row);
@@ -730,42 +798,64 @@ namespace Raphael.Desktop.Services
                 string.Format(Text("import.log.PreflightDone"), items.Count, blocked));
         }
 
-        /// <summary>The first rule this row breaks, or null when it breaks none of them.</summary>
-        private static string FirstProblemWith(TripImportItemDto item)
+        private static string Text(string key) => LocalizationService.Instance[key];
+
+        /// <summary>Names of the requests, so a later report finds the bar it belongs to.</summary>
+        private const string GeocodeStepKey = "geocode";
+
+        private static string ChunkStepKey(int number) => "chunk:" + number;
+
+        /// <summary>
+        /// Announces every request this import will make, before it makes any of them.
+        /// </summary>
+        /// <remarks>
+        /// The batch count is worked out from the rows read, not from the rows that survive the
+        /// preflight, so it can only ever be the same or smaller by the time they are sent. A
+        /// denominator that shrinks makes the percentage jump forward, which is untidy; one that
+        /// grows makes it go backwards, which is a bug.
+        /// </remarks>
+        private static void DeclareRequests(
+            IProgress<TripImportProgress> progress, int addressCount, int rowCount)
         {
-            if (string.IsNullOrWhiteSpace(item.TripId)) return ImportLocalCode.NoTripId;
-
-            if (item.Date == default) return ImportLocalCode.NoDate;
-
-            // The server's rule: a rider id identifies the patient on its own; without one the
-            // match is name plus phone, and a name on its own would merge two people who share it.
-            if (string.IsNullOrWhiteSpace(item.RiderId)
-                && (string.IsNullOrWhiteSpace(item.CustomerFullName)
-                    || string.IsNullOrWhiteSpace(item.CustomerPhone)))
+            if (addressCount > 0)
             {
-                return ImportLocalCode.NoPatientIdentity;
+                Step(progress, GeocodeStepKey, Text("import.step.Geocode"),
+                     addressCount, 0, ImportStepState.Waiting);
             }
 
-            if (string.IsNullOrWhiteSpace(item.PickupAddress)
-                || string.IsNullOrWhiteSpace(item.DropoffAddress))
-            {
-                return ImportLocalCode.NoAddress;
-            }
+            var batches = (rowCount + ChunkSize - 1) / ChunkSize;
 
-            if (item.PickupAddress.Length > ImportProblemCatalog.MaxAddressLength
-                || item.DropoffAddress.Length > ImportProblemCatalog.MaxAddressLength)
+            for (var n = 1; n <= batches; n++)
             {
-                return ImportLocalCode.AddressTooLong;
-            }
+                var rows = Math.Min(ChunkSize, rowCount - ((n - 1) * ChunkSize));
 
-            return null;
+                Step(progress, ChunkStepKey(n),
+                     string.Format(Text("import.step.Batch"), n, batches),
+                     rows, 0, ImportStepState.Waiting);
+            }
         }
 
-        private static bool HasCoordinates(TripImportItemDto item) =>
-            item.PickupLatitude != 0 && item.PickupLongitude != 0
-            && item.DropoffLatitude != 0 && item.DropoffLongitude != 0;
-
-        private static string Text(string key) => LocalizationService.Instance[key];
+        /// <summary>Declares or updates one request's own bar.</summary>
+        private static void Step(
+            IProgress<TripImportProgress> progress,
+            string key,
+            string label,
+            int total,
+            int completed,
+            ImportStepState state,
+            string summary = null)
+        {
+            progress?.Report(new TripImportProgress
+            {
+                Stage = "Step",
+                StepKey = key,
+                StepLabel = label,
+                StepTotal = total,
+                StepCompleted = completed,
+                StepState = state,
+                StepSummary = summary
+            });
+        }
 
         /// <summary>
         /// Puts one line in the detail panel without disturbing the bar.

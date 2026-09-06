@@ -78,7 +78,19 @@ namespace Raphael.Desktop.ViewModels
             RowsView.Filter = MatchesFilter;
 
             Log = new ObservableCollection<ImportLogEntry>();
+            Steps = new ObservableCollection<ImportRequestStep>();
+            PreflightRows = new ObservableCollection<ImportRow>();
         }
+
+        /// <summary>
+        /// One bar per request the import makes, plus the overall figure they add up to.
+        /// </summary>
+        /// <remarks>
+        /// Declared before the first request is sent, so the overall percentage only ever goes
+        /// forward. The single bar this replaced ran 0 to 100 for the addresses and then 0 to 100
+        /// again for the trips: on a file costing three requests it reached the end twice.
+        /// </remarks>
+        public ObservableCollection<ImportRequestStep> Steps { get; }
 
         // ================================================================ where we are
 
@@ -186,6 +198,8 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 DateRangeText = DescribeDates(_records);
+
+                await CheckBeforeImportingAsync();
             }
             catch (Exception ex)
             {
@@ -196,6 +210,93 @@ namespace Raphael.Desktop.ViewModels
                 ReviewChoice();
             }
         }
+
+        /// <summary>
+        /// The rows this application can already see will be refused, found on opening the file.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is the part that was missing, and the omission made the whole idea useless. The
+        /// engine held these rows back correctly, but it did so <b>after</b> the dispatcher had
+        /// pressed Import — so the promise of "you will be told before anything is sent" was true
+        /// of the requests and false of the person. Now the file is checked the moment it is
+        /// opened, on the same rules, and the warning is on screen before there is anything to
+        /// press.
+        ///
+        /// <para>
+        /// It costs no request. Mapping is pure, and the four rules it checks — an identifier, a
+        /// date, a way of telling the patient apart, two addresses — need no coordinates, so the
+        /// empty dictionary below is not a shortcut: geocoding simply has nothing to say about
+        /// any of them.
+        /// </para>
+        /// </remarks>
+        private async Task CheckBeforeImportingAsync()
+        {
+            PreflightRows.Clear();
+
+            if (_records.Count == 0) return;
+
+            var mapper = BuildMapper();
+            var empty = new Dictionary<string, Coordinates>();
+            var found = new List<ImportRow>();
+
+            await Task.Run(() =>
+            {
+                for (var index = 0; index < _records.Count; index++)
+                {
+                    TripImportItemDto item;
+
+                    try
+                    {
+                        item = mapper.MapToImportItem(_records[index], _fileIsSaferide, _csvType, empty);
+                    }
+                    catch (Exception ex)
+                    {
+                        found.Add(new ImportRow(
+                            index,
+                            new TripImportItemDto { TripId = _records[index].RideId ?? string.Empty },
+                            ImportLocalCode.MappingFailed,
+                            ex.Message));
+
+                        continue;
+                    }
+
+                    var code = ImportPreflight.FirstProblemWith(item);
+
+                    if (code != null) found.Add(new ImportRow(index, item, code));
+                }
+            });
+
+            foreach (var row in found) PreflightRows.Add(row);
+
+            OnPropertyChanged(nameof(HasPreflightFindings));
+            OnPropertyChanged(nameof(PreflightSummary));
+        }
+
+        /// <summary>
+        /// Rows that will not be sent, known before the import runs.
+        /// </summary>
+        public ObservableCollection<ImportRow> PreflightRows { get; }
+
+        public bool HasPreflightFindings => PreflightRows.Count > 0;
+
+        public string PreflightSummary =>
+            PreflightRows.Count == 0
+                ? null
+                : string.Format(
+                    Text("import.preflight.Summary"),
+                    PreflightRows.Count,
+                    FileRowCount - PreflightRows.Count);
+
+        /// <summary>
+        /// The mapper, built with the collections Home has already loaded.
+        /// </summary>
+        /// <remarks>
+        /// On this path it is used for its pure mapping only: it makes no call of its own.
+        /// </remarks>
+        private CsvTripMapper BuildMapper() => new CsvTripMapper(
+            _home.Trips, _home.SpaceTypes, _home.CapacityTypes, _home.Customers, _home.FundingSources,
+            new GoogleMapsService(), new SpaceTypeService(), new CapacityTypeService(),
+            new CustomerService(), new FundingSourceService(), new TripService());
 
         /// <summary>Forgets the file, so a wrong pick is one click to undo rather than a restart.</summary>
         [RelayCommand]
@@ -209,6 +310,10 @@ namespace Raphael.Desktop.ViewModels
             FileRowCount = 0;
             Blocker = null;
             _records = new List<CsvTripRawModel>();
+            PreflightRows.Clear();
+
+            OnPropertyChanged(nameof(HasPreflightFindings));
+            OnPropertyChanged(nameof(PreflightSummary));
 
             ReviewChoice();
         }
@@ -277,16 +382,23 @@ namespace Raphael.Desktop.ViewModels
 
         // ================================================================ step 2: running
 
-        [ObservableProperty] private double _progressValue;
-        [ObservableProperty] private double _progressMaximum = 1;
         [ObservableProperty] private string _progressCaption;
         [ObservableProperty] private bool _showDetail = true;
+
+        /// <summary>The sum of every declared request. Never resets, never goes backwards.</summary>
+        public double ProgressMaximum => Steps.Sum(s => s.Total);
+
+        public double ProgressValue => Steps.Sum(s => s.Completed);
 
         public string ProgressPercentText =>
             ProgressMaximum <= 0 ? "0%" : $"{Math.Round(ProgressValue / ProgressMaximum * 100)}%";
 
-        partial void OnProgressValueChanged(double value) => OnPropertyChanged(nameof(ProgressPercentText));
-        partial void OnProgressMaximumChanged(double value) => OnPropertyChanged(nameof(ProgressPercentText));
+        private void RaiseOverall()
+        {
+            OnPropertyChanged(nameof(ProgressMaximum));
+            OnPropertyChanged(nameof(ProgressValue));
+            OnPropertyChanged(nameof(ProgressPercentText));
+        }
 
         /// <summary>
         /// The running account of what the import is doing.
@@ -309,10 +421,10 @@ namespace Raphael.Desktop.ViewModels
 
             Rows.Clear();
             Log.Clear();
+            Steps.Clear();
 
-            ProgressValue = 0;
-            ProgressMaximum = FileRowCount;
             ProgressCaption = Text("import.progress.Starting");
+            RaiseOverall();
 
             _clock = Stopwatch.StartNew();
             _cancellation = new CancellationTokenSource();
@@ -324,15 +436,8 @@ namespace Raphael.Desktop.ViewModels
 
             try
             {
-                // The mapper takes the collections it has always taken. On this path it is used
-                // for its pure mapping only: it makes no call of its own.
-                var mapper = new CsvTripMapper(
-                    _home.Trips, _home.SpaceTypes, _home.CapacityTypes, _home.Customers, _home.FundingSources,
-                    new GoogleMapsService(), new SpaceTypeService(), new CapacityTypeService(),
-                    new CustomerService(), new FundingSourceService(), new TripService());
-
                 var outcome = await _import.ImportAsync(
-                    _records, SelectedFundingSource, _fileIsSaferide, _csvType, mapper,
+                    _records, SelectedFundingSource, _fileIsSaferide, _csvType, BuildMapper(),
                     reporter, _cancellation.Token);
 
                 Absorb(outcome);
@@ -354,14 +459,29 @@ namespace Raphael.Desktop.ViewModels
 
         private void OnProgress(TripImportProgress report)
         {
-            if (report.Total > 0)
+            if (report.StepKey != null)
             {
-                ProgressMaximum = report.Total;
-                ProgressValue = report.Completed;
+                var step = Steps.FirstOrDefault(s => s.Key == report.StepKey);
 
-                ProgressCaption = report.Stage == "Geocoding"
-                    ? string.Format(Text("import.progress.Geocoding"), report.Completed, report.Total)
-                    : string.Format(Text("import.progress.Importing"), report.Completed, report.Total);
+                if (step == null)
+                {
+                    step = new ImportRequestStep(report.StepKey, report.StepLabel, report.StepTotal);
+                    Steps.Add(step);
+                }
+
+                step.Label = report.StepLabel ?? step.Label;
+                step.Total = report.StepTotal;
+                step.Completed = report.StepCompleted;
+
+                if (report.StepState.HasValue) step.State = report.StepState.Value;
+                if (report.StepSummary != null) step.Summary = report.StepSummary;
+
+                if (step.State == ImportStepState.Running)
+                {
+                    ProgressCaption = step.Label;
+                }
+
+                RaiseOverall();
             }
 
             if (!string.IsNullOrEmpty(report.Message))
@@ -615,6 +735,10 @@ namespace Raphael.Desktop.ViewModels
         public string ImportNowLabel => Text("import.ImportNow");
         public string SafeToRepeatLabel => Text("import.SafeToRepeat");
         public string DetailLabel => Text("import.Detail");
+        public string EvidenceLabel => Text("import.Evidence");
+        public string PreflightHeader => Text("import.preflight.Header");
+        public string OverallLabel => Text("import.Overall");
+        public string CaughtHereLabel => Text("import.CaughtHere");
         public string ResultCreatedLabel => Text("import.result.Created");
         public string ResultUpdatedLabel => Text("import.result.Updated");
         public string ResultFailedLabel => Text("import.result.Failed");

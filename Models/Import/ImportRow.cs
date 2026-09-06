@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Services.Import;
@@ -159,6 +159,43 @@ namespace Raphael.Desktop.Models.Import
 
         public bool IsImported => State == ImportRowState.Imported;
 
+        /// <summary>
+        /// True when this application refused the row itself, before a request was spent on it.
+        /// </summary>
+        /// <remarks>
+        /// Worth saying on screen. "No TripId" caught here and "No TripId" answered by the server
+        /// read identically otherwise, and the difference matters: one cost nothing and was known
+        /// before the import ran, the other cost a round trip.
+        /// </remarks>
+        public bool CaughtBeforeSending =>
+            ErrorCode != null && ErrorCode.StartsWith("LOCAL_", StringComparison.Ordinal);
+
+        // ---- which fields the editor should paint red ------------------------------------
+        //
+        // The editor shows the whole row, always. Hiding the fields that are not the problem
+        // left a dispatcher looking at one empty box with no idea what trip it belonged to.
+        // Everything is on screen, filled in, and only the field in question is marked.
+
+        public bool TripIdIsProblem => InQuestion(ImportField.TripId);
+        public bool DateIsProblem => InQuestion(ImportField.Date);
+        public bool WindowIsProblem => InQuestion(ImportField.Window);
+        public bool PatientIsProblem => InQuestion(ImportField.Patient);
+        public bool PhoneIsProblem => InQuestion(ImportField.Phone);
+        public bool RiderIdIsProblem => InQuestion(ImportField.RiderId);
+        public bool PickupIsProblem => InQuestion(ImportField.PickupAddress);
+        public bool DropoffIsProblem => InQuestion(ImportField.DropoffAddress);
+        public bool SpaceTypeIsProblem => InQuestion(ImportField.SpaceType);
+
+        private bool InQuestion(ImportField field) =>
+            State != ImportRowState.Imported && Problem.Fields.HasFlag(field);
+
+        /// <summary>The window, as one line, because it is read as one thing.</summary>
+        public string WindowText =>
+            $"{Describe(FromTime)} - {Describe(ToTime)}";
+
+        private static string Describe(TimeSpan? time) =>
+            time.HasValue ? DateTime.Today.Add(time.Value).ToString("HH:mm") : "--:--";
+
         public ImportRowCheck Snapshot() => new ImportRowCheck
         {
             TripId = _item.TripId,
@@ -219,6 +256,17 @@ namespace Raphael.Desktop.Models.Import
             OnPropertyChanged(nameof(CanRetry));
             OnPropertyChanged(nameof(HasCoordinates));
             OnPropertyChanged(nameof(IsImported));
+            OnPropertyChanged(nameof(WindowText));
+
+            foreach (var flag in new[]
+                     {
+                         nameof(TripIdIsProblem), nameof(DateIsProblem), nameof(WindowIsProblem),
+                         nameof(PatientIsProblem), nameof(PhoneIsProblem), nameof(RiderIdIsProblem),
+                         nameof(PickupIsProblem), nameof(DropoffIsProblem), nameof(SpaceTypeIsProblem)
+                     })
+            {
+                OnPropertyChanged(flag);
+            }
         }
 
         partial void OnStateChanged(ImportRowState value) => RaiseEverything();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Raphael.Desktop.Models.Import;
 
 namespace Raphael.Desktop.Services.Import
@@ -178,8 +178,7 @@ namespace Raphael.Desktop.Services.Import
                     // matched on name plus phone, and a name on its own would merge two people
                     // who happen to share one.
                     return !string.IsNullOrWhiteSpace(row.RiderId)
-                        || (!string.IsNullOrWhiteSpace(row.PatientName)
-                            && !string.IsNullOrWhiteSpace(row.PatientPhone));
+                        || !string.IsNullOrWhiteSpace(row.PatientPhone);
 
                 case ImportLocalCode.NoDate:
                     return row.Date != default;

@@ -807,5 +807,15 @@
     "import.problem.LOCAL_MAPPING_FAILED.title": "The line could not be read as a trip",
     "import.problem.LOCAL_MAPPING_FAILED.fix": "The format of the file is wrong on this line — a shifted column, a stray quote, a merged cell. It has to be put right in the file itself; there is nothing here to edit.",
     "import.problem.LOCAL_NOT_CONFIRMED.title": "Sent, but the answer never arrived",
-    "import.problem.LOCAL_NOT_CONFIRMED.fix": "It may or may not have gone in — the import stopped before the server answered. Send it again: trips are matched on the TripId, so if it did go in it is updated, never duplicated."
+    "import.problem.LOCAL_NOT_CONFIRMED.fix": "It may or may not have gone in — the import stopped before the server answered. Send it again: trips are matched on the TripId, so if it did go in it is updated, never duplicated.",
+    "import.Overall": "Overall",
+    "import.Evidence": "What happened, step by step",
+    "import.CaughtHere": "CAUGHT BEFORE SENDING",
+    "import.step.Geocode": "Locating addresses",
+    "import.step.GeocodeSummary": "{0} located, {1} without a position",
+    "import.step.Batch": "Batch {0} of {1}",
+    "import.step.BatchSummary": "{0} new, {1} updated, {2} rejected",
+    "import.step.BatchFailed": "The server did not answer this batch",
+    "import.preflight.Header": "Rows that will not be sent",
+    "import.preflight.Summary": "{0} rows will NOT be imported. They are listed below with what is wrong; the other {1} will go in. Fix them in the file and choose it again, or import now and correct them afterwards."
 }

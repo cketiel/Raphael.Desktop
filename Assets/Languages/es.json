@@ -807,5 +807,15 @@
     "import.problem.LOCAL_MAPPING_FAILED.title": "La línea no se pudo leer como viaje",
     "import.problem.LOCAL_MAPPING_FAILED.fix": "El formato del fichero está mal en esa línea: una columna corrida, una comilla suelta, una celda combinada. Hay que arreglarlo en el fichero; aquí no hay nada que editar.",
     "import.problem.LOCAL_NOT_CONFIRMED.title": "Enviado, pero la respuesta no llegó",
-    "import.problem.LOCAL_NOT_CONFIRMED.fix": "Puede haber entrado o no: la importación se detuvo antes de que el servidor contestara. Vuelve a enviarlo: los viajes se casan por el TripId, así que si ya entró se actualiza y nunca se duplica."
+    "import.problem.LOCAL_NOT_CONFIRMED.fix": "Puede haber entrado o no: la importación se detuvo antes de que el servidor contestara. Vuelve a enviarlo: los viajes se casan por el TripId, así que si ya entró se actualiza y nunca se duplica.",
+    "import.Overall": "Progreso general",
+    "import.Evidence": "Lo que pasó, paso a paso",
+    "import.CaughtHere": "DETECTADO ANTES DE ENVIAR",
+    "import.step.Geocode": "Localizando direcciones",
+    "import.step.GeocodeSummary": "{0} localizadas, {1} sin posición",
+    "import.step.Batch": "Lote {0} de {1}",
+    "import.step.BatchSummary": "{0} nuevos, {1} actualizados, {2} rechazados",
+    "import.step.BatchFailed": "El servidor no respondió a este lote",
+    "import.preflight.Header": "Filas que no se van a enviar",
+    "import.preflight.Summary": "{0} filas NO se van a importar. Debajo tienes cuáles y qué les pasa; las otras {1} sí entran. Corrígelas en el fichero y vuelve a elegirlo, o importa ahora y arréglalas después."
 }
