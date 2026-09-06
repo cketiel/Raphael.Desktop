@@ -101,6 +101,8 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(IsPreparing));
             OnPropertyChanged(nameof(IsRunning));
             OnPropertyChanged(nameof(IsReviewing));
+            OnPropertyChanged(nameof(IsWorkingOrDone));
+            OnPropertyChanged(nameof(ProgressSummary));
             OnPropertyChanged(nameof(CanImport));
             OnPropertyChanged(nameof(CanLeave));
         }
@@ -108,6 +110,18 @@ namespace Raphael.Desktop.ViewModels
         public bool IsPreparing => Step == ImportStep.Prepare;
         public bool IsRunning => Step == ImportStep.Running;
         public bool IsReviewing => Step == ImportStep.Review;
+
+        /// <summary>
+        /// True from the moment the import starts until the screen is reset.
+        /// </summary>
+        /// <remarks>
+        /// Running and reviewing are one screen, not two. They used to be separate panels, so the
+        /// instant the import finished the bars were replaced by tiles and a grid and the whole
+        /// layout jumped. Nothing moves now: the tiles are there from the start and fill in, the
+        /// bar keeps its place and reaches 100%, and the grid appears underneath what was already
+        /// on screen.
+        /// </remarks>
+        public bool IsWorkingOrDone => Step != ImportStep.Prepare;
 
         /// <summary>Leaving mid-import would orphan the run, so the way out closes while it runs.</summary>
         public bool CanLeave => Step != ImportStep.Running;
@@ -158,6 +172,7 @@ namespace Raphael.Desktop.ViewModels
 
             FilePath = path;
             FileName = Path.GetFileName(path);
+            IsInspectingFile = true;
 
             try
             {
@@ -207,9 +222,20 @@ namespace Raphael.Desktop.ViewModels
             }
             finally
             {
+                IsInspectingFile = false;
                 ReviewChoice();
             }
         }
+
+        /// <summary>
+        /// True while the chosen file is being read and checked.
+        /// </summary>
+        /// <remarks>
+        /// Reading is quick, but "quick" is not "instant" on a file of a few thousand rows, and a
+        /// screen that does nothing at all for two seconds after a click is a screen people think
+        /// has hung. It says what it is doing.
+        /// </remarks>
+        [ObservableProperty] private bool _isInspectingFile;
 
         /// <summary>
         /// The rows this application can already see will be refused, found on opening the file.
@@ -247,7 +273,12 @@ namespace Raphael.Desktop.ViewModels
 
                     try
                     {
-                        item = mapper.MapToImportItem(_records[index], _fileIsSaferide, _csvType, empty);
+                        // ⚠️ requireCoordinates: false. Mapping a SafeRide row THROWS when the
+                        // address is not in the dictionary, and at this point nothing has
+                        // been geocoded - so this reported every row of a perfectly good
+                        // file as unreadable, and 148 exceptions is why it was slow too.
+                        item = mapper.MapToImportItem(
+                            _records[index], _fileIsSaferide, _csvType, empty, requireCoordinates: false);
                     }
                     catch (Exception ex)
                     {
@@ -484,9 +515,36 @@ namespace Raphael.Desktop.ViewModels
                 RaiseOverall();
             }
 
+            if (report.RunningCreated.HasValue) CreatedCount = report.RunningCreated.Value;
+            if (report.RunningUpdated.HasValue) UpdatedCount = report.RunningUpdated.Value;
+            if (report.RunningFailed.HasValue) FailedCount = report.RunningFailed.Value;
+            if (report.RunningRequests.HasValue) RequestCount = report.RunningRequests.Value;
+
+            OnPropertyChanged(nameof(ProgressSummary));
+
             if (!string.IsNullOrEmpty(report.Message))
             {
                 Note(report.Severity, report.Stage, report.Message);
+            }
+        }
+
+        /// <summary>
+        /// The one line under the bar: how many of how many, and how many went wrong.
+        /// </summary>
+        /// <remarks>
+        /// Reads the same before and after. While it runs it is the count so far; when it stops it
+        /// is the answer, and the bar beside it is full. No sentence appears or disappears at the
+        /// end, because that is the jump.
+        /// </remarks>
+        public string ProgressSummary
+        {
+            get
+            {
+                var stored = CreatedCount + UpdatedCount;
+
+                return FailedCount == 0
+                    ? string.Format(Text("import.progress.SummaryClean"), stored, FileRowCount)
+                    : string.Format(Text("import.progress.Summary"), stored, FileRowCount, FailedCount);
             }
         }
 
@@ -562,9 +620,16 @@ namespace Raphael.Desktop.ViewModels
                     continue;
                 }
 
-                Rows.Add(row.Result != null
+                var problem = row.Result != null
                     ? new ImportRow(row.SourceIndex, row.Item, row.Result)
-                    : new ImportRow(row.SourceIndex, row.Item, row.LocalCode ?? ImportLocalCode.MappingFailed, row.Reason));
+                    : new ImportRow(row.SourceIndex, row.Item, row.LocalCode ?? ImportLocalCode.MappingFailed, row.Reason);
+
+                // ⚠️ Without this the batch button never lit up. Its CanExecute counts the rows
+                // that are ready, and that count was only recalculated after an import or a retry
+                // - never when somebody typed the very correction that made a row ready.
+                problem.PropertyChanged += OnProblemRowChanged;
+
+                Rows.Add(problem);
             }
 
             // The request count is the whole point of RE-009, so it is said out loud on screen
@@ -582,6 +647,11 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        private void OnProblemRowChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ImportRow.CanRetry)) RefreshCounts();
+        }
+
         private void RefreshCounts()
         {
             OnPropertyChanged(nameof(PendingCount));
@@ -589,6 +659,8 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(ReadyToRetryCount));
             OnPropertyChanged(nameof(HasProblems));
             OnPropertyChanged(nameof(AllRepaired));
+            OnPropertyChanged(nameof(ProgressSummary));
+            OnPropertyChanged(nameof(CanRetryAll));
 
             RetryAllCommand.NotifyCanExecuteChanged();
             RowsView.Refresh();
@@ -739,6 +811,9 @@ namespace Raphael.Desktop.ViewModels
         public string PreflightHeader => Text("import.preflight.Header");
         public string OverallLabel => Text("import.Overall");
         public string CaughtHereLabel => Text("import.CaughtHere");
+        public string InspectingLabel => Text("import.Inspecting");
+        public string SeeDetailLabel => Text("import.SeeDetail");
+        public string RequestsLabel => Text("import.Requests");
         public string PickARowLabel => Text("import.PickARow");
         public string ResultCreatedLabel => Text("import.result.Created");
         public string ResultUpdatedLabel => Text("import.result.Updated");

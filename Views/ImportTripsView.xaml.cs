@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -34,7 +33,11 @@ namespace Raphael.Desktop.Views
             var model = new ImportTripsViewModel(home);
 
             DataContext = model;
-            model.PropertyChanged += OnViewModelChanged;
+
+            // ⚠️ Watching the view model for "Log" never fired: the collection is the same object
+            // throughout, so the property never changes - only its contents do. The console has to
+            // listen to the collection itself or it never follows what it is printing.
+            model.Log.CollectionChanged += (_, _) => ScrollLogToEnd();
         }
 
         // ------------------------------------------------------------------ language
@@ -53,14 +56,6 @@ namespace Raphael.Desktop.Views
         private void OnLanguageChanged() => ViewModel?.RefreshLocalizedText();
 
         // ------------------------------------------------------------------ the stepper
-
-        private void OnViewModelChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ImportTripsViewModel.Log))
-            {
-                ScrollLogToEnd();
-            }
-        }
 
         /// <summary>Keeps the newest line of the running account in view.</summary>
         private void ScrollLogToEnd()

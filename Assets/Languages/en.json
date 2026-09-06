@@ -818,5 +818,10 @@
     "import.step.BatchFailed": "The server did not answer this batch",
     "import.preflight.Header": "Rows that will not be sent",
     "import.preflight.Summary": "{0} rows will NOT be imported. They are listed below with what is wrong; the other {1} will go in. Fix them in the file and choose it again, or import now and correct them afterwards.",
-    "import.PickARow": "Pick a row on the left to see what is wrong with it and put it right."
+    "import.PickARow": "Pick a row on the left to see what is wrong with it and put it right.",
+    "import.Inspecting": "Reading and checking the file...",
+    "import.SeeDetail": "Details",
+    "import.Requests": "REQUESTS",
+    "import.progress.Summary": "{0} of {1} trips imported, {2} with problems",
+    "import.progress.SummaryClean": "{0} of {1} trips imported"
 }

@@ -53,6 +53,17 @@ namespace Raphael.Desktop.Services
 
         /// <summary>What the request came to, once it has.</summary>
         public string? StepSummary { get; set; }
+
+        // ---- the figures so far -----------------------------------------------------------
+        //
+        // Sent after every batch so the tiles on the screen fill in as the import runs instead of
+        // appearing all at once at the end. The jump from "a bar" to "six numbers and a grid" was
+        // the whole layout changing under the reader.
+
+        public int? RunningCreated { get; set; }
+        public int? RunningUpdated { get; set; }
+        public int? RunningFailed { get; set; }
+        public int? RunningRequests { get; set; }
     }
 
     /// <summary>One row as it ended up: what was sent, and what the server said about it.</summary>
@@ -565,7 +576,12 @@ namespace Raphael.Desktop.Services
                         Text("import.step.BatchSummary"),
                         result.CreatedCount,
                         result.UpdatedCount,
-                        result.FailedCount)
+                        result.FailedCount),
+
+                    RunningCreated = outcome.CreatedCount,
+                    RunningUpdated = outcome.UpdatedCount,
+                    RunningFailed = outcome.FailedCount,
+                    RunningRequests = outcome.RequestCount
                 });
             }
         }
