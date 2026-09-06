@@ -116,6 +116,19 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>The CSV import view has taken over the tab.</summary>
         public bool IsImporting => CurrentMode is HomeMode.Importing;
 
+        /// <summary>
+        /// Which help topic F1 opens on this tab, which depends on what the tab is showing.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Not decoration, and not something the import screen can declare for itself. F1
+        /// resolves the SHALLOWEST declaration in the visible content, breadth-first, so the one
+        /// on this view's root always wins over the one on a panel nested inside it - the import
+        /// screen's own topic was unreachable unless the keyboard focus happened to be inside it.
+        /// The tab declares the topic for the mode it is in.
+        /// </remarks>
+        public string HelpTopicId =>
+            IsImporting ? "desktop/home/import-trips" : "desktop/home/overview";
+
         #region The map is not loaded until it is wanted
 
         /// <summary>
@@ -175,6 +188,7 @@ namespace Raphael.Desktop.ViewModels
         {
             OnPropertyChanged(nameof(IsTripFormOpen));
             OnPropertyChanged(nameof(IsImporting));
+            OnPropertyChanged(nameof(HelpTopicId));
             OnPropertyChanged(nameof(IsMapVisible));
             OnPropertyChanged(nameof(CanStartNewPatient));
             RefreshHelperCards();

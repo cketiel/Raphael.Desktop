@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Import a broker's trips · Raphael Help</title>
-<meta name="description" content="How to load a broker&#39;s CSV, and how to put right the trips that do not go in without leaving the screen.">
+<meta name="description" content="How to load a broker&#39;s CSV, what the screen checks before sending anything, and how to put right the trips that do not go in without leaving it.">
 <meta name="help-covers" content="Raphael.Desktop 1.7.0">
 <meta name="help-built" content="2026-09-06">
 <link rel="stylesheet" href="../../../assets/help.css">
@@ -54,51 +54,82 @@
 
       <div class="rf-crumbs"><span><a href="../../../en/desktop/getting-started/overview.html">Home</a></span><span>The tabs</span><span>Import a broker's trips</span></div>
       <h1 class="rf-title">Import a broker's trips</h1>
-      <p class="rf-summary">How to load a broker's CSV, and how to put right the trips that do not go in without leaving the screen.</p>
+      <p class="rf-summary">How to load a broker's CSV, what the screen checks before sending anything, and how to put right the trips that do not go in without leaving it.</p>
       <div class="rf-meta"><span class="rf-chip rf-chip-mode">how-to</span><span class="rf-chip rf-chip-new">New in 1.6.1</span></div>
 
       <p>Importing puts the trips a broker sent you in a file into the system, without typing any of them by hand.</p>
 <h2 id="when-you-need-it">When you need it<a class="help-anchor" href="#when-you-need-it" aria-label="Enlace a esta sección">#</a></h2>
 <p>The broker has sent tomorrow's CSV and those trips have to be on the <strong>Home</strong> tab before anybody starts routing.</p>
-<h2 id="the-three-steps">The three steps<a class="help-anchor" href="#the-three-steps" aria-label="Enlace a esta sección">#</a></h2>
-<p>The screen says so along the top: <strong>Choose → Import → Review</strong>. Nothing is imported until you ask for it.</p>
-<h3 id="1-choose">1. Choose<a class="help-anchor" href="#1-choose" aria-label="Enlace a esta sección">#</a></h3>
+<h2 id="at-a-glance">At a glance<a class="help-anchor" href="#at-a-glance" aria-label="Enlace a esta sección">#</a></h2>
+<p>Top right, the screen always says where you are: <strong>1 Choose → 2 Import → 3 Review</strong>. Nothing is sent until you ask for it, and <strong>nothing is lost by getting it wrong</strong>: importing the same file twice is safe.</p>
+<hr>
+<h2 id="1-choose">1. Choose<a class="help-anchor" href="#1-choose" aria-label="Enlace a esta sección">#</a></h2>
 <ol><li>On <strong>Home</strong>, press the import button — the database icon with an arrow.</li><li>Choose <strong>the payer</strong> the file belongs to.</li><li>Press <strong>Choose a file</strong> and pick the CSV.</li></ol>
-<p>The file is read right there, <strong>without sending anything</strong>, and the screen tells you what it found: how many trips, which broker layout, and which days it covers. Check that before going on — it is your last chance to notice it is yesterday's file.</p>
+<p>The file is read right there, <strong>without sending anything to the server</strong>. While it does you will see <em>&quot;Reading and checking the file…&quot;</em>. When it finishes, the card says what it found: <strong>how many trips, which broker layout, and which days it covers</strong>.</p>
+<p>Check that before going on. It is your last chance to notice it is yesterday's file.</p>
+<h3 id="the-check-before-anything-is-sent">The check before anything is sent<a class="help-anchor" href="#the-check-before-anything-is-sent" aria-label="Enlace a esta sección">#</a></h3>
+<p>This is the part that will save you the most. Before there is anything to press, the screen has already been through the whole file, and if it finds rows that <strong>will not import</strong>, it says so in an amber box listing them: line number, patient, and what is wrong with each.</p>
+<p>Four things are visible without asking the server:</p>
+<div class="help-table-scroll"><table><thead><tr><th>What</th><th>Why it cannot be imported</th></tr></thead><tbody><tr><td><strong>No TripId</strong></td><td>It is the identifier an import is matched on. Without it a trip that already exists cannot be told from a new booking</td></tr>
+<tr><td><strong>Patient cannot be told apart</strong></td><td>No rider ID <strong>and</strong> no phone. On a name alone, two patients who share one become the same record</td></tr>
+<tr><td><strong>An address missing</strong></td><td>A trip needs both a pickup and a dropoff</td></tr>
+<tr><td><strong>Address too long</strong></td><td>Over 450 characters</td></tr></tbody></table></div>
+<p>And a fifth that appears under another name: if the <strong>date</strong> is empty or in a format that layout does not use, the row comes out as <em>&quot;The line could not be read as a trip&quot;</em> with the exact reason under it, for example <code>Invalid date: 13/45/2026</code>.</p>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">The warning does not block you</p><p>You can correct those rows in the file and choose it again, <strong>or import anyway</strong>: the good ones go in and the rest wait for you in the repair list. Both are valid; the screen only makes sure the decision is yours and informed.</p></aside>
 <ol><li>Press <strong>Import now</strong>.</li></ol>
-<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">The payer you choose decides what the driver is asked for</p><p>It is not a label: it decides what will be required of the driver on every trip in the file — signatures, odometer, code scanning. The screen stops you when the file's layout does not match the payer, but between two payers that share a layout it cannot know.</p></aside>
-<h3 id="2-import">2. Import<a class="help-anchor" href="#2-import" aria-label="Enlace a esta sección">#</a></h3>
-<p>The bar shows the percentage and what it is doing. Below it, if you leave <strong>Show what is happening</strong> on, the detail scrolls past: addresses located in one batch, batches sent, every row that is refused and why, and every wait when the server asks for calm.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">The payer you choose decides what the driver is asked for</p><p>It is not a label: it decides what will be required of the driver on every trip in the file — signatures, odometer, code scanning. The screen stops you when the file's <strong>layout</strong> does not match the payer, but between two payers that share a layout it cannot know.</p></aside>
+<hr>
+<h2 id="2-and-3-importing-and-reviewing-are-one-screen">2 and 3. Importing and reviewing are one screen<a class="help-anchor" href="#2-and-3-importing-and-reviewing-are-one-screen" aria-label="Enlace a esta sección">#</a></h2>
+<p>Nothing jumps when it finishes. What you watch while it imports is what you are left with, with the numbers filled in.</p>
+<h3 id="the-six-figures">The six figures<a class="help-anchor" href="#the-six-figures" aria-label="Enlace a esta sección">#</a></h3>
+<p>A row of tiles, and they <strong>fill in</strong> as it goes:</p>
+<ul><li><strong>new</strong> — trips that did not exist</li><li><strong>updated</strong> — trips that were already there and have been refreshed</li><li><strong>rejected</strong> — the ones that did not go in</li><li><strong>warnings</strong> — they went in, but are worth a look (see below)</li><li><strong>requests</strong> — how many calls to the server the whole thing cost</li><li><strong>elapsed</strong></li></ul>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">Keep an eye on the request count</p><p>A file of four hundred trips is about <strong>six</strong> requests. If you ever see that number climb, tell us: it would be a regression, and an expensive one — the shared server reads a burst of requests as an attack and cuts the connection part-way through an import.</p></aside>
+<h3 id="the-overall-progress">The overall progress<a class="help-anchor" href="#the-overall-progress" aria-label="Enlace a esta sección">#</a></h3>
+<p>Below them, one bar with the percentage and a line that reads the same before and after: <strong>&quot;147 of 148 trips imported, 1 with problems&quot;</strong>.</p>
+<p>That bar <strong>never goes backwards and never reaches the end twice</strong>: every request the import is going to make is declared before it starts, and the percentage is the sum of all of them.</p>
+<h3 id="details">Details<a class="help-anchor" href="#details" aria-label="Enlace a esta sección">#</a></h3>
+<p>A disclosure, collapsed to start. Opening it <strong>grows downwards without moving anything above it</strong>, and holds two things:</p>
+<ul><li><strong>A bar per request</strong>: locating addresses, batch 1 of 2, batch 2 of 2… each with what it is carrying and what it came to (<em>&quot;98 new, 2 updated, 0 rejected&quot;</em>).</li><li><strong>The account of what is happening</strong>, line by line with the time: the addresses being located, every rejected row with its reason, and every wait when the server asks for calm.</li></ul>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">A batch in flight does not say &quot;15 of 100&quot;</p><p>While a batch is in flight its bar sweeps without a percentage, on purpose. The server works through the hundred trips in a hundred transactions and <strong>says nothing until it has finished them all</strong>: there is no half-way figure to show you. The moment it answers, the bar fills and says exactly what happened to those hundred.</p></aside>
+<p>The detail <strong>stays after it finishes</strong>. It is the evidence of what the import did.</p>
 <p>You cannot leave while it <a class="help-term" href="../../../en/_shared/glossary/run.html" data-term-title="Route" data-term-summary="A vehicle, a driver and a span of dates and hours. It is the unit trips are assigned to.">runs</a>. A half-imported file with nobody watching is a file nobody knows the state of.</p>
-<h3 id="3-review">3. Review<a class="help-anchor" href="#3-review" aria-label="Enlace a esta sección">#</a></h3>
-<p>At the top, the figures: how many <strong>new</strong>, how many <strong>updated</strong>, how many <strong>rejected</strong>, how many <strong>warnings</strong>, how many requests it cost and how long it took.</p>
-<p>If nothing was rejected, you are done.</p>
+<hr>
 <h2 id="putting-right-what-did-not-go-in">Putting right what did not go in<a class="help-anchor" href="#putting-right-what-did-not-go-in" aria-label="Enlace a esta sección">#</a></h2>
-<p>Whatever did not go in appears in a table below, and <strong>every row carries its problem explained and what to do about it</strong>.</p>
-<p>Selecting a row opens its card on the right:</p>
-<ul><li><strong>What is wrong</strong>, in one line.</li><li><strong>What to change</strong>: the actual instruction.</li><li><strong>The fields</strong> that fix that problem — only those, not all twenty of the trip.</li><li><strong>Import this row</strong>, which lights up once the correction really answers the objection.</li></ul>
+<p>If anything was rejected, <strong>Rows that need a hand</strong> appears below: a table of them and, on the right, the card for whichever one you have selected.</p>
+<p>Pick a row and the card gives you, in this order:</p>
+<ol><li><strong>What is wrong</strong>, in one line.</li><li>If we caught it here, a <strong>caught before sending</strong> badge.</li><li><strong>What to change</strong>: the actual instruction, not the problem restated.</li><li>What the file or the server said, verbatim, when it adds something.</li><li><strong>The whole trip</strong>, filled in with its real values, and <strong>the field at fault outlined and labelled in red</strong>.</li><li><strong>Import this row</strong>.</li></ol>
 <p>When a row goes in it turns green and leaves the <strong>Still to fix</strong> filter.</p>
-<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">The retry button stays off until the correction works</p><p>Not fussiness. If a row was rejected because the patient cannot be told apart and you change a comment, sending it again only buys the same rejection. The screen waits for the field that matters.</p></aside>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">The button stays off until the correction works</p><p>Not fussiness. If a row was rejected because the patient cannot be told apart and you change something else, sending it again only buys the same rejection. The screen waits for <strong>the field that matters</strong>.</p></aside>
 <p>Once you have several fixed, <strong>Import everything fixed</strong> sends them <strong>in a single request</strong>, whether that is two or forty.</p>
 <h3 id="when-the-problem-is-a-duplicate">When the problem is a duplicate<a class="help-anchor" href="#when-the-problem-is-a-duplicate" aria-label="Enlace a esta sección">#</a></h3>
-<p>This is where the screen helps most. When a trip clashes with one that already exists, the card shows you <strong>which one</strong>: its TripId, the patient, the day, the window and both addresses. With that in front of you the decision is easy:</p>
-<ul><li>If this row <strong>is</strong> that trip, put its TripId on the row. It stops being a booking and becomes an update.</li><li>If it is a <strong>different</strong> journey, change the day, the window or one of the addresses.</li><li>If it is neither, leave it out of the file.</li></ul>
+<p>This is where the screen helps most. When a trip clashes with one that already exists, the card shows you <strong>which one</strong>: its TripId, the patient, the day, the window and both addresses.</p>
+<p>With that in front of you there are exactly two honest ways out:</p>
+<ul><li>If this row <strong>is</strong> that trip → put its TripId on the row. It stops being a booking and becomes an update.</li><li>If it is a <strong>different</strong> journey → change the day, the window or one of the addresses.</li></ul>
+<p>If it is neither, that trip should not be in the file.</p>
 <h3 id="taking-the-rest-with-you">Taking the rest with you<a class="help-anchor" href="#taking-the-rest-with-you" aria-label="Enlace a esta sección">#</a></h3>
-<p><strong>Export what is left</strong> writes the outstanding rows to a CSV <strong>in the exact format of the file you imported</strong>, same header, same columns. The name carries the payer, the date and the words <em>not-imported</em>, so nobody mistakes it for the good one.</p>
-<p>Correct it wherever suits you and import it exactly like the original.</p>
+<p><strong>Export what is left</strong> writes the outstanding rows to a CSV <strong>in the exact format of the file you imported</strong>: same header, same columns, same quoting. It is not a report, it is a file that can be imported again.</p>
+<p>The name carries the payer, the date and the words <em>not-imported</em>, so nobody mistakes it for the good one.</p>
+<hr>
 <h2 id="warnings-which-are-not-rejections">Warnings, which are not rejections<a class="help-anchor" href="#warnings-which-are-not-rejections" aria-label="Enlace a esta sección">#</a></h2>
-<p>A <strong>warning</strong> is a trip that <strong>did</strong> go in but is worth a look. There is one today: the address could not be located on the map. The trip is in the system and the day can be dispatched, but that journey cannot be routed or drawn. You find them afterwards with the <strong>missing coordinates</strong> filter on the trips list.</p>
+<p>A <strong>warning</strong> is a trip that <strong>did</strong> go in but is worth a look. There is one today: <strong>the address could not be located on the map</strong>.</p>
+<p>The trip is in the system and the day can be dispatched, but that journey cannot be routed or drawn. You find them afterwards with the <strong>missing coordinates</strong> filter on the trips list.</p>
+<p>They are counted apart from the rejections on purpose: a warning is not a failure, and folding it into the same figure would make a good day look like a bad one.</p>
+<hr>
 <h2 id="what-can-go-wrong">What can go wrong<a class="help-anchor" href="#what-can-go-wrong" aria-label="Enlace a esta sección">#</a></h2>
-<p><strong>The screen will not let you press Import.</strong> Read the red box: it says exactly what is missing. Usually the file's layout does not match the payer you chose.</p>
-<p><strong>&quot;The import stopped&quot;.</strong> The server stopped answering part-way through the file. The trips that had already gone in are stored. Wait a couple of minutes and import <strong>the same whole file</strong> again.</p>
+<p><strong>The screen will not let you press Import.</strong> Read the red box: it says exactly what is missing. Usually the file's layout does not match the payer you chose, or the file has no rows.</p>
+<p><strong>&quot;The import stopped&quot;.</strong> The server stopped answering part-way through the file. The trips that had already gone in <strong>are stored</strong>. Wait a couple of minutes and import <strong>the same whole file</strong> again.</p>
 <p><strong>A row says it cannot be fixed here.</strong> Some problems are ours rather than the file's, or have to be corrected in the CSV itself — a shifted column, a stray quote. The card says so and gives you a <strong>support reference</strong>: send it as it is, it is the key to the full record on the server.</p>
 <aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">Repeating an import is safe</p><p>Trips are recognised by the broker's identifier. One that already went in is <strong>updated</strong>, never duplicated. So when in doubt, import again: you will not send two vehicles.</p>
-<p>A trip you cancelled stays cancelled even if it comes back in the file. Its details are refreshed, but it is not reinstated on its own.</p></aside>
+<p>A trip you cancelled stays cancelled even if it comes back in the file. Its details are refreshed, but it is <strong>not reinstated on its own</strong> — that would put a vehicle on a route for a journey the office had closed.</p></aside>
+<hr>
 <h2 id="common-questions">Common questions<a class="help-anchor" href="#common-questions" aria-label="Enlace a esta sección">#</a></h2>
 <p><strong>Can I close the screen and carry on tomorrow with what is left?</strong> No. The list of problem rows lives on the screen and goes with it, on purpose: it holds patient names, phones and addresses, and that is not kept on disk. If you have to stop, <strong>export what is left</strong> before you go.</p>
-<p><strong>How many requests does an import cost?</strong> Very few, and the screen tells you. A file of four hundred trips is about six. If you ever see that number climb, say so: it is a regression.</p>
 <p><strong>Does importing twice duplicate anything?</strong> No. It is the recommended way out when something goes wrong.</p>
 <p><strong>Why are the rows that went in not shown?</strong> Because there is nothing to do with them. This screen is for what needs a hand.</p>
+<p><strong>I edited a row and the button is still off.</strong> The correction does not answer the problem yet. Look for the field with the red outline: that is the one to change. On a duplicate, changing just anything is not enough either — it has to be the existing trip's TripId <strong>or</strong> a different day, window or address.</p>
+<p><strong>What if I pick the wrong payer?</strong> If the layout does not match, the screen stops you. If it does match — two payers sharing a layout — it cannot know, and the file would go in under whichever payer you chose. That is a billing problem found a month later, so that dropdown is worth a second's attention.</p>
+<p><strong>How long does it take?</strong> A file of four hundred trips, a little over a minute. Almost all of that is the server storing them: each trip opens its own transaction.</p>
 <h2 id="see-also">See also<a class="help-anchor" href="#see-also" aria-label="Enlace a esta sección">#</a></h2>
 <ul><li><a href="../../../en/desktop/home/overview.html">Home — booking a trip</a></li><li><a href="../../../en/_shared/glossary/funding-source.html">Funding source</a></li></ul>
 
@@ -115,12 +146,12 @@
 
   <aside class="rf-aside" aria-label="On this page">
     <p class="rf-aside-title">On this page</p>
-    <ul><li class="rf-lvl-2"><a href="#when-you-need-it">When you need it</a></li><li class="rf-lvl-2"><a href="#the-three-steps">The three steps</a></li><li class="rf-lvl-3"><a href="#1-choose">1. Choose</a></li><li class="rf-lvl-3"><a href="#2-import">2. Import</a></li><li class="rf-lvl-3"><a href="#3-review">3. Review</a></li><li class="rf-lvl-2"><a href="#putting-right-what-did-not-go-in">Putting right what did not go in</a></li><li class="rf-lvl-3"><a href="#when-the-problem-is-a-duplicate">When the problem is a duplicate</a></li><li class="rf-lvl-3"><a href="#taking-the-rest-with-you">Taking the rest with you</a></li><li class="rf-lvl-2"><a href="#warnings-which-are-not-rejections">Warnings, which are not rejections</a></li><li class="rf-lvl-2"><a href="#what-can-go-wrong">What can go wrong</a></li><li class="rf-lvl-2"><a href="#common-questions">Common questions</a></li><li class="rf-lvl-2"><a href="#see-also">See also</a></li></ul>
+    <ul><li class="rf-lvl-2"><a href="#when-you-need-it">When you need it</a></li><li class="rf-lvl-2"><a href="#at-a-glance">At a glance</a></li><li class="rf-lvl-2"><a href="#1-choose">1. Choose</a></li><li class="rf-lvl-3"><a href="#the-check-before-anything-is-sent">The check before anything is sent</a></li><li class="rf-lvl-2"><a href="#2-and-3-importing-and-reviewing-are-one-screen">2 and 3. Importing and reviewing are one screen</a></li><li class="rf-lvl-3"><a href="#the-six-figures">The six figures</a></li><li class="rf-lvl-3"><a href="#the-overall-progress">The overall progress</a></li><li class="rf-lvl-3"><a href="#details">Details</a></li><li class="rf-lvl-2"><a href="#putting-right-what-did-not-go-in">Putting right what did not go in</a></li><li class="rf-lvl-3"><a href="#when-the-problem-is-a-duplicate">When the problem is a duplicate</a></li><li class="rf-lvl-3"><a href="#taking-the-rest-with-you">Taking the rest with you</a></li><li class="rf-lvl-2"><a href="#warnings-which-are-not-rejections">Warnings, which are not rejections</a></li><li class="rf-lvl-2"><a href="#what-can-go-wrong">What can go wrong</a></li><li class="rf-lvl-2"><a href="#common-questions">Common questions</a></li><li class="rf-lvl-2"><a href="#see-also">See also</a></li></ul>
   </aside>
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/home/import-trips","lang":"en","app":"Raphael.Desktop","appVersion":"1.7.0","built":"2026-09-06","sourceCommit":"f04922a","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/home/import-trips","lang":"en","app":"Raphael.Desktop","appVersion":"1.7.0","built":"2026-09-06","sourceCommit":"0778246","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
 <script src="../../../assets/search-index.en.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

@@ -11,7 +11,7 @@
              xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers" 
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
-             helpers:HelpAssist.TopicId="desktop/home/overview"
+             helpers:HelpAssist.TopicId="{Binding HelpTopicId}"
              PreviewKeyDown="HomeView_PreviewKeyDown"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
