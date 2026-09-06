@@ -9,15 +9,30 @@ using System.Threading.Tasks;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Models.Csv;
+using Raphael.Desktop.Models.Import;
+using Raphael.Desktop.Services.Import;
 
 namespace Raphael.Desktop.Services
 {
-    /// <summary>Where an import has got to, for the progress bar.</summary>
+    /// <summary>
+    /// Where an import has got to — for the bar, and for the running account beside it.
+    /// </summary>
+    /// <remarks>
+    /// One channel, two readers. <see cref="Completed"/> and <see cref="Total"/> move the bar;
+    /// <see cref="Message"/>, when there is one, is a line for the detail panel. A report can
+    /// carry either or both, which is what lets "sending chunk 3 of 9" advance the bar and say so
+    /// in the same breath.
+    /// </remarks>
     public class TripImportProgress
     {
         public string Stage { get; set; } = string.Empty;
         public int Completed { get; set; }
         public int Total { get; set; }
+
+        /// <summary>A line for the detail panel. Null when this report only moves the bar.</summary>
+        public string? Message { get; set; }
+
+        public Models.Import.ImportSeverity Severity { get; set; } = Models.Import.ImportSeverity.Info;
     }
 
     /// <summary>One row as it ended up: what was sent, and what the server said about it.</summary>
@@ -28,6 +43,26 @@ namespace Raphael.Desktop.Services
     /// </remarks>
     public class TripImportRow
     {
+        /// <summary>
+        /// Which line of the file this was, counted from the first row of data.
+        /// </summary>
+        /// <remarks>
+        /// Carried the whole way through so the export of failures can copy the original lines
+        /// instead of rebuilding them. A rebuilt line is a different file: the columns come back
+        /// in our order, dates in our format, and quoting where we would have quoted. The office
+        /// re-imports what it exported, so it has to be the same file with fewer rows in it.
+        /// </remarks>
+        public int SourceIndex { get; set; }
+
+        /// <summary>The row as it was sent, so a rejected one can be corrected and sent again.</summary>
+        public TripImportItemDto? Item { get; set; }
+
+        /// <summary>The server's verdict, whole. Null for a row this application refused itself.</summary>
+        public TripImportItemResultDto? Result { get; set; }
+
+        /// <summary>Set when we refused it ourselves, before anything was sent.</summary>
+        public string? LocalCode { get; set; }
+
         public string? TripId { get; set; }
         public string? Status { get; set; }
         public string? Patient { get; set; }
@@ -50,6 +85,17 @@ namespace Raphael.Desktop.Services
 
         /// <summary>How many HTTP requests the whole import cost. The reason this class exists.</summary>
         public int RequestCount { get; set; }
+
+        /// <summary>
+        /// Rows that went in but are worth looking at — an address that would not resolve, say.
+        /// </summary>
+        /// <remarks>
+        /// Kept apart from <see cref="Rows"/> on purpose. A warning is not a failure and must not
+        /// be counted as one: the trip is in the system and the day can be dispatched. Home
+        /// already has a filter for trips missing coordinates, which is where these are picked up
+        /// afterwards; refusing them here would have taken away a workflow the office relies on.
+        /// </remarks>
+        public List<TripImportRow> Warnings { get; } = new List<TripImportRow>();
 
         /// <summary>True when the import stopped early. The rows already stored stay stored.</summary>
         public bool Aborted { get; set; }
@@ -172,6 +218,9 @@ namespace Raphael.Desktop.Services
 
             if (records == null || records.Count == 0) return outcome;
 
+            Say(progress, "Reading", ImportSeverity.Info,
+                string.Format(Text("import.log.FileRead"), records.Count));
+
             // 1. Every address in the file, resolved in one or two requests.
             var coordinates = await ResolveCoordinatesAsync(
                 records, isSaferide, outcome, progress, cancellationToken);
@@ -180,18 +229,23 @@ namespace Raphael.Desktop.Services
             var items = new List<TripImportItemDto>(records.Count);
             var rowsBySentIndex = new List<TripImportRow>(records.Count);
 
-            foreach (var record in records)
+            for (var index = 0; index < records.Count; index++)
             {
+                var record = records[index];
+
                 try
                 {
                     var item = mapper.MapToImportItem(record, isSaferide, csvType, coordinates);
+
                     items.Add(item);
-                    rowsBySentIndex.Add(ToRow(item));
+                    rowsBySentIndex.Add(ToRow(index, item));
                 }
                 catch (Exception ex)
                 {
                     outcome.Rows.Add(new TripImportRow
                     {
+                        SourceIndex = index,
+                        LocalCode = ImportLocalCode.MappingFailed,
                         TripId = record.RideId,
                         Status = TripImportStatus.Failed,
                         Patient = record.PatientFullName ?? $"{record.PatientFirstName} {record.PatientLastName}".Trim(),
@@ -199,7 +253,11 @@ namespace Raphael.Desktop.Services
                         Dropoff = CsvTripMapper.BuildDropoffAddress(record),
                         Reason = ex.Message
                     });
+
                     outcome.FailedCount++;
+
+                    Say(progress, "Mapping", ImportSeverity.Error,
+                        string.Format(Text("import.log.RowUnreadable"), index + 2, record.RideId, ex.Message));
                 }
             }
 
@@ -208,7 +266,25 @@ namespace Raphael.Desktop.Services
             // 3. Appointment or Return, decided across the whole file before anything is sent.
             AssignTripTypes(items);
 
-            // 4. Up in chunks, one request at a time.
+            Say(progress, "Types", ImportSeverity.Info,
+                string.Format(Text("import.log.TypesAssigned"), items.Count));
+
+            // 4. What we can already see is wrong.
+            //
+            // Four of the server's twelve refusal codes are visible in the file — no TripId, no
+            // way of telling the patient apart, a missing required field, an address past the
+            // column width — and a row we know will be refused is a round trip nobody needs. It
+            // also puts the problem in front of the dispatcher while the file is still in their
+            // hand, instead of after the whole thing has run.
+            Preflight(items, rowsBySentIndex, outcome, progress);
+
+            if (items.Count == 0)
+            {
+                Say(progress, "Preflight", ImportSeverity.Error, Text("import.log.NothingToSend"));
+                return outcome;
+            }
+
+            // 5. Up in chunks, one request at a time.
             await SendAsync(items, rowsBySentIndex, fundingSource, outcome, progress, cancellationToken);
 
             return outcome;
@@ -252,7 +328,11 @@ namespace Raphael.Desktop.Services
                 }
             }
 
+            Say(progress, "Geocoding", ImportSeverity.Info,
+                string.Format(Text("import.log.GeocodeStart"), addresses.Count));
+
             var done = 0;
+            var unresolved = 0;
 
             foreach (var chunk in Chunk(addresses, GeocodeChunkSize))
             {
@@ -282,6 +362,20 @@ namespace Raphael.Desktop.Services
                     Total = addresses.Count
                 });
             }
+
+            foreach (var address in addresses)
+            {
+                if (resolved.ContainsKey(address)) continue;
+
+                unresolved++;
+
+                Say(progress, "Geocoding", ImportSeverity.Warning,
+                    string.Format(Text("import.log.AddressUnresolved"), address));
+            }
+
+            Say(progress, "Geocoding",
+                unresolved == 0 ? ImportSeverity.Success : ImportSeverity.Warning,
+                string.Format(Text("import.log.GeocodeDone"), resolved.Count, addresses.Count, unresolved));
 
             return resolved;
         }
@@ -320,9 +414,15 @@ namespace Raphael.Desktop.Services
 
                 TripImportResultDto result;
 
+                var chunkNumber = (offset / ChunkSize) + 1;
+                var chunkTotal = (items.Count + ChunkSize - 1) / ChunkSize;
+
+                Say(progress, "Sending", ImportSeverity.Info,
+                    string.Format(Text("import.log.ChunkSending"), chunkNumber, chunkTotal, count));
+
                 try
                 {
-                    result = await PostChunkAsync(request, outcome, cancellationToken);
+                    result = await PostChunkAsync(request, outcome, progress, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -336,12 +436,15 @@ namespace Raphael.Desktop.Services
                     // and the answer never arrived, so the server may well have stored them.
                     // Saying "not imported" of those would send a dispatcher hunting for trips
                     // that are already in the system.
+                    Say(progress, "Sending", ImportSeverity.Error,
+                        string.Format(Text("import.log.Aborted"), ex.Message));
+
                     for (var i = offset; i < items.Count; i++)
                     {
                         var row = rowsBySentIndex[i];
                         row.Status = TripImportStatus.Failed;
-                        row.Reason = "The import stopped here, so this row is not confirmed. "
-                                   + "Import the same file again to settle it. " + ex.Message;
+                        row.LocalCode = ImportLocalCode.NotConfirmed;
+                        row.Reason = ex.Message;
                         outcome.Rows.Add(row);
                         outcome.FailedCount++;
                     }
@@ -356,8 +459,25 @@ namespace Raphael.Desktop.Services
 
                     row.Status = itemResult?.Status ?? TripImportStatus.Failed;
                     row.Reason = itemResult?.Message;
+                    row.Result = itemResult;
 
                     outcome.Rows.Add(row);
+
+                    if (row.Status == TripImportStatus.Failed)
+                    {
+                        // ⚠️ Patient and addresses on purpose: this panel is what a dispatcher
+                        // opens when a row will not go in, and "row 143 was refused" is not
+                        // something anyone can act on. It is a screen and it stays a screen —
+                        // nothing here reaches FileLogger. `../CLAUDE.md` §3.
+                        Say(progress, "Sending", ImportSeverity.Error,
+                            string.Format(
+                                Text("import.log.RowRefused"),
+                                row.SourceIndex + 2,
+                                row.TripId,
+                                row.Patient,
+                                itemResult?.ErrorCode,
+                                itemResult?.Message));
+                    }
                 }
 
                 outcome.CreatedCount += result.CreatedCount;
@@ -370,7 +490,14 @@ namespace Raphael.Desktop.Services
                 {
                     Stage = "Importing",
                     Completed = sent,
-                    Total = items.Count
+                    Total = items.Count,
+                    Severity = result.FailedCount == 0 ? ImportSeverity.Success : ImportSeverity.Warning,
+                    Message = string.Format(
+                        Text("import.log.ChunkDone"),
+                        chunkNumber,
+                        result.CreatedCount,
+                        result.UpdatedCount,
+                        result.FailedCount)
                 });
             }
         }
@@ -379,6 +506,7 @@ namespace Raphael.Desktop.Services
         private async Task<TripImportResultDto> PostChunkAsync(
             TripImportRequestDto request,
             TripImportOutcome outcome,
+            IProgress<TripImportProgress> progress,
             CancellationToken cancellationToken)
         {
             for (var attempt = 0; ; attempt++)
@@ -394,8 +522,15 @@ namespace Raphael.Desktop.Services
                 catch (HttpRequestException ex) when (attempt < RetryDelays.Length)
                 {
                     // A dropped connection is what the host's block looks like from here.
+                    Say(progress, "Sending", ImportSeverity.Warning,
+                        string.Format(
+                            Text("import.log.RetryConnection"),
+                            (int)RetryDelays[attempt].TotalSeconds,
+                            attempt + 1,
+                            RetryDelays.Length,
+                            ex.Message));
+
                     await Task.Delay(RetryDelays[attempt], cancellationToken);
-                    System.Diagnostics.Debug.WriteLine($"Trip import retrying after a connection failure: {ex.Message}");
                     continue;
                 }
 
@@ -427,6 +562,15 @@ namespace Raphael.Desktop.Services
                     if (shouldBackOff && attempt < RetryDelays.Length)
                     {
                         var wait = response.Headers.RetryAfter?.Delta ?? RetryDelays[attempt];
+
+                        Say(progress, "Sending", ImportSeverity.Warning,
+                            string.Format(
+                                Text("import.log.RetryBackoff"),
+                                (int)response.StatusCode,
+                                (int)wait.TotalSeconds,
+                                attempt + 1,
+                                RetryDelays.Length));
+
                         await Task.Delay(wait, cancellationToken);
                         continue;
                     }
@@ -476,10 +620,181 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        /// <summary>
+        /// Sends one corrected row, or a handful of them, and reports what came back.
+        /// </summary>
+        /// <remarks>
+        /// The same endpoint as the import, because a corrected row is an import of one row. It
+        /// is safe to send: the server matches on the broker's TripId, so a row that turns out to
+        /// have gone in already is updated rather than duplicated.
+        ///
+        /// <para>
+        /// Takes a list rather than a single row so that forty corrections cost one request. A
+        /// dispatcher fixing a whole file one row at a time is exactly the burst RE-009 removed.
+        /// </para>
+        /// </remarks>
+        public async Task<TripImportResultDto> RetryAsync(
+            List<TripImportItemDto> items,
+            FundingSource fundingSource,
+            IProgress<TripImportProgress> progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            var outcome = new TripImportOutcome();
+
+            var request = new TripImportRequestDto
+            {
+                FundingSourceId = fundingSource.Id,
+                Items = items
+            };
+
+            Say(progress, "Retry", ImportSeverity.Info,
+                string.Format(Text("import.log.RetrySending"), items.Count));
+
+            var result = await PostChunkAsync(request, outcome, progress, cancellationToken);
+
+            Say(progress, "Retry",
+                result.FailedCount == 0 ? ImportSeverity.Success : ImportSeverity.Warning,
+                string.Format(
+                    Text("import.log.RetryDone"),
+                    result.CreatedCount + result.UpdatedCount,
+                    result.FailedCount));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Pulls out the rows this application can already see will be refused.
+        /// </summary>
+        /// <remarks>
+        /// Every check here mirrors a rule the server states in `INTEGRATION_API_SPEC.md` §6.1,
+        /// and answers it with the same code prefixed <c>LOCAL_</c> so a screenshot says who
+        /// decided. Getting one wrong is safe in one direction only: a check that is too strict
+        /// withholds a row the server would have taken, so when a rule is not certain, it is not
+        /// a blocker.
+        ///
+        /// <para>
+        /// Missing coordinates are the case in point. They are a WARNING, not a blocker: the trip
+        /// stores fine, Home has a filter for exactly these, and the office fixes them there. A
+        /// blocker would have taken away a workflow that already works.
+        /// </para>
+        /// </remarks>
+        private static void Preflight(
+            List<TripImportItemDto> items,
+            List<TripImportRow> rowsBySentIndex,
+            TripImportOutcome outcome,
+            IProgress<TripImportProgress> progress)
+        {
+            var blocked = 0;
+
+            for (var i = items.Count - 1; i >= 0; i--)
+            {
+                var item = items[i];
+                var row = rowsBySentIndex[i];
+
+                var code = FirstProblemWith(item);
+
+                if (code == null)
+                {
+                    if (!HasCoordinates(item))
+                    {
+                        row.LocalCode = ImportLocalCode.NoCoordinates;
+                        outcome.Warnings.Add(row);
+
+                        Say(progress, "Preflight", ImportSeverity.Warning,
+                            string.Format(Text("import.log.NoCoordinates"), row.SourceIndex + 2, item.TripId));
+                    }
+
+                    continue;
+                }
+
+                row.Status = TripImportStatus.Failed;
+                row.LocalCode = code;
+
+                outcome.Rows.Add(row);
+                outcome.FailedCount++;
+                blocked++;
+
+                items.RemoveAt(i);
+                rowsBySentIndex.RemoveAt(i);
+
+                Say(progress, "Preflight", ImportSeverity.Error,
+                    string.Format(
+                        Text("import.log.PreflightRefused"),
+                        row.SourceIndex + 2,
+                        string.IsNullOrWhiteSpace(item.TripId) ? "—" : item.TripId,
+                        code));
+            }
+
+            Say(progress, "Preflight",
+                blocked == 0 ? ImportSeverity.Success : ImportSeverity.Warning,
+                string.Format(Text("import.log.PreflightDone"), items.Count, blocked));
+        }
+
+        /// <summary>The first rule this row breaks, or null when it breaks none of them.</summary>
+        private static string FirstProblemWith(TripImportItemDto item)
+        {
+            if (string.IsNullOrWhiteSpace(item.TripId)) return ImportLocalCode.NoTripId;
+
+            if (item.Date == default) return ImportLocalCode.NoDate;
+
+            // The server's rule: a rider id identifies the patient on its own; without one the
+            // match is name plus phone, and a name on its own would merge two people who share it.
+            if (string.IsNullOrWhiteSpace(item.RiderId)
+                && (string.IsNullOrWhiteSpace(item.CustomerFullName)
+                    || string.IsNullOrWhiteSpace(item.CustomerPhone)))
+            {
+                return ImportLocalCode.NoPatientIdentity;
+            }
+
+            if (string.IsNullOrWhiteSpace(item.PickupAddress)
+                || string.IsNullOrWhiteSpace(item.DropoffAddress))
+            {
+                return ImportLocalCode.NoAddress;
+            }
+
+            if (item.PickupAddress.Length > ImportProblemCatalog.MaxAddressLength
+                || item.DropoffAddress.Length > ImportProblemCatalog.MaxAddressLength)
+            {
+                return ImportLocalCode.AddressTooLong;
+            }
+
+            return null;
+        }
+
+        private static bool HasCoordinates(TripImportItemDto item) =>
+            item.PickupLatitude != 0 && item.PickupLongitude != 0
+            && item.DropoffLatitude != 0 && item.DropoffLongitude != 0;
+
+        private static string Text(string key) => LocalizationService.Instance[key];
+
+        /// <summary>
+        /// Puts one line in the detail panel without disturbing the bar.
+        /// </summary>
+        /// <remarks>
+        /// Completed and Total are left at zero, and the view model reads a report with no totals
+        /// as "a line, not a position". That is what lets a retry notice appear mid-chunk without
+        /// the bar jumping back to the start.
+        /// </remarks>
+        private static void Say(
+            IProgress<TripImportProgress> progress,
+            string stage,
+            ImportSeverity severity,
+            string text)
+        {
+            progress?.Report(new TripImportProgress
+            {
+                Stage = stage,
+                Severity = severity,
+                Message = text
+            });
+        }
+
         /// <summary>The row as it was sent. The status is filled in from the server's answer.</summary>
-        private static TripImportRow ToRow(TripImportItemDto item)
+        private static TripImportRow ToRow(int sourceIndex, TripImportItemDto item)
             => new TripImportRow
             {
+                SourceIndex = sourceIndex,
+                Item = item,
                 TripId = item.TripId,
                 Patient = item.CustomerFullName,
                 Date = item.Date,

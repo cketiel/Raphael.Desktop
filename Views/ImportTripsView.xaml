@@ -1,0 +1,698 @@
+﻿<UserControl x:Class="Raphael.Desktop.Views.ImportTripsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+             xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             helpers:HelpAssist.TopicId="desktop/home/import"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
+        <converters:EnumMatchConverter x:Key="EnumMatch" />
+        <converters:EmptyStringToVisibilityConverter x:Key="TextToVisibility" />
+        <converters:ImportSeverityToBrushConverter x:Key="SeverityBrush" />
+        <converters:ImportFieldVisibilityConverter x:Key="FieldVisibility" />
+        <converters:TimeSpanToTextConverter x:Key="TimeText" />
+        <converters:NotNullToVisibilityConverter x:Key="NotNull" />
+
+        <!-- ===== The stepper =====
+             Three numbers across the top, and the one you are on is filled. It is the cheapest
+             orientation there is: at any moment the screen says how many steps this takes, which
+             one is running, and that there is an end to it. -->
+        <Style x:Key="StepChip" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12,3,14,3" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="Background" Value="#26FFFFFF" />
+        </Style>
+
+        <Style x:Key="StepChipOn" TargetType="Border" BasedOn="{StaticResource StepChip}">
+            <Setter Property="Background" Value="#FFFFFFFF" />
+        </Style>
+
+        <!-- One card per stage of the first step, numbered, so the order is not a guess. -->
+        <Style x:Key="StageNumber" TargetType="Border">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+
+        <Style x:Key="StageNumberText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="StageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,3,0,8" />
+        </Style>
+
+        <!-- The figures the run comes to. Tiles rather than a sentence: five numbers in a line of
+             prose are five numbers nobody reads. -->
+        <Style x:Key="ResultTile" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16,10,20,10" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="ResultFigure" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style x:Key="ResultCaption" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value=".7" />
+        </Style>
+
+        <!-- The repair grid wears what the trips grid wears. Same rows, same selection, same
+             hover: a dispatcher should not have to learn a second grid on the worst day of the
+             week. Styles/CustomDataGridStyles.xaml. -->
+        <Style x:Key="ProblemRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+            <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}" />
+            <Style.Triggers>
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="White" />
+                </Trigger>
+
+                <!-- A row that has gone in says so in the type, never in the background: the
+                     banding is what lets the eye track one row across the grid. Same rule as
+                     Home. -->
+                <DataTrigger Binding="{Binding IsImported}" Value="True">
+                    <Setter Property="Foreground" Value="#FF2E7D32" />
+                    <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+                </DataTrigger>
+
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverTripRowBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectedTripRowBrush}" />
+                    <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="EditorLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Opacity" Value=".65" />
+            <Setter Property="Margin" Value="0,8,0,2" />
+        </Style>
+
+        <Style x:Key="EditorBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="6,3,6,3" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource MaterialDesignPaper}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================================================ header and stepper -->
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="14,10,16,10"
+                                  materialDesign:ElevationAssist.Elevation="Dp3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Closed while the import runs. Walking out mid-run leaves a file half in and a
+                     screen that can no longer say which half. -->
+                <Button Grid.Column="0" Foreground="White" Click="Back_Click"
+                        IsEnabled="{Binding CanLeave}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        ToolTip="{Binding BackLabel}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ArrowLeft" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding BackLabel}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                    </StackPanel>
+                </Button>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="18,0,0,0">
+                    <materialDesign:PackIcon Kind="DatabaseImport" Width="22" Height="22"
+                                             Foreground="White" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding HeaderLabel}" Margin="10,0,0,0" Foreground="White"
+                               VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <Border x:Name="Step1Chip" Style="{StaticResource StepChip}">
+                        <TextBlock Text="{Binding StepChooseLabel}" FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+                    <Border x:Name="Step2Chip" Style="{StaticResource StepChip}">
+                        <TextBlock Text="{Binding StepRunLabel}" FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+                    <Border x:Name="Step3Chip" Style="{StaticResource StepChip}">
+                        <TextBlock Text="{Binding StepReviewLabel}" FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </materialDesign:ColorZone>
+
+        <!-- ============================================================ step 1: choose -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding IsPreparing, Converter={StaticResource BoolToVisibility}}">
+            <Border MaxWidth="820" Margin="24" CornerRadius="6" Padding="24"
+                    Background="{DynamicResource MaterialDesignPaper}"
+                    BorderBrush="{StaticResource MainBorderBrush}" BorderThickness="1"
+                    VerticalAlignment="Top">
+                <StackPanel>
+
+                    <!-- the payer -->
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource StageNumber}">
+                            <TextBlock Text="1" Style="{StaticResource StageNumberText}" />
+                        </Border>
+                        <StackPanel>
+                            <TextBlock Text="{Binding FundingSourceHint}" Style="{StaticResource StageTitle}" />
+                            <ComboBox ItemsSource="{Binding FundingSources}"
+                                      SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}"
+                                      DisplayMemberPath="Name"
+                                      materialDesign:HintAssist.Hint="{Binding FundingSourceHint}"
+                                      materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                      materialDesign:TextFieldAssist.LeadingIcon="Finance"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      HorizontalAlignment="Left" MinWidth="320" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Separator Margin="0,22,0,18" Opacity=".4" />
+
+                    <!-- the file -->
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Style="{StaticResource StageNumber}">
+                            <TextBlock Text="2" Style="{StaticResource StageNumberText}" />
+                        </Border>
+                        <StackPanel>
+                            <TextBlock Text="{Binding NoFileLabel}" Style="{StaticResource StageTitle}" />
+
+                            <!-- Nothing chosen yet. -->
+                            <Border CornerRadius="6" Padding="24" BorderThickness="1.4"
+                                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                    Background="#08000000"
+                                    Visibility="{Binding HasFile, Converter={StaticResource InverseBoolToVisibility}}">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="FileDelimitedOutline" Width="34" Height="34"
+                                                             Opacity=".45" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding NoFileHint}" Margin="0,8,0,12" FontSize="12"
+                                               Opacity=".75" TextAlignment="Center" TextWrapping="Wrap"
+                                               MaxWidth="360" />
+                                    <Button Content="{Binding BrowseLabel}" Click="Browse_Click"
+                                            Style="{StaticResource MaterialDesignRaisedButton}"
+                                            HorizontalAlignment="Center" Height="32" FontSize="12" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Chosen, and said back. The old screen never showed this: the file
+                                 dialog closed and the import was already running. -->
+                            <Border CornerRadius="6" Padding="14" BorderThickness="1"
+                                    BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                                    Background="#0A673AB7"
+                                    Visibility="{Binding HasFile, Converter={StaticResource BoolToVisibility}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <materialDesign:PackIcon Grid.Column="0" Kind="FileDelimited"
+                                                             Width="30" Height="30" VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+
+                                    <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding FileSizeText}" Margin="8,0,0,0"
+                                                       FontSize="11" Opacity=".6" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding FileSummary}" FontSize="11.5" Opacity=".8"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="{Binding ChangeFileLabel}" Click="Browse_Click"
+                                                Style="{StaticResource MaterialDesignFlatButton}" FontSize="11" />
+                                        <Button Command="{Binding ClearCommand}"
+                                                Style="{StaticResource TripActionButtonStyle}" Margin="4,0,0,0">
+                                            <materialDesign:PackIcon Kind="Close" Width="18" Height="18" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Whatever is in the way, said once and in full. -->
+                            <Border CornerRadius="6" Padding="12,9,12,9" Margin="0,12,0,0"
+                                    Background="#14C62828" BorderThickness="1" BorderBrush="#40C62828"
+                                    Visibility="{Binding Blocker, Converter={StaticResource TextToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AlertCircleOutline" Width="18" Height="18"
+                                                             Foreground="#FFC62828" VerticalAlignment="Top" />
+                                    <TextBlock Text="{Binding Blocker}" Margin="8,0,0,0" FontSize="12"
+                                               TextWrapping="Wrap" Foreground="#FFA02020" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Separator Margin="0,22,0,18" Opacity=".4" />
+
+                    <!-- The one sentence that stops people being afraid of this screen. -->
+                    <Border CornerRadius="6" Padding="12,9,12,9" Background="#0F2E7D32">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="18" Height="18"
+                                                     Foreground="#FF2E7D32" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding SafeToRepeatLabel}" Margin="8,0,0,0" FontSize="12"
+                                       TextWrapping="Wrap" Opacity=".9" />
+                        </StackPanel>
+                    </Border>
+
+                    <Button Command="{Binding ImportCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            HorizontalAlignment="Right" Margin="0,20,0,0" Height="38" MinWidth="180"
+                            materialDesign:ButtonAssist.CornerRadius="5">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="DatabaseImport" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ImportNowLabel}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+        <!-- ============================================================ step 2: running -->
+        <Grid Grid.Row="1" Margin="24"
+              Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding ProgressPercentText}"
+                               FontSize="20" FontWeight="Bold"
+                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                    <TextBlock Text="{Binding ProgressCaption}" FontSize="13" VerticalAlignment="Center" />
+                </DockPanel>
+
+                <ProgressBar Height="12" Margin="0,8,0,0"
+                             Minimum="0"
+                             Maximum="{Binding ProgressMaximum}"
+                             Value="{Binding ProgressValue, Mode=OneWay}" />
+            </StackPanel>
+
+            <!-- The detail is a choice, and it is on by default. Somebody watching an import that
+                 is going slowly wants to know what it is doing, and hiding it behind a click is
+                 how a progress bar becomes a thing people distrust. -->
+            <DockPanel Grid.Row="1" Margin="0,18,0,8">
+                <ToggleButton DockPanel.Dock="Left" IsChecked="{Binding ShowDetail, Mode=TwoWay}"
+                              Style="{StaticResource MaterialDesignSwitchToggleButton}" />
+                <TextBlock Text="{Binding DetailLabel}" Margin="10,0,0,0" VerticalAlignment="Center"
+                           FontSize="12" FontWeight="SemiBold" />
+            </DockPanel>
+
+            <Border Grid.Row="2" CornerRadius="6" BorderThickness="1"
+                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                    Background="#06000000"
+                    Visibility="{Binding ShowDetail, Converter={StaticResource BoolToVisibility}}">
+                <ListBox x:Name="LogList" ItemsSource="{Binding Log}" BorderThickness="0"
+                         Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Focusable" Value="False" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="10,1,10,1">
+                                <TextBlock Text="{Binding Time}" FontFamily="Consolas" FontSize="11"
+                                           Opacity=".45" Width="60" />
+                                <TextBlock Text="{Binding Stage}" FontFamily="Consolas" FontSize="11"
+                                           Opacity=".55" Width="76" />
+                                <TextBlock Text="{Binding Text}" FontSize="11.5" TextWrapping="Wrap"
+                                           Foreground="{Binding Severity, Converter={StaticResource SeverityBrush}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+        </Grid>
+
+        <!-- ============================================================ step 3: review -->
+        <Grid Grid.Row="1" Margin="18,14,18,14"
+              Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- the figures -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                <Border Style="{StaticResource ResultTile}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding CreatedCount}" Style="{StaticResource ResultFigure}"
+                                   Foreground="#FF2E7D32" />
+                        <TextBlock Text="{Binding ResultCreatedLabel}" Style="{StaticResource ResultCaption}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource ResultTile}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding UpdatedCount}" Style="{StaticResource ResultFigure}"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                        <TextBlock Text="{Binding ResultUpdatedLabel}" Style="{StaticResource ResultCaption}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource ResultTile}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding FailedCount}" Style="{StaticResource ResultFigure}"
+                                   Foreground="#FFC62828" />
+                        <TextBlock Text="{Binding ResultFailedLabel}" Style="{StaticResource ResultCaption}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource ResultTile}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding WarningCount}" Style="{StaticResource ResultFigure}"
+                                   Foreground="#FFB26A00" />
+                        <TextBlock Text="{Binding ResultWarningsLabel}" Style="{StaticResource ResultCaption}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource ResultTile}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding RequestCount}" Style="{StaticResource ResultFigure}" Opacity=".8" />
+                        <TextBlock Text="{Binding ResultRequestsLabel}" Style="{StaticResource ResultCaption}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource ResultTile}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ElapsedText}" Style="{StaticResource ResultFigure}" Opacity=".8" />
+                        <TextBlock Text="{Binding ResultElapsedLabel}" Style="{StaticResource ResultCaption}" />
+                    </StackPanel>
+                </Border>
+
+                <Button Command="{Binding StartOverCommand}" VerticalAlignment="Center" Margin="14,0,0,0"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" Height="32" FontSize="12">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Restart" VerticalAlignment="Center" Width="17" Height="17" />
+                        <TextBlock Text="{Binding StartOverLabel}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- Everything went in. Say so and stop. -->
+            <Border Grid.Row="1" CornerRadius="6" Padding="14" Margin="0,14,0,0"
+                    Background="#0F2E7D32"
+                    Visibility="{Binding HasProblems, Converter={StaticResource InverseBoolToVisibility}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="CheckCircleOutline" Width="22" Height="22"
+                                             Foreground="#FF2E7D32" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding NoProblemsLabel}" Margin="10,0,0,0" FontSize="13"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- the repair bench -->
+            <Grid Grid.Row="2" Margin="0,14,0,0"
+                  Visibility="{Binding HasProblems, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition Width="360" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- filters and the two batch actions -->
+                <DockPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Command="{Binding RetryAllCommand}" Height="30" FontSize="11.5"
+                                Style="{StaticResource MaterialDesignRaisedButton}" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Reload" VerticalAlignment="Center" Width="16" Height="16" />
+                                <TextBlock Text="{Binding RetryAllLabel}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="Export_Click" Height="30" FontSize="11.5"
+                                Style="{StaticResource MaterialDesignOutlinedButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExportOutline" VerticalAlignment="Center"
+                                                         Width="16" Height="16" />
+                                <TextBlock Text="{Binding ExportFailedLabel}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ProblemsHeader}" FontSize="13" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="0,0,14,0" />
+                        <RadioButton GroupName="RowFilter" FontSize="11.5" Margin="0,0,10,0"
+                                     Content="{Binding FilterPendingLabel}"
+                                     IsChecked="{Binding RowFilter, Converter={StaticResource EnumMatch}, ConverterParameter=Pending}" />
+                        <RadioButton GroupName="RowFilter" FontSize="11.5" Margin="0,0,10,0"
+                                     Content="{Binding FilterImportedLabel}"
+                                     IsChecked="{Binding RowFilter, Converter={StaticResource EnumMatch}, ConverterParameter=Imported}" />
+                        <RadioButton GroupName="RowFilter" FontSize="11.5"
+                                     Content="{Binding FilterAllLabel}"
+                                     IsChecked="{Binding RowFilter, Converter={StaticResource EnumMatch}, ConverterParameter=All}" />
+                    </StackPanel>
+                </DockPanel>
+
+                <DataGrid Grid.Row="1" Grid.Column="0"
+                          ItemsSource="{Binding RowsView}"
+                          SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          AlternationCount="2"
+                          CanUserAddRows="False"
+                          EnableRowVirtualization="True"
+                          Style="{StaticResource CustomDataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                          RowStyle="{StaticResource ProblemRowStyle}"
+                          Cursor="Hand">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Command="{Binding DataContext.RetryRowCommand,
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding CanRetry}"
+                                                Style="{StaticResource TripActionButtonStyle}"
+                                                ToolTip="{Binding DataContext.RetryLabel,
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                            <materialDesign:PackIcon Kind="Reload" Width="18" Height="18"
+                                                                     Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                        </Button>
+
+                                        <materialDesign:PackIcon Kind="CheckCircle" Width="18" Height="18"
+                                                                 Margin="4,0,0,0" Foreground="#FF2E7D32"
+                                                                 VerticalAlignment="Center"
+                                                                 Visibility="{Binding IsImported,
+                                                                              Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Binding="{Binding SourceIndex}" Width="Auto"
+                                            Header="{Binding DataContext.ColumnRowLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        <DataGridTextColumn Binding="{Binding TripId}" Width="Auto"
+                                            Header="{Binding DataContext.ColumnTripIdLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        <DataGridTextColumn Binding="{Binding PatientName}" Width="*"
+                                            Header="{Binding DataContext.ColumnPatientLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        <DataGridTextColumn Binding="{Binding Date, StringFormat=MM/dd/yyyy}" Width="Auto"
+                                            Header="{Binding DataContext.ColumnDateLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        <DataGridTextColumn Binding="{Binding PickupAddress}" Width="*"
+                                            Header="{Binding DataContext.ColumnPickupLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        <DataGridTextColumn Binding="{Binding DropoffAddress}" Width="*"
+                                            Header="{Binding DataContext.ColumnDropoffLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                        <DataGridTextColumn Binding="{Binding Problem.Title}" Width="1.4*"
+                                            Header="{Binding DataContext.ColumnProblemLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <GridSplitter Grid.Row="1" Grid.Column="1" Width="6"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                              Background="Transparent" ShowsPreview="True" Cursor="SizeWE" />
+
+                <!-- the bench itself: one row, its problem, and the fields that fix it -->
+                <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" CornerRadius="6" BorderThickness="1"
+                        BorderBrush="{StaticResource MainBorderBrush}"
+                        Background="{DynamicResource MaterialDesignPaper}"
+                        DataContext="{Binding SelectedRow}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Problem.Title}" FontSize="13" FontWeight="SemiBold"
+                                       TextWrapping="Wrap" Foreground="#FFC62828" />
+
+                            <!-- What to do, which is the part that was missing entirely. -->
+                            <Border CornerRadius="5" Padding="10,8,10,8" Margin="0,10,0,0"
+                                    Background="#0F673AB7">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="LightbulbOnOutline" Width="17" Height="17"
+                                                             VerticalAlignment="Top"
+                                                             Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                    <TextBlock Text="{Binding Problem.Suggestion}" Margin="8,0,0,0"
+                                               FontSize="11.5" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- The trip it clashed with, when that is the problem. This is what
+                                 the server was changed for: "duplicate" is not actionable, "the
+                                 same ride is already booked as TripId 88213" is. -->
+                            <Border CornerRadius="5" Padding="10" Margin="0,10,0,0"
+                                    Background="#0FC62828" BorderThickness="1" BorderBrush="#33C62828"
+                                    Visibility="{Binding Conflict, Converter={StaticResource NotNull}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DataContext.ConflictHeader,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                               FontSize="10.5" FontWeight="Bold" Opacity=".7" />
+                                    <TextBlock Text="{Binding Conflict.TripId}" FontSize="13" FontWeight="Bold"
+                                               Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding Conflict.PatientName}" FontSize="11.5" Margin="0,2,0,0" />
+                                    <TextBlock FontSize="11" Opacity=".8" Margin="0,2,0,0">
+                                        <Run Text="{Binding Conflict.Date, StringFormat=MM/dd/yyyy, Mode=OneWay}" />
+                                        <Run Text="  " />
+                                        <Run Text="{Binding Conflict.FromTime, Converter={StaticResource TimeText}, Mode=OneWay}" />
+                                        <Run Text="–" />
+                                        <Run Text="{Binding Conflict.ToTime, Converter={StaticResource TimeText}, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Conflict.PickupAddress}" FontSize="11" Opacity=".8"
+                                               TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding Conflict.DropoffAddress}" FontSize="11" Opacity=".8"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Conflict.Status}" FontSize="10.5" Opacity=".6"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Only the fields this problem is about. -->
+                            <TextBlock Text="{Binding DataContext.SuggestionHeader,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       FontSize="10.5" FontWeight="Bold" Opacity=".6" Margin="0,18,0,0" />
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=TripId}">
+                                <TextBlock Text="TripId" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding TripId, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=Date}">
+                                <TextBlock Text="Date" Style="{StaticResource EditorLabel}" />
+                                <DatePicker SelectedDate="{Binding Date, Mode=TwoWay}" FontSize="12" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=Patient}">
+                                <TextBlock Text="Patient" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding PatientName, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=Phone}">
+                                <TextBlock Text="Phone" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding PatientPhone, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=RiderId}">
+                                <TextBlock Text="Rider ID" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding RiderId, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=PickupAddress}">
+                                <TextBlock Text="Pickup" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding PickupAddress, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=DropoffAddress}">
+                                <TextBlock Text="Dropoff" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding DropoffAddress, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding Problem.Fields, Converter={StaticResource FieldVisibility}, ConverterParameter=SpaceType}">
+                                <TextBlock Text="Space" Style="{StaticResource EditorLabel}" />
+                                <TextBox Text="{Binding SpaceTypeName, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource EditorBox}" />
+                            </StackPanel>
+
+                            <!-- Nothing on this screen will fix it, so say that instead of showing
+                                 a button that will never light up. -->
+                            <TextBlock Text="{Binding DataContext.CannotFixHereLabel,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       FontSize="11.5" TextWrapping="Wrap" Opacity=".8" Margin="0,10,0,0"
+                                       Visibility="{Binding Problem.FixableHere, Converter={StaticResource InverseBoolToVisibility}}" />
+
+                            <Button Command="{Binding DataContext.RetryRowCommand,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    IsEnabled="{Binding CanRetry}"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Margin="0,18,0,0" Height="34" FontSize="12">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Reload" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding DataContext.RetryLabel,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- What the server actually said, kept but demoted: it is written for
+                                 a developer, and it is the second thing anybody needs. -->
+                            <Expander Header="{Binding Problem.Code}" Margin="0,16,0,0" FontSize="11">
+                                <StackPanel Margin="4,6,4,4">
+                                    <TextBlock Text="{Binding ServerMessage}" FontSize="11" TextWrapping="Wrap"
+                                               Opacity=".8" />
+                                    <TextBlock Text="{Binding LastRetryMessage}" FontSize="11" TextWrapping="Wrap"
+                                               Foreground="#FFC62828" Margin="0,6,0,0"
+                                               Visibility="{Binding LastRetryMessage, Converter={StaticResource TextToVisibility}}" />
+                                    <TextBlock Text="{Binding CorrelationId}" FontFamily="Consolas" FontSize="10"
+                                               Opacity=".5" Margin="0,6,0,0" TextWrapping="Wrap"
+                                               Visibility="{Binding CorrelationId, Converter={StaticResource TextToVisibility}}" />
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

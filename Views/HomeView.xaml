@@ -2283,117 +2283,23 @@
             </DataGrid>-->
 
 
-                <!-- Sección de Importación de Viajes (Diseño Mejorado) -->
-                <Grid Grid.Row="0" Grid.RowSpan="3" x:Name="ImportTripsGridRow"
-                      Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}"
-                      Background="{DynamicResource MaterialDesignPaper}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                <!-- ===== Importing a broker's file =====
+                     A screen of its own, hosted here because it is a mode of this tab and not a
+                     window: it shares Home's loaded collections - trips, patients, space types -
+                     and loading a second copy would double the traffic on entering the one screen
+                     whose entire reason for existing is that it made too many requests.
 
-                    <!-- Encabezado con botón de Volver -->
-                    <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" materialDesign:ElevationAssist.Elevation="Dp3">
-                        <DockPanel>
-                            <Button  
-                    Foreground="White"
-                    Click="BackToHome_Click"
-                    ToolTip="{Binding BackToHomeLabel}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="ArrowLeft" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding BackToHomeLabel}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
-                                </StackPanel>
-                            </Button>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <materialDesign:PackIcon Kind="DatabaseImport" Width="24" Height="24" />
-                                <TextBlock Text="{Binding ImportHeaderLabel}" Margin="12,0,0,0" Style="{StaticResource MaterialDesignHeadline6TextBlock}" />
-                            </StackPanel>
-                        </DockPanel>
-                    </materialDesign:ColorZone>
-
-                    <!-- Contenido Principal -->
-                    <Grid Grid.Row="1" Margin="20">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <!-- Tarjeta de Configuración -->
-                            <RowDefinition Height="*" />
-                            <!-- Tarjeta del Grid -->
-                        </Grid.RowDefinitions>
-
-                        <!-- PASO 1: Selección de Fuente y Archivo -->
-                        <materialDesign:Card Padding="16" Margin="0,0,0,16" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <ComboBox x:Name="FundingSourceImportComboBox"
-                          Grid.Column="0"
-                          ItemsSource="{Binding FundingSources}" 
-                          SelectedItem="{Binding SelectedFundingSourceImport, Mode=TwoWay}" 
-                          DisplayMemberPath="Name" 
-                          SelectedValuePath="Id"
-                          materialDesign:HintAssist.Hint="Seleccionar Funding Source"
-                          materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                          materialDesign:TextFieldAssist.LeadingIcon="Finance"
-                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                          Margin="0,0,16,0" />
-
-                                <Button x:Name="SelectCsvButton"
-                        Grid.Column="1"
-                        Height="50"
-                        Click="SelectCsv_Click" 
-                        Style="{StaticResource MaterialDesignRaisedButton}"
-                        materialDesign:ButtonAssist.CornerRadius="5">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="FileCsv" Margin="0,0,8,0" />
-                                        <TextBlock Text="{Binding SelectCsvButtonContent}" />
-                                    </StackPanel>
-                                </Button>
-
-                                <!-- Panel de Progreso -->
-                                <StackPanel Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center" MinWidth="250">
-                                    <StackPanel x:Name="ProgressPanel" Visibility="Collapsed">
-                                        <TextBlock x:Name="ProgressText" 
-                                   Text="{Binding ProgressPanelText}" 
-                                   Style="{StaticResource MaterialDesignCaptionTextBlock}" 
-                                   HorizontalAlignment="Center" />
-                                        <ProgressBar x:Name="ImportProgressBar" 
-                                     Height="10" 
-                                     IsIndeterminate="False" 
-                                     />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-                        </materialDesign:Card>
-
-                        <!-- PASO 2: Vista previa de datos -->
-                        <materialDesign:Card Grid.Row="1" materialDesign:ElevationAssist.Elevation="Dp1">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-
-                                <Border Background="{DynamicResource MaterialDesignDivider}" Padding="12,8">
-                                    <TextBlock Text="{Binding ImportResultsLabel}" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Opacity="0.6" />
-                                </Border>
-
-                                <DataGrid Grid.Row="1"
-                          x:Name="PreviewGrid" 
-                          AutoGenerateColumns="True" 
-                          IsReadOnly="True"
-                          CanUserAddRows="False"
-                          HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Auto"
-                          Style="{StaticResource MaterialDesignDataGrid}">
-                                </DataGrid>
-                            </Grid>
-                        </materialDesign:Card>
-                    </Grid>
-                </Grid>
+                     What was here before was a funding source, a button that started importing
+                     the instant the file dialog closed, and a grid with AutoGenerateColumns on it.
+                     RE-011 replaced all of it. The engine underneath is untouched. -->
+                <!-- Visibility goes through the proxy, not through the inherited DataContext.
+                     Attach() gives this control a view model of its own, and the moment it does a
+                     plain {Binding IsImporting} here would resolve against THAT - where the
+                     property does not exist - and the panel would never appear again. -->
+                <local:ImportTripsView x:Name="ImportPanel"
+                                       Grid.Row="0" Grid.RowSpan="3"
+                                       Visibility="{Binding Data.IsImporting, Source={StaticResource vmProxy},
+                                                    Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- Import Trips-->
                 <!--<Grid Grid.Row="0" x:Name="ImportTripsGridRow" Visibility="Collapsed" Margin="10">

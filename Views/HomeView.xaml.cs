@@ -92,6 +92,8 @@ namespace Raphael.Desktop.Views
 
             InitializeData();
 
+            AttachImportPanel();
+
             //SetupAutocompleteOverlay();
 
             // It doesn't work properly, it never loads the map.
@@ -394,8 +396,6 @@ namespace Raphael.Desktop.Views
                 case HomeMode.Importing:
                     // The import view covers the whole tab, so the columns underneath keep the
                     // shape they had. Only its own leftovers are cleared.
-                    PreviewGrid.ItemsSource = null;
-                    ProgressPanel.Visibility = Visibility.Collapsed;
                     break;
             }
         }
@@ -1234,197 +1234,19 @@ namespace Raphael.Desktop.Views
 
         }
 
-        private void BackToHome_Click(object sender, RoutedEventArgs e) => ViewModel.LeaveImportMode();
-
-        private async void SelectCsv_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Hands the import screen the collections it maps with, and listens for the way out.
+        /// </summary>
+        /// <remarks>
+        /// Called once, from the constructor. The import screen is a mode of this tab: it reuses
+        /// Home's already-loaded trips, patients and space types rather than fetching its own.
+        /// </remarks>
+        private void AttachImportPanel()
         {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "CSV files (*.csv)|*.csv",
-                Title = "Select CSV file"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                // Disable button and show progress
-                SelectCsvButton.IsEnabled = false;
-                ProgressPanel.Visibility = Visibility.Visible;
-                ImportProgressBar.Value = 0;
-                ImportProgressBar.Maximum = 1; // Will update after reading the records
-                ProgressText.Text = "Reading CSV file...";
-                PreviewGrid.ItemsSource = null; // Clear previous preview
-
-                try
-                {
-                    bool isSaferide = true;
-                    // Read the CSV (this is still sequential and may take time)
-                    // Consider making ReadCsv also asynchronous and report its progress if it is very large.
-                    List<CsvTripRawModel> records;
-                    CsvReaderService csvReaderService = new CsvReaderService(dialog.FileName);
-                    isSaferide = csvReaderService.IsSaferide();
-                    CsvType csvType = csvReaderService.GetCsvType();
-                    try
-                    {
-                        
-                        string jsonFileName = string.Empty;
-                        /*jsonFileName = GetJsonFileName(csvType);
-                        string GetJsonFileName(CsvType csvType) => csvType switch
-                        {
-                            CsvType.Saferide => "SAFERIDE.json",
-                            CsvType.Saferide2 => "SAFERIDE2.json",
-                            CsvType.Ride2md => "Ride2md.json",
-                            _ => throw new ArgumentOutOfRangeException(nameof(csvType), csvType, null)
-                        };*/
-                        switch (csvType)
-                        {
-                            case CsvType.Saferide:
-                                jsonFileName = "SAFERIDE.json";
-                                break;
-                            case CsvType.Saferide2:
-                                jsonFileName = "SAFERIDE2.json";
-                                break;
-                            case CsvType.Ride2md:
-                                jsonFileName = "Ride2md.json";
-                                bool correctFormat = csvReaderService.IsRide2mdCorrectFormat();
-                                if (!correctFormat)
-                                {
-                                    MessageBox.Show("The selected Ride2md CSV file does not have the correct format. Please check the file and try again.", "Format Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return; // Exit if format is incorrect
-                                }
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(csvType), csvType, "CSV type not supported");
-                                
-                        }
-                        //var jsonFileName = isSaferide ? "SAFERIDE.json" : "Ride2md.json"; 
-
-                        // If ReadCsv may take a long time, consider async Task<List<CsvTripRawModel>>
-                        // and run it with Task.Run().
-                        //records = await Task.Run(() => ReadCsv(dialog.FileName)); // Run in a background thread to not block UI.
-                        records = await Task.Run(() => csvReaderService.ReadCsvWithDuplicateColumns(jsonFileName)); // Run in a background thread to not block UI.
-                        //PreviewGrid.ItemsSource = records;
-                    }
-                    catch (Exception readEx)
-                    {
-                        MessageBox.Show($"Error reading CSV file: {readEx.Message}", "Read Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return; // Exit if reading fails
-                    }
-                    // ⚠️ The button used to be re-enabled here, before the import had even begun,
-                    // so a second file could be started on top of the first. Two imports at once
-                    // are two bursts at once, which is the thing this whole path exists to avoid.
-                    // The outer finally re-enables it, and it runs on every exit from here.
-
-
-                    if (records == null || !records.Any())
-                    {
-                        MessageBox.Show("The CSV file is empty or no records could be read.", "Empty File", MessageBoxButton.OK, MessageBoxImage.Information);
-                        ProgressPanel.Visibility = Visibility.Collapsed;
-                        return;
-                    }
-
-                    ImportProgressBar.Maximum = records.Count; // Update the maximum value of the progress bar.
-                    ProgressText.Text = $"Processing 0 of {records.Count} trips...";
-
-                    // Sequential from here on: one request per chunk, never several at once.
-                    // The concurrency this replaced is what the shared host read as an attack.
-                    // See Services/TripImportService.cs.
-                    if (DataContext is HomeViewModel vm)
-                    {
-                        FundingSource importSelectedFundingSource = vm.SelectedFundingSourceImport;
-                        bool selectedFileIsSaferide = isSaferide;
-
-                        // para los casos de "SAFERIDE MILANES" Y "SAFERIDE YAMIGROUP"
-                        bool selectedFundingSourceIsSaferide = importSelectedFundingSource.Name?.StartsWith("SAFERIDE", StringComparison.OrdinalIgnoreCase) ?? false;
-
-                        // If the uploaded file does not correspond to the selected FundingSource, display a message and do not allow the file to be imported
-                        if ((selectedFileIsSaferide && !selectedFundingSourceIsSaferide) || (!selectedFileIsSaferide && selectedFundingSourceIsSaferide))
-                        {
-                            ShowInconsistencyMessage();
-                        }
-                        else
-                        {
-                            // The mapper is built with the collections it has always taken, but the
-                            // import path uses only its pure mapping: no lookups, no inserts.
-                            var mapper = new CsvTripMapper(
-                                vm.Trips, vm.SpaceTypes, vm.CapacityTypes, vm.Customers, vm.FundingSources,
-                                new GoogleMapsService(), new SpaceTypeService(), new CapacityTypeService(),
-                                new CustomerService(), new FundingSourceService(), new TripService()
-                            );
-
-                            var importService = new TripImportService();
-
-                            var progressReporter = new Progress<TripImportProgress>(p =>
-                            {
-                                ImportProgressBar.Maximum = p.Total <= 0 ? 1 : p.Total;
-                                ImportProgressBar.Value = p.Completed;
-                                ProgressText.Text = p.Stage == "Geocoding"
-                                    ? $"Locating {p.Completed} of {p.Total} addresses..."
-                                    : $"Importing {p.Completed} of {p.Total} trips...";
-                            });
-
-                            var outcome = await importService.ImportAsync(
-                                records,
-                                importSelectedFundingSource,
-                                selectedFileIsSaferide,
-                                csvType,
-                                mapper,
-                                progressReporter);
-
-                            PreviewGrid.ItemsSource = outcome.Rows;
-
-                            // The number of requests is the whole point of this change, so it is
-                            // said out loud. An import that starts costing thousands again is a
-                            // regression nobody would notice until the host blocks us.
-                            Debug.WriteLine($"Trip import: {records.Count} rows in {outcome.RequestCount} requests.");
-
-                            MessageBox.Show(
-                                $"{outcome.StoredCount} trips imported ({outcome.CreatedCount} new, {outcome.UpdatedCount} updated) using {outcome.RequestCount} server requests.",
-                                "Process Completed", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                            if (outcome.FailedCount > 0)
-                            {
-                                MessageBox.Show(
-                                    $"{outcome.FailedCount} trips were not imported. TripIds: {string.Join(", ", outcome.FailedTripIds)}."
-                                    + Environment.NewLine + Environment.NewLine
-                                    + "The reason for each one is in the Status and Reason columns of the preview below. Correct them in the file and import it again.",
-                                    "Trips not imported", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            }
-
-                            if (outcome.Aborted)
-                            {
-                                MessageBox.Show(
-                                    "The import stopped before the end of the file: " + outcome.AbortReason
-                                    + Environment.NewLine + Environment.NewLine
-                                    + "Wait a couple of minutes and import the SAME whole file again. That is safe and it is the fix: "
-                                    + "a trip that already went in is updated, never duplicated.",
-                                    "Import stopped", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("ViewModel not found. Can't continue.", "Context Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                catch (Exception ex) // General catch for unexpected errors
-                {
-                    MessageBox.Show($"General error during import:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                finally
-                {
-                    // Ensure the UI is restored
-                    SelectCsvButton.IsEnabled = true;
-                    ProgressPanel.Visibility = Visibility.Collapsed; // Hide progress panel
-                    ImportProgressBar.Value = 0; // Reset bar
-                }
-            }
+            ImportPanel.Attach(ViewModel);
+            ImportPanel.BackRequested += (_, _) => ViewModel.LeaveImportMode();
         }
 
-
-        private void ShowInconsistencyMessage() 
-        {
-            MessageBox.Show("The data loaded in the file does not correspond to the selected Funding Source");
-        }
 
         // If ReadCsv may take a long time, consider async Task<List<CsvTripRawModel>>
         // and run it with Task.Run().

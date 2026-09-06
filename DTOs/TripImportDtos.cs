@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Raphael.Desktop.DTOs
@@ -91,6 +91,33 @@ namespace Raphael.Desktop.DTOs
 
         /// <summary>Key to the full server-side record of the failure, for support.</summary>
         public string? CorrelationId { get; set; }
+
+        /// <summary>The trip this row collided with. Null unless it was refused for clashing.</summary>
+        public TripImportConflictDto? Conflict { get; set; }
+    }
+
+    /// <summary>
+    /// The trip that was already there, when a row is refused for duplicating one.
+    /// </summary>
+    /// <remarks>
+    /// Mirror of <c>Raphael.Shared/DTOs/TripImportResultDto.cs</c>. Keep the two in step.
+    ///
+    /// <para>
+    /// Only the import fills this in, and only for a dispatcher holding a JWT - it is not on the
+    /// integrator path. "This is a duplicate" is not an answer anybody can act on: the office has
+    /// to know WHICH trip, or they have to go and hunt for it.
+    /// </para>
+    /// </remarks>
+    public class TripImportConflictDto
+    {
+        public string? TripId { get; set; }
+        public DateTime Date { get; set; }
+        public TimeSpan? FromTime { get; set; }
+        public TimeSpan? ToTime { get; set; }
+        public string? PatientName { get; set; }
+        public string? PickupAddress { get; set; }
+        public string? DropoffAddress { get; set; }
+        public string? Status { get; set; }
     }
 
     /// <summary>Result of one import chunk.</summary>
