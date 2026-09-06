@@ -22,6 +22,7 @@
         <converters:EmptyStringToVisibilityConverter x:Key="TextToVisibility" />
         <converters:ImportSeverityToBrushConverter x:Key="SeverityBrush" />
         <converters:NotNullToVisibilityConverter x:Key="NotNull" />
+        <converters:IsNullToVisibilityConverter x:Key="IsNull" />
         <converters:TimeSpanToTextConverter x:Key="TimeText" />
 
         <!-- ===== The stepper =====
@@ -709,11 +710,29 @@
                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                               Background="Transparent" ShowsPreview="True" Cursor="SizeWE" />
 
+                <!-- ⚠️ With no row selected, DataContext is null and EVERY binding inside fails -
+                     including the ones that decide what is hidden. A failed Visibility binding
+                     falls back to Visible, so the card came up with empty boxes AND the duplicate
+                     block on a row that had no duplicate. That is what "ALREADY BOOKED AS over an
+                     empty form" was. The card only exists when there is a row for it. -->
                 <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" CornerRadius="6" BorderThickness="1"
                         BorderBrush="{StaticResource MainBorderBrush}"
                         Background="{DynamicResource MaterialDesignPaper}"
                         DataContext="{Binding SelectedRow}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                  <Grid>
+                    <StackPanel VerticalAlignment="Center" Margin="26"
+                                Visibility="{Binding Data.SelectedRow, Source={StaticResource vm},
+                                             Converter={StaticResource IsNull}}">
+                        <materialDesign:PackIcon Kind="GestureTapButton" Width="30" Height="30"
+                                                 Opacity=".35" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding Data.PickARowLabel, Source={StaticResource vm}}"
+                                   Margin="0,10,0,0" FontSize="12" Opacity=".7"
+                                   TextAlignment="Center" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14"
+                                  Visibility="{Binding Data.SelectedRow, Source={StaticResource vm},
+                                               Converter={StaticResource NotNull}}">
                         <StackPanel>
                             <TextBlock Text="{Binding Problem.Title}" FontSize="13.5" FontWeight="SemiBold"
                                        TextWrapping="Wrap" Foreground="#FFC62828" />
@@ -833,6 +852,7 @@
                             </Expander>
                         </StackPanel>
                     </ScrollViewer>
+                  </Grid>
                 </Border>
             </Grid>
         </Grid>

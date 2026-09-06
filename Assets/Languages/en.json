@@ -817,5 +817,6 @@
     "import.step.BatchSummary": "{0} new, {1} updated, {2} rejected",
     "import.step.BatchFailed": "The server did not answer this batch",
     "import.preflight.Header": "Rows that will not be sent",
-    "import.preflight.Summary": "{0} rows will NOT be imported. They are listed below with what is wrong; the other {1} will go in. Fix them in the file and choose it again, or import now and correct them afterwards."
+    "import.preflight.Summary": "{0} rows will NOT be imported. They are listed below with what is wrong; the other {1} will go in. Fix them in the file and choose it again, or import now and correct them afterwards.",
+    "import.PickARow": "Pick a row on the left to see what is wrong with it and put it right."
 }

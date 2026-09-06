@@ -85,6 +85,16 @@ namespace Raphael.Desktop.Converters
             => Binding.DoNothing;
     }
 
+    /// <summary>The other half: shown only while there is nothing to show.</summary>
+    public class IsNullToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value == null ? Visibility.Visible : Visibility.Collapsed;
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => Binding.DoNothing;
+    }
+
     /// <summary>Formats a time of day, or a dash where a file left one out.</summary>
     public class TimeSpanToTextConverter : IValueConverter
     {

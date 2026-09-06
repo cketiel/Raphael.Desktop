@@ -739,6 +739,7 @@ namespace Raphael.Desktop.ViewModels
         public string PreflightHeader => Text("import.preflight.Header");
         public string OverallLabel => Text("import.Overall");
         public string CaughtHereLabel => Text("import.CaughtHere");
+        public string PickARowLabel => Text("import.PickARow");
         public string ResultCreatedLabel => Text("import.result.Created");
         public string ResultUpdatedLabel => Text("import.result.Updated");
         public string ResultFailedLabel => Text("import.result.Failed");

@@ -817,5 +817,6 @@
     "import.step.BatchSummary": "{0} nuevos, {1} actualizados, {2} rechazados",
     "import.step.BatchFailed": "El servidor no respondió a este lote",
     "import.preflight.Header": "Filas que no se van a enviar",
-    "import.preflight.Summary": "{0} filas NO se van a importar. Debajo tienes cuáles y qué les pasa; las otras {1} sí entran. Corrígelas en el fichero y vuelve a elegirlo, o importa ahora y arréglalas después."
+    "import.preflight.Summary": "{0} filas NO se van a importar. Debajo tienes cuáles y qué les pasa; las otras {1} sí entran. Corrígelas en el fichero y vuelve a elegirlo, o importa ahora y arréglalas después.",
+    "import.PickARow": "Elige una fila a la izquierda para ver qué le pasa y arreglarla."
 }
