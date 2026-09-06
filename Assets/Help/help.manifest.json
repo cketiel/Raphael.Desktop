@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.6.1"
+    "Raphael.Desktop": "1.7.0"
   },
-  "builtUtc": "2026-09-04T23:56:21.059Z",
-  "sourceCommit": "35f7d57",
+  "builtUtc": "2026-09-06T01:23:05.018Z",
+  "sourceCommit": "f04922a",
   "languages": [
     "es",
     "en"
@@ -267,7 +267,7 @@
       "id": "desktop/home/overview",
       "mode": "reference",
       "since": "1.3.0",
-      "lastReviewed": "1.4.0",
+      "lastReviewed": "1.7.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -282,7 +282,7 @@
       "id": "desktop/home/import-trips",
       "mode": "how-to",
       "since": "1.6.1",
-      "lastReviewed": "1.6.1",
+      "lastReviewed": "1.7.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -290,7 +290,7 @@
       "menu": "Home",
       "title": {
         "es": "Importar los viajes de un broker",
-        "en": "Importing a broker's trips"
+        "en": "Import a broker's trips"
       }
     },
     {
