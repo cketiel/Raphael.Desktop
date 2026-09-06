@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.ViewModels;
@@ -57,13 +58,43 @@ namespace Raphael.Desktop.Views
 
         // ------------------------------------------------------------------ the stepper
 
-        /// <summary>Keeps the newest line of the running account in view.</summary>
+        private bool _scrollQueued;
+
+        /// <summary>
+        /// Keeps the newest line of the running account in view.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Never scroll from inside the CollectionChanged handler itself. The ListBox's own
+        /// container generator is another subscriber to that same event, and when this handler ran
+        /// first, ScrollIntoView forced containers to be generated for a collection the generator
+        /// had not been told about yet - which WPF reports as "the accumulated count is different
+        /// from the actual count" and throws.
+        ///
+        /// <para>
+        /// Queued at Background priority instead, so it runs after every subscriber has finished
+        /// and the generator agrees with the collection. Coalesced, because an import writes
+        /// hundreds of lines and each one queuing its own scroll would spend more time scrolling
+        /// than importing.
+        /// </para>
+        /// </remarks>
         private void ScrollLogToEnd()
         {
-            if (LogList?.Items.Count > 0)
-            {
-                LogList.ScrollIntoView(LogList.Items[LogList.Items.Count - 1]);
-            }
+            if (_scrollQueued) return;
+
+            _scrollQueued = true;
+
+            Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    _scrollQueued = false;
+
+                    var count = LogList?.Items.Count ?? 0;
+
+                    if (count == 0) return;
+
+                    LogList.ScrollIntoView(LogList.Items[count - 1]);
+                }),
+                DispatcherPriority.Background);
         }
 
         // ------------------------------------------------------------------ the two dialogs
