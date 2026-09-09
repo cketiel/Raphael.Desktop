@@ -85,4 +85,93 @@
         <Setter Property="CellStyle" Value="{StaticResource CustomCellStyle}"/>
     </Style>
 
+    <!-- ===== The accent bar, painted and not laid out =====
+         Moved here out of ScheduleView so the Home grid can wear the same clothes. It was the
+         one place in the application where a dispatcher could see which row they were on, and a
+         second copy of it would have drifted the first time either screen was touched.
+
+         The bar used to be a 4px left BorderThickness on the row. A border insets the row's
+         content, so every column in the body slid four pixels away from its own header and the
+         dividing lines stopped meeting. These brushes draw the same bar inside the row's
+         background instead: MappingMode="Absolute" makes the gradient measure in pixels, so the
+         first 4px are solid accent and everything past them is the wash. Nothing moves, and the
+         column lines run unbroken from the header to the last row.
+
+         The wash is deliberately far lighter than the bar — the bar says WHICH row, the wash says
+         the row is selected, and they must not compete. -->
+    <LinearGradientBrush x:Key="SelectedTripRowBrush"
+                         MappingMode="Absolute" StartPoint="0,0" EndPoint="8,0" SpreadMethod="Pad">
+        <GradientStop Color="#FF673AB7" Offset="0"/>
+        <GradientStop Color="#FF673AB7" Offset="0.499"/>
+        <GradientStop Color="#38673AB7" Offset="0.5"/>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="HoverTripRowBrush"
+                         MappingMode="Absolute" StartPoint="0,0" EndPoint="8,0" SpreadMethod="Pad">
+        <GradientStop Color="#80673AB7" Offset="0"/>
+        <GradientStop Color="#80673AB7" Offset="0.499"/>
+        <GradientStop Color="#14673AB7" Offset="0.5"/>
+    </LinearGradientBrush>
+
+    <!-- ⚠️ Cells stop painting their own selection colour.
+         With SelectionUnit="FullRow" every cell of the row becomes selected and the default cell
+         style fills it, covering the row's background — so the accent bar and the wash were only
+         visible while the pointer was over the row, which is the one state cells do not paint.
+         Handing the selected cell a transparent background lets the row show through. Foreground
+         is left alone on purpose: the row sets it, and a cancelled trip has to stay red even
+         while it is the selected one. -->
+    <Style x:Key="TripSelectionCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource CustomCellStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===== Action buttons in a grid row =====
+         Moved out of ScheduleView because the Home grid carries the same row of icons and has to
+         behave the same. Feedback that does not depend on the button template: MaterialDesignToolButton
+         paints its own hover, but inside a dense grid row it is too faint to tell the dispatcher
+         which of several icons they are about to press — and pressing the wrong one cancels
+         somebody's ride. Scale and cursor read on any template: the icon grows under the pointer
+         and presses in when held.
+
+         Focusable=false on purpose. The row, not the button, should keep keyboard focus, and a
+         button that takes focus makes the grid spend a click handing it over. -->
+    <Style x:Key="TripActionButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignToolButton}">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1" ScaleY="1"/>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="RenderTransform">
+                    <Setter.Value>
+                        <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="RenderTransform">
+                    <Setter.Value>
+                        <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="Opacity" Value="0.6"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Centred header text for the trip grids. A separate key rather than a change to
+         CustomColumnHeaderStyle, which every grid in the application uses: this is a decision
+         about the two grids that list trips, not about all of them. -->
+    <Style x:Key="CenteredColumnHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource CustomColumnHeaderStyle}">
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+
 </ResourceDictionary>

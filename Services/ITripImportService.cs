@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +27,19 @@ namespace Raphael.Desktop.Services
             CsvType csvType,
             CsvTripMapper mapper,
             IProgress<TripImportProgress> progress,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Sends corrected rows again, in one request however many there are.
+        /// </summary>
+        /// <remarks>
+        /// Safe by construction: the server matches on the broker's TripId, so a row that turns
+        /// out to have gone in already is updated rather than duplicated.
+        /// </remarks>
+        Task<DTOs.TripImportResultDto> RetryAsync(
+            List<DTOs.TripImportItemDto> items,
+            FundingSource fundingSource,
+            IProgress<TripImportProgress> progress = null,
             CancellationToken cancellationToken = default);
     }
 }

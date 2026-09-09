@@ -175,6 +175,38 @@ namespace Raphael.Desktop.Services
             return true;
         }
 
+        /// <summary>
+        /// The trips of a span of days, both ends included.
+        /// </summary>
+        /// <remarks>
+        /// The endpoint has been there since before the Home tab could ask for more than one day
+        /// (<c>TripsController.GetByDateRange</c>). Dates go out ISO-8601 and culture-invariant for
+        /// the same reason the single-day call does: a machine set to Spanish would otherwise send
+        /// 09/04 meaning April and be read as September.
+        /// </remarks>
+        public async Task<List<TripReadDto>> GetTripsByDateRangeAsync(DateTime start, DateTime end)
+        {
+            try
+            {
+                var from = start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var to = end.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                var response = await _httpClient.GetAsync(
+                    $"{EndPoint}/date-range?startDate={from}&endDate={to}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw await CreateApiException(response, "Error getting trips for the date range");
+                }
+
+                return await response.Content.ReadFromJsonAsync<List<TripReadDto>>();
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ApiException("Server connection error", ex);
+            }
+        }
+
         public async Task<List<TripReadDto>> GetTripsByDateAsync(DateTime date)
         {
             try

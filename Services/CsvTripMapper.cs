@@ -281,20 +281,17 @@ namespace Raphael.Desktop.Services
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
-                        $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
-                        "Error del servidor",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // Logged, not shown. A service has no business opening a dialog, and this
+                    // one sits inside a loop over every record of the file: a broker sending 400
+                    // rows with one bad column meant 400 modal dialogs, one at a time, with the
+                    // import stopped behind each of them. The caller reports what failed, per row,
+                    // once it has finished.
+                    FileLogger.Log($"CSV mapping - API error {ex.StatusCode}: {ex.ErrorDetails}");
                     throw new InvalidOperationException($"No se pudo crear ni recuperar Trip: {raw.RideId}", ex);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
-                        $"Error inesperado: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    FileLogger.Log($"CSV mapping - unexpected error: {ex.Message}");
                     throw new InvalidOperationException($"No se pudo crear ni recuperar Trip: {raw.RideId}", ex);
                 }
 
@@ -637,20 +634,17 @@ namespace Raphael.Desktop.Services
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
-                        $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
-                        "Error del servidor",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // Logged, not shown. A service has no business opening a dialog, and this
+                    // one sits inside a loop over every record of the file: a broker sending 400
+                    // rows with one bad column meant 400 modal dialogs, one at a time, with the
+                    // import stopped behind each of them. The caller reports what failed, per row,
+                    // once it has finished.
+                    FileLogger.Log($"CSV mapping - API error {ex.StatusCode}: {ex.ErrorDetails}");
                     throw new InvalidOperationException($"Trip could not be created or retrieved: {raw.RideId}", ex);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
-                        $"Error inesperado: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    FileLogger.Log($"CSV mapping - unexpected error: {ex.Message}");
                     throw new InvalidOperationException($"Trip could not be created or retrieved: {raw.RideId}", ex);
                 }
 
@@ -668,20 +662,17 @@ namespace Raphael.Desktop.Services
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
-                        $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
-                        "Error del servidor",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    // Logged, not shown. A service has no business opening a dialog, and this
+                    // one sits inside a loop over every record of the file: a broker sending 400
+                    // rows with one bad column meant 400 modal dialogs, one at a time, with the
+                    // import stopped behind each of them. The caller reports what failed, per row,
+                    // once it has finished.
+                    FileLogger.Log($"CSV mapping - API error {ex.StatusCode}: {ex.ErrorDetails}");
                     throw new InvalidOperationException($"Trip could not be updated: {raw.RideId}", ex);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
-                        $"Error inesperado: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    FileLogger.Log($"CSV mapping - unexpected error: {ex.Message}");
                     throw new InvalidOperationException($"Trip could not be updated: {raw.RideId}", ex);
                 }
               
@@ -1081,7 +1072,8 @@ namespace Raphael.Desktop.Services
             CsvTripRawModel raw,
             bool isSaferide,
             CsvType csvType,
-            IReadOnlyDictionary<string, Coordinates> coordinatesByAddress)
+            IReadOnlyDictionary<string, Coordinates> coordinatesByAddress,
+            bool requireCoordinates = true)
         {
             var allMobilityTypes = MobilityType.AllMobilityTypes();
 
@@ -1136,8 +1128,8 @@ namespace Raphael.Desktop.Services
 
             if (isSaferide) // CsvType.Saferide and CsvType.Saferide2
             {
-                var pickup = ResolveFromBatch(coordinatesByAddress, pickupAddress);
-                var dropoff = ResolveFromBatch(coordinatesByAddress, dropoffAddress);
+                var pickup = ResolveFromBatch(coordinatesByAddress, pickupAddress, requireCoordinates);
+                var dropoff = ResolveFromBatch(coordinatesByAddress, dropoffAddress, requireCoordinates);
 
                 pickupLatitude = pickup.Latitude;
                 pickupLongitude = pickup.Longitude;
@@ -1228,7 +1220,8 @@ namespace Raphael.Desktop.Services
 
         private static Coordinates ResolveFromBatch(
             IReadOnlyDictionary<string, Coordinates> coordinatesByAddress,
-            string address)
+            string address,
+            bool required = true)
         {
             if (coordinatesByAddress != null &&
                 coordinatesByAddress.TryGetValue(address, out var found) &&
@@ -1236,6 +1229,15 @@ namespace Raphael.Desktop.Services
             {
                 return found;
             }
+
+            // ⚠️ The screen checks a file the moment it is opened, before a single address has
+            // been looked up, and it does that by mapping every row with no coordinates at all.
+            // Throwing there reported all 148 rows of a perfectly good file as unreadable - and
+            // 148 exceptions is also why it took so long.
+            //
+            // A trip with no position is a WARNING elsewhere in this import, never a rejection, so
+            // returning the empty pair is the same answer said in the same voice.
+            if (!required) return new Coordinates { Latitude = 0, Longitude = 0 };
 
             throw new InvalidOperationException(
                 $"The address could not be located on the map: {address}. " +

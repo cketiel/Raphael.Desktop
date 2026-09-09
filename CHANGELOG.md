@@ -3,6 +3,38 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.7.0] - 2026-09-09
+
+### Added
+- The Home tab is redesigned end to end: a single TripId search box, a side filter panel with
+  chips and savable views, one date field with a range and four presets, click to view / double
+  click to edit, column choice, density, and a purple divider that totals the money for what is
+  filtered while the bottom bar counts trips, cancellations and unrouted ones. Export to Excel
+  writes exactly what is on screen.
+- The map on Home now loads only when it is needed - selecting a trip, starting one, or asking
+  for it - instead of on every tab open, and shows a drawn plan with the same pin colors and
+  route arrow as the live map while it waits. The chosen map type (satellite, labels) and the
+  app's language now travel with every map load and are remembered between trips.
+- The trip-import screen is rewritten. Choosing a file no longer starts the import: the file is
+  read and checked first, and a preflight pass catches four kinds of row that cannot be sent -
+  missing TripId, a patient nobody could identify, a missing address, an address that is too
+  long - before you press Import. While it imports, six figures fill in live, one honest overall
+  bar tracks every request that will be made, and a collapsible detail panel shows a bar per
+  request plus a running log that stays on screen as evidence once the import finishes.
+- Rejected rows get a repair bench: each one shows what is wrong, what to change, the trip
+  pre-filled with the field at fault outlined in red, and a retry button that only lights up once
+  the correction actually answers the problem. Fixed rows can be retried together in one request.
+  A duplicate now names the existing trip it collided with, so the fix is a TripId, not a guess.
+- What is left after a run can be exported as a CSV in the exact format of the file you imported,
+  named after the payer, the date and the words *not-imported*.
+- Help topics [Home](topic:desktop/home/overview) and
+  [Importing a broker's trips](topic:desktop/home/import-trips) rewritten to match.
+
+### Fixed
+- The pickup pin on the map plate was cropped at the edge of the card.
+- Pressing F1 on the import screen opened the Home help topic instead of the import one - the
+  screen's help topic now follows which mode Home is in.
+
 ## [1.6.1] - 2026-09-04
 
 ### Fixed

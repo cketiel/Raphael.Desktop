@@ -11,7 +11,8 @@
              xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers" 
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
-             helpers:HelpAssist.TopicId="desktop/home/overview"
+             helpers:HelpAssist.TopicId="{Binding HelpTopicId}"
+             PreviewKeyDown="HomeView_PreviewKeyDown"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
@@ -21,17 +22,138 @@
         <!-- vmProxy “captures” the current DataContext (HomeViewModel) -->
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
+        <converters:InverseBooleanConverter x:Key="InverseBoolConverter" />
+        <converters:EnumMatchConverter x:Key="EnumMatchConverter" />
+        <converters:TimeSpanToDateConverter x:Key="TimeSpanToDateConverter" />
+        <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <converters:StatusToVisibilityConverter x:Key="StatusToVisibilityConverter" />
+
+        <!--
+            ⚠️ The stripe is a trigger here and NOT the DataGrid's AlternatingRowBackground.
+            That property is applied by coercion and beats both setters and triggers, which in
+            RE-008 left one row in every two with no status colour at all. Everything that paints
+            a row has to come from this one style, in order, or half the rows lie.
+        -->
+        <!--
+            The numbered badge over each key control. Its whole state is one string from the
+            ViewModel — "done", "current" or "pending" — so the badges, the stepper and the tour
+            cannot disagree with each other about where the dispatcher is.
+
+            The pulse animates the badge's own Opacity, which is why it is allowed to live inside
+            a Style at all: a Storyboard declared here cannot name another element.
+        -->
+        <!-- ===== The filter panel's furniture =====
+             The sections used to be bare Expanders on a flat sheet: nothing told the eye where one
+             filter ended and the next began, so a panel with eight of them read as one long list
+             of controls floating in space. Each section is a card now — its own surface, its own
+             hairline, its own breathing room — and the body behind them is tinted a few percent
+             darker so the cards sit ON something instead of in the air. -->
+        <Style x:Key="FilterSectionCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Padding" Value="10,2,10,6" />
+        </Style>
+
+        <Style x:Key="FilterSectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+
+        <Style x:Key="FilterSectionIcon" TargetType="materialDesign:PackIcon">
+            <Setter Property="Width" Value="17" />
+            <Setter Property="Height" Value="17" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+        </Style>
+
+        <Style x:Key="FilterOptionCheckBox" TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+            <Setter Property="Margin" Value="0,3,0,3" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="FilterSubLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Opacity" Value=".7" />
+            <Setter Property="Margin" Value="0,6,0,3" />
+        </Style>
+
+        <Style x:Key="StepBadgeStyle" TargetType="Border">
+            <Setter Property="Width" Value="19" />
+            <Setter Property="Height" Value="19" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="#BDBDBD" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="done">
+                    <Setter Property="Background" Value="#2E7D32" />
+                </Trigger>
+                <Trigger Property="Tag" Value="current">
+                    <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+                    <Trigger.EnterActions>
+                        <BeginStoryboard x:Name="StepPulse">
+                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                 From="1" To="0.4" Duration="0:0:0.9" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="StepPulse" />
+                    </Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StepBadgeTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
 
         <Style x:Key="HomeTripRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
             <Style.Triggers>
 
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="White" />
+                </Trigger>
+
+                <!-- Status is said in the TEXT, never in the row's background. Two rules already
+                     carry it: red type when a driver reported a no-show, grey italic when the
+                     office cancelled. A tint on top of that says the same thing a third time and
+                     costs the alternating banding - the plain white every other row - which is
+                     what lets the eye track one trip across twenty columns.
+
+                     The alternation trigger above is therefore the only thing that paints an
+                     unselected row. Hover and selection come after it and win, which is the whole
+                     point of the ordering. -->
+
                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
                     <Setter Property="Foreground" Value="Red" />
-                    <Setter Property="ToolTip" Value="Canceled: Driver No-Show reported." />
+                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByDriverToolTip, Source={StaticResource vmProxy}}" />
                 </DataTrigger>
+
+                <!-- ⚠️ Hover and selection have to be declared here, not left to the row
+                     template. The Background setter at the top of this style is a style value
+                     and beats a template trigger, which is exactly why the Schedule grid's
+                     selection was invisible until it was moved here. Same brushes, on purpose:
+                     the two grids show the same kind of row and must read the same. -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverTripRowBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SelectedTripRowBrush}" />
+                    <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+                </Trigger>
 
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
@@ -40,7 +162,7 @@
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Foreground" Value="Gray" />
                     <Setter Property="FontStyle" Value="Italic" />
-                    <Setter Property="ToolTip" Value="This trip was canceled by the office." />
+                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByOfficeToolTip, Source={StaticResource vmProxy}}" />
                 </MultiDataTrigger>
 
                 <MultiDataTrigger>
@@ -49,26 +171,446 @@
                         <Condition Binding="{Binding DriverNoShowReason}" Value="" />
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Foreground" Value="Gray" />
-                    <Setter Property="ToolTip" Value="This trip was canceled by the office." />
+                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByOfficeToolTip, Source={StaticResource vmProxy}}" />
                 </MultiDataTrigger>
             </Style.Triggers>
         </Style>
         
+        <!-- ===== The map plate =====
+             ⚠️ 640x200, and the numbers matter. This panel is about 3.2:1 - the map column is two
+             thirds of the width, the top row is 45% of the height - and the brush is UniformToFill,
+             so whatever the drawing does not match in aspect gets CROPPED, not letterboxed. The
+             first version was drawn 4:3 and the second 2.8:1, and both times the bottom of the
+             drawing was cut off with the pickup pin on it.
+
+             Two rules follow, and everything below obeys them.
+
+             SAFE AREA - x 100..540, y 29..171. That rectangle survives panel ratios from 2.2:1 to
+             4.5:1, which is as narrow and as wide as the splitter can reasonably make this. Every
+             pin, the compass, the clinic and the whole route live inside it. Blocks, water and the
+             island are outside it on purpose: they are texture, and losing an edge of them costs
+             nothing.
+
+             CARD FOOTPRINT - about x 253..387, y 52..148 at the sizes the card is set to. Nothing
+             that has to be read goes there. Compass and roundabout to its left, pickup and the
+             route below it, clinic and dropoff to its right.
+
+             The base is a brush; the route and the pins are real elements on a Canvas over it, so
+             they can carry tooltips and an animation. A brush can do neither. -->
+        <DrawingBrush x:Key="MapPlateBrush" Stretch="Fill"
+                      Viewbox="0,0,640,200" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+
+                    <!-- Land. -->
+                    <GeometryDrawing Brush="#FFF4EFE4">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,640,200" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The bay, with the coastline drawn as a line of its own: without it the
+                         water is a flat shape, with it it is a shore. -->
+                    <GeometryDrawing Brush="#FF9CCFE8">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FF7FB8D4" Thickness="1.6" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M580,0 C587,34 573,62 579,90 C585,118 571,148 577,176 C580,190 579,196 578,200 L640,200 L640,0 Z" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- An island out in the bay, which is what this city looks like from above. -->
+                    <GeometryDrawing Brush="#FFF4EFE4">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="596,100,36,28" RadiusX="8" RadiusY="8" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Parks. -->
+                    <GeometryDrawing Brush="#FFC7E3B4">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="104,98,58,30" RadiusX="6" RadiusY="6" />
+                                <RectangleGeometry Rect="394,122,44,28" RadiusX="6" RadiusY="6" />
+                                <RectangleGeometry Rect="604,106,20,16" RadiusX="4" RadiusY="4" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- City blocks: texture, so the space between the streets is not bare paper. -->
+                    <GeometryDrawing Brush="#FFE9E2D4">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                            <RectangleGeometry Rect="16,4,72,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,4,98,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,4,58,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="406,4,48,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="490,4,58,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="16,38,72,42" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,38,98,42" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,38,58,42" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,98,98,44" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,98,58,44" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="16,166,72,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="110,166,44,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="186,166,98,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="316,166,58,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="406,166,48,28" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="490,166,58,28" RadiusX="2" RadiusY="2" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The clinic the route ends at. -->
+                    <GeometryDrawing Brush="#FFF6DEDE">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="428,50,84,58" RadiusX="3" RadiusY="3" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Streets: a warm casing first, white on top. One flat line is a wireframe;
+                         two are a road. -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFE3DBCA" Thickness="8" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,30"  EndPoint="578,30" />
+                                <LineGeometry StartPoint="0,88"  EndPoint="574,88" />
+                                <LineGeometry StartPoint="0,158" EndPoint="576,158" />
+                                <LineGeometry StartPoint="100,0" EndPoint="100,200" />
+                                <LineGeometry StartPoint="170,0" EndPoint="170,200" />
+                                <LineGeometry StartPoint="300,0" EndPoint="300,200" />
+                                <LineGeometry StartPoint="390,0" EndPoint="390,200" />
+                                <LineGeometry StartPoint="470,0" EndPoint="470,200" />
+                                <LineGeometry StartPoint="560,0" EndPoint="560,200" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFFFFFF" Thickness="6" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,30"  EndPoint="578,30" />
+                                <LineGeometry StartPoint="0,88"  EndPoint="574,88" />
+                                <LineGeometry StartPoint="0,158" EndPoint="576,158" />
+                                <LineGeometry StartPoint="100,0" EndPoint="100,200" />
+                                <LineGeometry StartPoint="170,0" EndPoint="170,200" />
+                                <LineGeometry StartPoint="300,0" EndPoint="300,200" />
+                                <LineGeometry StartPoint="390,0" EndPoint="390,200" />
+                                <LineGeometry StartPoint="470,0" EndPoint="470,200" />
+                                <LineGeometry StartPoint="560,0" EndPoint="560,200" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- Arterials and the causeway out to the island. Amber is what every map in
+                         the world uses for the road you are meant to take. -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFE0BE63" Thickness="13" StartLineCap="Round" EndLineCap="Round" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,112" EndPoint="576,112" />
+                                <LineGeometry StartPoint="210,0" EndPoint="210,200" />
+                                <LineGeometry StartPoint="580,140" EndPoint="640,136" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFBDD8A" Thickness="10" StartLineCap="Round" EndLineCap="Round" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,112" EndPoint="576,112" />
+                                <LineGeometry StartPoint="210,0" EndPoint="210,200" />
+                                <LineGeometry StartPoint="580,140" EndPoint="640,136" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The roundabout where the two arterials meet. Left of centre on purpose:
+                         dead centre it would sit under the card. -->
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFE0BE63" Thickness="13" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="210,112" RadiusX="15" RadiusY="15" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFC7E3B4">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFBDD8A" Thickness="10" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="210,112" RadiusX="15" RadiusY="15" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- The clinic marker. A white disc with a red cross reads as a hospital in
+                         every country, which a tinted rectangle did not. -->
+                    <GeometryDrawing Brush="#FFFFFFFF">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFD9534F" Thickness="2" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="444,68" RadiusX="12" RadiusY="12" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFD9534F">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="436.5,65.5,15,5" RadiusX="1.2" RadiusY="1.2" />
+                                <RectangleGeometry Rect="441.5,60.5,5,15" RadiusX="1.2" RadiusY="1.2" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <!-- A compass, because real maps have one. -->
+                    <GeometryDrawing Brush="#FFFFFFFF">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFD8D0BE" Thickness="1.5" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <EllipseGeometry Center="140,50" RadiusX="14" RadiusY="14" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFD9534F">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M140,39 L145,50 L140,47.4 L135,50 Z" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                    <GeometryDrawing Brush="#FFB9B0A0">
+                        <GeometryDrawing.Geometry>
+                            <PathGeometry Figures="M140,61 L135,50 L140,52.6 L145,50 Z" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+
+        <!-- ===== The figures under the list, on number plates =====
+             A dispatcher's day is measured in vehicles, so the three counts are set the way a
+             registration plate is set: the number large because that is the information, the
+             fleet name and the strapline tiny because they are furniture. It is the one place on
+             this screen where the decoration says what the company does.
+
+             Fixed width on all three, like real plates, so they line up as a set rather than as
+             three labels of different lengths.
+
+             Tag carries the count and Content the word, because the plate prints them at two
+             different sizes and one string could only ever be one size. The spaced-out letters
+             are the poor-man's letter-spacing: WPF has no such property on TextBlock. -->
+        <Style x:Key="NumberPlate" TargetType="ContentControl">
+            <Setter Property="Width" Value="126" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Border CornerRadius="5" Padding="2"
+                                Background="{DynamicResource MaterialDesign.Brush.Primary}">
+                            <Border CornerRadius="3.5" Padding="5,1,5,1"
+                                    Background="{DynamicResource MaterialDesignPaper}">
+                                <StackPanel>
+                                    <TextBlock Text="R A P H A E L" HorizontalAlignment="Center"
+                                               FontSize="6" FontWeight="Bold" Margin="0,0,0,-1"
+                                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{TemplateBinding Tag}"
+                                                   FontSize="16" FontWeight="Bold"
+                                                   LineHeight="17" LineStackingStrategy="BlockLineHeight"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Text="{TemplateBinding Content}"
+                                                   FontSize="9.5" Opacity=".75" Margin="3,0,0,2"
+                                                   VerticalAlignment="Bottom" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="D R I V I N G   H E A L T H" HorizontalAlignment="Center"
+                                               FontSize="5" FontWeight="Bold" Margin="0,-1,0,0" Opacity=".8"
+                                               Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                </StackPanel>
+                            </Border>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- The date lives on its own so it can be shown once while the bar around it is
+             shown twice. It also settles the duplicate calendar: there is exactly one
+             popup now, anchored to the one button that opens it. -->
+        <DataTemplate x:Key="TripDatePicker">
+                            <!-- Date. One control: it reads a day, or the two ends of
+                                 a span, and opens the same popup either way. -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                        VerticalAlignment="Center" Margin="0,0,8,0">
+
+                                <Button x:Name="DateSpanButton"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        Command="{Binding OpenDatePopupCommand}"
+                                        ToolTip="{Binding DatePickerToolTip}"
+                                        Padding="10,2,10,2" MinWidth="120">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CalendarMonth" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding DateSpanLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- The way back to a single day. Without it a range is
+                                     a state people get stuck in. -->
+                                <Border Margin="6,0,0,0" CornerRadius="10" Padding="8,1,4,1"
+                                        Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                        Visibility="{Binding IsDateRange, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding RangeChipText}" Foreground="White"
+                                                   VerticalAlignment="Center" FontSize="11"/>
+                                        <Button Style="{StaticResource MaterialDesignToolButton}"
+                                                Command="{Binding ClearDateRangeCommand}"
+                                                ToolTip="{Binding ClearRangeToolTip}"
+                                                Foreground="White" Padding="2" Margin="4,0,0,0">
+                                            <materialDesign:PackIcon Kind="Close" Width="13" Height="13"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <Popup IsOpen="{Binding IsDatePopupOpen, Mode=TwoWay}"
+                                       PlacementTarget="{Binding ElementName=DateSpanButton}"
+                                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                    <materialDesign:Card Margin="4" Padding="10"
+                                                         materialDesign:ElevationAssist.Elevation="Dp4">
+                                        <StackPanel MinWidth="250">
+
+                                            <!-- One day is where this starts, every time. -->
+                                            <UniformGrid Columns="2" Margin="0,0,0,8">
+                                                <RadioButton Content="{Binding SingleDayLabel}"
+                                                             GroupName="DateSpanMode"
+                                                             IsChecked="{Binding RangeMode, Converter={StaticResource InverseBoolConverter}}"
+                                                             Command="{Binding UseSingleDayCommand}"
+                                                             Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                                                <RadioButton Content="{Binding RangeLabel}"
+                                                             GroupName="DateSpanMode"
+                                                             IsChecked="{Binding RangeMode, Mode=OneWay}"
+                                                             Command="{Binding UseRangeCommand}"
+                                                             Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                                            </UniformGrid>
+
+                                            <TextBlock Text="{Binding RangePickHint}" FontStyle="Italic"
+                                                       Margin="0,0,0,4" TextWrapping="Wrap" Opacity=".8"/>
+
+                                            <Calendar SelectedDate="{Binding PickedDate, Mode=TwoWay}"
+                                                      HorizontalAlignment="Center"/>
+
+                                            <Separator Margin="0,6,0,6"/>
+
+                                            <UniformGrid Columns="2">
+                                                <Button Content="{Binding PresetTodayLabel}" Command="{Binding PresetTodayCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                <Button Content="{Binding PresetTomorrowLabel}" Command="{Binding PresetTomorrowCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                <Button Content="{Binding PresetThisWeekLabel}" Command="{Binding PresetThisWeekCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                                <Button Content="{Binding PresetNextSevenLabel}" Command="{Binding PresetNextSevenCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Stretch"/>
+                                            </UniformGrid>
+                                        </StackPanel>
+            </materialDesign:Card>
+                                </Popup>
+                            </StackPanel>
+        </DataTemplate>
+
+        <!-- ===== The express filter bar, defined once =====
+             It is on screen twice on purpose, and only for as long as it takes to decide where it
+             belongs: above the list, where it is now, or down in the status bar. Two COPIES of
+             this markup would have been two things to keep in step and one of them would have
+             drifted before the question was settled, so there is one definition and two renders
+             of it, and deciding means deleting a ContentControl.
+
+             WARNING while both are up: the date popup is bound to one property on the view model,
+             so opening the calendar opens BOTH of them, one under each date button. That is the
+             cost of showing the same bar twice, not a bug in the bar, and it goes when one of the
+             two renders is removed. x:Name inside a DataTemplate is fine - each render gets its
+             own namescope, so the two DateSpanButtons never collide. -->
+        <DataTemplate x:Key="ExpressFilterBar">
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- The broker's trip id only. It is the number a
+                                 dispatcher is holding when they reach for this, and
+                                 it is the only one that fits on this row. -->
+                            <TextBox Grid.Column="1" Width="130" Height="26"
+                                Text="{Binding TripSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                materialDesign:HintAssist.Hint="{Binding TripSearchHint}"
+                                materialDesign:TextFieldAssist.HasClearButton="True"
+                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                                materialDesign:TextFieldAssist.TextBoxViewMargin="1,0,1,0"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                FontSize="12" Padding="4,0,4,0"
+                                VerticalContentAlignment="Center"
+                                VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                            <!-- Checkbox -->
+                            <CheckBox Grid.Column="2"
+                                Content="{Binding ShowCanceledCheckBoxContent}"
+                                IsChecked="{Binding ShowCanceled}" 
+                                Style="{StaticResource MaterialDesignCheckBox}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+                            <!-- Buttons -->
+                            <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                <Button 
+                                        ToolTip="{Binding ImportButtonToolTip}"
+                                        Command="{Binding ImportCommand}"
+                                        Style="{StaticResource TripActionButtonStyle}" Margin="0,0,10,0">
+                                    <materialDesign:PackIcon Kind="DatabaseImport" Width="25" Height="25" Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
+                                </Button>
+
+                                <Button  
+                                    ToolTip="{Binding ExportButtonToolTip}"
+                                    Command="{Binding ExportCommand}"
+                                    Style="{StaticResource TripActionButtonStyle}">
+                                    <materialDesign:PackIcon Kind="MicrosoftExcel" Width="25" Height="25" Foreground="Green"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+        </DataTemplate>
+
     </UserControl.Resources>
 
-    <materialDesign:DialogHost Identifier="RootDialogHost">
+    <materialDesign:DialogHost x:Name="RootDialogHost" Identifier="RootDialogHost">
         
     <Border BorderThickness="0,1,0,0" BorderBrush="{StaticResource MainBorderBrush}">
 
-            <Grid Margin="5" Background="Transparent">
+            <Grid x:Name="HomeRoot" Margin="5" Background="Transparent">
                 <Grid.RowDefinitions>
                     <RowDefinition x:Name="TopRow" Height="4.5*" /> <!-- 45% Upper area -->
-                    <RowDefinition Height="6" />  <!-- Horizontal GridSplitter -->
+                    <RowDefinition Height="18" />  <!-- Horizontal GridSplitter, and the day's figures -->
                     <RowDefinition x:Name="BottomRow" Height="5.5*" /> <!-- 55% Lower area (DataGrid) -->
                 </Grid.RowDefinitions>
 
                 <!-- Top row: Client, Billing, Splitter, Map -->
-                <Grid Grid.Row="0" x:Name="GridRow0">
+                <Grid Grid.Row="0" x:Name="GridRow0"
+                      Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition x:Name="CustomerColumn" Width="1*" />  <!-- Customer and Trip data area (initially hidden) -->
                         <ColumnDefinition Width="6" />     <!-- Vertical GridSplitter -->
@@ -78,7 +620,12 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Customer data area -->
-                <Grid Grid.Column="0"  Background="Transparent">
+                <!-- Paper, not Transparent. Everything in this column is a rounded card, and a
+                     rounded card shows its parent at the corners: transparent meant the window's
+                     own shade, a hair off the card's, and every corner read as a grey nick. The
+                     column and the cards on it are painted with the SAME brush, so the corners
+                     cannot show anything at all. -->
+                <Grid Grid.Column="0" Background="{DynamicResource MaterialDesignPaper}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto"/>
@@ -98,12 +645,35 @@
                                                           ClipToBounds="False"
                                                           CornerRadius="5">
 
-                                    <DockPanel Margin="0,0,0,0">
-                                                <StackPanel materialDesign:RippleAssist.IsCentered="True"
+                                    <!-- ⚠️ A Grid, not a DockPanel wrapped round one long
+                                         StackPanel. Neither of those makes anything give way: a
+                                         StackPanel hands every child the width it asks for and
+                                         lets the row run off the end, which is why new patient was
+                                         drawn half off and the three buttons after it were nowhere
+                                         at all. Everything is packed left in Auto columns and the
+                                         slack sits in the last one, so the buttons follow the
+                                         search box instead of being pushed to the far edge. -->
+                                    <Grid Margin="0,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- (1) Who is travelling. The number goes on the control
+                                             it names, which costs no layout at all — it was the
+                                             ROW of numbers that had to go, not the numbers. -->
+                                        <Border Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step1State}">
+                                            <TextBlock Text="1" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
+
+                                                <StackPanel Grid.Column="1" materialDesign:RippleAssist.IsCentered="True"
                                                             Orientation="Horizontal">
 
                                                     <TextBlock 
-                                                        Text="Search passenger by: "
+                                                        Text="{Binding SearchPassengerByLabel}"
                                                         VerticalAlignment="Center">
                                                     
                                                     </TextBlock>
@@ -130,7 +700,7 @@
                                                             <materialDesign:AutoSuggestBox
                                                                 x:Name="CustomersAutoSuggestBox"
                                                                 Grid.Column="1"
-                                                                MinWidth="250"            
+                                                                MinWidth="150"            
                                                                 VerticalAlignment="Center"
                                                                 Margin="0,0,8,0"
                                                                 materialDesign:TextFieldAssist.HasClearButton="True"
@@ -153,11 +723,11 @@
                                                                                 <TextBlock FontWeight="Bold" Text="{Binding FullName}"/>
                                                                                 <TextBlock Margin="5 0 0 0" Text="{Binding Address}"/>
                                                                                 <StackPanel Margin="5 0 0 0" Orientation="Horizontal">
-                                                                                    <TextBlock Text="Phone" Margin="0 0 8 0" FontWeight="Bold"/>
+                                                                                    <TextBlock Text="{Binding PhoneTextBoxHint}" Margin="0 0 8 0" FontWeight="Bold"/>
                                                                                     <TextBlock Text="{Binding Phone}"/>
                                                                                 </StackPanel>
                                                                                 <StackPanel Margin="5 0 0 0" Orientation="Horizontal">
-                                                                                    <TextBlock Text="Cient Code" Margin="0 0 8 0" FontWeight="Bold"/>
+                                                                                    <TextBlock Text="{Binding ClientCodeTextBoxHint}" Margin="0 0 8 0" FontWeight="Bold"/>
                                                                                     <TextBlock Text="{Binding ClientCode}"/>
                                                                                 </StackPanel>
                                                                             </StackPanel>
@@ -178,36 +748,71 @@
 
                                                         </Grid>
                                                     </materialDesign:ColorZone>
+                                                </StackPanel>
 
+                                                <!-- The buttons follow the search box.
+                                                     The 50px gap was doing nothing but
+                                                     pushing the last three off the row. -->
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                                            VerticalAlignment="Center">
 
-                                        
-
-
-                                                <Button
-                                                    Margin="50,0,0,0"
+                                                <Button Padding="3,0,3,0"
+                                                    Margin="2,0,0,0"
                                                 
                                                     ToolTip="{Binding SaveCustomerToolTip}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding SaveCustomerCommand}" Click="OnSaveCustomerClick">
 
-                                                    <materialDesign:PackIcon Kind="ContentSave" Width="25" Height="25" />
+                                                    <materialDesign:PackIcon Kind="ContentSave" Width="21" Height="21" />
                                                 </Button>
 
-                                            <Button
-                                                    Margin="5,0,0,0"
+                                            <Button Padding="3,0,3,0"
+                                                    Margin="2,0,0,0"
                                                 
                                                     ToolTip="{Binding NewCustomerToolTip}"
+                                                    Visibility="{Binding CanStartNewPatient, Converter={StaticResource BoolToVisibility}}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
                                                     Command="{Binding NewCustomerCommand}" Click="OnNewCustomerClick">
 
-                                                <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="25" Height="25"/>
+                                                <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="21" Height="21"/>
                                             </Button>
 
+                                            <!-- The way out of the trip form. -->
+                                            <Button Padding="3,0,3,0" Margin="2,0,0,0"
+                                                    ToolTip="{Binding CloseTripFormToolTip}"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Click="CloseTripForm_Click"
+                                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
+                                                <materialDesign:PackIcon Kind="Close" Width="21" Height="21"/>
+                                            </Button>
+
+                                            <!-- ⚠️ In the row, not docked to its right edge. A
+                                                 DockPanel hands its docked children their edge
+                                                 first and lets the LAST child fill what is left;
+                                                 that last child is this StackPanel, which is
+                                                 wider than what remained, so save and new patient
+                                                 simply ran underneath these three. -->
+                                            <Button Padding="3,0,3,0" Margin="2,0,0,0"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Command="{Binding StartTourCommand}"
+                                                    ToolTip="{Binding TourHelpToolTip}">
+                                                <materialDesign:PackIcon Kind="HelpCircleOutline" Width="21" Height="21"/>
+                                            </Button>
+
+                                            <Button Padding="3,0,3,0" Margin="2,0,0,0"
+                                                    Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                                    Command="{Binding ToggleHelperCardsCommand}"
+                                                    ToolTip="{Binding HelperCardsToolTip}">
+                                                <materialDesign:PackIcon Kind="InformationOutline" Width="21" Height="21"/>
+                                            </Button>
+
+
                                         </StackPanel>
-                                    </DockPanel>
+                                    </Grid>
                                 </materialDesign:ColorZone>
 
                             </StackPanel>
+
 
                             <!-- 🧾 Customer Info Section -->
                             <!-- <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0">-->                        
@@ -217,7 +822,25 @@
                                     Background="{DynamicResource MaterialDesignPaper}" >
 
                         
-                                    <materialDesign:Card Padding="4" Background="{DynamicResource MaterialDesignCardBackground}">
+                                    <!-- The form is the biggest thing on this screen and had
+                                         nothing round it: card paper on window paper, no edge, so
+                                         where it started and stopped was a guess. The line is the
+                                         theme's own purple - the same one on the road and on the
+                                         filter bar's kerb - so the three read as one system rather
+                                         than three unrelated decorations.
+
+                                         The border goes INSIDE the Card rather than on it: Card's
+                                         template is MaterialDesign's, and what it does with
+                                         BorderBrush is theirs to change. A Border of our own is
+                                         ours. -->
+                                    <!-- A line, not a relief. The elevation that was here cast a
+                                         grey halo round the corners, which is the other half of
+                                         the same complaint the Transparent column caused: on a
+                                         white screen, every soft shadow reads as dirt. -->
+                                    <materialDesign:Card Padding="0" UniformCornerRadius="4"
+                                                         Background="{DynamicResource MaterialDesignPaper}">
+                                      <Border BorderThickness="1" CornerRadius="4" Padding="4"
+                                              BorderBrush="{StaticResource MainBorderBrush}">
                                         <StackPanel>
                                             
                                             <Grid>
@@ -228,7 +851,7 @@
 
                                                 <!-- Left Column -->
                                                 <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                                    <TextBox x:Name="FullNameTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="FullNameTextBox"
                                                              Text="{Binding SelectedCustomer.FullName}"
                                                              materialDesign:TextFieldAssist.HasClearButton="True"
                                                      
@@ -246,21 +869,21 @@
                                                     </TextBox.Text>-->
                                                         
                                                     </TextBox>
-                                                    <TextBox x:Name="ClientCodeTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="ClientCodeTextBox"
                                                              Text="{Binding SelectedCustomer.ClientCode}" 
                                                              materialDesign:HintAssist.Hint="{Binding ClientCodeTextBoxHint}" 
                                                              materialDesign:TextFieldAssist.HasClearButton="True"
                                                              materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                              materialDesign:TextFieldAssist.LeadingIcon="Barcode"
                                                              Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="PhoneTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="PhoneTextBox"
                                                                 Text="{Binding SelectedCustomer.Phone}" 
                                                                  materialDesign:HintAssist.Hint="{Binding PhoneTextBoxHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                                  materialDesign:TextFieldAssist.LeadingIcon="Phone"
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="MobilePhoneTextBox"
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="MobilePhoneTextBox"
                                                                 Text="{Binding SelectedCustomer.MobilePhone}" 
                                                                  materialDesign:HintAssist.Hint="{Binding MobilePhoneTextBoxHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
@@ -320,19 +943,19 @@
                                                         
                                                     </Grid>
 
-                                                    <TextBox x:Name="City" Text="{Binding SelectedCustomer.City}" 
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="City" Text="{Binding SelectedCustomer.City}" 
                                                                  materialDesign:HintAssist.Hint="{Binding CityHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                                  materialDesign:TextFieldAssist.LeadingIcon="City"
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="State" Text="{Binding SelectedCustomer.State}" 
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="State" Text="{Binding SelectedCustomer.State}" 
                                                                  materialDesign:HintAssist.Hint="{Binding StateHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                                  materialDesign:TextFieldAssist.LeadingIcon="Estate"
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                                    <TextBox x:Name="Zip" Text="{Binding SelectedCustomer.Zip}" 
+                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="Zip" Text="{Binding SelectedCustomer.Zip}" 
                                                                  materialDesign:HintAssist.Hint="{Binding ZipHint}" 
                                                                  materialDesign:TextFieldAssist.HasClearButton="True"
                                                                  materialDesign:TextFieldAssist.HasLeadingIcon="True"
@@ -340,7 +963,7 @@
                                                                  Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
 
 
-                                                    <DatePicker x:Name="DOBDatePicker" SelectedDate="{Binding SelectedCustomer.DOB}" 
+                                                    <DatePicker SelectedDateChanged="CustomerDate_Changed" x:Name="DOBDatePicker" SelectedDate="{Binding SelectedCustomer.DOB}" 
                                                                 materialDesign:HintAssist.Hint="{Binding DOBDatePickerHint}" 
                                                                 materialDesign:TextFieldAssist.HasClearButton="True"
                                                                 materialDesign:TextFieldAssist.HasLeadingIcon="True"
@@ -367,6 +990,7 @@
                                             </Grid>
 
                                         </StackPanel>
+                                      </Border>
                                     </materialDesign:Card>
                         
                             </StackPanel>
@@ -378,12 +1002,41 @@
                         
                         <!-- 📅 Trip Filters -->
                         
-                        <materialDesign:Card Margin="2"
-                            Grid.Row="1"                                             
-                            Padding="10" 
-                            Background="{DynamicResource MaterialDesignCardBackground}">
+                        <!-- The -12 is not a fudge: it is exactly what the divider below grew
+                             by, 6px to 18px, and that height came out of this row. Without it the
+                             date, Show Canceled and the two buttons are cut off at the bottom. -->
+                        <!-- ===== Where the form ends and the day's controls begin =====
+                             These two read as one surface until something says otherwise: same
+                             paper, same corner radius, no gap - and the negative margin below puts
+                             them physically on top of each other, so a dispatcher could not tell
+                             where the trip they were filling in stopped and the filters started.
+
+                             Three things separate them now, and it takes all three. The kerb along
+                             the top is the theme's primary, the same purple as the road forty
+                             pixels down, so the eye files them as the same kind of edge. The
+                             elevation puts this bar on a plane ABOVE the form rather than beside
+                             it, which is what the overlap was always implying. The corner radius
+                             finishes the bar as its own object.
+
+                             The -12 stays: it is exactly what the road grew by, 6px to 18px, and
+                             that height came out of this row. Without it the date, Show Canceled
+                             and the two buttons are cut off at the bottom. -->
+                        <materialDesign:Card Margin="2,-12,2,2"
+                            Grid.Row="1"
+                            Padding="0"
+                            UniformCornerRadius="4"
+                            Background="{DynamicResource MaterialDesignPaper}">
+                          <!-- Framed on all four sides in the same hairline as the form above it,
+                               and washed with the theme's purple at 8% so it has a body instead of
+                               being a hole in the card. The wash is alpha over whatever is behind
+                               it, so it stays a tint in either theme rather than a painted colour. -->
+                          <Border BorderThickness="1" CornerRadius="4"
+                                  BorderBrush="{DynamicResource MaterialDesign.Brush.Primary}"
+                                  Background="#14673AB7"
+                                  Padding="10">
                             
-                            <StackPanel x:Name="TripFilterPanel">
+                            <StackPanel x:Name="TripFilterPanel"
+                                        Visibility="{Binding IsTripFormOpen, Converter={StaticResource InverseBoolToVisibility}}">
 
                                 
                                 <Grid Margin="5" Background="Transparent">
@@ -393,53 +1046,48 @@
                                     </Grid.RowDefinitions>
 
                                     <Grid Grid.Row="0">
-
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Date -->
-                                        <DatePicker 
-                                            x:Name="ForDatePicker"
-                                            Grid.Column="0"
-                                        
-                                            SelectedDate="{Binding FilterDate, Mode=TwoWay}" 
-                                            materialDesign:HintAssist.Hint="{Binding ForDatePickerHint}"
-                                            Style="{StaticResource MaterialDesignFilledDatePicker}" Margin="0,0,8,0"/>
+                                        <ContentControl Grid.Column="0" Content="{Binding}"
+                                                        VerticalAlignment="Center" Margin="0,0,8,0"
+                                                        ContentTemplate="{StaticResource TripDatePicker}" />
 
-                                        <!-- Checkbox -->
-                                        <CheckBox Grid.Column="1"
-                                            Content="{Binding ShowCanceledCheckBoxContent}"
-                                            IsChecked="{Binding ShowCanceled}" 
-                                            Style="{StaticResource MaterialDesignCheckBox}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-
-                                        <!-- Buttons -->
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                            <Button 
-                                                    ToolTip="{Binding ImportButtonToolTip}"
-                                                    Command="{Binding ImportCommand}"
-                                                    Style="{StaticResource MaterialDesignToolForegroundButton}" Margin="0,0,10,0" Click="Button_Click">
-                                                <materialDesign:PackIcon Kind="DatabaseImport" Width="25" Height="25" Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
-                                            </Button>
-
-                                            <Button  
-                                                ToolTip="{Binding ExportButtonToolTip}"
-                                                Command="{Binding ExportCommand}"
-                                                Style="{StaticResource MaterialDesignToolForegroundButton}">
-                                                <materialDesign:PackIcon Kind="MicrosoftExcel" Width="25" Height="25" Foreground="Green"/>
-                                            </Button>
-                                        </StackPanel>
+                                        <ContentControl Grid.Column="1" Content="{Binding}"
+                                                        ContentTemplate="{StaticResource ExpressFilterBar}" />
                                     </Grid>
 
                                     <Grid Grid.Row="1" Margin="0 5 0 0">
-                                        <TextBlock Text="{Binding GridSummary}" FontWeight="Bold"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- What is hiding rows, on screen. This is what stops
+                                                 "the list is empty and I do not know why". -->
+                                            <ItemsControl ItemsSource="{Binding Filters.ActiveChips}" Margin="10,0,0,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border CornerRadius="9" Margin="0,0,4,0" Padding="8,1,8,1"
+                                                                Background="{DynamicResource MaterialDesignChipBackground}">
+                                                            <TextBlock Text="{Binding}" FontSize="11"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
 
+                                            <Button Content="{Binding ClearAllFiltersLabel}"
+                                                    Command="{Binding Filters.ClearAllCommand}"
+                                                    Style="{StaticResource MaterialDesignToolButton}"
+                                                    FontSize="11" Padding="6,0,6,0"
+                                                    Visibility="{Binding Filters.HasActiveFilters, Converter={StaticResource BoolToVisibility}}"/>
+                                        </StackPanel>
                                     </Grid>
                                     
                                 </Grid>
                             </StackPanel>
+                          </Border>
                         </materialDesign:Card>
 
                         <!-- Trip Data Area-->                       
@@ -451,12 +1099,14 @@
                             </Grid.ColumnDefinitions>
 
 
+
                             <!-- ForDateCalendar -->
 
                             <!-- Adjusted calendar -->
-                            <Calendar x:Name="ForDateCalendar" Visibility="Collapsed"
+                            <Calendar x:Name="ForDateCalendar"
+                                  Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                   Grid.Column="0"
-                                  SelectedDate="{Binding FilterDate, Mode=TwoWay}"
+                                  SelectedDate="{Binding TripDate, Mode=TwoWay}"
                                   VerticalAlignment="Center"
                                   HorizontalAlignment="Center"
                                   Margin="0"
@@ -469,7 +1119,8 @@
 
                             <!-- Trips TabControl -->
                         
-                            <TabControl x:Name="TripTabs" Grid.Column="1" Visibility="Collapsed"
+                            <TabControl x:Name="TripTabs" Grid.Column="1"
+                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                     MinHeight="240"
                                     MaxHeight="240"
                                     HorizontalContentAlignment="Left"
@@ -535,6 +1186,13 @@
                                             Style="{StaticResource MaterialDesignFilledTextBox}" 
                                             TextChanged="GooglePlacesInput_TextChanged"/>
 
+                                        <!-- (2) Where they are going. -->
+                                        <Border Grid.Row="1" Grid.Column="0" Panel.ZIndex="20"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,6,0"
+                                                Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step2State}">
+                                            <TextBlock Text="2" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
+
                                         <TextBox
                                             x:Name="DropoffAddressTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,0,2"
                                             Text="{Binding DropoffAddress, UpdateSourceTrigger=PropertyChanged}"
@@ -548,18 +1206,32 @@
                                             Style="{StaticResource MaterialDesignFilledTextBox}" 
                                             TextChanged="DropoffAddressTextBox_TextChanged"/>
 
-                                    <Button x:Name="SaveTab1FloatingButton" Width="30" Height="30" Grid.Row="2" Grid.Column="0"
-                                        Panel.ZIndex="100"
-                                        Margin="12,19,16,-17"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Bottom"
-                                        ToolTip="{Binding SaveTab1FloatingButtonToolTip}"
-                                        Command="{Binding SaveTripCommand}"
-                                        Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Click="SaveTab1FloatingButton_Click">
-                                        <materialDesign:PackIcon  Kind="ContentSave" />
+                                    <!-- (2.2) Visible and grey with the reason beside it, never
+                                         missing. A button that is not there teaches nobody
+                                         anything; one that says "Missing: dropoff address"
+                                         teaches the whole screen. The reason is the same list
+                                         SaveTrip checks, in the same order. -->
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal"
+                                                Panel.ZIndex="100" Margin="12,19,16,-17"
+                                                HorizontalAlignment="Left" VerticalAlignment="Bottom">
 
+                                        <!-- (4) And create it. -->
+                                        <Border Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step4State}"
+                                                Margin="0,0,6,0">
+                                            <TextBlock Text="4" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
 
-                                    </Button>
+                                        <Button x:Name="SaveTab1FloatingButton" Width="30" Height="30"
+                                            IsEnabled="{Binding CanCreateTrip}"
+                                            ToolTip="{Binding CreateTripHint}"
+                                            Command="{Binding SaveTripCommand}"
+                                            Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Click="SaveTab1FloatingButton_Click">
+                                            <materialDesign:PackIcon  Kind="ContentSave" />
+                                        </Button>
+
+                                        <TextBlock Text="{Binding CreateTripHint}" VerticalAlignment="Center"
+                                                   Margin="6,0,0,0" FontSize="11" TextWrapping="Wrap" MaxWidth="220"/>
+                                    </StackPanel>
 
 
                                         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="2" Grid.Column="0" Margin="0,10,10,5">
@@ -573,6 +1245,13 @@
                                         </StackPanel>
 
                                         <!-- Right column -->                                   
+
+                                        <!-- (3) When. -->
+                                        <Border Grid.Row="0" Grid.Column="1" Panel.ZIndex="20"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,6,0"
+                                                Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step3State}">
+                                            <TextBlock Text="3" Style="{StaticResource StepBadgeTextStyle}"/>
+                                        </Border>
 
                                         <materialDesign:TimePicker Grid.Row="0" Grid.Column="1"
                                             x:Name="PickupTimePicker"
@@ -617,7 +1296,7 @@
                                                  the patient; the server ignores it on every update
                                                  route, so a live box here would tick, save, and
                                                  change nothing without saying so. -->
-                                            <CheckBox x:Name="WillCallCheckBox" Content="Will Call"
+                                            <CheckBox x:Name="WillCallCheckBox" Content="{Binding WillCallLabel}"
                                                       IsChecked="{Binding IsWillCall}"
                                                       IsEnabled="{Binding CanEditWillCall}"
                                                       ToolTip="{Binding WillCallLockedToolTip}"
@@ -666,12 +1345,12 @@
 
                                         <!-- DataGrid Additional Passengers -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top">
-                                            <TextBlock Text="Additional Passengers:" Margin="0,0,0,5"/>
+                                            <TextBlock Text="{Binding AdditionalPassengersLabel}" Margin="0,0,0,5"/>
                                             <DataGrid x:Name="AdditionalPassengersDataGrid" AutoGenerateColumns="False" Height="200">
                                                 <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Space" Binding="{Binding Space}" Width="*"/>
-                                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*"/>
-                                                    <DataGridTextColumn Header="Count" Binding="{Binding Count}" Width="*"/>
+                                                    <DataGridTextColumn Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}" Binding="{Binding Space}" Width="*"/>
+                                                    <DataGridTextColumn Header="{Binding Data.ChargesDescriptionText, Source={StaticResource vmProxy}}" Binding="{Binding Description}" Width="2*"/>
+                                                    <DataGridTextColumn Header="{Binding Data.CountLabel, Source={StaticResource vmProxy}}" Binding="{Binding Count}" Width="*"/>
                                                 </DataGrid.Columns>
                                             </DataGrid>
                                         </StackPanel>
@@ -768,21 +1447,23 @@
 
                     </Grid>
 
-                <!-- Vertical GridSplitter -->
+                <!-- The gap between the form and what is beside it. The theme's own paper -
+                     white in the light theme, dark in the dark one - and no wider than it takes
+                     to see it and grab it. The rings and the seam that were tried here were
+                     decoration on something whose whole job is to get out of the way. -->
+                    <Border Grid.Column="1" Background="{DynamicResource MaterialDesignPaper}" />
+
                     <GridSplitter Grid.Column="1"
                                   Width="6"
                                   HorizontalAlignment="Stretch"
                                   VerticalAlignment="Stretch"
-                                  Background="#40CCCCCC"
+                                  Background="Transparent"
                                   ShowsPreview="True"
-                                  Cursor="SizeWE">
-                        
-                    </GridSplitter>
-                    
-                <!-- Panel Billing (initially hidden) -->
+                                  Cursor="SizeWE" />
+
                 <Border  Grid.Column="2" BorderThickness="1,1,1,1" BorderBrush="{StaticResource MainBorderBrush}">
                     <StackPanel Grid.Column="2" x:Name="BillingPanel"
-                                Visibility="Hidden"
+                                Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                 Margin="10"
                                 
                                 Background="Transparent">
@@ -1021,68 +1702,327 @@
 
                 </Border>
                     
-                <!-- Vertical GridSplitter -->
+                <!-- Same gap, same reasoning, between billing and the map. -->
+                    <Border Grid.Column="3" Background="{DynamicResource MaterialDesignPaper}" />
+
                     <GridSplitter Grid.Column="3" x:Name="BillingGridSplitter"
                                   Width="6"
                                   HorizontalAlignment="Stretch"
                                   VerticalAlignment="Stretch"
-                                  Background="#40CCCCCC"
+                                  Background="Transparent"
                                   ShowsPreview="True"
-                                  Cursor="SizeWE">
-                        
-                    </GridSplitter>
+                                  Cursor="SizeWE" />
 
                     <!-- WebView2 con el mapa -->
-                    <wv2:WebView2 Grid.Column="4" x:Name="MapaWebView" Loaded="WebView_Loaded" />
+                    <wv2:WebView2 Grid.Column="4" x:Name="MapaWebView" Loaded="WebView_Loaded"
+                                  Visibility="{Binding IsMapVisible, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!-- ===== What stands in for the map until there is a reason to load one =====
+                         Creating a Google map is a billed Dynamic Map, and opening this tab bought
+                         one every time to show an empty view of Miami. The guard that saves the
+                         money is in LoadMap; this fills the space it leaves.
+
+                         It is not wallpaper. The route runs the right way and says so - three fixed
+                         chevrons plus an arrow that drives it on a loop - and the two pins and the
+                         route answer when you point at them. Someone meeting this tab for the first
+                         time learns what red and blue mean here before a real map has cost anything.
+
+                         The palette is a real map's, not a set of greys: cream land, white streets
+                         on a warm casing, amber arterials, bay blue, park green. It stays in
+                         daylight colours in both themes the way a map widget does inside any dark
+                         dashboard - it is content, not chrome. -->
+                    <Grid Grid.Column="4" ClipToBounds="True"
+                          Visibility="{Binding IsMapVisible, Converter={StaticResource InverseBoolToVisibility}}">
+
+                        <Border Background="#FFF4EFE4" />
+
+                        <Viewbox Stretch="UniformToFill">
+                            <Canvas Width="640" Height="200">
+
+                                <Rectangle Width="640" Height="200" Fill="{StaticResource MapPlateBrush}" />
+
+                                <!-- The route, cased the way the live map cases it. -->
+                                <Path Data="M170,158 L470,158 L470,88" Stroke="#FF4527A0" StrokeThickness="8.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+
+                                <Path Data="M170,158 L470,158 L470,88" Stroke="#FF7E57C2" StrokeThickness="5.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      ToolTip="{Binding MapRouteHelp}" />
+
+                                <!-- Chevrons that stay put, so the direction is readable in a
+                                     screenshot and by anyone the animation does not reach. -->
+                                <Path Data="M252,152 L260,158 L252,164 M382,152 L390,158 L382,164 M464,120 L470,113 L476,120"
+                                      Stroke="#FFFFFFFF" StrokeThickness="2.2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+
+                                <!-- And one that drives it, pickup to dropoff, for as long as the
+                                     panel is on screen. DoesRotateWithTangent turns the arrow into
+                                     the corner; without it the arrow goes round the bend sideways
+                                     and reads as a bug. -->
+                                <Path Data="M-5,-4.5 L5.5,0 L-5,4.5 L-2,0 Z"
+                                      Fill="#FFFFFFFF" Stroke="#FF4527A0" StrokeThickness="1.1"
+                                      StrokeLineJoin="Round" IsHitTestVisible="False">
+                                    <Path.RenderTransform>
+                                        <MatrixTransform />
+                                    </Path.RenderTransform>
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsVisible" Value="True">
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard x:Name="RouteFlow">
+                                                            <Storyboard>
+                                                                <MatrixAnimationUsingPath
+                                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(MatrixTransform.Matrix)"
+                                                                    DoesRotateWithTangent="True"
+                                                                    Duration="0:0:4.5" RepeatBehavior="Forever">
+                                                                    <MatrixAnimationUsingPath.PathGeometry>
+                                                                        <PathGeometry Figures="M170,158 L470,158 L470,88" />
+                                                                    </MatrixAnimationUsingPath.PathGeometry>
+                                                                </MatrixAnimationUsingPath>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                    <Trigger.ExitActions>
+                                                        <StopStoryboard BeginStoryboardName="RouteFlow" />
+                                                    </Trigger.ExitActions>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                </Path>
+
+                                <!-- Pickup: red, where the patient waits. -->
+                                <Ellipse Canvas.Left="163" Canvas.Top="151" Width="14" Height="14"
+                                         Fill="#FFD32F2F" Stroke="#FFFFFFFF" StrokeThickness="3"
+                                         ToolTip="{Binding MapPickupHelp}" Cursor="Hand" />
+
+                                <!-- Dropoff: blue, the same teardrop as the live map, tip down on
+                                     the clinic. -->
+                                <Path Data="M470,58 C464.2,58 459.5,62.7 459.5,68.5 C459.5,76.4 470,88 470,88 C470,88 480.5,76.4 480.5,68.5 C480.5,62.7 475.8,58 470,58 Z M470,72.3 A3.75,3.75 0 1 1 470,64.8 A3.75,3.75 0 0 1 470,72.3 Z"
+                                      Fill="#FF1565C0" Stroke="#FFFFFFFF" StrokeThickness="1.8"
+                                      ToolTip="{Binding MapDropoffHelp}" Cursor="Hand" />
+                            </Canvas>
+                        </Viewbox>
+
+                        <!-- The card is see-through and can be pushed aside, because it covers the
+                             middle of a drawing the user is now invited to read. The purple head is
+                             the grip: a title bar, which is where everyone already tries to drag
+                             from, and it holds no control that a drag could steal a click from. -->
+                        <Border x:Name="MapHintCard"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                MaxWidth="300" CornerRadius="16" Opacity="0.88">
+                            <Border.RenderTransform>
+                                <TranslateTransform />
+                            </Border.RenderTransform>
+                            <Border CornerRadius="16" Background="{DynamicResource MaterialDesignPaper}"
+                                    materialDesign:ElevationAssist.Elevation="Dp5">
+                                <StackPanel>
+                                    <Border Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                            CornerRadius="16,16,0,0" Padding="0,5,0,11"
+                                            Cursor="SizeAll" ToolTip="{Binding MapCardDragHint}"
+                                            MouseLeftButtonDown="MapCard_DragStart"
+                                            MouseMove="MapCard_Drag"
+                                            MouseLeftButtonUp="MapCard_DragEnd">
+                                        <StackPanel>
+                                            <materialDesign:PackIcon Kind="DragHorizontalVariant"
+                                                                     Width="20" Height="11" Opacity=".55"
+                                                                     Foreground="White"
+                                                                     HorizontalAlignment="Center"/>
+                                            <Border Width="40" Height="40" CornerRadius="20"
+                                                    Background="#33FFFFFF" HorizontalAlignment="Center">
+                                                <materialDesign:PackIcon Kind="MapSearchOutline" Width="23" Height="23"
+                                                                         Foreground="White"
+                                                                         HorizontalAlignment="Center"
+                                                                         VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding MapOnDemandTitle}" Foreground="White"
+                                                       HorizontalAlignment="Center" Margin="0,8,0,0"
+                                                       FontSize="13" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <StackPanel Margin="18,11,18,15">
+                                        <TextBlock Text="{Binding MapNotLoadedHint}" TextWrapping="Wrap"
+                                                   TextAlignment="Center" FontSize="11.5" Opacity=".8"
+                                                   Margin="0,0,0,13"/>
+                                        <Button Content="{Binding ShowMapLabel}" Command="{Binding ShowMapCommand}"
+                                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                                HorizontalAlignment="Center" Height="30" FontSize="11.5"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Border>
+                    </Grid>
                 </Grid>
 
-                <!-- Horizontal GridSplitter -->
-                <GridSplitter Grid.Row="1" x:Name="GridRow1"
-                      Height="6"
+                <!-- Horizontal GridSplitter. The figures ride on top of it rather than in a row
+                     of their own: this band is already there, it is exactly where the form ends
+                     and the list begins, and it costs the layout nothing to read it. The text is
+                     IsHitTestVisible=False so the whole band still drags. -->
+                <!-- ⚠️ The colour is on a Border behind the splitter, not on the splitter.
+                     A GridSplitter paints its own visual states over its Background, so unfocused
+                     it washed out — and white figures on a washed-out purple are figures nobody
+                     can read. The Border is always the theme's primary; the splitter above it is
+                     transparent and does nothing but drag. -->
+                <Border Grid.Row="1" CornerRadius="4"
+                        Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
+                        Background="{DynamicResource MaterialDesign.Brush.Primary}" />
+
+                <!-- ===== The road =====
+                     The band was already there and already purple. A dashed centre line turns it
+                     from a bar into a stretch of road, which is the one thing this business
+                     actually does - and it costs the layout nothing, because the height was
+                     already spent.
+
+                     The dashes are a tiled brush rather than a StrokeDashArray so they can be
+                     SCROLLED, and that is the loading animation: traffic moves while the trips
+                     are coming and stops when they have arrived.
+
+                     Two details make it work. The strip hangs 30px past each end of the band -
+                     exactly one tile - so sliding it a whole tile leaves no gap at either edge,
+                     and the Border clips the overhang. And it moves the RECTANGLE, not the brush:
+                     animating a brush's Transform through a property path works right up until
+                     something freezes the brush, and then it throws where nothing can catch it.
+                     RenderTransform on the element is the boring version, and this band is drawn
+                     on every single tab open. -->
+                <Border Grid.Row="1" ClipToBounds="True" Panel.ZIndex="1" IsHitTestVisible="False"
+                        Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
+                    <Rectangle Height="3" VerticalAlignment="Center" Margin="-30,0,-30,0">
+                        <Rectangle.RenderTransform>
+                            <TranslateTransform />
+                        </Rectangle.RenderTransform>
+                        <Rectangle.Fill>
+                            <DrawingBrush TileMode="Tile" Stretch="Fill"
+                                          Viewport="0,0,30,3" ViewportUnits="Absolute"
+                                          Viewbox="0,0,30,3" ViewboxUnits="Absolute">
+                                <DrawingBrush.Drawing>
+                                    <GeometryDrawing Brush="#66FFFFFF">
+                                        <GeometryDrawing.Geometry>
+                                            <RectangleGeometry Rect="0,0,17,3" RadiusX="1.5" RadiusY="1.5" />
+                                        </GeometryDrawing.Geometry>
+                                    </GeometryDrawing>
+                                </DrawingBrush.Drawing>
+                            </DrawingBrush>
+                        </Rectangle.Fill>
+                        <Rectangle.Style>
+                            <Style TargetType="Rectangle">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLoadingTrips}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard x:Name="TrafficFlow">
+                                                <Storyboard>
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                        From="0" To="30" Duration="0:0:0.9" RepeatBehavior="Forever" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="TrafficFlow" />
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Rectangle.Style>
+                    </Rectangle>
+                </Border>
+
+                <GridSplitter x:Name="GridRow1" Grid.Row="1"
+                      Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
+                      Height="18"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
-                      Background="#40CCCCCC"
+                      Background="Transparent"
                       ShowsPreview="True"
-                      Cursor="SizeNS">
-                    <!--<GridSplitter.Template>
-                        <ControlTemplate TargetType="GridSplitter">
-                            <Grid Background="{TemplateBinding Background}">
-                                <Rectangle Fill="#808080" Height="2" VerticalAlignment="Center" RadiusX="1" RadiusY="1" />
-                            </Grid>
-                        </ControlTemplate>
-                    </GridSplitter.Template>-->
-                </GridSplitter>
+                      Cursor="SizeNS" />
+
+                <!-- ⚠️ The figures are a SIBLING of the splitter in the same cell, never its
+                     parent or its child. A GridSplitter decides which rows it resizes by looking
+                     at the Grid it sits in: wrapped in a Grid of its own it had no siblings to
+                     move, and the band stopped dragging altogether. Overlapping two children in
+                     one cell keeps the splitter where it belongs and still puts the text on top.
+
+                     IsHitTestVisible=False so the whole band, text included, drags. -->
+                <Border Grid.Row="1" Panel.ZIndex="2"
+                        Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Height="16" CornerRadius="8" Padding="0"
+                        Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                        BorderBrush="#59FFFFFF" BorderThickness="1">
+                    <!-- Two layers, and both are needed. The outer one is the band's own colour
+                         at full opacity, which is what STOPS the dashes: a translucent plate let
+                         white dashes run straight through the figures and they could not be read.
+                         The inner one darkens it, so the plate is still visibly a plate mounted on
+                         the road rather than a gap in it. Tint over the theme's brush, never a
+                         fixed hex, so it follows whatever primary the theme is set to. -->
+                    <Border Background="#26000000" CornerRadius="7" Padding="12,0,12,0">
+                        <TextBlock Text="{Binding DividerSummary}" VerticalAlignment="Center"
+                                   Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                    </Border>
+                </Border>
 
                 <!-- Bottom DataGrid -->
 
 
-            <Grid Grid.Row="2" x:Name="GridRow2">
+            <Grid Grid.Row="2" x:Name="GridRow2"
+                  Visibility="{Binding IsImporting, Converter={StaticResource InverseBoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <!-- DATAGRID -->
-                <DataGrid                            
-                    ItemsSource="{Binding TripsByDate}" 
-                    SelectedItem="{Binding SelectedTrip, Mode=TwoWay}"                                  
-                            
+                <DataGrid x:Name="TripsGrid"
+                    Grid.Row="0"
+                    ItemsSource="{Binding TripsView}"
+                    SelectedItem="{Binding SelectedTrip, Mode=TwoWay}"
+
+                    MouseDoubleClick="TripsGrid_MouseDoubleClick"
+                    Sorting="TripsGrid_Sorting"
+                    Loaded="TripsGrid_Loaded"
+
                     SelectionMode="Single"
                     AutoGenerateColumns="False"
                     IsReadOnly="True"
                     AlternationCount="2"
-                    AlternatingRowBackground="White"
-                                   
+
+                    FrozenColumnCount="3"
+                    RowHeight="{Binding GridRowHeight}"
+
+                    EnableRowVirtualization="True"
+                    EnableColumnVirtualization="True"
+                    ScrollViewer.CanContentScroll="True"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+
                     Style="{StaticResource CustomDataGridStyle}"
-                    ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
-                    
+                    ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+
                     RowStyle="{StaticResource HomeTripRowStyle}"
-                    CellStyle="{StaticResource CustomCellStyle}"
-                    SelectionUnit="FullRow">
+                    CellStyle="{StaticResource TripSelectionCellStyle}"
+                    SelectionUnit="FullRow"
+                    Cursor="Hand">
 
                     <DataGrid.Columns>
 
                         <DataGridTemplateColumn Width="Auto">
                             <DataGridTemplateColumn.HeaderTemplate>
                                 <DataTemplate>
-                                    <Button Command="{Binding DataContext.FilterSettingsCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                            Style="{StaticResource MaterialDesignToolButton}">
-                                        <materialDesign:PackIcon Kind="FilterSettings" Width="20" Height="20"/>
+                                    <Button Command="{Binding DataContext.ToggleFilterPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            ToolTip="{Binding DataContext.FiltersHeader, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            Style="{StaticResource TripActionButtonStyle}">
+                                        <Grid>
+                                            <materialDesign:PackIcon Kind="FilterSettings" Width="20" Height="20"/>
+                                            <!-- The dot is the only thing that tells a dispatcher
+                                                 the list is short because they filtered it. -->
+                                            <Ellipse Width="7" Height="7" Fill="#D32F2F"
+                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                     Margin="0,-1,-1,0"
+                                                     Visibility="{Binding DataContext.Filters.HasActiveFilters,
+                                                                  RelativeSource={RelativeSource AncestorType=UserControl},
+                                                                  Converter={StaticResource BoolToVisibility}}"/>
+                                        </Grid>
                                     </Button>
                                 </DataTemplate>
                             </DataGridTemplateColumn.HeaderTemplate>
@@ -1095,8 +2035,8 @@
                                         <!-- Cancel Button (Visible if not canceled) -->
                                         <Button Command="{Binding DataContext.CancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="Cancel Trip">
+                                            Style="{StaticResource TripActionButtonStyle}"
+                                            ToolTip="{Binding Data.CancelTripLabel, Source={StaticResource vmProxy}}">
                                             <Button.Visibility>
                                                 <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="NotCanceled" />
                                             </Button.Visibility>
@@ -1106,8 +2046,8 @@
                                         <!-- Restore Button (Visible if YES is cancelled) -->
                                         <Button Command="{Binding DataContext.UncancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="Uncancel trip">
+                                            Style="{StaticResource TripActionButtonStyle}"
+                                            ToolTip="{Binding Data.UncancelTripLabel, Source={StaticResource vmProxy}}">
                                             <Button.Visibility>
                                                 <Binding Path="Status" Converter="{StaticResource StatusToVisibilityConverter}" ConverterParameter="Canceled" />
                                             </Button.Visibility>
@@ -1117,16 +2057,16 @@
                                         <!-- Edit button -->
                                         <Button Command="{Binding DataContext.EditTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="Edit Trip">
+                                            Style="{StaticResource TripActionButtonStyle}"
+                                            ToolTip="{Binding Data.EditTripLabel, Source={StaticResource vmProxy}}">
                                             <materialDesign:PackIcon Kind="FileEdit" Foreground="Orange"/>
                                         </Button>
 
                                         <!-- NEW BUTTON: Change History -->
                                         <Button Command="{Binding DataContext.ShowHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="Change History">
+                                            Style="{StaticResource TripActionButtonStyle}"
+                                            ToolTip="{Binding Data.ChangeHistoryLabel, Source={StaticResource vmProxy}}">
                                             <materialDesign:PackIcon Kind="History" Foreground="Blue" Width="20" Height="20" />
                                         </Button>
 
@@ -1136,85 +2076,175 @@
                         </DataGridTemplateColumn>
 
 
-                        <DataGridTextColumn Binding="{Binding Day}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Day], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Day}"
                                         Header="{Binding Data.DayText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Date, StringFormat=\{0:MM/dd/yyyy\}}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Date], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Date, StringFormat=\{0:MM/dd/yyyy\}}"
                                         Header="{Binding Data.DateText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding FromTime, StringFormat=\{0:hh\\:mm\}}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[FromTime], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding FromTime, StringFormat=\{0:hh\\:mm\}}"
                                         Header="{Binding Data.FromTimeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding ToTime, StringFormat=\{0:hh\\:mm\}}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[ToTime], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding ToTime, StringFormat=\{0:hh\\:mm\}}"
                                         Header="{Binding Data.ToTimeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding CustomerName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[CustomerName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding CustomerName}"
                                         Header="{Binding Data.CustomerNameText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupAddress}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupAddress], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupAddress}"
                                         Header="{Binding Data.PickupAddressText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffAddress}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffAddress], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffAddress}"
                                         Header="{Binding Data.DropoffAddressText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding SpaceTypeName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[SpaceTypeName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding SpaceTypeName}"
                                         Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Charge}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Charge], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Charge}"
                                         Header="{Binding Data.ChargeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Paid}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Paid], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Paid}"
                                         Header="{Binding Data.PaidText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupComment}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupComment], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupComment}"
                                         Header="{Binding Data.PickupCommentText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffComment}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffComment], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffComment}"
                                         Header="{Binding Data.DropoffCommentText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Type}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Type], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Type}"
                                         Header="{Binding Data.TypeText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Pickup}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Pickup], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Pickup}"
                                         Header="{Binding Data.PickupText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Dropoff}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Dropoff], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Dropoff}"
                                         Header="{Binding Data.DropoffText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupPhone}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupPhone], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupPhone}"
                                         Header="{Binding Data.PickupPhoneText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffPhone}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffPhone], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffPhone}"
                                         Header="{Binding Data.DropoffPhoneText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding TripId}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[TripId], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding TripId}"
                                         Header="{Binding Data.TripIdText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Authorization}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Authorization], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Authorization}"
                                         Header="{Binding Data.AuthorizationText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding FundingSourceName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[FundingSourceName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding FundingSourceName}"
                                         Header="{Binding Data.FundingSourceText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding Distance}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[Distance], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Distance}"
                                         Header="{Binding Data.DistanceText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding RunName}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[RunName], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding RunName}"
                                         Header="{Binding Data.RunText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding PickupCity}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupCity], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PickupCity}"
                                         Header="{Binding Data.PickupCityText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DropoffCity}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DropoffCity], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DropoffCity}"
                                         Header="{Binding Data.DropoffCityText, Source={StaticResource vmProxy}}"/>
 
-                        <DataGridTextColumn Binding="{Binding DriverNoShowReason}"
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DriverNoShowReason], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding DriverNoShowReason}"
                                         Header="{Binding Data.DriverNoShowReasonText, Source={StaticResource vmProxy}}"/>
 
 
                 </DataGrid.Columns>
 
                 </DataGrid>
+
+                <!-- Footer. The three numbers a dispatcher otherwise counts by scrolling, plus
+                     the way to choose which columns are on screen. -->
+                <!-- ===== The status bar =====
+                     A wash of the theme's purple at 12%, not a filled bar. A saturated fill would
+                     have forced every icon on it to white, and the green of Excel and the purple
+                     of import are how they are told apart at a glance - the colour IS the label
+                     here. A tint keeps dark text and coloured icons both legible, and still gives
+                     the bar the body it was missing.
+
+                     The middle is a trial, not a decision: the same express bar that sits above
+                     the list, and the same figures that ride the road. Seeing all of it at once is
+                     the only way to judge where each belongs. Recommendation and reasoning are in
+                     the slice note. -->
+                <Border Grid.Row="1" BorderThickness="0,1,0,0" BorderBrush="{StaticResource MainBorderBrush}"
+                        Background="#1F673AB7" Padding="8,4,8,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ContentControl Style="{StaticResource NumberPlate}"
+                                            Tag="{Binding PlateTripsCount}" Content="{Binding PlateTripsLabel}" />
+                            <ContentControl Style="{StaticResource NumberPlate}"
+                                            Tag="{Binding PlateCanceledCount}" Content="{Binding PlateCanceledLabel}" />
+                            <ContentControl Style="{StaticResource NumberPlate}"
+                                            Tag="{Binding PlateNoRunCount}" Content="{Binding PlateNoRunLabel}" />
+                        </StackPanel>
+
+                        <Grid Grid.Column="1" Margin="16,0,16,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ContentControl Grid.Column="0" Content="{Binding}"
+                                            ContentTemplate="{StaticResource ExpressFilterBar}" />
+
+                            <!-- The same plate as the one on the road, deliberately identical, so
+                                 the two candidates are being compared and not two designs. -->
+                            <Border Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                                    Height="18" CornerRadius="9" Padding="12,0,12,0"
+                                    Background="{DynamicResource MaterialDesign.Brush.Primary}">
+                                <TextBlock Text="{Binding DividerSummary}" VerticalAlignment="Center"
+                                           Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ToggleButton Margin="0,0,8,0"
+                                          IsChecked="{Binding IsCompactGrid}"
+                                          Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          ToolTip="{Binding CompactGridToolTip}"/>
+
+                            <Button Style="{StaticResource TripActionButtonStyle}"
+                                    Command="{Binding ChooseColumnsCommand}"
+                                    ToolTip="{Binding ChooseColumnsToolTip}" Padding="4,0,4,0">
+                                <materialDesign:PackIcon Kind="ViewColumnOutline" Width="18" Height="18"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
                 
                 <Border Background="#80FFFFFF" 
                     Visibility="{Binding IsLoadingTrips, Converter={StaticResource BoolToVisibility}}">
@@ -1222,7 +2252,7 @@
                         <ProgressBar IsIndeterminate="True"
                          Style="{StaticResource MaterialDesignCircularProgressBar}"
                          Width="50" Height="50" />
-                        <TextBlock Text="Loading trips and locations..."
+                        <TextBlock Text="{Binding LoadingTripsLabel}"
                        Margin="0,15,0,0"
                        FontSize="16"
                        FontWeight="Bold" />
@@ -1245,7 +2275,7 @@
                     <DataGridTextColumn Header="Patient" Binding="{Binding CustomerName}"/>
                     <DataGridTextColumn Header="Pickup Address" Binding="{Binding PickupAddress}"/>
                     <DataGridTextColumn Header="Dropoff Address" Binding="{Binding DropoffAddress}"/>
-                    <DataGridTextColumn Header="Space" Binding="{Binding SpaceTypeName}"/>
+                    <DataGridTextColumn Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}" Binding="{Binding SpaceTypeName}"/>
                     <DataGridTextColumn Header="Charge" Binding="{Binding Charge}"/>
                     <DataGridTextColumn Header="Paid" Binding="{Binding Paid}"/>
                     <DataGridTextColumn Header="Pickup Comment" Binding="{Binding PickupComment}"/>
@@ -1253,125 +2283,555 @@
             </DataGrid>-->
 
 
-                <!-- Sección de Importación de Viajes (Diseño Mejorado) -->
-                <Grid Grid.Row="0" Grid.RowSpan="3" x:Name="ImportTripsGridRow" Visibility="Collapsed" Background="{DynamicResource MaterialDesignPaper}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                <!-- ===== Importing a broker's file =====
+                     A screen of its own, hosted here because it is a mode of this tab and not a
+                     window: it shares Home's loaded collections - trips, patients, space types -
+                     and loading a second copy would double the traffic on entering the one screen
+                     whose entire reason for existing is that it made too many requests.
 
-                    <!-- Encabezado con botón de Volver -->
-                    <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" materialDesign:ElevationAssist.Elevation="Dp3">
-                        <DockPanel>
-                            <Button  
-                    Foreground="White"
-                    Click="BackToHome_Click"
-                    ToolTip="Back to Home">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="ArrowLeft" VerticalAlignment="Center" />
-                                    <TextBlock Text="VOLVER A INICIO" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
-                                </StackPanel>
-                            </Button>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <materialDesign:PackIcon Kind="DatabaseImport" Width="24" Height="24" />
-                                <TextBlock Text="IMPORTACIÓN DE VIAJES" Margin="12,0,0,0" Style="{StaticResource MaterialDesignHeadline6TextBlock}" />
-                            </StackPanel>
-                        </DockPanel>
-                    </materialDesign:ColorZone>
-
-                    <!-- Contenido Principal -->
-                    <Grid Grid.Row="1" Margin="20">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <!-- Tarjeta de Configuración -->
-                            <RowDefinition Height="*" />
-                            <!-- Tarjeta del Grid -->
-                        </Grid.RowDefinitions>
-
-                        <!-- PASO 1: Selección de Fuente y Archivo -->
-                        <materialDesign:Card Padding="16" Margin="0,0,0,16" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <ComboBox x:Name="FundingSourceImportComboBox"
-                          Grid.Column="0"
-                          ItemsSource="{Binding FundingSources}" 
-                          SelectedItem="{Binding SelectedFundingSourceImport, Mode=TwoWay}" 
-                          DisplayMemberPath="Name" 
-                          SelectedValuePath="Id"
-                          materialDesign:HintAssist.Hint="Seleccionar Funding Source"
-                          materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                          materialDesign:TextFieldAssist.LeadingIcon="Finance"
-                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                          Margin="0,0,16,0" />
-
-                                <Button x:Name="SelectCsvButton"
-                        Grid.Column="1"
-                        Height="50"
-                        Click="SelectCsv_Click" 
-                        Style="{StaticResource MaterialDesignRaisedButton}"
-                        materialDesign:ButtonAssist.CornerRadius="5">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="FileCsv" Margin="0,0,8,0" />
-                                        <TextBlock Text="SELECCIONAR CSV" />
-                                    </StackPanel>
-                                </Button>
-
-                                <!-- Panel de Progreso -->
-                                <StackPanel Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center" MinWidth="250">
-                                    <StackPanel x:Name="ProgressPanel" Visibility="Collapsed">
-                                        <TextBlock x:Name="ProgressText" 
-                                   Text="{Binding ProgressPanelText}" 
-                                   Style="{StaticResource MaterialDesignCaptionTextBlock}" 
-                                   HorizontalAlignment="Center" />
-                                        <ProgressBar x:Name="ImportProgressBar" 
-                                     Height="10" 
-                                     IsIndeterminate="False" 
-                                     />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-                        </materialDesign:Card>
-
-                        <!-- PASO 2: Vista previa de datos -->
-                        <materialDesign:Card Grid.Row="1" materialDesign:ElevationAssist.Elevation="Dp1">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-
-                                <Border Background="{DynamicResource MaterialDesignDivider}" Padding="12,8">
-                                    <TextBlock Text="VISTA PREVIA DE DATOS A IMPORTAR" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Opacity="0.6" />
-                                </Border>
-
-                                <DataGrid Grid.Row="1"
-                          x:Name="PreviewGrid" 
-                          AutoGenerateColumns="True" 
-                          IsReadOnly="True"
-                          CanUserAddRows="False"
-                          HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Auto"
-                          Style="{StaticResource MaterialDesignDataGrid}">
-                                </DataGrid>
-                            </Grid>
-                        </materialDesign:Card>
-                    </Grid>
-                </Grid>
+                     What was here before was a funding source, a button that started importing
+                     the instant the file dialog closed, and a grid with AutoGenerateColumns on it.
+                     RE-011 replaced all of it. The engine underneath is untouched. -->
+                <!-- Visibility goes through the proxy, not through the inherited DataContext.
+                     Attach() gives this control a view model of its own, and the moment it does a
+                     plain {Binding IsImporting} here would resolve against THAT - where the
+                     property does not exist - and the panel would never appear again. -->
+                <local:ImportTripsView x:Name="ImportPanel"
+                                       Grid.Row="0" Grid.RowSpan="3"
+                                       Visibility="{Binding Data.IsImporting, Source={StaticResource vmProxy},
+                                                    Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- Import Trips-->
                 <!--<Grid Grid.Row="0" x:Name="ImportTripsGridRow" Visibility="Collapsed" Margin="10">
                     <StackPanel>
-                        <Button Content="Seleccionar archivo CSV" Click="SelectCsv_Click" Margin="0 0 0 10"/>
+                        <Button Content="{Binding SelectCsvButtonContent}" Click="SelectCsv_Click" Margin="0 0 0 10"/>
                         <DataGrid x:Name="PreviewGrid" AutoGenerateColumns="True" Height="350"/>
                     </StackPanel>
                 </Grid>-->
         
             
+
+
+
+                <!-- ================= Floating helpers =================
+                     The step guide and the patient's state used to be two rows inside the form.
+                     They pushed the save button under the horizontal splitter, because the three
+                     zones of this tab are sized against each other and every row taken is a row
+                     the form no longer has.
+
+                     They float instead, and the dispatcher drags them wherever they are least in
+                     the way; where they end up is remembered. Popups rather than panels for the
+                     same reason the filter panel is one: MapaWebView is an HWND and nothing WPF
+                     draws over it inside the same window. -->
+
+                <Popup IsOpen="{Binding IsStepsCardOpen, Mode=OneWay}"
+                       PlacementTarget="{Binding ElementName=HomeRoot}" Placement="Relative"
+                       HorizontalOffset="{Binding StepsCardX, Mode=OneWay}"
+                       VerticalOffset="{Binding StepsCardY, Mode=OneWay}"
+                       AllowsTransparency="True" StaysOpen="True">
+                    <materialDesign:Card Margin="4" materialDesign:ElevationAssist.Elevation="Dp4" Width="210">
+                        <StackPanel>
+                            <Border Tag="steps" Background="{DynamicResource MaterialDesign.Brush.Primary}"
+                                    Padding="8,3,4,3" Cursor="SizeAll"
+                                    MouseLeftButtonDown="HelperCard_DragStart"
+                                    MouseMove="HelperCard_Drag"
+                                    MouseLeftButtonUp="HelperCard_DragEnd">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Padding="1" Foreground="White"
+                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Command="{Binding HideHelperCardsCommand}">
+                                        <materialDesign:PackIcon Kind="Close" Width="13" Height="13"/>
+                                    </Button>
+                                    <TextBlock Text="{Binding StepsCardTitle}" Foreground="White"
+                                               FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Border>
+
+                            <StackPanel Margin="8,6,8,8">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step1State}">
+                                        <TextBlock Text="1" Style="{StaticResource StepBadgeTextStyle}"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Step1Label}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step2State}">
+                                        <TextBlock Text="2" Style="{StaticResource StepBadgeTextStyle}"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Step2Label}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step3State}">
+                                        <TextBlock Text="3" Style="{StaticResource StepBadgeTextStyle}"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Step3Label}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource StepBadgeStyle}" Tag="{Binding Step4State}">
+                                        <TextBlock Text="4" Style="{StaticResource StepBadgeTextStyle}"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Step4Label}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="11"/>
+                                </StackPanel>
+
+                                <Separator Margin="0,6,0,4"/>
+                                <TextBlock Text="{Binding CreateTripHint}" FontSize="11" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </Popup>
+
+                <Popup IsOpen="{Binding IsPatientCardOpen, Mode=OneWay}"
+                       PlacementTarget="{Binding ElementName=HomeRoot}" Placement="Relative"
+                       HorizontalOffset="{Binding PatientCardX, Mode=OneWay}"
+                       VerticalOffset="{Binding PatientCardY, Mode=OneWay}"
+                       AllowsTransparency="True" StaysOpen="True">
+                    <materialDesign:Card Margin="4" materialDesign:ElevationAssist.Elevation="Dp4" Width="240">
+                        <StackPanel>
+                            <Border Tag="patient" Padding="8,3,4,3" Cursor="SizeAll"
+                                    MouseLeftButtonDown="HelperCard_DragStart"
+                                    MouseMove="HelperCard_Drag"
+                                    MouseLeftButtonUp="HelperCard_DragEnd">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#9E9E9E"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CustomerStateTag}" Value="unsaved">
+                                                <Setter Property="Background" Value="#E65100"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Padding="1" Foreground="White"
+                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Command="{Binding HideHelperCardsCommand}">
+                                        <materialDesign:PackIcon Kind="Close" Width="13" Height="13"/>
+                                    </Button>
+                                    <TextBlock Text="{Binding CustomerStateLabel}" Foreground="White"
+                                               FontSize="11" FontWeight="Bold" VerticalAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                </DockPanel>
+                            </Border>
+
+                            <StackPanel Margin="8,6,8,8">
+                                <TextBlock Text="{Binding CustomerValidationMessage}" FontSize="11" Foreground="#C62828"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding CustomerValidationMessage, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                <TextBlock Text="{Binding DuplicateCustomerWarning}" FontSize="11" Foreground="#E65100"
+                                           TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Visibility="{Binding DuplicateCustomerWarning, Converter={StaticResource EmptyStringToVisibilityConverter}}"/>
+                                <Button Content="{Binding DiscardChangesLabel}" HorizontalAlignment="Left"
+                                        Command="{Binding DiscardCustomerChangesCommand}"
+                                        Style="{StaticResource MaterialDesignToolButton}" FontSize="11" Padding="0,2,0,2"
+                                        Visibility="{Binding HasCustomerChanges, Converter={StaticResource BoolToVisibility}}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </Popup>
+
+                <!-- ================= The first-run tour (2.2c) =================
+                     Four balloons, each anchored to the control its step is about. They read the
+                     same TripCreationStep as the badges and the stepper and decide nothing of
+                     their own, so any of the three can be switched off later without touching
+                     logic. It runs by itself exactly once; after that it is the ? button.
+                -->
+                <!-- Balloon 1 -->
+                <Popup IsOpen="{Binding IsTourStep1, Mode=OneWay}" PlacementTarget="{Binding ElementName=CustomersAutoSuggestBox}"
+                       Placement="Bottom" AllowsTransparency="True" StaysOpen="True">
+                    <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
+                                         materialDesign:ElevationAssist.Elevation="Dp5">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Border DockPanel.Dock="Left" Style="{StaticResource StepBadgeStyle}" Tag="current">
+                                    <TextBlock Text="1" Style="{StaticResource StepBadgeTextStyle}"/>
+                                </Border>
+                                <TextBlock Text="{Binding Step1Label}" FontWeight="Bold" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding TourBody1}" TextWrapping="Wrap"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <Button DockPanel.Dock="Right"
+                                        Content="{Binding TourNextLabel}"
+                                        Command="{Binding NextTourStepCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}"/>
+                                <Button HorizontalAlignment="Left" Content="✕"
+                                        Command="{Binding EndTourCommand}"
+                                        Style="{StaticResource MaterialDesignToolButton}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </Popup>
+
+                <!-- Balloon 2 -->
+                <Popup IsOpen="{Binding IsTourStep2, Mode=OneWay}" PlacementTarget="{Binding ElementName=DropoffAddressTextBox}"
+                       Placement="Right" AllowsTransparency="True" StaysOpen="True">
+                    <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
+                                         materialDesign:ElevationAssist.Elevation="Dp5">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Border DockPanel.Dock="Left" Style="{StaticResource StepBadgeStyle}" Tag="current">
+                                    <TextBlock Text="2" Style="{StaticResource StepBadgeTextStyle}"/>
+                                </Border>
+                                <TextBlock Text="{Binding Step2Label}" FontWeight="Bold" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding TourBody2}" TextWrapping="Wrap"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <Button DockPanel.Dock="Right"
+                                        Content="{Binding TourNextLabel}"
+                                        Command="{Binding NextTourStepCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}"/>
+                                <Button HorizontalAlignment="Left" Content="✕"
+                                        Command="{Binding EndTourCommand}"
+                                        Style="{StaticResource MaterialDesignToolButton}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </Popup>
+
+                <!-- Balloon 3 -->
+                <Popup IsOpen="{Binding IsTourStep3, Mode=OneWay}" PlacementTarget="{Binding ElementName=PickupTimePicker}"
+                       Placement="Right" AllowsTransparency="True" StaysOpen="True">
+                    <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
+                                         materialDesign:ElevationAssist.Elevation="Dp5">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Border DockPanel.Dock="Left" Style="{StaticResource StepBadgeStyle}" Tag="current">
+                                    <TextBlock Text="3" Style="{StaticResource StepBadgeTextStyle}"/>
+                                </Border>
+                                <TextBlock Text="{Binding Step3Label}" FontWeight="Bold" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding TourBody3}" TextWrapping="Wrap"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <Button DockPanel.Dock="Right"
+                                        Content="{Binding TourNextLabel}"
+                                        Command="{Binding NextTourStepCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}"/>
+                                <Button HorizontalAlignment="Left" Content="✕"
+                                        Command="{Binding EndTourCommand}"
+                                        Style="{StaticResource MaterialDesignToolButton}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </Popup>
+
+                <!-- Balloon 4 -->
+                <Popup IsOpen="{Binding IsTourStep4, Mode=OneWay}" PlacementTarget="{Binding ElementName=SaveTab1FloatingButton}"
+                       Placement="Top" AllowsTransparency="True" StaysOpen="True">
+                    <materialDesign:Card Margin="6" Padding="12" MaxWidth="320"
+                                         materialDesign:ElevationAssist.Elevation="Dp5">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <Border DockPanel.Dock="Left" Style="{StaticResource StepBadgeStyle}" Tag="current">
+                                    <TextBlock Text="4" Style="{StaticResource StepBadgeTextStyle}"/>
+                                </Border>
+                                <TextBlock Text="{Binding Step4Label}" FontWeight="Bold" Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding TourBody4}" TextWrapping="Wrap"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <Button DockPanel.Dock="Right"
+                                        Content="{Binding TourDoneLabel}"
+                                        Command="{Binding EndTourCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}"/>
+                                <Button HorizontalAlignment="Left" Content="✕"
+                                        Command="{Binding EndTourCommand}"
+                                        Style="{StaticResource MaterialDesignToolButton}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </Popup>
+
+                <!-- ================= Complex filters (2.4) =================
+                     It slides over the grid instead of pushing it aside: the list stays visible
+                     and refilters as the ticks change, which is the only way to see whether a
+                     filter did what you meant. Clicking anywhere outside closes it, and so does
+                     Esc — see HomeView_PreviewKeyDown. -->
+                <!-- ⚠️ A Popup, not a panel inside the layout, and that is the whole point.
+                     MapaWebView is a WebView2: an HWND hosted inside WPF, which Windows always
+                     draws on top of WPF content in the same window whatever the z-order says.
+                     A Border laid over the map was simply not visible where it crossed it. A
+                     Popup gets a top-level window of its own, so it draws above the map.
+
+                     StaysOpen=False is what closes it on a click outside; IsOpen binds two ways
+                     so that closing itself is reported back. Esc is handled in the code-behind,
+                     which still sees the key because a Popup's content stays in the logical tree. -->
+                <Popup IsOpen="{Binding IsFilterPanelOpen, Mode=TwoWay}"
+                       PlacementTarget="{Binding ElementName=HomeRoot}"
+                       Placement="Right" HorizontalOffset="-380"
+                       StaysOpen="False" AllowsTransparency="True" Focusable="True">
+                    <Border Width="380"
+                            Height="{Binding ActualHeight, ElementName=HomeRoot}"
+                            Background="{DynamicResource MaterialDesignPaper}"
+                            BorderBrush="{StaticResource MainBorderBrush}" BorderThickness="1,0,0,0"
+                            materialDesign:ElevationAssist.Elevation="Dp4">
+
+                        <DockPanel>
+
+                            <!-- Header: how much is getting through, and the way out of all of it -->
+                            <materialDesign:ColorZone DockPanel.Dock="Top" Mode="PrimaryMid" Padding="14,10,8,10"
+                                                      materialDesign:ElevationAssist.Elevation="Dp2">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                            Command="{Binding CloseFilterPanelCommand}" Padding="2"
+                                            VerticalAlignment="Top">
+                                        <materialDesign:PackIcon Kind="Close" Width="20" Height="20"/>
+                                    </Button>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="FilterVariant"
+                                                             Width="22" Height="22" Margin="0,1,10,0"
+                                                             VerticalAlignment="Top"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding FiltersHeader}" FontWeight="Bold" FontSize="15"/>
+                                        <TextBlock Text="{Binding GridSummary}" FontSize="11" Opacity=".85" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </materialDesign:ColorZone>
+
+                            <!-- Footer: clear everything, and keep this set under a name -->
+                            <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,0"
+                                        Background="{DynamicResource MaterialDesignPaper}">
+                                <Separator Margin="0" Opacity=".5"/>
+                                <StackPanel Margin="12,10,12,12">
+                                <Button Content="{Binding ClearAllFiltersLabel}"
+                                        Command="{Binding Filters.ClearAllCommand}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,10" Height="30" FontSize="12"/>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="{Binding SaveViewLabel}"
+                                            Command="{Binding Filters.SaveViewCommand}"
+                                            Style="{StaticResource MaterialDesignFlatButton}" FontSize="12"/>
+                                    <TextBox Text="{Binding Filters.NewViewName, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="{Binding MyFiltersHint}" FontSize="12"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,8,0"/>
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Filters.SavedViews}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="10" Margin="0,0,4,4" Padding="8,1,2,1"
+                                                    Background="{DynamicResource MaterialDesignChipBackground}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="{Binding}" Padding="0"
+                                                            Style="{StaticResource MaterialDesignToolButton}"
+                                                            Command="{Binding DataContext.Filters.ApplyViewCommand,
+                                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                    <Button Style="{StaticResource MaterialDesignToolButton}" Padding="2"
+                                                            Command="{Binding DataContext.Filters.DeleteViewCommand,
+                                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}">
+                                                        <materialDesign:PackIcon Kind="Close" Width="12" Height="12"/>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Tinted a few percent so the section cards read as sitting on a
+                                 surface rather than floating on the same sheet they are drawn on. -->
+                            <Border Background="#0A000000">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,12,4">
+                                    <StackPanel>
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="True" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Wheelchair" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding SpaceTypeFilterText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.SpaceTypes}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CashMultiple" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding FundingSourceText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.FundingSources}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="FlagVariant" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding StatusFilterText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.Statuses}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="SwapHorizontal" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding TypeText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.Types}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CityVariantOutline" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding CitiesFilterText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,2,0,4">
+                                                <TextBlock Text="{Binding CityScopeText}" Style="{StaticResource FilterSubLabel}" Margin="0,0,0,3"/>
+                                                <UniformGrid Columns="3" Margin="0,0,0,4">
+                                                    <RadioButton Content="{Binding ScopeBothText}" GroupName="CityScope" FontSize="11"
+                                                                 IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Both}"/>
+                                                    <RadioButton Content="{Binding PickupText}" GroupName="CityScope" FontSize="11"
+                                                                 IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Pickup}"/>
+                                                    <RadioButton Content="{Binding DropoffText}" GroupName="CityScope" FontSize="11"
+                                                                 IsChecked="{Binding Filters.CityScope, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Dropoff}"/>
+                                                </UniformGrid>
+                                                <Separator Margin="0,2,0,4" Opacity=".4"/>
+                                                <ItemsControl ItemsSource="{Binding Filters.Cities}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                      Style="{StaticResource FilterOptionCheckBox}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="ClockOutline" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding PickupWindowText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,4,0,4">
+                                                <materialDesign:TimePicker Is24Hours="True" FontSize="12"
+                                                    SelectedTime="{Binding Filters.PickupFrom, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
+                                                    materialDesign:HintAssist.Hint="{Binding FromTimeText}"/>
+                                                <materialDesign:TimePicker Is24Hours="True" Margin="0,10,0,0" FontSize="12"
+                                                    SelectedTime="{Binding Filters.PickupTo, Converter={StaticResource TimeSpanToDateConverter}, Mode=TwoWay}"
+                                                    materialDesign:HintAssist.Hint="{Binding ToTimeText}"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="True" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="TuneVariant" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding OtherFiltersText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,2,0,4">
+                                                <TextBlock Text="{Binding WillCallLabel}" Style="{StaticResource FilterSubLabel}"/>
+                                                <UniformGrid Columns="3">
+                                                    <RadioButton Content="{Binding FlagAnyText}" GroupName="WillCallFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
+                                                    <RadioButton Content="{Binding FlagYesText}" GroupName="WillCallFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
+                                                    <RadioButton Content="{Binding FlagNoText}" GroupName="WillCallFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.WillCall, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
+                                                </UniformGrid>
+
+                                                <TextBlock Text="{Binding RunText}" Style="{StaticResource FilterSubLabel}"/>
+                                                <UniformGrid Columns="3">
+                                                    <RadioButton Content="{Binding FlagAnyText}" GroupName="RunFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Any}"/>
+                                                    <RadioButton Content="{Binding FlagYesText}" GroupName="RunFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=Yes}"/>
+                                                    <RadioButton Content="{Binding FlagNoText}" GroupName="RunFilter" FontSize="11"
+                                                                 IsChecked="{Binding Filters.HasRoute, Converter={StaticResource EnumMatchConverter}, ConverterParameter=No}"/>
+                                                </UniformGrid>
+
+                                                <Separator Margin="0,8,0,4" Opacity=".4"/>
+                                                <CheckBox IsChecked="{Binding Filters.OnlyMissingCoordinates}"
+                                                          Content="{Binding MissingCoordinatesText}"
+                                                          Style="{StaticResource FilterOptionCheckBox}"/>
+                                                <TextBlock Text="{Binding MissingCoordinatesHint}" FontSize="10" Opacity=".7"
+                                                           TextWrapping="Wrap" Margin="26,0,0,0"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="MapMarkerOutline" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding ZipStateText}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <StackPanel Margin="26,4,0,4">
+                                                <TextBlock Text="{Binding ZipStateWarning}" FontSize="10" Opacity=".7"
+                                                           TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                                <TextBox Text="{Binding Filters.Zip, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                                                         materialDesign:HintAssist.Hint="{Binding ZipHint}" FontSize="12"
+                                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                <TextBox Margin="0,10,0,0"
+                                                         Text="{Binding Filters.State, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                                                         materialDesign:HintAssist.Hint="{Binding StateHint}" FontSize="12"
+                                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                            </StackPanel>
+                                        </Expander>
+                                    </Border>
+
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Border>
+                        </DockPanel>
+                    </Border>
+                </Popup>
+
             </Grid>
 
         </Border>

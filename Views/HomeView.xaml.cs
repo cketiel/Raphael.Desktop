@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using Raphael.Desktop.ViewModels;
 using Raphael.Desktop.Models;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Microsoft.Web.WebView2.Core;
 using System.Text.Json;
 using Raphael.Desktop.Services;
@@ -83,10 +84,15 @@ namespace Raphael.Desktop.Views
             InitializeComponent();
             ViewModel = new HomeViewModel();
             DataContext = ViewModel;
-            ViewModel.OnTripSavedSuccess = ResetLayoutToInitialState;
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+            ViewModel.DiscardCustomerRequested += RestoreCustomerFields;
+
+            Loaded += HomeView_Loaded;
+            Unloaded += HomeView_Unloaded;
 
             InitializeData();
+
+            AttachImportPanel();
 
             //SetupAutocompleteOverlay();
 
@@ -94,6 +100,45 @@ namespace Raphael.Desktop.Views
             // For this reason, WebView_Loaded() was used.
             //MapaWebView.CoreWebView2InitializationCompleted += MapaWebView_CoreWebView2InitializationCompleted;
         }
+        /// <summary>
+        /// Follows the language while this tab is on screen.
+        /// </summary>
+        /// <remarks>
+        /// Tied to Loaded and Unloaded rather than taken once in the constructor: LanguageChanged
+        /// is an event on a singleton, and MainWindow builds a new HomeView every time the tab is
+        /// opened. A subscription held for the life of the ViewModel would keep every one of them
+        /// alive, with the collections, the views and the handlers they carry.
+        ///
+        /// The refresh on Loaded is what covers the language being switched while this tab was in
+        /// the background.
+        /// </remarks>
+        private void HomeView_Loaded(object sender, RoutedEventArgs e)
+        {
+            LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
+            LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
+
+            ViewModel.RefreshLocalizedText();
+        }
+
+        private void HomeView_Unloaded(object sender, RoutedEventArgs e)
+            => LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
+
+        private void OnLanguageChanged()
+        {
+            ViewModel.RefreshLocalizedText();
+
+            // The map's own labels, controls and error text come from Google, and the Maps script
+            // fixes its language at the moment it is fetched. There is no API for changing it
+            // afterwards, so the only way to make the map follow the setting is to load the page
+            // again.
+            //
+            // WARNING: that reload is one Dynamic Map, billed. LoadMap is guarded on IsMapVisible,
+            // so with no map on screen this costs nothing - which is the usual case, because the
+            // map is not loaded until a trip is selected. With one on screen it costs exactly one
+            // map load, and switching language is not something anyone does twice an hour.
+            LoadMap();
+        }
+
         private async void InitializeData()
         {
             //ViewModel.LoadTripsFromApi();
@@ -223,7 +268,14 @@ namespace Raphael.Desktop.Views
                                 if (vm.SelectedCustomer != null)
                                     vm.SelectedCustomer.Address = result.address;
 
-                                // Guardar coordenadas en el ViewModel
+                                // ⚠️ The trip's pickup, not only the patient's record.
+                                // The map page posts an address chosen from the autocomplete as
+                                // type 'autocomplete' and only a pin DRAGGED afterwards as type
+                                // 'pickup'. This branch wrote the coordinates and the city but
+                                // never the address itself, so the Pickup Address box stayed
+                                // empty and the step guide could not get past Addresses however
+                                // carefully the dispatcher placed both pins.
+                                vm.PickupAddress = (string)result.address;
                                 vm.PickupLatitude = (double)result.lat;
                                 vm.PickupLongitude = (double)result.lng;
 
@@ -303,34 +355,327 @@ namespace Raphael.Desktop.Views
 
         private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "SelectedTrip" && ViewModel.SelectedTrip != null)
+            if (e.PropertyName == nameof(HomeViewModel.CurrentMode))
+            {
+                ApplyHomeMode(ViewModel.CurrentMode);
+                return;
+            }
+
+            if (e.PropertyName == nameof(HomeViewModel.SelectedTrip) ||
+                e.PropertyName == nameof(HomeViewModel.IsMapVisible))
             {
                 LoadMap();
-                ExpandLayoutForEditing();
             }
         }
-        private void ExpandLayoutForEditing()
+
+        /// <summary>
+        /// Puts the screen into the shape its mode calls for.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Widths and heights are assigned here by hand rather than by a style trigger,
+        /// and that is deliberate: the GridSplitters over these columns and rows write a *local*
+        /// value when the dispatcher drags them, and in WPF a local value beats a style setter
+        /// for good. A trigger would stop moving the column the first time anyone resized it.
+        /// The panel visibilities have no such problem and are bound in XAML, where each panel
+        /// declares which mode it belongs to — that is the half that has to keep working when
+        /// new panels arrive.
+        /// </remarks>
+        private void ApplyHomeMode(HomeMode mode)
+        {
+            switch (mode)
+            {
+                case HomeMode.CreatingTrip:
+                case HomeMode.EditingTrip:
+                    ApplyTripFormLayout();
+                    break;
+
+                case HomeMode.Browsing:
+                    ApplyBrowsingLayout();
+                    break;
+
+                case HomeMode.Importing:
+                    // The import view covers the whole tab, so the columns underneath keep the
+                    // shape they had. Only its own leftovers are cleared.
+                    break;
+            }
+        }
+
+        private void ApplyTripFormLayout()
         {
             CustomerColumn.Width = new GridLength(3.2, GridUnitType.Star);
             BillingColumn.Width = new GridLength(2.4, GridUnitType.Star);
             MapColumn.Width = new GridLength(4.4, GridUnitType.Star);
-            BillingPanel.Visibility = Visibility.Visible;
-            ForDateCalendar.Visibility = Visibility.Visible;
-            TripFilterPanel.Visibility = Visibility.Collapsed;
-            TripTabs.Visibility = Visibility.Visible;
 
-            // Ajustar el tamaño de las filas
             TopRow.Height = new GridLength(6.73, GridUnitType.Star);
             BottomRow.Height = new GridLength(3.27, GridUnitType.Star);
 
-            // Mostrar el input de Dropoff en el mapa
-            MapaWebView.ExecuteScriptAsync("showDropoff();");
+            // Show the Dropoff input on the map page
+            RunOnMap("showDropoff();");
         }
+
+        private void ApplyBrowsingLayout()
+        {
+            CustomerColumn.Width = new GridLength(1, GridUnitType.Star);
+            BillingColumn.Width = new GridLength(0, GridUnitType.Pixel);
+            MapColumn.Width = new GridLength(2, GridUnitType.Star);
+
+            TopRow.Height = new GridLength(4.5, GridUnitType.Star);
+            BottomRow.Height = new GridLength(5.5, GridUnitType.Star);
+
+            // Clears the markers and hides the Dropoff input
+            RunOnMap("prepareNewCustomer();");
+        }
+
+        /// <summary>
+        /// Talks to the map page only once it exists. The mode can change before the WebView
+        /// has finished starting, and asking it to run a script then throws.
+        /// </summary>
+        private void RunOnMap(string script)
+        {
+            if (MapaWebView?.CoreWebView2 == null) return;
+
+            MapaWebView.ExecuteScriptAsync(script);
+        }
+
+        /// <summary>Closes the trip form and goes back to the day's list.</summary>
+        private void CloseTripForm_Click(object sender, RoutedEventArgs e) => ViewModel.TryLeaveTripForm();
+
+        /// <summary>
+        /// Esc leaves the trip form.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Tunnelling, not bubbling. It was bubbling first, so that anything wanting Esc for
+        /// itself could mark it handled — and the patient search box does exactly that. Escape
+        /// inside the AutoSuggestBox never reached this handler, so Esc worked after clicking a
+        /// trip in the grid and did nothing after choosing a patient, which is the one case where
+        /// focus is still in that box. Coming down the tree instead, it always arrives.
+        ///
+        /// The one thing that must keep Esc for itself is a dialog on top: that is what the
+        /// dispatcher is looking at, and closing the form behind it would leave them dismissing a
+        /// dialog onto a screen that had already moved on.
+        /// </remarks>
+        private void HomeView_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape) return;
+            if (RootDialogHost.IsOpen) return;
+
+            // The panel is on top of everything, so it is what Esc means while it is out.
+            if (ViewModel.IsFilterPanelOpen)
+            {
+                ViewModel.IsFilterPanelOpen = false;
+                e.Handled = true;
+                return;
+            }
+
+            if (!ViewModel.IsTripFormOpen) return;
+
+            e.Handled = ViewModel.TryLeaveTripForm();
+        }
+
+        /// <summary>
+        /// Double click opens the trip for editing.
+        /// </summary>
+        /// <remarks>
+        /// Guarded on the row: without it, double-clicking the header or the empty space under
+        /// the last row would open whatever happened to be selected.
+        /// </remarks>
+        private void TripsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (ItemsControl.ContainerFromElement(TripsGrid, e.OriginalSource as DependencyObject)
+                is not DataGridRow) return;
+
+            ViewModel.BeginEditSelectedTrip();
+        }
+
+        private string _draggingCard;
+        private Point _dragLast;
+
+        /// <summary>
+        /// Drags a floating helper card.
+        /// </summary>
+        /// <remarks>
+        /// The delta is measured against HomeRoot rather than the card itself. The card moves
+        /// under the cursor as it is dragged, so a position read relative to the card barely
+        /// changes and the card crawls; HomeRoot does not move, so the difference between two
+        /// readings is the distance the mouse actually travelled.
+        /// </remarks>
+        private void HelperCard_DragStart(object sender, MouseButtonEventArgs e)
+        {
+            var grip = (FrameworkElement)sender;
+
+            _draggingCard = grip.Tag as string;
+            _dragLast = e.GetPosition(HomeRoot);
+
+            grip.CaptureMouse();
+        }
+
+        private void HelperCard_Drag(object sender, MouseEventArgs e)
+        {
+            if (_draggingCard == null) return;
+
+            var now = e.GetPosition(HomeRoot);
+
+            ViewModel.MoveHelperCard(
+                _draggingCard,
+                now.X - _dragLast.X,
+                now.Y - _dragLast.Y,
+                Math.Max(0, HomeRoot.ActualWidth - 120),
+                Math.Max(0, HomeRoot.ActualHeight - 40));
+
+            _dragLast = now;
+        }
+
+        // ------------------------------------------------------------------ the map card
+
+        private Point _mapCardLast;
+        private bool _mapCardDragging;
+
+        /// <summary>
+        /// Lets the "map on demand" card be pushed out of the way.
+        /// </summary>
+        /// <remarks>
+        /// It sits over the middle of a drawing the user is meant to read, so it has to move. This
+        /// is deliberately NOT the helper-card drag above: that one persists its placement through
+        /// the ViewModel because those cards are a working surface. This card is scenery over a
+        /// placeholder, and where somebody shoved it once is not worth a setting.
+        ///
+        /// The grip is the card's purple head rather than the whole card, so the button in the
+        /// body never has a click turned into a drag.
+        /// </remarks>
+        private void MapCard_DragStart(object sender, MouseButtonEventArgs e)
+        {
+            _mapCardDragging = true;
+            _mapCardLast = e.GetPosition(HomeRoot);
+
+            ((UIElement)sender).CaptureMouse();
+        }
+
+        private void MapCard_Drag(object sender, MouseEventArgs e)
+        {
+            if (!_mapCardDragging) return;
+
+            var now = e.GetPosition(HomeRoot);
+
+            if (MapHintCard.RenderTransform is not TranslateTransform moved) return;
+
+            // Clamped to half the panel each way, so the card's centre can never leave it. The
+            // panel clips, and a card shoved out of a clipped panel is a card nobody can get back.
+            var panel = (FrameworkElement)MapHintCard.Parent;
+
+            moved.X = Clamp(moved.X + now.X - _mapCardLast.X, panel.ActualWidth / 2);
+            moved.Y = Clamp(moved.Y + now.Y - _mapCardLast.Y, panel.ActualHeight / 2);
+
+            _mapCardLast = now;
+        }
+
+        private static double Clamp(double value, double limit) =>
+            Math.Max(-limit, Math.Min(limit, value));
+
+        private void MapCard_DragEnd(object sender, MouseButtonEventArgs e)
+        {
+            if (!_mapCardDragging) return;
+
+            _mapCardDragging = false;
+
+            ((UIElement)sender).ReleaseMouseCapture();
+        }
+
+        private void HelperCard_DragEnd(object sender, MouseButtonEventArgs e)
+        {
+            if (_draggingCard == null) return;
+
+            ((FrameworkElement)sender).ReleaseMouseCapture();
+
+            _draggingCard = null;
+
+            ViewModel.SaveHelperCardPlacement();
+        }
+
+        /// <summary>
+        /// Hands the patient panel's current text to the ViewModel.
+        /// </summary>
+        /// <remarks>
+        /// The panel's boxes are bound to the Customer object and read back by name when saving,
+        /// so the text on screen lives nowhere else. Rather than rewrite the whole panel onto
+        /// ViewModel properties — a slice of its own — the view reports what it holds and the
+        /// ViewModel keeps every rule about what it means.
+        /// </remarks>
+        private void ReportCustomerFields()
+        {
+            if (ViewModel == null || FullNameTextBox == null) return;
+
+            ViewModel.ReportCustomerFields(new HomeViewModel.CustomerFields(
+                FullNameTextBox.Text, ClientCodeTextBox.Text, PhoneTextBox.Text, MobilePhoneTextBox.Text,
+                GooglePlacesInput.Text, City.Text, State.Text, Zip.Text,
+                DOBDatePicker.SelectedDate, MaleRadioButton.IsChecked == true));
+        }
+
+        private void CustomerField_Changed(object sender, TextChangedEventArgs e) => ReportCustomerFields();
+
+        private void CustomerDate_Changed(object sender, SelectionChangedEventArgs e) => ReportCustomerFields();
+
+        /// <summary>Puts the boxes back as the server has the patient.</summary>
+        /// <remarks>
+        /// ⚠️ From the ViewModel's baseline, not from SelectedCustomer. The boxes are bound TwoWay
+        /// into that Customer object, so by the time anyone presses Discard it already holds the
+        /// edits — reading it back wrote the same text into the same boxes, and the button looked
+        /// broken because nothing on screen moved.
+        /// </remarks>
+        private void RestoreCustomerFields()
+        {
+            var was = ViewModel.CustomerBaseline;
+
+            if (was == null) return;
+
+            FullNameTextBox.Text = was.FullName ?? string.Empty;
+            ClientCodeTextBox.Text = was.ClientCode ?? string.Empty;
+            PhoneTextBox.Text = was.Phone ?? string.Empty;
+            MobilePhoneTextBox.Text = was.MobilePhone ?? string.Empty;
+            GooglePlacesInput.Text = was.Address ?? string.Empty;
+            City.Text = was.City ?? string.Empty;
+            State.Text = was.State ?? string.Empty;
+            Zip.Text = was.Zip ?? string.Empty;
+            DOBDatePicker.SelectedDate = was.Dob;
+
+            MaleRadioButton.IsChecked = was.Male;
+            FemaleRadioButton.IsChecked = !was.Male;
+
+            ReportCustomerFields();
+        }
+
+        /// <summary>
+        /// Keeps the column the dispatcher sorted by, so the next day opens the way they read it.
+        /// </summary>
+        /// <remarks>
+        /// The direction is read after WPF has applied it rather than guessed from the event: the
+        /// grid decides whether a click means ascending or the other way, and reproducing that
+        /// rule here is how a saved sort ends up the opposite of what is on screen.
+        /// </remarks>
+        private void TripsGrid_Sorting(object sender, DataGridSortingEventArgs e)
+        {
+            var column = e.Column;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+                ViewModel.RememberSort(column.SortMemberPath, column.SortDirection != ListSortDirection.Descending)),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void TripsGrid_Loaded(object sender, RoutedEventArgs e) => ViewModel.ApplySavedSort();
+
         private async void LoadMap()
         {
             var trip = ViewModel.SelectedTrip;
 
             if (MapaWebView.CoreWebView2 == null)
+                return;
+
+            // ⚠️ THIS is the guard. Nothing to show is nothing to buy: navigating to either map
+            // page creates a Google map, and Google bills that as a Dynamic Map whether or not a
+            // single pin goes on it. Opening the Home tab used to buy one on the way past.
+            //
+            // Hiding the WebView without this line buys the map anyway — that half-change shipped
+            // once and made the whole idea look like it had failed.
+            if (!ViewModel.IsMapVisible)
                 return;
 
             // The trip on screen is what the route should be priced against: its own date and
@@ -655,62 +1000,16 @@ namespace Raphael.Desktop.Views
 
                 //MessageBox.Show(message); // luego crear servicios de mensajes, avisos y alertas
 
-                CustomerColumn.Width = new GridLength(3.2, GridUnitType.Star);
-                BillingColumn.Width = new GridLength(2.4, GridUnitType.Star); // 20%
-                MapColumn.Width = new GridLength(4.4, GridUnitType.Star);
-                MapaWebView.SetValue(Grid.ColumnProperty, 4); // Map moves to column 5 (index 4)
-                BillingPanel.Visibility = Visibility.Visible;
-                ForDateCalendar.Visibility = Visibility.Visible;
-
-
-                // Hide travel filter
-                TripFilterPanel.Visibility = Visibility.Collapsed;
-
-                // Show TabControl
-                TripTabs.Visibility = Visibility.Visible;
-                //TripTabs.SetValue(Grid.RowProperty, 1);
-               // PickupAddressTextBox.Text = GooglePlacesInput.Text;
-
-                // Adjust row size
-                TopRow.Height = new GridLength(6.73, GridUnitType.Star);
-                BottomRow.Height = new GridLength(3.27, GridUnitType.Star);
-
-                // Show Dropoff input in WebView map
-                await MapaWebView.ExecuteScriptAsync("showDropoff();");
+                // A patient saved from scratch is the second way into booking a trip. The other
+                // one is choosing an existing patient in the search box; both go through here so
+                // the form opens the same way from either.
+                ViewModel.EnterCreateTripMode();
             }
             else
             {
                 // MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
-        }
-
-        public void ResetLayoutToInitialState()
-        {
-            // 1. Restaurar anchos de columnas
-            CustomerColumn.Width = new GridLength(1, GridUnitType.Star);
-            BillingColumn.Width = new GridLength(0, GridUnitType.Pixel); // Ocultar Billing
-            MapColumn.Width = new GridLength(2, GridUnitType.Star);
-
-            // 2. Mover el mapa de vuelta a su posición original (Columna 4)
-            MapaWebView.SetValue(Grid.ColumnProperty, 4);
-
-            // 3. Visibilidad de Paneles
-            BillingPanel.Visibility = Visibility.Hidden;
-            ForDateCalendar.Visibility = Visibility.Collapsed;
-            TripTabs.Visibility = Visibility.Collapsed;
-            TripFilterPanel.Visibility = Visibility.Visible; // Mostrar filtros de nuevo
-
-            // 4. Restaurar tamaño de filas (Top 45% / Bottom 55%)
-            TopRow.Height = new GridLength(4.5, GridUnitType.Star);
-            BottomRow.Height = new GridLength(5.5, GridUnitType.Star);
-
-            // 5. Resetear el Mapa (JavaScript)
-            // Esto limpiará los marcadores y ocultará el input de Dropoff
-            MapaWebView.ExecuteScriptAsync("prepareNewCustomer();");
-
-            // 6. Limpiar campos de búsqueda (Opcional)
-            CustomersAutoSuggestBox.Text = string.Empty;
         }
 
         private async void OnNewCustomerClick(object sender, RoutedEventArgs e) {
@@ -725,9 +1024,33 @@ namespace Raphael.Desktop.Views
             {              
                 Customer customer = vm.Customers.FirstOrDefault(c => c.Id == int.Parse(e.NewValue.ToString()));
 
+                // ⚠️ Closed AFTER everything settles, not before. Closing it here and then
+                // filling the box reopened it: the box's own text change is what raises the
+                // suggestion popup, and it happens after this method returns. Posted at
+                // Background priority so it runs once the bindings are done arguing.
+                Dispatcher.BeginInvoke(
+                    new Action(() => CustomersAutoSuggestBox.IsSuggestionOpen = false),
+                    System.Windows.Threading.DispatcherPriority.Background);
+
                 // MessageBox.Show(a?.FullName + " a.FullName");
-                vm.SelectedCustomer = customer;
-                vm.SearchText = customer?.FullName;
+                // Until RE-010 the form appeared only after pressing Save patient, so booking a
+                // trip for someone already on file meant re-saving a record that had not changed.
+                // The ViewModel owns the switch because it has to be able to refuse it: moving to
+                // another patient throws away whatever the form is holding.
+                if (!vm.TryBeginTripForCustomer(customer))
+                {
+                    // They chose to stay. Put the box back on the patient still on the form.
+                    CustomersAutoSuggestBox.Text = vm.SelectedCustomer?.FullName ?? string.Empty;
+                    return;
+                }
+
+                // What the server has for this patient, so later keystrokes can be told apart
+                // from it. Posted because the bindings fill the boxes after this returns.
+                Dispatcher.BeginInvoke(new Action(() =>
+                    vm.BaselineCustomer(new HomeViewModel.CustomerFields(
+                        customer?.FullName, customer?.ClientCode, customer?.Phone, customer?.MobilePhone,
+                        customer?.Address, customer?.City, customer?.State, customer?.Zip,
+                        customer?.DOB, customer?.Gender == Gender.Male))));
 
                 ShowPickupInMap();
             }
@@ -911,218 +1234,19 @@ namespace Raphael.Desktop.Views
 
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Hands the import screen the collections it maps with, and listens for the way out.
+        /// </summary>
+        /// <remarks>
+        /// Called once, from the constructor. The import screen is a mode of this tab: it reuses
+        /// Home's already-loaded trips, patients and space types rather than fetching its own.
+        /// </remarks>
+        private void AttachImportPanel()
         {
-            GridRow0.Visibility = Visibility.Collapsed;
-            GridRow1.Visibility = Visibility.Collapsed;
-            GridRow2.Visibility = Visibility.Collapsed;
-            ImportTripsGridRow.Visibility = Visibility.Visible;
+            ImportPanel.Attach(ViewModel);
+            ImportPanel.BackRequested += (_, _) => ViewModel.LeaveImportMode();
         }
 
-        private void BackToHome_Click(object sender, RoutedEventArgs e)
-        {
-            // Ocultamos la vista de importación
-            ImportTripsGridRow.Visibility = Visibility.Collapsed;
-
-            // Volvemos a mostrar los componentes principales
-            GridRow0.Visibility = Visibility.Visible;
-            GridRow1.Visibility = Visibility.Visible;
-            GridRow2.Visibility = Visibility.Visible;
-
-            // Opcional: Limpiar el DataGrid de vista previa al salir
-            PreviewGrid.ItemsSource = null;
-            ProgressPanel.Visibility = Visibility.Collapsed;
-        }
-
-        private async void SelectCsv_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "CSV files (*.csv)|*.csv",
-                Title = "Select CSV file"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                // Disable button and show progress
-                SelectCsvButton.IsEnabled = false;
-                ProgressPanel.Visibility = Visibility.Visible;
-                ImportProgressBar.Value = 0;
-                ImportProgressBar.Maximum = 1; // Will update after reading the records
-                ProgressText.Text = "Reading CSV file...";
-                PreviewGrid.ItemsSource = null; // Clear previous preview
-
-                try
-                {
-                    bool isSaferide = true;
-                    // Read the CSV (this is still sequential and may take time)
-                    // Consider making ReadCsv also asynchronous and report its progress if it is very large.
-                    List<CsvTripRawModel> records;
-                    CsvReaderService csvReaderService = new CsvReaderService(dialog.FileName);
-                    isSaferide = csvReaderService.IsSaferide();
-                    CsvType csvType = csvReaderService.GetCsvType();
-                    try
-                    {
-                        
-                        string jsonFileName = string.Empty;
-                        /*jsonFileName = GetJsonFileName(csvType);
-                        string GetJsonFileName(CsvType csvType) => csvType switch
-                        {
-                            CsvType.Saferide => "SAFERIDE.json",
-                            CsvType.Saferide2 => "SAFERIDE2.json",
-                            CsvType.Ride2md => "Ride2md.json",
-                            _ => throw new ArgumentOutOfRangeException(nameof(csvType), csvType, null)
-                        };*/
-                        switch (csvType)
-                        {
-                            case CsvType.Saferide:
-                                jsonFileName = "SAFERIDE.json";
-                                break;
-                            case CsvType.Saferide2:
-                                jsonFileName = "SAFERIDE2.json";
-                                break;
-                            case CsvType.Ride2md:
-                                jsonFileName = "Ride2md.json";
-                                bool correctFormat = csvReaderService.IsRide2mdCorrectFormat();
-                                if (!correctFormat)
-                                {
-                                    MessageBox.Show("The selected Ride2md CSV file does not have the correct format. Please check the file and try again.", "Format Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return; // Exit if format is incorrect
-                                }
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(csvType), csvType, "CSV type not supported");
-                                
-                        }
-                        //var jsonFileName = isSaferide ? "SAFERIDE.json" : "Ride2md.json"; 
-
-                        // If ReadCsv may take a long time, consider async Task<List<CsvTripRawModel>>
-                        // and run it with Task.Run().
-                        //records = await Task.Run(() => ReadCsv(dialog.FileName)); // Run in a background thread to not block UI.
-                        records = await Task.Run(() => csvReaderService.ReadCsvWithDuplicateColumns(jsonFileName)); // Run in a background thread to not block UI.
-                        //PreviewGrid.ItemsSource = records;
-                    }
-                    catch (Exception readEx)
-                    {
-                        MessageBox.Show($"Error reading CSV file: {readEx.Message}", "Read Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return; // Exit if reading fails
-                    }
-                    // ⚠️ The button used to be re-enabled here, before the import had even begun,
-                    // so a second file could be started on top of the first. Two imports at once
-                    // are two bursts at once, which is the thing this whole path exists to avoid.
-                    // The outer finally re-enables it, and it runs on every exit from here.
-
-
-                    if (records == null || !records.Any())
-                    {
-                        MessageBox.Show("The CSV file is empty or no records could be read.", "Empty File", MessageBoxButton.OK, MessageBoxImage.Information);
-                        ProgressPanel.Visibility = Visibility.Collapsed;
-                        return;
-                    }
-
-                    ImportProgressBar.Maximum = records.Count; // Update the maximum value of the progress bar.
-                    ProgressText.Text = $"Processing 0 of {records.Count} trips...";
-
-                    // Sequential from here on: one request per chunk, never several at once.
-                    // The concurrency this replaced is what the shared host read as an attack.
-                    // See Services/TripImportService.cs.
-                    if (DataContext is HomeViewModel vm)
-                    {
-                        FundingSource importSelectedFundingSource = vm.SelectedFundingSourceImport;
-                        bool selectedFileIsSaferide = isSaferide;
-
-                        // para los casos de "SAFERIDE MILANES" Y "SAFERIDE YAMIGROUP"
-                        bool selectedFundingSourceIsSaferide = importSelectedFundingSource.Name?.StartsWith("SAFERIDE", StringComparison.OrdinalIgnoreCase) ?? false;
-
-                        // If the uploaded file does not correspond to the selected FundingSource, display a message and do not allow the file to be imported
-                        if ((selectedFileIsSaferide && !selectedFundingSourceIsSaferide) || (!selectedFileIsSaferide && selectedFundingSourceIsSaferide))
-                        {
-                            ShowInconsistencyMessage();
-                        }
-                        else
-                        {
-                            // The mapper is built with the collections it has always taken, but the
-                            // import path uses only its pure mapping: no lookups, no inserts.
-                            var mapper = new CsvTripMapper(
-                                vm.Trips, vm.SpaceTypes, vm.CapacityTypes, vm.Customers, vm.FundingSources,
-                                new GoogleMapsService(), new SpaceTypeService(), new CapacityTypeService(),
-                                new CustomerService(), new FundingSourceService(), new TripService()
-                            );
-
-                            var importService = new TripImportService();
-
-                            var progressReporter = new Progress<TripImportProgress>(p =>
-                            {
-                                ImportProgressBar.Maximum = p.Total <= 0 ? 1 : p.Total;
-                                ImportProgressBar.Value = p.Completed;
-                                ProgressText.Text = p.Stage == "Geocoding"
-                                    ? $"Locating {p.Completed} of {p.Total} addresses..."
-                                    : $"Importing {p.Completed} of {p.Total} trips...";
-                            });
-
-                            var outcome = await importService.ImportAsync(
-                                records,
-                                importSelectedFundingSource,
-                                selectedFileIsSaferide,
-                                csvType,
-                                mapper,
-                                progressReporter);
-
-                            PreviewGrid.ItemsSource = outcome.Rows;
-
-                            // The number of requests is the whole point of this change, so it is
-                            // said out loud. An import that starts costing thousands again is a
-                            // regression nobody would notice until the host blocks us.
-                            Debug.WriteLine($"Trip import: {records.Count} rows in {outcome.RequestCount} requests.");
-
-                            MessageBox.Show(
-                                $"{outcome.StoredCount} trips imported ({outcome.CreatedCount} new, {outcome.UpdatedCount} updated) using {outcome.RequestCount} server requests.",
-                                "Process Completed", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                            if (outcome.FailedCount > 0)
-                            {
-                                MessageBox.Show(
-                                    $"{outcome.FailedCount} trips were not imported. TripIds: {string.Join(", ", outcome.FailedTripIds)}."
-                                    + Environment.NewLine + Environment.NewLine
-                                    + "The reason for each one is in the Status and Reason columns of the preview below. Correct them in the file and import it again.",
-                                    "Trips not imported", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            }
-
-                            if (outcome.Aborted)
-                            {
-                                MessageBox.Show(
-                                    "The import stopped before the end of the file: " + outcome.AbortReason
-                                    + Environment.NewLine + Environment.NewLine
-                                    + "Wait a couple of minutes and import the SAME whole file again. That is safe and it is the fix: "
-                                    + "a trip that already went in is updated, never duplicated.",
-                                    "Import stopped", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("ViewModel not found. Can't continue.", "Context Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                catch (Exception ex) // General catch for unexpected errors
-                {
-                    MessageBox.Show($"General error during import:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                finally
-                {
-                    // Ensure the UI is restored
-                    SelectCsvButton.IsEnabled = true;
-                    ProgressPanel.Visibility = Visibility.Collapsed; // Hide progress panel
-                    ImportProgressBar.Value = 0; // Reset bar
-                }
-            }
-        }
-
-
-        private void ShowInconsistencyMessage() 
-        {
-            MessageBox.Show("The data loaded in the file does not correspond to the selected Funding Source");
-        }
 
         // If ReadCsv may take a long time, consider async Task<List<CsvTripRawModel>>
         // and run it with Task.Run().

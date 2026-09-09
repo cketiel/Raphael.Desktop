@@ -10,6 +10,9 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Data;
 
 using System.Diagnostics;
 using System.Linq;
@@ -35,7 +38,336 @@ namespace Raphael.Desktop.ViewModels
         [ObservableProperty] private bool _isReturn;
         [ObservableProperty] private bool _isWillCall;
 
-        public Action OnTripSavedSuccess { get; set; }
+        /// <summary>
+        /// Re-reads every label on the screen, after the dispatcher switches language.
+        /// </summary>
+        /// <remarks>
+        /// An empty name is WPF's "all properties changed", which is the only practical answer
+        /// here: this tab reads some seventy strings out of LocalizationService through get-only
+        /// properties, and one notification per string is seventy chances to forget one.
+        ///
+        /// ⚠️ It is the VIEW that subscribes, on Loaded, and unsubscribes on Unloaded — not this
+        /// constructor. LanguageChanged belongs to a singleton and MainWindow builds a new
+        /// HomeView every time the tab is opened, so a subscription taken here would hold every
+        /// ViewModel ever built, with its collections and its handlers, for the life of the
+        /// application. BaseViewModel does exactly that; this one does not.
+        /// </remarks>
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(string.Empty);
+
+            // The chips are strings already built, so no notification reaches inside them.
+            Filters.RaiseChipsChanged();
+        }
+
+        #region Screen mode
+
+        /// <summary>
+        /// What the tab is doing right now. Every panel the screen shows or hides is decided
+        /// from here and nowhere else.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Set this at the *end* of a transition, once the fields it depends on are already
+        /// filled: <c>OnCurrentModeChanged</c> photographs the trip form, and a photograph taken
+        /// before the form is populated turns every later field into a phantom "unsaved change".
+        /// </remarks>
+        [ObservableProperty] private HomeMode _currentMode = HomeMode.Browsing;
+
+        /// <summary>The trip form is on screen, for a new trip or for one being edited.</summary>
+        public bool IsTripFormOpen => CurrentMode is HomeMode.CreatingTrip or HomeMode.EditingTrip;
+
+        /// <summary>
+        /// The trip the form is editing, or null when the form is booking a new one.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is deliberately NOT <c>SelectedTrip</c>. The grid drops its selection every time
+        /// the day is reloaded — saving, cancelling a trip, changing the day — and <c>SaveTrip</c>
+        /// used to read create-or-update from it. A selection cleared underneath the form turned an
+        /// edit into an insert: the trip was written a second time and the original left untouched
+        /// on its old day, so the patient had two trips where they had booked one. Editing is
+        /// editing; it never creates. What the form is editing is the form's own state, and no
+        /// change in the grid may decide it.
+        /// </remarks>
+        private TripReadDto _tripBeingEdited;
+        public TripReadDto TripBeingEdited
+        {
+            get => _tripBeingEdited;
+            private set
+            {
+                _tripBeingEdited = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEditWillCall));
+            }
+        }
+
+        /// <summary>
+        /// The day the trip on the form happens. This is what the calendar beside the form sets.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Not a filter, and it never reloads the grid. While the form is open nothing is being
+        /// filtered — a trip is being booked or edited — so the two date controls of this tab mean
+        /// two different things: <c>ForDatePicker</c>, only visible while browsing, is the filter
+        /// (<see cref="FilterDate"/>); <c>ForDateCalendar</c>, only visible with the form open, is
+        /// this. They shared one property until RE-010, which is what made setting a trip's date
+        /// reload the day underneath the form.
+        /// </remarks>
+        [ObservableProperty] private DateTime _tripDate = DateTime.Today;
+
+        /// <summary>The CSV import view has taken over the tab.</summary>
+        public bool IsImporting => CurrentMode is HomeMode.Importing;
+
+        /// <summary>
+        /// Which help topic F1 opens on this tab, which depends on what the tab is showing.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Not decoration, and not something the import screen can declare for itself. F1
+        /// resolves the SHALLOWEST declaration in the visible content, breadth-first, so the one
+        /// on this view's root always wins over the one on a panel nested inside it - the import
+        /// screen's own topic was unreachable unless the keyboard focus happened to be inside it.
+        /// The tab declares the topic for the mode it is in.
+        /// </remarks>
+        public string HelpTopicId =>
+            IsImporting ? "desktop/home/import-trips" : "desktop/home/overview";
+
+        #region The map is not loaded until it is wanted
+
+        /// <summary>
+        /// The dispatcher asked for the map without having a trip open.
+        /// </summary>
+        /// <remarks>
+        /// The map page has an address search of its own, which is a real reason to want it while
+        /// browsing. It just stops being something everybody pays for on the way past.
+        /// </remarks>
+        [ObservableProperty] private bool _showMapOnDemand;
+
+        partial void OnShowMapOnDemandChanged(bool value) => OnPropertyChanged(nameof(IsMapVisible));
+
+        /// <summary>
+        /// Whether there is any reason to have a map on screen.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This is a bill, not a preference. Loading either map page loads Google's Maps
+        /// JavaScript and creates a map, which Google charges for as a Dynamic Map — and opening
+        /// the Home tab did exactly that, every time, to show an empty view of Miami that answered
+        /// nothing. Markers do not change it: a single transparent one was tried, and the load
+        /// count in the log did not move.
+        ///
+        /// ⚠️ Whoever changes this: the guard that reads it lives in LoadMap, and hiding the
+        /// WebView without it buys the map anyway. That exact half-change shipped once and looked
+        /// like the idea had failed.
+        /// </remarks>
+        public bool IsMapVisible => SelectedTrip != null || IsTripFormOpen || ShowMapOnDemand;
+
+        /// <summary>
+        /// Whether the new-patient button is worth a place in the header row.
+        /// </summary>
+        /// <remarks>
+        /// It steps aside exactly while the trip form is open, which is when the ✕ that closes
+        /// that form needs its place and when starting a patient from scratch means nothing
+        /// anyway. Closing the form gives it back.
+        ///
+        /// ⚠️ Tied to the form and not to <c>SelectedCustomer</c>. Keyed on the patient it never
+        /// came back: ✕ leaves the patient on screen, so the button stayed hidden with no way to
+        /// bring it out again.
+        /// </remarks>
+        public bool CanStartNewPatient => !IsTripFormOpen;
+
+        [RelayCommand] private void ShowMap() => ShowMapOnDemand = true;
+
+        public string ShowMapLabel => LocalizationService.Instance["home.ShowMap"];
+        public string MapNotLoadedHint => LocalizationService.Instance["home.MapNotLoaded"];
+        public string MapOnDemandTitle => LocalizationService.Instance["home.MapOnDemand"];
+        public string MapPickupHelp => LocalizationService.Instance["home.MapPickupHelp"];
+        public string MapDropoffHelp => LocalizationService.Instance["home.MapDropoffHelp"];
+        public string MapRouteHelp => LocalizationService.Instance["home.MapRouteHelp"];
+        public string MapCardDragHint => LocalizationService.Instance["home.MapCardDrag"];
+
+        #endregion
+
+        partial void OnCurrentModeChanged(HomeMode value)
+        {
+            OnPropertyChanged(nameof(IsTripFormOpen));
+            OnPropertyChanged(nameof(IsImporting));
+            OnPropertyChanged(nameof(HelpTopicId));
+            OnPropertyChanged(nameof(IsMapVisible));
+            OnPropertyChanged(nameof(CanStartNewPatient));
+            RefreshHelperCards();
+
+            _tripFormOnEntry = IsTripFormOpen ? CaptureTripForm() : null;
+        }
+
+        /// <summary>
+        /// Starts booking a trip for the patient the search box has just landed on.
+        /// </summary>
+        /// <remarks>
+        /// The confirmation comes first, before <c>SelectedCustomer</c> moves: saying no has to
+        /// leave the form exactly as the dispatcher left it, patient included. Returns false when
+        /// they chose to stay, so the caller can put the search box back.
+        /// </remarks>
+        public bool TryBeginTripForCustomer(Customer customer)
+        {
+            if (IsTripFormOpen && !ConfirmDiscardTripChanges()) return false;
+
+            SelectedCustomer = customer;
+
+            _applyingSuggestion = true;
+            try { SearchText = customer?.FullName; }
+            finally { _applyingSuggestion = false; }
+
+            // A trip starts at the patient's own address, which is what SaveTrip has always sent.
+            // Seeding it here is what makes the read-only Pickup Address box agree with the trip
+            // that is about to be created, instead of sitting blank until somebody touches the map.
+            PickupAddress = customer?.Address;
+            PickupCity = customer?.City;
+
+            EnterCreateTripMode();
+            return true;
+        }
+
+        /// <summary>
+        /// The two ways a booking starts — picking a patient in the search box, or saving a
+        /// brand new one — both land here, so the form opens the same way from either.
+        /// </summary>
+        public void EnterCreateTripMode()
+        {
+            // Moving on from a trip being edited is leaving it. TryBeginTripForCustomer has
+            // already asked by the time it calls this, and a clean form never asks twice.
+            if (CurrentMode == HomeMode.EditingTrip && !TryLeaveTripForm()) return;
+
+            // Nothing is being edited, and a new booking is for the day being looked at until
+            // the calendar beside the form says otherwise.
+            TripBeingEdited = null;
+            TripDate = FilterDate.Date;
+
+            CurrentMode = HomeMode.CreatingTrip;
+
+            // Choosing another patient starts the booking over, so the form as it stands now is
+            // the baseline. Setting the mode it is already in changes nothing and would leave
+            // the previous photograph in place, turning the new patient into an unsaved change.
+            _tripFormOnEntry = CaptureTripForm();
+        }
+
+        /// <summary>
+        /// Opens the CSV import view. It takes over the whole tab, so anything half-typed in
+        /// the trip form has to be settled first.
+        /// </summary>
+        public void EnterImportMode()
+        {
+            if (IsTripFormOpen && !TryLeaveTripForm()) return;
+
+            CurrentMode = HomeMode.Importing;
+        }
+
+        /// <summary>
+        /// The single way out of the trip form: the ✕ button, Esc, or clearing the grid
+        /// selection. Returns false when the dispatcher chose to stay.
+        /// </summary>
+        public bool TryLeaveTripForm()
+        {
+            if (!IsTripFormOpen) return true;
+            if (!ConfirmDiscardTripChanges()) return false;
+
+            _leavingTripForm = true;
+            try
+            {
+                SelectedTrip = null;
+                TripBeingEdited = null;
+                ClearTripForm();
+                CurrentMode = HomeMode.Browsing;
+            }
+            finally
+            {
+                _leavingTripForm = false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Leaves the import view and goes back to the day's trips.</summary>
+        public void LeaveImportMode() => CurrentMode = HomeMode.Browsing;
+
+        #endregion
+
+        #region Unsaved trip changes
+
+        /// <summary>True while <see cref="TryLeaveTripForm"/> is unwinding, so it is not asked twice.</summary>
+        private bool _leavingTripForm;
+
+        /// <summary>True while the grid selection is being put back, so the trip is not reloaded over the dispatcher's edits.</summary>
+        private bool _restoringSelection;
+
+        /// <summary>
+        /// The trip form as it stood when the form last opened. Null while the form is closed.
+        /// </summary>
+        private TripFormSnapshot _tripFormOnEntry;
+
+        /// <summary>
+        /// Every field of the trip form a dispatcher can type or pick. It is a record for one
+        /// reason: value equality turns "did anything change?" into a single comparison.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Only what a person edits goes in here. **Derived values must stay out**, however
+        /// much they look like form fields: <c>Distance</c>, <c>ETA</c> and the four coordinates
+        /// are written by the map and the routing service, not typed. Distance in particular is
+        /// a read-only TextBlock that <c>DrawTripRouteAsync</c> overwrites some hundreds of
+        /// milliseconds after a trip is selected, and in another format — "12.3 mi" priced by the
+        /// router against "12.34 mi" carried by the DTO. It was in this record until RE-010's
+        /// review, and that is why the screen asked "discard changes?" on *every* exit, including
+        /// the one where the dispatcher had only glanced at a trip and pressed Esc.
+        ///
+        /// A field a person edits and that is missing here is the opposite failure: a change the
+        /// screen discards without asking. Add it in both places or not at all.
+        /// </remarks>
+        private sealed record TripFormSnapshot(
+            int CustomerId,
+            string PickupAddress, string DropoffAddress,
+            string PickupCity, string DropoffCity,
+            string PickupName, string PickupPhone, string PickupComment,
+            string DropoffName, string DropoffPhone, string DropoffComment,
+            string Authorization,
+            DateTime? PickupTime, DateTime? ApptTime, DateTime? ReturnTime,
+            bool IsRoundTrip, bool IsOneWay, bool IsAppointment, bool IsReturn, bool IsWillCall,
+            int? SpaceTypeId, int? FundingSourceId,
+            DateTime TripDate);
+
+        private TripFormSnapshot CaptureTripForm() => new(
+            IdCustomer,
+            PickupAddress, DropoffAddress,
+            PickupCity, DropoffCity,
+            PickupName, PickupPhone, PickupComment,
+            DropoffName, DropoffPhone, DropoffComment,
+            Authorization,
+            PickupTimePicker, ApptTimePicker, ReturnTimePicker,
+            IsRoundTrip, IsOneWay, IsAppointment, IsReturn, IsWillCall,
+            SelectedSpaceType?.Id, SelectedFundingSource?.Id,
+            TripDate.Date);
+
+        /// <summary>
+        /// True when the form holds work the server has not been told about.
+        /// </summary>
+        public bool HasUnsavedTripChanges =>
+            _tripFormOnEntry is not null && CaptureTripForm() != _tripFormOnEntry;
+
+        /// <summary>
+        /// Asks before throwing away a half-filled trip. Returns true when it is safe to leave.
+        /// </summary>
+        /// <remarks>
+        /// The comparison is what keeps this bearable: opening a trip from the grid fills the
+        /// form by itself, so prompting on every exit would ask a dispatcher who only wanted to
+        /// look at a trip on the map, dozens of times a day.
+        /// </remarks>
+        private bool ConfirmDiscardTripChanges()
+        {
+            if (!HasUnsavedTripChanges) return true;
+
+            return MessageBox.Show(
+                LocalizationService.Instance["home.DiscardChangesMessage"],
+                LocalizationService.Instance["home.DiscardChangesTitle"],
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        }
+
+        #endregion
 
         [ObservableProperty] private string _pickupName;
         [ObservableProperty] private string _pickupPhone;
@@ -103,6 +435,68 @@ namespace Raphael.Desktop.ViewModels
         public string ShowCanceledCheckBoxContent => LocalizationService.Instance["ShowCanceledCheckBoxContent"]; // "Show Canceled"
         public string ImportButtonToolTip => LocalizationService.Instance["ImportButtonToolTip"]; // "Import Trips"
         public string ExportButtonToolTip => LocalizationService.Instance["ExportButtonToolTip"]; // "Export Trips"
+        public string CloseTripFormToolTip => LocalizationService.Instance["home.CloseTripForm"]; // "Close the trip form (Esc)"
+        public string TripSearchHint => LocalizationService.Instance["home.TripSearchHint"]; // "Search patient, address, #id, TripId:..."
+        public string DatePickerToolTip => LocalizationService.Instance["home.DatePickerToolTip"];
+        public string SingleDayLabel => LocalizationService.Instance["home.SingleDay"];
+        public string RangeLabel => LocalizationService.Instance["home.Range"];
+        public string ClearRangeToolTip => LocalizationService.Instance["home.ClearRange"];
+        public string RangeChipText => LocalizationService.Instance["home.RangeChip"];
+        public string PresetTodayLabel => LocalizationService.Instance["home.PresetToday"];
+        public string PresetTomorrowLabel => LocalizationService.Instance["home.PresetTomorrow"];
+        public string PresetThisWeekLabel => LocalizationService.Instance["home.PresetThisWeek"];
+        public string PresetNextSevenLabel => LocalizationService.Instance["home.PresetNextSeven"];
+        public string FiltersHeader => LocalizationService.Instance["home.FiltersHeader"];
+        public string ClearAllFiltersLabel => LocalizationService.Instance["home.ClearAllFilters"];
+        public string SaveViewLabel => LocalizationService.Instance["home.SaveView"];
+        public string MyFiltersHint => LocalizationService.Instance["home.MyFilters"];
+        public string StatusFilterText => LocalizationService.Instance["home.StatusFilter"];
+
+        /// <summary>
+        /// ⚠️ Its own property. The filter panel's first Expander was bound to SpaceTypeText,
+        /// which no ViewModel ever declared: WPF resolves a missing path to nothing and draws an
+        /// empty header, with no error anywhere. The list of checkboxes underneath looked like it
+        /// belonged to nobody.
+        /// </summary>
+        public string SpaceTypeFilterText => LocalizationService.Instance["home.SpaceTypeFilter"];
+        public string CitiesFilterText => LocalizationService.Instance["home.CitiesFilter"];
+        public string CityScopeText => LocalizationService.Instance["home.CityScope"];
+        public string ScopeBothText => LocalizationService.Instance["home.ScopeBoth"];
+        public string PickupWindowText => LocalizationService.Instance["home.PickupWindow"];
+        public string OtherFiltersText => LocalizationService.Instance["home.OtherFilters"];
+        public string FlagAnyText => LocalizationService.Instance["home.FlagAny"];
+        public string FlagYesText => LocalizationService.Instance["home.FlagYes"];
+        public string FlagNoText => LocalizationService.Instance["home.FlagNo"];
+        public string MissingCoordinatesText => LocalizationService.Instance["home.MissingCoordinates"];
+        public string MissingCoordinatesHint => LocalizationService.Instance["home.MissingCoordinatesHint"];
+        public string ZipStateText => LocalizationService.Instance["home.ZipState"];
+        public string ZipStateWarning => LocalizationService.Instance["home.ZipStateWarning"];
+        public string ChooseColumnsToolTip => LocalizationService.Instance["home.ChooseColumns"];
+        public string CompactGridToolTip => LocalizationService.Instance["home.CompactGrid"];
+        public string SearchPassengerByLabel => LocalizationService.Instance["home.SearchPassengerBy"];
+        public string WillCallLabel => LocalizationService.Instance["home.WillCallLabel"];
+        public string AdditionalPassengersLabel => LocalizationService.Instance["home.AdditionalPassengers"];
+        public string CountLabel => LocalizationService.Instance["home.Count"];
+        public string CancelTripLabel => LocalizationService.Instance["home.CancelTrip"];
+        public string UncancelTripLabel => LocalizationService.Instance["home.UncancelTrip"];
+        public string EditTripLabel => LocalizationService.Instance["home.EditTrip"];
+        public string ChangeHistoryLabel => LocalizationService.Instance["home.ChangeHistory"];
+        public string LoadingTripsLabel => LocalizationService.Instance["home.LoadingTrips"];
+        public string CanceledByDriverToolTip => LocalizationService.Instance["home.CanceledByDriver"];
+        public string CanceledByOfficeToolTip => LocalizationService.Instance["home.CanceledByOffice"];
+        public string Step1Label => LocalizationService.Instance["home.Step1"];
+        public string Step2Label => LocalizationService.Instance["home.Step2"];
+        public string Step3Label => LocalizationService.Instance["home.Step3"];
+        public string Step4Label => LocalizationService.Instance["home.Step4"];
+        public string BackToHomeLabel => LocalizationService.Instance["home.BackToHome"];
+        public string ImportHeaderLabel => LocalizationService.Instance["home.ImportHeader"];
+
+        /// <summary>
+        /// ⚠️ "Results", not "preview". The grid under this label is filled <b>after</b> the trips
+        /// have been sent, so calling it a preview told the dispatcher they still had a chance to
+        /// look before anything happened.
+        /// </summary>
+        public string ImportResultsLabel => LocalizationService.Instance["home.ImportResults"];
 
         #region TripTabs
         public string TripTabsTabItem1Header => LocalizationService.Instance["TripTabsTabItem1Header"]; // "Location and Time"
@@ -354,16 +748,658 @@ namespace Raphael.Desktop.ViewModels
 
         #region Trip
 
-        private string _gridSummary;
-        public string GridSummary 
+        /// <summary>
+        /// The day's figures, on the band between the form and the list.
+        /// </summary>
+        /// <remarks>
+        /// Counted over the rows the filters are letting through, so the money always answers for
+        /// the list underneath it rather than for the day the server sent.
+        ///
+        /// ⚠️ The currency is formatted invariant on purpose. These are US dollars whatever the
+        /// machine's regional settings say, and a Spanish-locale machine would otherwise print
+        /// 396,06 — which is the same digits meaning a different number to anyone reading it.
+        /// </remarks>
+        public string DividerSummary
         {
-            get => _gridSummary;
-            set
+            get
             {
-                _gridSummary = value;
-                OnPropertyChanged();
+                var shown = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+                return string.Format(
+                    LocalizationService.Instance["home.DividerSummary"],
+                    shown.Count,
+                    Money(shown.Sum(t => t.Charge ?? 0)),
+                    Money(shown.Sum(t => t.Paid ?? 0)));
             }
         }
+
+        private static string Money(double amount) =>
+            "$" + amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// The three numbers under the grid.
+        /// </summary>
+        /// <remarks>
+        /// Counted over what is shown, not over what was loaded: a total that ignores the filters
+        /// contradicts the list it sits under, and the dispatcher believes the number.
+        /// </remarks>
+        /// <summary>
+        /// The rows the grid is actually showing. Every figure under the list counts these, not
+        /// the loaded set: what is on screen is what the numbers have to describe.
+        /// </summary>
+        private List<TripReadDto> ShownTrips =>
+            TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+        /// <summary>
+        /// The three figures on the status bar, split into a count and a word.
+        /// </summary>
+        /// <remarks>
+        /// Split because the status bar prints them as number plates, and a plate puts the
+        /// registration large and everything else small. One string would have had to be
+        /// rendered at one size.
+        /// </remarks>
+        public string PlateTripsCount => ShownTrips.Count.ToString();
+        public string PlateCanceledCount => ShownTrips.Count(IsCanceled).ToString();
+        public string PlateNoRunCount =>
+            ShownTrips.Count(t => string.IsNullOrWhiteSpace(t.RunName)).ToString();
+
+        public string PlateTripsLabel => LocalizationService.Instance["home.PlateTrips"];
+        public string PlateCanceledLabel => LocalizationService.Instance["home.PlateCanceled"];
+        public string PlateNoRunLabel => LocalizationService.Instance["home.PlateNoRun"];
+
+        /// <summary>Everything under the list is counted from the same set, so it is raised
+        /// together or it disagrees with itself.</summary>
+        private void RaiseFooterFigures()
+        {
+            OnPropertyChanged(nameof(GridTotals));
+            OnPropertyChanged(nameof(PlateTripsCount));
+            OnPropertyChanged(nameof(PlateCanceledCount));
+            OnPropertyChanged(nameof(PlateNoRunCount));
+        }
+
+        public string GridTotals
+        {
+            get
+            {
+                var shown = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+                return string.Format(
+                    LocalizationService.Instance["home.GridTotals"],
+                    shown.Count,
+                    shown.Count(IsCanceled),
+                    shown.Count(t => string.IsNullOrWhiteSpace(t.RunName)));
+            }
+        }
+
+        /// <summary>Tighter rows, for a dispatcher who would rather see more of the day at once.</summary>
+        [ObservableProperty] private bool _isCompactGrid;
+
+        partial void OnIsCompactGridChanged(bool value)
+        {
+            _config.Save(CompactKey, value);
+            OnPropertyChanged(nameof(GridRowHeight));
+        }
+
+        /// <summary>NaN is WPF's "as tall as the content needs", which is the comfortable setting.</summary>
+        public double GridRowHeight => IsCompactGrid ? 24 : double.NaN;
+
+        private readonly UserConfigService _config = new();
+
+        private const string CompactKey = "HomeGridCompact";
+        private const string ColumnsKey = "HomeGridColumns";
+
+
+        #region Guidance (2.2)
+
+        /// <summary>
+        /// How far along booking a trip is.
+        /// </summary>
+        /// <remarks>
+        /// One machine, three faces. The badges over the controls, the stepper above the form and
+        /// the first-run tour all read this and hold no rules of their own, so whichever of the
+        /// three turns out to be the one people use, the others can be switched off without
+        /// touching any logic.
+        /// </remarks>
+        public TripCreationStep CurrentStep =>
+            !Step1Done ? TripCreationStep.Patient
+            : !Step2Done ? TripCreationStep.Addresses
+            : !Step3Done ? TripCreationStep.Schedule
+            : TripCreationStep.Create;
+
+        public bool Step1Done => IdCustomer > 0;
+
+        public bool Step2Done => Step1Done
+            && !string.IsNullOrWhiteSpace(PickupAddress)
+            && !string.IsNullOrWhiteSpace(DropoffAddress);
+
+        /// <summary>
+        /// A time, or Will Call — which is the deliberate absence of one — plus what the trip
+        /// needs to be priced.
+        /// </summary>
+        public bool Step3Done => Step2Done
+            && SelectedSpaceType != null
+            && SelectedFundingSource != null
+            && (IsWillCall || PickupTimePicker.HasValue || ApptTimePicker.HasValue || ReturnTimePicker.HasValue);
+
+        public string Step1State => StateOf(TripCreationStep.Patient, Step1Done);
+        public string Step2State => StateOf(TripCreationStep.Addresses, Step2Done);
+        public string Step3State => StateOf(TripCreationStep.Schedule, Step3Done);
+        public string Step4State => StateOf(TripCreationStep.Create, false);
+
+        private string StateOf(TripCreationStep step, bool done) =>
+            done ? "done" : CurrentStep == step ? "current" : "pending";
+
+        /// <summary>
+        /// Why the Create button is refusing, in the dispatcher's words, or null when it is not.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This has to say exactly what <c>SaveTrip</c> checks, in the same order. A button that
+        /// claims to be ready and then opens a dialog saying otherwise is worse than one that was
+        /// simply missing.
+        ///
+        /// The button stays visible and goes grey rather than disappearing: a control that is not
+        /// there teaches nobody anything, and one that is there saying "Missing: dropoff address"
+        /// teaches the whole screen.
+        /// </remarks>
+        public string CreateTripBlockedReason
+        {
+            get
+            {
+                if (IdCustomer <= 0) return Missing("home.StepPatient");
+                if (string.IsNullOrWhiteSpace(DropoffAddress)) return Missing("home.StepDropoff");
+                if (SelectedSpaceType == null) return Missing("home.StepSpaceType");
+                if (SelectedFundingSource == null) return Missing("home.StepFundingSource");
+
+                return null;
+            }
+        }
+
+        private static string Missing(string key) => string.Format(
+            LocalizationService.Instance["home.Missing"], LocalizationService.Instance[key]);
+
+        public bool CanCreateTrip => CreateTripBlockedReason == null;
+
+        /// <summary>What the label beside the Create button says: the blocker, or that it is ready.</summary>
+        public string CreateTripHint =>
+            CreateTripBlockedReason ?? LocalizationService.Instance["home.ReadyToCreate"];
+
+        /// <summary>
+        /// Re-reads everything the guidance is made of. Called from every field it depends on.
+        /// </summary>
+        private void RefreshGuidance()
+        {
+            OnPropertyChanged(nameof(CurrentStep));
+            OnPropertyChanged(nameof(Step1Done));
+            OnPropertyChanged(nameof(Step2Done));
+            OnPropertyChanged(nameof(Step3Done));
+            OnPropertyChanged(nameof(Step1State));
+            OnPropertyChanged(nameof(Step2State));
+            OnPropertyChanged(nameof(Step3State));
+            OnPropertyChanged(nameof(Step4State));
+            OnPropertyChanged(nameof(CreateTripBlockedReason));
+            OnPropertyChanged(nameof(CanCreateTrip));
+            OnPropertyChanged(nameof(CreateTripHint));
+        }
+
+        partial void OnPickupAddressChanged(string value) => RefreshGuidance();
+        partial void OnDropoffAddressChanged(string value) => RefreshGuidance();
+        partial void OnPickupTimePickerChanged(DateTime? value) => RefreshGuidance();
+        partial void OnApptTimePickerChanged(DateTime? value) => RefreshGuidance();
+        partial void OnReturnTimePickerChanged(DateTime? value) => RefreshGuidance();
+        partial void OnIsWillCallChanged(bool value) => RefreshGuidance();
+
+        #endregion
+
+
+        #region The patient panel says what it is holding (2.8)
+
+        /// <summary>
+        /// The fields of the patient panel, as they stand on screen.
+        /// </summary>
+        /// <remarks>
+        /// The panel's boxes are bound to the Customer object itself and read back by name when
+        /// saving, so there is nowhere else the current text lives. The view hands it over on
+        /// every keystroke and this decides what it means.
+        /// </remarks>
+        public sealed record CustomerFields(
+            string FullName, string ClientCode, string Phone, string MobilePhone,
+            string Address, string City, string State, string Zip,
+            DateTime? Dob, bool Male);
+
+        private CustomerFields _customerOnEntry;
+        private CustomerFields _customerNow;
+
+        /// <summary>
+        /// The patient exactly as the server has them, for the view to restore from.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Restoring has to come from here and never from <c>SelectedCustomer</c>. The panel's
+        /// boxes are bound TwoWay straight into that object, so the first keystroke has already
+        /// overwritten it: putting the boxes back from it puts back exactly what is on screen,
+        /// which is why the Discard button appeared to do nothing at all.
+        /// </remarks>
+        public CustomerFields CustomerBaseline => _customerOnEntry;
+
+        [ObservableProperty] private CustomerFormState _customerState = CustomerFormState.Empty;
+
+        public string CustomerStateLabel => CustomerState switch
+        {
+            CustomerFormState.NewUnsaved => LocalizationService.Instance["home.PatientNew"],
+            CustomerFormState.Existing => LocalizationService.Instance["home.PatientExisting"],
+            CustomerFormState.ModifiedUnsaved => LocalizationService.Instance["home.PatientModified"],
+            _ => string.Empty
+        };
+
+        /// <summary>Amber while anything is unsaved, plain grey once it matches the server.</summary>
+        public string CustomerStateTag => CustomerState switch
+        {
+            CustomerFormState.NewUnsaved => "unsaved",
+            CustomerFormState.ModifiedUnsaved => "unsaved",
+            CustomerFormState.Existing => "saved",
+            _ => "empty"
+        };
+
+        public bool HasCustomerChanges =>
+            CustomerState is CustomerFormState.NewUnsaved or CustomerFormState.ModifiedUnsaved;
+
+        /// <summary>
+        /// The first thing wrong with the patient panel, or null when there is nothing.
+        /// </summary>
+        /// <remarks>
+        /// Live and in one line, in place of the chain of MessageBoxes that used to fire one at a
+        /// time on save — each of which sent the dispatcher back to fix one field and press save
+        /// again to find the next.
+        /// </remarks>
+        public string CustomerValidationMessage
+        {
+            get
+            {
+                var f = _customerNow;
+                if (f == null) return null;
+
+                if (string.IsNullOrWhiteSpace(f.FullName)) return Missing("home.PatientName");
+                if (string.IsNullOrWhiteSpace(f.Phone) && string.IsNullOrWhiteSpace(f.MobilePhone))
+                    return Missing("home.PatientPhone");
+                if (string.IsNullOrWhiteSpace(f.Address)) return Missing("home.PatientAddress");
+                if (f.Dob == null) return Missing("home.PatientDob");
+
+                return null;
+            }
+        }
+
+        public bool CanSaveCustomer => CustomerValidationMessage == null && HasCustomerChanges;
+
+        /// <summary>
+        /// Told by the view whenever a box in the patient panel changes.
+        /// </summary>
+        public void ReportCustomerFields(CustomerFields fields)
+        {
+            _customerNow = fields;
+
+            var empty = fields == null ||
+                        (string.IsNullOrWhiteSpace(fields.FullName) &&
+                         string.IsNullOrWhiteSpace(fields.Phone) &&
+                         string.IsNullOrWhiteSpace(fields.Address));
+
+            CustomerState =
+                empty && SelectedCustomer == null ? CustomerFormState.Empty
+                : SelectedCustomer == null ? CustomerFormState.NewUnsaved
+                : _customerOnEntry != null && fields != _customerOnEntry ? CustomerFormState.ModifiedUnsaved
+                : CustomerFormState.Existing;
+
+            OnPropertyChanged(nameof(CustomerStateLabel));
+            OnPropertyChanged(nameof(CustomerStateTag));
+            RefreshHelperCards();
+            OnPropertyChanged(nameof(HasCustomerChanges));
+            OnPropertyChanged(nameof(CustomerValidationMessage));
+            OnPropertyChanged(nameof(CanSaveCustomer));
+            OnPropertyChanged(nameof(DuplicateCustomerWarning));
+        }
+
+        /// <summary>Photographs the patient as the server has them, for the comparison above.</summary>
+        public void BaselineCustomer(CustomerFields fields)
+        {
+            _customerOnEntry = fields;
+
+            ReportCustomerFields(fields);
+        }
+
+        /// <summary>
+        /// A patient already on file with the same name and phone.
+        /// </summary>
+        /// <remarks>
+        /// Only a warning, never a block: two people at the same address really do share a phone,
+        /// and a dispatcher on the telephone cannot be stopped by a guess. What it prevents is the
+        /// silent third and fourth copy of the same patient that nobody notices until billing.
+        /// </remarks>
+        public string DuplicateCustomerWarning
+        {
+            get
+            {
+                if (SelectedCustomer != null || _customerNow == null) return null;
+                if (string.IsNullOrWhiteSpace(_customerNow.FullName)) return null;
+
+                var phone = _customerNow.Phone ?? _customerNow.MobilePhone;
+
+                var twin = Customers?.FirstOrDefault(c =>
+                    string.Equals(c.FullName?.Trim(), _customerNow.FullName.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(phone) &&
+                    (string.Equals(c.Phone, phone, StringComparison.Ordinal) ||
+                     string.Equals(c.MobilePhone, phone, StringComparison.Ordinal)));
+
+                return twin == null
+                    ? null
+                    : string.Format(LocalizationService.Instance["home.PatientDuplicate"], twin.ClientCode);
+            }
+        }
+
+        public bool HasDuplicateWarning => DuplicateCustomerWarning != null;
+
+        /// <summary>Raised when the view should put the boxes back as the server has them.</summary>
+        public event Action DiscardCustomerRequested;
+
+        [RelayCommand]
+        private void DiscardCustomerChanges() => DiscardCustomerRequested?.Invoke();
+
+        public string PatientStateHeader => LocalizationService.Instance["home.PatientState"];
+        public string DiscardChangesLabel => LocalizationService.Instance["home.DiscardPatient"];
+
+        #endregion
+
+        #region The first-run tour
+
+        private const string TourSeenKey = "HomeTourSeen";
+
+        [ObservableProperty] private bool _isTourOpen;
+
+        /// <summary>Which balloon is showing, 1 to 4.</summary>
+        [ObservableProperty] private int _tourStep = 1;
+
+        partial void OnTourStepChanged(int value) => RefreshTourFlags();
+        partial void OnIsTourOpenChanged(bool value) => RefreshTourFlags();
+
+        public bool IsTourStep1 => IsTourOpen && TourStep == 1;
+        public bool IsTourStep2 => IsTourOpen && TourStep == 2;
+        public bool IsTourStep3 => IsTourOpen && TourStep == 3;
+        public bool IsTourStep4 => IsTourOpen && TourStep == 4;
+
+        public string TourBody1 => LocalizationService.Instance["home.Tour1"];
+        public string TourBody2 => LocalizationService.Instance["home.Tour2"];
+        public string TourBody3 => LocalizationService.Instance["home.Tour3"];
+        public string TourBody4 => LocalizationService.Instance["home.Tour4"];
+        public string TourNextLabel => LocalizationService.Instance["home.TourNext"];
+        public string TourDoneLabel => LocalizationService.Instance["home.TourDone"];
+        public string TourHelpToolTip => LocalizationService.Instance["home.TourHelp"];
+
+        private void RefreshTourFlags()
+        {
+            OnPropertyChanged(nameof(IsTourStep1));
+            OnPropertyChanged(nameof(IsTourStep2));
+            OnPropertyChanged(nameof(IsTourStep3));
+            OnPropertyChanged(nameof(IsTourStep4));
+        }
+
+        /// <summary>
+        /// Shows the tour, from the ? button or from F1.
+        /// </summary>
+        /// <remarks>
+        /// It runs by itself only once, ever. A tour that reappears is a tour people learn to
+        /// dismiss without reading, which costs the one chance it had.
+        /// </remarks>
+        [RelayCommand]
+        public void StartTour()
+        {
+            TourStep = 1;
+            IsTourOpen = true;
+        }
+
+        [RelayCommand]
+        private void NextTourStep()
+        {
+            if (TourStep >= 4)
+            {
+                EndTour();
+                return;
+            }
+
+            TourStep++;
+        }
+
+        [RelayCommand]
+        private void EndTour()
+        {
+            IsTourOpen = false;
+
+            _config.Save(TourSeenKey, true);
+        }
+
+        private void ShowTourIfNeverSeen()
+        {
+            if (_config.Load<bool>(TourSeenKey)) return;
+
+            StartTour();
+        }
+
+        #endregion
+
+
+        #region The floating helper cards
+
+        private const string HelperCardsKey = "HomeHelperCards";
+
+        private sealed class HelperCardPlacement
+        {
+            public bool Shown { get; set; } = true;
+            public double StepsX { get; set; } = 20;
+            public double StepsY { get; set; } = 70;
+            public double PatientX { get; set; } = 20;
+            public double PatientY { get; set; } = 300;
+        }
+
+        /// <summary>
+        /// Whether the two floating cards are on screen at all.
+        /// </summary>
+        /// <remarks>
+        /// They are helpers, not part of the form. Someone who knows the screen can put them away
+        /// and get the whole tab back; the ⓘ button in the patient header brings them out again.
+        /// </remarks>
+        [ObservableProperty] private bool _showHelperCards = true;
+
+        [ObservableProperty] private double _stepsCardX = 20;
+        [ObservableProperty] private double _stepsCardY = 70;
+        [ObservableProperty] private double _patientCardX = 20;
+        [ObservableProperty] private double _patientCardY = 300;
+
+        partial void OnShowHelperCardsChanged(bool value) => RefreshHelperCards();
+
+        /// <summary>The step guide is only meaningful while a trip is being booked or edited.</summary>
+        public bool IsStepsCardOpen => ShowHelperCards && IsTripFormOpen;
+
+        /// <summary>And the patient card only while there is a patient to say something about.</summary>
+        public bool IsPatientCardOpen => ShowHelperCards && CustomerState != CustomerFormState.Empty;
+
+        public string StepsCardTitle => LocalizationService.Instance["home.StepsCardTitle"];
+        public string HelperCardsToolTip => LocalizationService.Instance["home.HelperCards"];
+
+        private void RefreshHelperCards()
+        {
+            OnPropertyChanged(nameof(IsStepsCardOpen));
+            OnPropertyChanged(nameof(IsPatientCardOpen));
+        }
+
+        [RelayCommand] private void ToggleHelperCards() => ShowHelperCards = !ShowHelperCards;
+
+        [RelayCommand] private void HideHelperCards() => ShowHelperCards = false;
+
+        /// <summary>
+        /// Moves a card by what the mouse moved, kept inside the tab.
+        /// </summary>
+        /// <remarks>
+        /// Clamped because a card dragged off the edge is a card nobody can drag back, and the ⓘ
+        /// button would then bring back something invisible.
+        /// </remarks>
+        public void MoveHelperCard(string card, double dx, double dy, double maxX, double maxY)
+        {
+            if (card == "steps")
+            {
+                StepsCardX = Clamp(StepsCardX + dx, maxX);
+                StepsCardY = Clamp(StepsCardY + dy, maxY);
+            }
+            else
+            {
+                PatientCardX = Clamp(PatientCardX + dx, maxX);
+                PatientCardY = Clamp(PatientCardY + dy, maxY);
+            }
+        }
+
+        private static double Clamp(double value, double max) => Math.Max(0, Math.Min(value, Math.Max(0, max)));
+
+        public void SaveHelperCardPlacement() => _config.Save(HelperCardsKey, new HelperCardPlacement
+        {
+            Shown = ShowHelperCards,
+            StepsX = StepsCardX,
+            StepsY = StepsCardY,
+            PatientX = PatientCardX,
+            PatientY = PatientCardY
+        });
+
+        private void InitializeHelperCards()
+        {
+            var saved = _config.Load<HelperCardPlacement>(HelperCardsKey);
+
+            if (saved == null) return;
+
+            StepsCardX = saved.StepsX;
+            StepsCardY = saved.StepsY;
+            PatientCardX = saved.PatientX;
+            PatientCardY = saved.PatientY;
+            ShowHelperCards = saved.Shown;
+        }
+
+        #endregion
+
+        #region Sort order that survives the session
+
+        private const string SortKey = "HomeGridSort";
+
+        private sealed class SavedSort
+        {
+            public string Property { get; set; }
+            public bool Ascending { get; set; }
+        }
+
+        /// <summary>
+        /// Remembers how the dispatcher sorted the grid.
+        /// </summary>
+        /// <remarks>
+        /// Kept because the sort is how someone works, not what they are looking at: a dispatcher
+        /// who reads the day by pickup time re-sorts on every single load without this.
+        /// </remarks>
+        public void RememberSort(string property, bool ascending)
+        {
+            if (string.IsNullOrWhiteSpace(property)) return;
+
+            _config.Save(SortKey, new SavedSort { Property = property, Ascending = ascending });
+        }
+
+        /// <summary>Puts the remembered sort back on a view that has just been rebuilt.</summary>
+        public void ApplySavedSort()
+        {
+            var saved = _config.Load<SavedSort>(SortKey);
+
+            if (saved == null || string.IsNullOrWhiteSpace(saved.Property) || TripsView == null) return;
+
+            TripsView.SortDescriptions.Clear();
+            TripsView.SortDescriptions.Add(new SortDescription(
+                saved.Property,
+                saved.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending));
+        }
+
+        #endregion
+
+        #region Which columns are on screen
+
+        /// <summary>What each column asks before drawing itself.</summary>
+        public ColumnVisibilityMap ColumnVisibility { get; } = new();
+
+        /// <summary>
+        /// The layout behind <see cref="ColumnVisibility"/>, in the order the dialog shows it.
+        /// </summary>
+        private ObservableCollection<ColumnConfig> _columnLayout = new();
+
+        /// <summary>
+        /// Reads back the layout kept for this grid, or builds the default one.
+        /// </summary>
+        /// <remarks>
+        /// Its own key, not the Schedule tab's: the two grids show different columns, and one
+        /// layout serving both means hiding a column here hides an unrelated one there.
+        /// </remarks>
+        private void InitializeColumns()
+        {
+            var defaults = new[]
+            {
+                ("Day", DayText), ("Date", DateText), ("FromTime", FromTimeText), ("ToTime", ToTimeText),
+                ("CustomerName", CustomerNameText), ("PickupAddress", PickupAddressText),
+                ("DropoffAddress", DropoffAddressText), ("PickupCity", PickupCityText),
+                ("DropoffCity", DropoffCityText), ("SpaceTypeName", SpaceTypeNameText),
+                ("FundingSourceName", FundingSourceText), ("Type", TypeText), ("TripId", TripIdText),
+                ("RunName", RunText), ("Distance", DistanceText), ("Charge", ChargeText),
+                ("Paid", PaidText), ("Authorization", AuthorizationText), ("Pickup", PickupText),
+                ("PickupPhone", PickupPhoneText), ("PickupComment", PickupCommentText),
+                ("Dropoff", DropoffText), ("DropoffPhone", DropoffPhoneText),
+                ("DropoffComment", DropoffCommentText),
+                ("DriverNoShowReason", DriverNoShowReasonText)
+            };
+
+            var saved = _config.LoadColumnConfig(ColumnsKey);
+
+            _columnLayout = new ObservableCollection<ColumnConfig>(
+                defaults.Select(d => new ColumnConfig
+                {
+                    PropertyName = d.Item1,
+                    Header = d.Item2,
+                    IsVisible = saved?.FirstOrDefault(s => s.PropertyName == d.Item1)?.IsVisible ?? true
+                }));
+
+            ColumnVisibility.Apply(_columnLayout);
+
+            IsCompactGrid = _config.Load<bool>(CompactKey);
+        }
+
+        [RelayCommand]
+        private void ChooseColumns()
+        {
+            Action close = null;
+
+            var dialogViewModel = new ScheduleColumnSelectorViewModel(_columnLayout, () => close?.Invoke());
+            var dialog = new Views.Schedules.ColumnSelectorView { DataContext = dialogViewModel };
+
+            close = () => dialog.Close();
+
+            dialog.ShowDialog();
+
+            if (dialogViewModel.DialogResult != true) return;
+
+            _columnLayout = new ObservableCollection<ColumnConfig>(dialogViewModel.Columns);
+
+            ColumnVisibility.Apply(_columnLayout);
+            _config.SaveColumnConfig(ColumnsKey, _columnLayout);
+        }
+
+        #endregion
+
+        /// <summary>
+        /// "N of M trips" — what the filters let through, against what the day actually holds.
+        /// </summary>
+        /// <remarks>
+        /// It used to be the total alone, and the total alone cannot answer the question a
+        /// dispatcher asks when the list looks wrong: whether the trips are missing or hidden.
+        /// </remarks>
+        public string GridSummary =>
+            string.Format(
+                LocalizationService.Instance["home.GridSummary"],
+                TripsView?.Cast<object>().Count() ?? TripsByDate?.Count ?? 0,
+                TripsByDate?.Count ?? 0);
         public TimeSpan FromTime { get; set; }
 
         private ObservableCollection<TripReadDto> _trips;
@@ -395,35 +1431,324 @@ namespace Raphael.Desktop.ViewModels
             get => _tripsByDate;
             set
             {
-                _tripsByDate = value;              
-                OnPropertyChanged();               
+                if (_tripsByDate != null)
+                    _tripsByDate.CollectionChanged -= OnTripsByDateChanged;
+
+                _tripsByDate = value;
+
+                if (_tripsByDate != null)
+                    _tripsByDate.CollectionChanged += OnTripsByDateChanged;
+
+                // The grid binds to the view, not to this. Replacing the collection has to
+                // replace the view with it or the grid keeps showing the old day forever.
+                TripsView = _tripsByDate == null
+                    ? null
+                    : CollectionViewSource.GetDefaultView(_tripsByDate);
+
+                if (TripsView != null) TripsView.Filter = PassesExpressFilters;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TripsView));
+                OnPropertyChanged(nameof(GridSummary));
             }
         }
 
+        #region Express filters
+
+        /// <summary>
+        /// What the grid shows: <see cref="TripsByDate"/> seen through the filters above it.
+        /// </summary>
+        /// <remarks>
+        /// The grid binds here and not to the collection. Filtering through an ICollectionView is
+        /// what lets the checkbox and the search box hide rows without touching what was loaded,
+        /// so nothing has to be fetched again to show a canceled trip.
+        /// </remarks>
+        public ICollectionView TripsView { get; private set; }
+
+        /// <summary>
+        /// Whether canceled trips stay in the list. On by default.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ It was a plain auto-property with no notification and nothing reading it: the
+        /// checkbox had been on the screen since 1.3.0 and had never done anything. On by default
+        /// because a canceled trip is still information a dispatcher needs — someone will ring
+        /// about it — and because a filter that starts by hiding rows is how a list ends up
+        /// looking empty for no visible reason.
+        /// </remarks>
+        [ObservableProperty] private bool _showCanceled = true;
+
+        partial void OnShowCanceledChanged(bool value) => RefreshTripsView();
+
+        /// <summary>
+        /// The broker's trip id, and only that.
+        /// </summary>
+        /// <remarks>
+        /// It searched the patient and both addresses as well, and the box it needed for that ate
+        /// the width of the row it sits in. <c>TripId</c> is the one a dispatcher is holding when
+        /// they need this: it is the number the broker quotes on the telephone. Everything else
+        /// is in the filter panel, which has room for it.
+        /// </remarks>
+        [ObservableProperty] private string _tripSearchText;
+
+        partial void OnTripSearchTextChanged(string value) => RefreshTripsView();
+
+        private void OnTripsByDateChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(GridSummary));
+            RaiseFooterFigures();
+            OnPropertyChanged(nameof(DividerSummary));
+        }
+
+        private void RefreshTripsView()
+        {
+            TripsView?.Refresh();
+            OnPropertyChanged(nameof(GridSummary));
+            RaiseFooterFigures();
+            OnPropertyChanged(nameof(DividerSummary));
+        }
+
+        private bool PassesExpressFilters(object item)
+        {
+            if (item is not TripReadDto trip) return false;
+            if (!ShowCanceled && IsCanceled(trip)) return false;
+            if (!MatchesSearch(trip)) return false;
+
+            return Filters.Matches(trip);
+        }
+
+        /// <summary>
+        /// The filters behind the sliding panel. Everything they need is already in the loaded
+        /// trips, so opening the panel and ticking things costs no request.
+        /// </summary>
+        public HomeFiltersViewModel Filters { get; } = new();
+
+        /// <summary>
+        /// Whether the panel is out. It slides over the grid rather than pushing it aside, so the
+        /// list stays visible and refilters as the ticks change — which is the only way to tell
+        /// whether a filter did what you meant.
+        /// </summary>
+        [ObservableProperty] private bool _isFilterPanelOpen;
+
+        [RelayCommand] private void ToggleFilterPanel() => IsFilterPanelOpen = !IsFilterPanelOpen;
+
+        [RelayCommand] private void CloseFilterPanel() => IsFilterPanelOpen = false;
+
+        private static bool IsCanceled(TripReadDto trip) =>
+            trip.IsCancelled ||
+            string.Equals(trip.Status, TripStatus.Canceled, StringComparison.OrdinalIgnoreCase);
+
+        private bool MatchesSearch(TripReadDto trip)
+        {
+            var query = TripSearchText?.Trim();
+
+            return string.IsNullOrEmpty(query) || Holds(trip.TripId, query);
+        }
+
+        private static bool Holds(string text, string part) =>
+            !string.IsNullOrEmpty(text) &&
+            !string.IsNullOrEmpty(part) &&
+            text.IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        #endregion
+
         private DateTime _filterDate;
+        /// <summary>
+        /// The day the grid is showing. A filter, and only that.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Until RE-010 this doubled as the date of the trip being booked, which is why the
+        /// calendar inside the form was bound to it: setting a trip's date reloaded the day
+        /// underneath the form and emptied the grid's selection. The trip's date is
+        /// <see cref="TripDate"/> now. The old null branch below is gone with it — <c>DateTime</c>
+        /// is never null, so it could not run.
+        /// </remarks>
         public DateTime FilterDate
         {
             get => _filterDate;
             set
             {
+                if (_filterDate == value) return;
+
                 _filterDate = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(DateSpanLabel));
 
-                if (_filterDate != null)
-                {                   
-                    LoadTripsByDateAsync(_filterDate);
-                    //TripsByDate = Trips.FirstOrDefault(t => t.Date.Date == _filterDate.Date);                    
-                }
-                else
-                {
-                    SelectedSpaceType = null;
-                    SelectedFundingSource = null;
-                }
+                LoadTripsAsync();
             }
         }
 
+        #region Date span
+
+        private DateTime? _filterEndDate;
+        /// <summary>
+        /// The last day of the span, or null when the grid is on a single day.
+        /// </summary>
+        /// <remarks>
+        /// Null is the normal state and the one the tab opens in. A range is something a
+        /// dispatcher asks for; it is never where they are put by default, because a list holding
+        /// a week of trips answers a different question from the one this screen exists for.
+        /// </remarks>
+        public DateTime? FilterEndDate
+        {
+            get => _filterEndDate;
+            private set
+            {
+                _filterEndDate = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsDateRange));
+                OnPropertyChanged(nameof(DateSpanLabel));
+            }
+        }
+
+        public bool IsDateRange => FilterEndDate.HasValue;
+
+        /// <summary>What the date button reads: one day, or the two ends of a span.</summary>
+        /// <summary>
+        /// What the date button reads: one day, or the two ends of a span.
+        /// </summary>
+        /// <remarks>
+        /// Month first, and zero-padded on purpose. The order is the office's - these are US
+        /// broker dates - and the padding keeps the button one width, so the controls beside it
+        /// do not shuffle sideways every time the day rolls from the 9th to the 10th.
+        /// </remarks>
+        public string DateSpanLabel => IsDateRange
+            ? $"{FilterDate:MM/dd} – {FilterEndDate:MM/dd/yyyy}"
+            : FilterDate.ToString("MM/dd/yyyy");
+
+        [ObservableProperty] private bool _isDatePopupOpen;
+
+        /// <summary>
+        /// Whether the popup is asking for a span rather than a day. Starts off, every time.
+        /// </summary>
+        [ObservableProperty] private bool _rangeMode;
+
+        partial void OnRangeModeChanged(bool value)
+        {
+            _rangeAnchor = null;
+            OnPropertyChanged(nameof(RangePickHint));
+        }
+
+        /// <summary>The first of the two clicks of a range, once it has been made.</summary>
+        private DateTime? _rangeAnchor;
+
+        /// <summary>
+        /// The line under the calendar. A two-click control that does not say which click it is
+        /// waiting for is a control people click twice and then undo.
+        /// </summary>
+        public string RangePickHint => !RangeMode
+            ? LocalizationService.Instance["home.PickDay"]
+            : _rangeAnchor == null
+                ? LocalizationService.Instance["home.PickFirstDay"]
+                : LocalizationService.Instance["home.PickLastDay"];
+
+        /// <summary>
+        /// The calendar's own selection. Its setter is the two-click flow.
+        /// </summary>
+        [ObservableProperty] private DateTime? _pickedDate;
+
+        partial void OnPickedDateChanged(DateTime? value)
+        {
+            if (value == null) return;
+
+            if (!RangeMode)
+            {
+                ApplyDateSpan(value.Value, null);
+                IsDatePopupOpen = false;
+                return;
+            }
+
+            if (_rangeAnchor == null)
+            {
+                _rangeAnchor = value.Value;
+                OnPropertyChanged(nameof(RangePickHint));
+                return;
+            }
+
+            // Clicked backwards on purpose or by accident: the earlier of the two is the start.
+            var first = _rangeAnchor.Value;
+            var second = value.Value;
+
+            ApplyDateSpan(first <= second ? first : second, first <= second ? second : first);
+
+            _rangeAnchor = null;
+            IsDatePopupOpen = false;
+        }
+
+        /// <summary>
+        /// Moves the grid to a day or a span and reloads it once.
+        /// </summary>
+        /// <remarks>
+        /// It writes the fields rather than the properties so that changing both ends of a span
+        /// fetches once instead of twice — the setters each reload on their own.
+        /// </remarks>
+        private void ApplyDateSpan(DateTime start, DateTime? end)
+        {
+            _filterDate = start.Date;
+            _filterEndDate = end?.Date;
+
+            OnPropertyChanged(nameof(FilterDate));
+            OnPropertyChanged(nameof(FilterEndDate));
+            OnPropertyChanged(nameof(IsDateRange));
+            OnPropertyChanged(nameof(DateSpanLabel));
+
+            LoadTripsAsync();
+        }
+
+        /// <summary>
+        /// Opens the popup on a clean slate: whatever half-made range was abandoned last time is
+        /// not what the dispatcher is asking for now.
+        /// </summary>
+        [RelayCommand]
+        private void OpenDatePopup()
+        {
+            RangeMode = IsDateRange;
+            _rangeAnchor = null;
+            PickedDate = null;
+
+            OnPropertyChanged(nameof(RangePickHint));
+
+            IsDatePopupOpen = true;
+        }
+
+        [RelayCommand] private void UseSingleDay() => RangeMode = false;
+
+        [RelayCommand] private void UseRange() => RangeMode = true;
+
+        [RelayCommand] private void PresetToday() => ApplyDateSpan(DateTime.Today, null);
+
+        [RelayCommand] private void PresetTomorrow() => ApplyDateSpan(DateTime.Today.AddDays(1), null);
+
+        /// <summary>Monday to Sunday of the week the dispatcher is standing in.</summary>
+        [RelayCommand]
+        private void PresetThisWeek()
+        {
+            var today = DateTime.Today;
+            var monday = today.AddDays(-((int)today.DayOfWeek + 6) % 7);
+
+            ApplyDateSpan(monday, monday.AddDays(6));
+        }
+
+        [RelayCommand]
+        private void PresetNextSeven() => ApplyDateSpan(DateTime.Today, DateTime.Today.AddDays(6));
+
+        /// <summary>Drops the span back to its first day. This is the chip's ✕.</summary>
+        [RelayCommand] private void ClearDateRange() => ApplyDateSpan(FilterDate, null);
+
+        #endregion
+
+        /// <summary>
+        /// Moves the grid to another day when the caller loads that day itself, so it is not
+        /// fetched twice.
+        /// </summary>
+        private void MoveGridTo(DateTime date)
+        {
+            if (_filterDate == date) return;
+
+            _filterDate = date;
+            OnPropertyChanged(nameof(FilterDate));
+        }
+
         public DateTime? TripFilterDate { get; set; } = DateTime.Today;
-        public bool ShowCanceled { get; set; }
 
        
 
@@ -508,7 +1833,7 @@ namespace Raphael.Desktop.ViewModels
             set
             {
                 _selectedCustomer = value; 
-                OnPropertyChanged();              
+                OnPropertyChanged();
                 if (value != null)
                 {
                     SearchText = value.FullName; // Patch to autocomplete bug.
@@ -546,6 +1871,9 @@ namespace Raphael.Desktop.ViewModels
             }
         }*/
 
+        /// <summary>True while the box is being filled from a patient the dispatcher just picked.</summary>
+        private bool _applyingSuggestion;
+
         public string SearchText
         {
             get => _searchText;            
@@ -553,6 +1881,12 @@ namespace Raphael.Desktop.ViewModels
             {
                 _searchText = value;
                 OnPropertyChanged();
+
+                // ⚠️ Choosing a patient puts their name in this box, and re-running the search on
+                // that name rebuilds the suggestion list — which is what reopened the popup over
+                // the form no matter how many times the view closed it.
+                if (_applyingSuggestion) return;
+
                 if (string.IsNullOrEmpty(value))
                 {
                     SelectedCustomer = null; 
@@ -572,6 +1906,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 _selectedSpaceType = value;
                 OnPropertyChanged();
+                RefreshGuidance();
                 UpdateSelectedCharges();
                 UpdateNonDefaultCharges();
             }
@@ -588,17 +1923,29 @@ namespace Raphael.Desktop.ViewModels
             {
                 _selectedFundingSource = value;
                 OnPropertyChanged();
+                RefreshGuidance();
                 UpdateSelectedCharges();
                 UpdateNonDefaultCharges();
             }
         }
 
+        /// <summary>
+        /// The broker whose file is being imported.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This had its own name but not its own field: until RE-010 it read and wrote
+        /// <c>_selectedFundingSource</c>, so choosing a broker to import from silently changed
+        /// the Funding Source of the trip form — without repainting the combo that shows it,
+        /// and without recalculating its charges. The next trip booked by hand was billed to
+        /// whoever had last been imported.
+        /// </remarks>
+        private FundingSource _selectedFundingSourceImport;
         public FundingSource SelectedFundingSourceImport
         {
-            get => _selectedFundingSource;
+            get => _selectedFundingSourceImport;
             set
             {
-                _selectedFundingSource = value;
+                _selectedFundingSourceImport = value;
                 OnPropertyChanged();             
             }
         }
@@ -631,6 +1978,7 @@ namespace Raphael.Desktop.ViewModels
             set
             {
                 _idCustomer = value;
+                RefreshGuidance();
                 OnPropertyChanged();
             }
         }
@@ -676,6 +2024,12 @@ namespace Raphael.Desktop.ViewModels
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
 
+            Filters.Changed += RefreshTripsView;
+
+            InitializeColumns();
+            InitializeHelperCards();
+            ShowTourIfNeverSeen();
+
             LoadData();
             InitializeData();
 
@@ -699,19 +2053,69 @@ namespace Raphael.Desktop.ViewModels
         /// patient. The server ignores it on every update route, so leaving the box live
         /// here would let a dispatcher tick it, save, and be told nothing had gone wrong.
         /// </remarks>
-        public bool CanEditWillCall => SelectedTrip is null || SelectedTrip.Id <= 0;
+        public bool CanEditWillCall => TripBeingEdited is null || TripBeingEdited.Id <= 0;
 
         public string WillCallLockedToolTip =>
             LocalizationService.Instance["WillCallLockedHint"];
 
-        // Este método se dispara automáticamente cuando cambia la propiedad SelectedTrip
-        partial void OnSelectedTripChanged(TripReadDto value)
+        /// <summary>
+        /// The grid selection moved. Everything the form does about it is decided here.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The order of the guards is the whole method. Moving off the trip on the form is an
+        /// exit **whatever the selection moved to** — to no row at all, or straight to another
+        /// trip. RE-010 first shipped with the confirmation on the null branch only, so picking a
+        /// second trip in the grid threw away the edits to the first without a word.
+        /// </remarks>
+        partial void OnSelectedTripChanged(TripReadDto oldValue, TripReadDto newValue)
         {
-            // Before the null check: it has to be raised when the selection is cleared too,
-            // which is exactly when the form goes back to creating a trip.
-            OnPropertyChanged(nameof(CanEditWillCall));
+            // Whether a map is worth loading changes with the selection, and a map is a bill.
+            OnPropertyChanged(nameof(IsMapVisible));
 
-            if (value == null) return;
+            // Putting a row back after the dispatcher declined to leave. The form already holds
+            // their work; replaying the load would write the stored trip over it.
+            if (_restoringSelection) return;
+
+            // Reloading the day empties TripsByDate and the grid drops its selection with it.
+            // That is not the dispatcher going anywhere — it happens on every save and on every
+            // cancel — so the form keeps the trip it is editing, and LoadTripsByDateAsync lights
+            // the row again when the day comes back down.
+            if (IsLoadingTrips) return;
+
+            // Already on the way out through TryLeaveTripForm, which asked once.
+            if (_leavingTripForm) return;
+
+            // The one confirmation, for every direction the selection can move.
+            if (CurrentMode == HomeMode.EditingTrip && !ConfirmDiscardTripChanges())
+            {
+                RestoreSelection(oldValue);
+                return;
+            }
+
+            if (newValue == null)
+            {
+                if (CurrentMode == HomeMode.EditingTrip)
+                {
+                    TripBeingEdited = null;
+                    ClearTripForm();
+                    CurrentMode = HomeMode.Browsing;
+                }
+
+                return;
+            }
+
+            // Selecting a row shows the trip on the map. Editing it is a double click, and the
+            // form is only filled from there — see BeginEditSelectedTrip.
+            if (CurrentMode != HomeMode.EditingTrip) return;
+
+            LoadTripIntoForm(newValue);
+        }
+
+        /// <summary>
+        /// Fills the trip form from a trip and puts the screen into editing.
+        /// </summary>
+        private void LoadTripIntoForm(TripReadDto value)
+        {
 
             // 1. Cargar el Cliente asociado para que se llenen los campos de la izquierda
             var customer = Customers.FirstOrDefault(c => c.Id == value.CustomerId);
@@ -763,16 +2167,51 @@ namespace Raphael.Desktop.ViewModels
             DropoffPhone = value.DropoffPhone;
             DropoffComment = value.DropoffComment;
 
-            // 5. Notificar a la Vista que debe expandir el layout (esto lo haremos vía un evento o mensajería)
-            // Para no romper nada, usaremos un truco simple: llamaremos a una acción si está definida
-            //TriggerExpandLayout();
+            // 5. What the form is editing, and for what day. TripBeingEdited raises
+            // CanEditWillCall by itself, which is why the old notification at the top of this
+            // method is gone: the grid's selection is not what decides it any more.
+            TripBeingEdited = value;
+            TripDate = value.Date.Date;
+
+            // Last, on purpose: OnCurrentModeChanged photographs the form for
+            // HasUnsavedTripChanges, and it has to see it already filled.
+            CurrentMode = HomeMode.EditingTrip;
         }
 
-        private void TriggerExpandLayout()
+        /// <summary>
+        /// Opens the selected trip for editing. This is what a double click means.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ A single click deliberately does NOT come here. Clicking a row is how a dispatcher
+        /// looks at a trip on the map, which is what they want almost every time; until RE-010 it
+        /// also dropped them into full edit mode, and there was no way out of it. Selecting shows,
+        /// double click edits.
+        /// </remarks>
+        [RelayCommand]
+        public void BeginEditSelectedTrip()
         {
-            // Reutilizamos la lógica que ya tienes para cuando se salva un cliente
-            // pero aplicada a la selección de un viaje.
-            //OnTripSavedSuccess?.Invoke();
+            var trip = SelectedTrip;
+            if (trip == null || CurrentMode == HomeMode.EditingTrip) return;
+
+            LoadTripIntoForm(trip);
+        }
+
+        /// <summary>
+        /// Puts the grid selection back on a trip the dispatcher chose not to leave.
+        /// </summary>
+        /// <remarks>
+        /// Posted rather than assigned: the grid is in the middle of its own selection change and
+        /// refuses a new one until it is done. <c>_restoringSelection</c> is what stops the trip
+        /// being loaded over the edits they just kept.
+        /// </remarks>
+        private void RestoreSelection(TripReadDto trip)
+        {
+            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _restoringSelection = true;
+                try { SelectedTrip = trip; }
+                finally { _restoringSelection = false; }
+            }));
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)
@@ -903,7 +2342,25 @@ namespace Raphael.Desktop.ViewModels
                 CapacityTypes.Add(capacity);
         }
 
-        public async Task LoadTripsByDateAsync(DateTime date)
+        /// <summary>
+        /// Reloads the grid for whatever the date control is currently asking for.
+        /// </summary>
+        /// <remarks>
+        /// Everything that refreshes the list calls this rather than the single-day method, so a
+        /// dispatcher who cancels a trip while looking at a week does not silently drop back to
+        /// one day.
+        /// </remarks>
+        public Task LoadTripsAsync() => IsDateRange
+            ? LoadTripsByDateRangeAsync(FilterDate, FilterEndDate.Value)
+            : LoadTripsByDateAsync(FilterDate);
+
+        public Task LoadTripsByDateAsync(DateTime date) =>
+            FillGridAsync(service => service.GetTripsByDateAsync(date));
+
+        public Task LoadTripsByDateRangeAsync(DateTime start, DateTime end) =>
+            FillGridAsync(service => service.GetTripsByDateRangeAsync(start, end));
+
+        private async Task FillGridAsync(Func<TripService, Task<List<TripReadDto>>> fetch)
         {
             IsLoadingTrips = true;
             TripsByDate.Clear();
@@ -911,8 +2368,7 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 TripService _tripService = new TripService();
-                var sources = await _tripService.GetTripsByDateAsync(date);
-                GridSummary = sources.Count().ToString();
+                var sources = await fetch(_tripService);
 
 
                 //var geocodingTasks = sources.Select(trip => PopulateCitiesForTravel(trip)).ToList();
@@ -935,9 +2391,29 @@ namespace Raphael.Desktop.ViewModels
             }
             finally
             {
-                IsLoadingTrips = false; 
+                IsLoadingTrips = false;
             }
 
+            // The panel offers what this day actually holds, with counts, and keeps whatever was
+            // already ticked.
+            Filters.Rebuild(TripsByDate);
+            Filters.WatchOptions();
+            RefreshTripsView();
+
+            // The grid dropped its selection when the day was emptied. If the form is still on a
+            // trip that belongs to this day, light its row again: a trip being edited with no row
+            // selected is how the selection gets "lost for some other reason", and the next thing
+            // that touches it reads as the dispatcher moving away from work they never left.
+            if (TripBeingEdited != null)
+            {
+                var row = TripsByDate.FirstOrDefault(t => t.Id == TripBeingEdited.Id);
+                if (row != null && !ReferenceEquals(row, SelectedTrip))
+                {
+                    _restoringSelection = true;
+                    try { SelectedTrip = row; }
+                    finally { _restoringSelection = false; }
+                }
+            }
         }
 
         private async Task PopulateCitiesForTravel(TripReadDto trip)
@@ -1003,14 +2479,21 @@ namespace Raphael.Desktop.ViewModels
             
         }
 
-        private void ImportTrips()
-        {
-            // Por implementar
-        }
+        private void ImportTrips() => EnterImportMode();
 
+        /// <summary>
+        /// Sends the trips on screen to a spreadsheet.
+        /// </summary>
+        /// <remarks>
+        /// What leaves is what the dispatcher can see: the rows the filters let through, in the
+        /// order the grid has them. Reading the view rather than the collection is the whole
+        /// point — a file holding trips the screen was hiding is one nobody can check.
+        /// </remarks>
         private void ExportTrips()
         {
-            // Por implementar
+            var onScreen = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+
+            new TripExcelExportService().Export(onScreen, FilterDate);
         }
 
         private async void SaveTrip()
@@ -1025,15 +2508,17 @@ namespace Raphael.Desktop.ViewModels
 
 
                 // We force UTC conversion not to be applied
-                DateTime tripDate = DateTime.SpecifyKind(FilterDate.Date, DateTimeKind.Unspecified); // tells the system: "Don't touch the time, send it as is."
+                DateTime tripDate = DateTime.SpecifyKind(TripDate.Date, DateTimeKind.Unspecified); // tells the system: "Don't touch the time, send it as is."
 
-                // Si SelectedTrip tiene valor, es una EDICIÓN
-                if (SelectedTrip != null && SelectedTrip.Id > 0)
+                // An edit is an edit. TripBeingEdited, never SelectedTrip: the grid clears its
+                // selection on every reload, and reading create-or-update from it is what used to
+                // write the trip a second time instead of updating it.
+                if (TripBeingEdited != null && TripBeingEdited.Id > 0)
                 {
                     var tripReadDto = new TripReadDto
                     {
-                        Id = SelectedTrip.Id,
-                        TripId = SelectedTrip.TripId, // Mantener el ID externo original
+                        Id = TripBeingEdited.Id,
+                        TripId = TripBeingEdited.TripId, // Mantener el ID externo original
                         Date = tripDate,
                         Day = tripDate.DayOfWeek.ToString(),
 
@@ -1069,15 +2554,15 @@ namespace Raphael.Desktop.ViewModels
                         Distance = double.TryParse(Distance?.Split(' ')[0], out var dist) ? dist : 0.0,
 
                         // Estado y Metadatos (IMPORTANTE: Enviar el status actual para no fallar validación)
-                        Status = SelectedTrip.Status ?? TripStatus.Accepted,
+                        Status = TripBeingEdited.Status ?? TripStatus.Accepted,
 
                         // ⚠️ The trip's own value, not the checkbox. Editing a trip cannot
                         // move Will Call: it goes through Activate / Back to Will Call on
                         // the open-trips grid of Schedule, and the server ignores it here.
-                        WillCall = SelectedTrip.WillCall,
+                        WillCall = TripBeingEdited.WillCall,
                         Type = IsReturn ? "Return" : "Appointment",
-                        Created = SelectedTrip.Created,
-                        VehicleRouteId = SelectedTrip.VehicleRouteId // Mantener la ruta asignada si existe
+                        Created = TripBeingEdited.Created,
+                        VehicleRouteId = TripBeingEdited.VehicleRouteId // Mantener la ruta asignada si existe
 
                     };
 
@@ -1210,12 +2695,18 @@ namespace Raphael.Desktop.ViewModels
                     MessageBox.Show(IsRoundTrip ? "Round Trip created successfully!" : "Trip created successfully!");
                 }          
 
-                await LoadTripsByDateAsync(FilterDate);
+                // The grid follows the trip: booked or moved to another day, it still has to be
+                // in front of the dispatcher who just saved it.
+                MoveGridTo(tripDate);
+                await LoadTripsAsync();
 
-                ClearTripForm();
+                // Browsing first: the trip is on the server, so there is nothing unsaved left
+                // and clearing the selection below must not stop to ask about it.
+                TripBeingEdited = null;
+                CurrentMode = HomeMode.Browsing;
                 SelectedTrip = null; // Limpiar selección después de guardar
-
-                OnTripSavedSuccess?.Invoke();
+                ClearTripForm();
+                SearchText = string.Empty;
             }
             catch (ApiException ex)
             {
@@ -1330,7 +2821,7 @@ namespace Raphael.Desktop.ViewModels
                     await _tripService.UpdateFromDispatchAsync(tripToEdit.Id, updatedDto);
 
                     // We reload the trips from the current date to see the changes
-                    await LoadTripsByDateAsync(this.FilterDate);
+                    await LoadTripsAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1354,7 +2845,7 @@ namespace Raphael.Desktop.ViewModels
                     await _tripService.CancelTripAsync(tripToCancel.Id);
                     MessageBox.Show("Trip canceled successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                   
-                    await LoadTripsByDateAsync(this.FilterDate);
+                    await LoadTripsAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1378,7 +2869,7 @@ namespace Raphael.Desktop.ViewModels
                     await _tripService.UncancelTripAsync(tripToUncancel.Id);
                     MessageBox.Show("Trip restored successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                   
-                    await LoadTripsByDateAsync(this.FilterDate);
+                    await LoadTripsAsync();
                 }
                 catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {

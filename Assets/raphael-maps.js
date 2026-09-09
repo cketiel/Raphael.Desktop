@@ -44,6 +44,42 @@
         return query.get(name) === '1';
     }
 
+    /** Reads a query-string string, e.g. the language the host is running in. */
+    function text(name, fallback) {
+        var raw = query.get(name);
+
+        return raw === null || raw === '' ? fallback : raw;
+    }
+
+    /**
+     * The map type the dispatcher last left this application on.
+     *
+     * Google's own control writes four values and two of them are the labels switch: `satellite`
+     * is imagery alone and `hybrid` is imagery with street names on it. So keeping the map type
+     * keeps the labels choice too - there is nothing else to store.
+     *
+     * It arrives on the query string rather than in the injected configuration because the
+     * injection happens once per WebView2, at start-up, and this changes while the application is
+     * running. The host puts the current value on every navigation.
+     */
+    function mapTypeId() {
+        return text('maptype', 'roadmap');
+    }
+
+    /**
+     * Tells the host when the dispatcher picks a different map type, so the next map opens on it.
+     *
+     * Without this every map opened on roadmap: a `google.maps.Map` is built fresh for each trip,
+     * and a fresh map knows nothing about the one before it.
+     */
+    function rememberMapType(map) {
+        if (!map) return;
+
+        map.addListener('maptypeid_changed', function () {
+            post({ type: 'maptype', mapTypeId: map.getMapTypeId() });
+        });
+    }
+
     /** Posts to the WPF host. Silent when the page is opened outside WebView2. */
     function post(message) {
         if (window.chrome && window.chrome.webview) {
@@ -94,10 +130,14 @@
 
             var script = document.createElement('script');
 
+            // ⚠️ The language is fixed at the moment this script is fetched. There is no
+            // API for changing it afterwards, which is why switching the application's language
+            // has to reload the page - and why that reload costs one Dynamic Map.
             script.src = 'https://maps.googleapis.com/maps/api/js'
                 + '?key=' + encodeURIComponent(config.apiKey)
                 + '&v=weekly'
                 + '&libraries=places,geometry'
+                + '&language=' + encodeURIComponent(text('lang', 'en'))
                 + '&callback=' + callbackName;
 
             script.async = true;
@@ -247,7 +287,33 @@
             '.rm-item:last-child{border-bottom:none}',
             '.rm-item.rm-active,.rm-item:hover{background:#e8f0fe}',
             '.rm-main{color:#202124}',
-            '.rm-secondary{color:#70757a;font-size:12px}'
+            '.rm-secondary{color:#70757a;font-size:12px}',
+
+            // ===== The route summary =====
+            // A card of our own instead of Google's InfoWindow. The InfoWindow arrives with white
+            // chrome, a tail and a close button we never wanted, it sat in the middle of the road
+            // it was describing, and there is no way to restyle any of that. This is anchored to
+            // a corner, out of the route's way, and looks like the rest of the application.
+            '.rm-route{position:absolute;left:12px;bottom:22px;z-index:5;display:none;',
+            'background:rgba(255,255,255,.97);border-radius:12px;padding:10px 14px;',
+            'box-shadow:0 6px 18px rgba(0,0,0,.22);border:1px solid rgba(0,0,0,.06);',
+            'font:13px/1.2 system-ui,Segoe UI,sans-serif;color:#202124;',
+            'backdrop-filter:blur(2px)}',
+            '.rm-route.rm-on{display:flex;align-items:center;gap:16px}',
+            '.rm-stat{display:flex;flex-direction:column;gap:3px}',
+            // The word above the figure. A clock and a road are quick to read once you know what
+            // they are, and ambiguous the first time; the label removes the guess for good.
+            '.rm-label{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;',
+            'color:#70757a;line-height:1}',
+            '.rm-figure{display:flex;align-items:center;gap:7px}',
+            // ⚠️ Stroke, not fill. Filled at 17px a clock face swallows its own hands and reads as
+            // a plain disc, which is exactly what it looked like. An outline keeps them.
+            '.rm-stat svg{width:17px;height:17px;flex:none;fill:none;stroke:#673AB7;',
+            'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
+            '.rm-value{font-weight:600;font-size:15px;letter-spacing:-.2px;line-height:1}',
+            '.rm-unit{color:#70757a;font-size:11px;margin-left:2px;font-weight:500}',
+            // The hairline between the two figures, so they read as two facts and not one string.
+            '.rm-sep{width:1px;height:34px;background:rgba(0,0,0,.10)}'
         ].join('');
 
         document.head.appendChild(style);
@@ -493,6 +559,8 @@
      * The page cannot call Raphael.Api itself, and should not: that would mean handing a session
      * token to a document that also runs Google's script.
      */
+    var routeCasing;
+
     function requestRoute(origin, destination) {
         if (!origin || !destination) return;
 
@@ -505,9 +573,102 @@
         });
     }
 
+    /**
+     * The pins.
+     *
+     * Two pins of the same shape, told apart by colour: RED is where the patient is waiting,
+     * BLUE is where they are going. It is the pairing every dispatcher already carries from
+     * every other mapping product, so nobody has to be taught it.
+     *
+     * WARNING: shape no longer carries the meaning - colour carries it alone. Red and blue are
+     * the safest pair to do that with (they stay distinct under the common forms of colour
+     * blindness, which red/green does not), and both markers keep their `title`, so hovering
+     * says which is which. If a third state ever lands on this map, bring the shape back rather
+     * than reaching for a third colour.
+     *
+     * Symbols, not images: vector at every zoom, no file to ship, and nothing else to fetch.
+     */
+
+    // Material's place mark, on its own 24x24 grid: the teardrop and the hole punched in it.
+    var PIN_PATH = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z'
+        + 'm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z';
+
+    function pin(fill) {
+        return {
+            path: PIN_PATH,
+            fillColor: fill,
+            fillOpacity: 1,
+            // The white keyline is what keeps the pin readable over a dark satellite tile or a
+            // motorway of about its own colour.
+            strokeColor: '#FFFFFF',
+            strokeWeight: 1.6,
+            scale: 1.5,
+            // The tip of the pin is the place, not its middle.
+            anchor: new google.maps.Point(12, 22)
+        };
+    }
+
+    function pickupSymbol() {
+        return pin('#D32F2F');
+    }
+
+    function dropoffSymbol() {
+        return pin('#1565C0');
+    }
+
+
+    function routeCard() {
+        var card = document.getElementById('rm-route');
+
+        if (card) return card;
+
+        injectStyles();
+
+        card = document.createElement('div');
+        card.id = 'rm-route';
+        card.className = 'rm-route';
+
+        (document.getElementById('map') || document.body).appendChild(card);
+
+        return card;
+    }
+
+    // A ring with two hands on it. Unmistakable at 17px, which the filled disc was not.
+    var CLOCK_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/>'
+        + '<path d="M12 7.2V12l3.4 2"/></svg>';
+
+    // Two kerbs and a broken centre line.
+    var ROAD_ICON = '<svg viewBox="0 0 24 24"><path d="M6.5 3 4.5 21"/><path d="M17.5 3l2 18"/>'
+        + '<path d="M12 3.5v3M12 10.5v3M12 17.5v3"/></svg>';
+
+    function stat(label, icon, value, unit) {
+        return '<div class="rm-stat">'
+            + '<span class="rm-label">' + label + '</span>'
+            + '<span class="rm-figure">' + icon
+            + '<span class="rm-value">' + value
+            + (unit ? '<span class="rm-unit">' + unit + '</span>' : '')
+            + '</span></span></div>';
+    }
+
+    function showRouteSummary(eta, distance) {
+        var card = routeCard();
+
+        if (!eta && !distance) { card.className = 'rm-route'; return; }
+
+        card.innerHTML =
+            stat('ETA', CLOCK_ICON, eta || '—', '')
+            + '<div class="rm-sep"></div>'
+            + stat('Distance', ROAD_ICON, distance || '—', 'mi');
+
+        card.className = 'rm-route rm-on';
+    }
+
     function clearRoute() {
         if (routeLine) { routeLine.setMap(null); routeLine = null; }
+        if (routeCasing) { routeCasing.setMap(null); routeCasing = null; }
         if (routeWindow) { routeWindow.close(); routeWindow = null; }
+
+        showRouteSummary(null, null);
     }
 
     /**
@@ -523,36 +684,51 @@
 
         var path = google.maps.geometry.encoding.decodePath(payload.encodedPolyline);
 
+        // ===== Two lines, not one =====
+        // A single stroke disappears over a motorway of about its own width and colour. The wide
+        // dark casing underneath gives the route an edge, so it reads as one continuous path over
+        // any part of the map — which is what every serious mapping product draws and why theirs
+        // are legible and a bare polyline is not.
+        routeCasing = new google.maps.Polyline({
+            path: path,
+            map: map,
+            strokeColor: '#311B92',
+            strokeOpacity: 0.55,
+            strokeWeight: 10,
+            zIndex: 1
+        });
+
         routeLine = new google.maps.Polyline({
             path: path,
             map: map,
-            strokeColor: '#4285F4',
-            strokeOpacity: 0.9,
-            strokeWeight: 6,
+            strokeColor: '#7E57C2',
+            strokeOpacity: 1,
+            strokeWeight: 5,
+            zIndex: 2,
+            // Arrows say which way, so they only have to be readable, not loud. Every 140px rather
+            // than every 50: the old spacing turned the route into a dotted caterpillar and the
+            // direction was harder to see, not easier.
             icons: [{
                 icon: {
                     path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                    scale: 4,
-                    strokeColor: '#4285F4',
-                    strokeWeight: 2
+                    scale: 2.6,
+                    fillColor: '#FFFFFF',
+                    fillOpacity: 1,
+                    strokeColor: '#311B92',
+                    strokeWeight: 1
                 },
-                offset: '100%',
-                repeat: '50px'
+                offset: '6%',
+                repeat: '140px'
             }]
         });
 
         var bounds = new google.maps.LatLngBounds();
         path.forEach(function (point) { bounds.extend(point); });
-        map.fitBounds(bounds);
 
-        if (payload.label) {
-            routeWindow = new google.maps.InfoWindow({
-                content: '<b>' + payload.label + '</b>',
-                position: path[Math.floor(path.length / 2)]
-            });
+        // Room for the summary card in the bottom-left corner, so it never sits on the route.
+        map.fitBounds(bounds, { top: 40, right: 40, bottom: 80, left: 40 });
 
-            routeWindow.open(map);
-        }
+        showRouteSummary(payload.eta, payload.distance);
     }
 
     window.RaphaelMaps = {
@@ -560,6 +736,9 @@
         ready: ready,
         num: num,
         flag: flag,
+        text: text,
+        mapTypeId: mapTypeId,
+        rememberMapType: rememberMapType,
         post: post,
         ask: ask,
         resolve: resolve,
@@ -570,7 +749,9 @@
         attachAutocomplete: attachAutocomplete,
         requestRoute: requestRoute,
         clearRoute: clearRoute,
-        showRoute: showRoute
+        showRoute: showRoute,
+        pickupSymbol: pickupSymbol,
+        dropoffSymbol: dropoffSymbol
     };
 
     // The host calls these by name through ExecuteScriptAsync. Renaming one breaks the map

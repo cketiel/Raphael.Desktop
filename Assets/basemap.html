@@ -100,8 +100,12 @@
         function initMap() {
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 5,
+                mapTypeId: RaphaelMaps.mapTypeId(),
                 center: { lat: originLat, lng: originLng }
             });
+
+            // Whatever the dispatcher switches to here is what the next map opens on.
+            RaphaelMaps.rememberMapType(map);
 
             // The shared module draws the route onto whichever map the page put here.
             window.__raphaelMap = map;
@@ -133,7 +137,8 @@
                 draggable: true,
                 animation: google.maps.Animation.DROP,
                 position: position,
-                label: 'P',
+                icon: RaphaelMaps.pickupSymbol(),
+                title: 'Pickup',
                 map: map
             });
 
@@ -197,7 +202,8 @@
                 draggable: true,
                 animation: google.maps.Animation.DROP,
                 position: position,
-                label: 'D',
+                icon: RaphaelMaps.dropoffSymbol(),
+                title: 'Dropoff',
                 map: map
             });
 

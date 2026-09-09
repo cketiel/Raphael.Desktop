@@ -100,10 +100,14 @@
 
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 5,
+                mapTypeId: RaphaelMaps.mapTypeId(),
                 center: { lat: centreLat, lng: centreLng }
             });
 
             window.__raphaelMap = map;
+
+            // Whatever the dispatcher switches to here is what the next map opens on.
+            RaphaelMaps.rememberMapType(map);
 
             RaphaelMaps.attachAutocomplete('pickup', onPickupChosen);
             RaphaelMaps.attachAutocomplete('dropoff', onDropoffChosen);
@@ -140,7 +144,8 @@
                 draggable: true,
                 animation: google.maps.Animation.DROP,
                 position: position,
-                label: 'P',
+                icon: RaphaelMaps.pickupSymbol(),
+                title: 'Pickup',
                 map: map
             });
 
@@ -203,7 +208,8 @@
                 draggable: true,
                 animation: google.maps.Animation.DROP,
                 position: position,
-                label: 'D',
+                icon: RaphaelMaps.dropoffSymbol(),
+                title: 'Dropoff',
                 map: map
             });
 
