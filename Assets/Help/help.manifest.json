@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.7.0"
   },
-  "builtUtc": "2026-09-06T05:29:45.658Z",
-  "sourceCommit": "0778246",
+  "builtUtc": "2026-09-09T18:39:13.016Z",
+  "sourceCommit": "98cfc43",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.6.1",
+      "lastReviewed": "1.7.0",
       "roles": [
         "admin",
         "dispatcher",
