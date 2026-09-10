@@ -1,4 +1,4 @@
-# Raphael.Desktop — WPF (.NET 8)
+﻿# Raphael.Desktop — WPF (.NET 8)
 
 Dispatch / back-office. Parte del ecosistema Raphael (NEMT). Reglas globales: `../CLAUDE.md`.
 
@@ -13,9 +13,9 @@ Target: `net8.0-windows`
 - Auth: **JWT** → `Services/AuthService.cs`
 - Cliente HTTP: `Services/ApiClientFactory.cs`
 - Config: `appsettings.json`
-- DTOs espejo: `DTOs/` (25) — **copias manuales** de `Raphael.Backend/Raphael.Shared/DTOs/`
+- DTOs espejo: `DTOs/` (57 tipos en 30 ficheros, 56 copiados del backend) — **copias manuales** de `Raphael.Backend/Raphael.Shared/DTOs/`
 
-⚠️ **Drift abierto (menor):** `DTOs/ScheduleDto.cs` tiene **33 propiedades**, el backend expone **36**.
+⚠️ **Drift abierto (menor):** `DTOs/ScheduleDto.cs` tiene **34 propiedades de contrato**, el backend expone **37**.
 Faltan `CustomerId, CustomerPhone, VehicleRouteId`. Ninguna pantalla las pinta hoy.
 Hasta RE-008 aquí ponía que faltaban 8: cinco de ellas ya estaban. Ver `../_meta/CONTRACT_MAP.md`.
 
