@@ -44,8 +44,31 @@ namespace Raphael.Desktop.Views.Schedules
             }
         }
 
+        /// <summary>
+        /// Follows the language while this tab is on screen.
+        /// </summary>
+        /// <remarks>
+        /// Tied to Loaded and Unloaded rather than taken once, for the reason spelled out on
+        /// <c>HomeView</c>: LanguageChanged is an event on a singleton, and a subscription held
+        /// for the life of a view model would keep every tab ever opened alive behind it.
+        ///
+        /// <para>
+        /// The refresh below is what covers the language having been switched while this tab sat
+        /// in the background.
+        /// </para>
+        /// </remarks>
+        private void OnLanguageChanged()
+        {
+            (DataContext as SchedulesViewModel)?.RefreshLocalizedText();
+        }
+
         private async void ScheduleView_Loaded(object sender, RoutedEventArgs e)
-        {            
+        {
+            LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
+            LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
+
+            (DataContext as SchedulesViewModel)?.RefreshLocalizedText();
+
             if (DataContext is SchedulesViewModel viewModel)
             {
                 // Re-attached here, not only on DataContextChanged: unloading detaches
@@ -160,6 +183,8 @@ namespace Raphael.Desktop.Views.Schedules
 
         private void ScheduleView_Unloaded(object sender, RoutedEventArgs e)
         {
+            LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
+
             // Cleanup to prevent memory leaks
             if (this.DataContext is SchedulesViewModel vm)
             {

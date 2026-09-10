@@ -20,6 +20,20 @@
         <converters:EtaViolationConverter x:Key="EtaViolationConverter"/>
         <converters:LocationToPointConverter x:Key="LocationToPointConverter"/>
         <converters:ColumnVisibilityConverter x:Key="ColumnVisibilityConverter"/>
+        <converters:DataColumnVisibilityConverter x:Key="DataColumnVisibilityConverter"/>
+        <converters:EarlyArrivalWaitConverter x:Key="EarlyArrivalWaitConverter"/>
+        <converters:WaitDurationConverter x:Key="WaitDurationConverter"/>
+        <converters:StarWidthConverter x:Key="StarWidthConverter"/>
+
+        <!-- An hour written over the time bar. Hit-testing off so that hovering a label still
+             reaches the bar underneath it, which is what owns the tooltip. -->
+        <Style x:Key="TimelineHourStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FF263238"/>
+            <Setter Property="Padding" Value="2,0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <helpers:BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
@@ -187,6 +201,103 @@
             </DoubleAnimationUsingKeyFrames>
         </Storyboard>
 
+
+        <!-- The marker number: green for a pickup, red for a dropoff, a car at the garage,
+             and the same number that labels its pin on the map. Lifted out of the column it
+             used to live in because it is now declared twice — once after the arrival hour
+             for the grid of figures, once at the far right for the list of bars — and the two
+             have to be the same drawing. -->
+        <DataTemplate x:Key="ScheduleMarkerTemplate">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border Width="20" Height="20" ToolTip="{Binding Name}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="10"/>
+                            <Setter Property="Background" Value="Gray"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Name}" Value="Pull-out">
+                                    <Setter Property="Background" Value="Green"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Name}" Value="Pull-in">
+                                    <Setter Property="Background" Value="Red"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Pickup}">
+                                    <Setter Property="Background" Value="Green"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Dropoff}">
+                                    <Setter Property="Background" Value="Red"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding Arrive, Converter={StaticResource NullToBoolConverter}}" Value="True">
+                                    <Setter Property="Background" Value="Purple" />
+                                </DataTrigger>
+                                
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
+                                        <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Pickup}"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Background" Value="Black"/>
+                                    <Setter Property="CornerRadius" Value="2"/>
+                                </MultiDataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
+                                        <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Dropoff}"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Background" Value="Black"/>
+                                    <Setter Property="CornerRadius" Value="2"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <ContentControl Content="{Binding}">
+                        <ContentControl.Resources>
+                            <DataTemplate x:Key="SequenceTemplate">
+                                <TextBlock Text="{Binding Sequence}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                            <DataTemplate x:Key="CarTemplate">
+                                <materialDesign:PackIcon Kind="Car" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Width="18" Height="18"/>
+                            </DataTemplate>
+                            <DataTemplate x:Key="SelectedPickupTemplate">
+                                <materialDesign:PackIcon Kind="ArrowTopRight" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                            <DataTemplate x:Key="SelectedDropoffTemplate">
+                                <materialDesign:PackIcon Kind="ArrowBottomRight" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </ContentControl.Resources>
+                        <ContentControl.Style>
+                            <Style TargetType="ContentControl">
+                                <Setter Property="ContentTemplate" Value="{StaticResource SequenceTemplate}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Name}" Value="Pull-out">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource CarTemplate}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Name}" Value="Pull-in">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource CarTemplate}"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
+                                            <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Pickup}"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="ContentTemplate" Value="{StaticResource SelectedPickupTemplate}"/>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
+                                            <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Dropoff}"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="ContentTemplate" Value="{StaticResource SelectedDropoffTemplate}"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ContentControl.Style>
+                    </ContentControl>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <materialDesign:DialogHost Identifier="ScheduleRootDialogHost">
@@ -285,11 +396,44 @@
                         </Grid.ColumnDefinitions>
 
                         <DockPanel Grid.Column="0">
+                            <!-- The order the dispatcher chose, and what it costs. Advice only:
+                                 the move is on the route and saved by the time this appears, and
+                                 the button dismisses the notice, never the change. -->
+                            <Border DockPanel.Dock="Top"
+                                    Background="#FFF8E1"
+                                    BorderBrush="#FFB300"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="10,6"
+                                    Margin="0,0,0,4"
+                                    Visibility="{Binding HasStopOrderAdvisory, Converter={StaticResource BoolToVis}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left"
+                                                             Kind="AlertOutline"
+                                                             Width="20" Height="20"
+                                                             Foreground="#E65100"
+                                                             VerticalAlignment="Top"
+                                                             Margin="0,1,8,0"/>
+                                    <Button DockPanel.Dock="Right"
+                                            Command="{Binding DismissStopOrderAdvisoryCommand}"
+                                            Content="{Binding StopOrderAdvisoryDismissText}"
+                                            Style="{StaticResource MaterialDesignFlatButton}"
+                                            Foreground="#E65100"
+                                            Padding="8,0"
+                                            MinWidth="0"
+                                            VerticalAlignment="Top"
+                                            Cursor="Hand"/>
+                                    <TextBlock Text="{Binding StopOrderAdvisory}"
+                                               TextWrapping="Wrap"
+                                               Foreground="#5D4037"/>
+                                </DockPanel>
+                            </Border>
+
                             <!-- No ScrollViewer around this grid. One wrapping it gives the grid an
                                  infinite height to measure against, so every row is realised and
                                  virtualisation is silently off no matter what the grid declares.
                                  The DataGrid scrolls itself. -->
-                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}" CellStyle="{StaticResource ScheduleEventCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DropHandler="{Binding}">
+                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource ScheduleEventCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DragHandler="{Binding}" gong:DragDrop.DropHandler="{Binding}">
                                     <DataGrid.RowStyle>
                                         <!-- ⚠️ Trigger order in THIS list is what decides the row's
                                              background, and the late-ETA ones are last on purpose.
@@ -304,6 +448,8 @@
                                             <Style.Resources>
                                                 <SolidColorBrush x:Key="EtaViolationBrush" Color="#FFFAA0A0"/>
                                                 <SolidColorBrush x:Key="EtaViolationActiveBrush" Color="#FFF07070"/>
+                                                <SolidColorBrush x:Key="EarlyArrivalWaitBrush" Color="#FFFFECB3"/>
+                                                <SolidColorBrush x:Key="EarlyArrivalWaitActiveBrush" Color="#FFFFD54F"/>
                                             </Style.Resources>
                                             <Style.Triggers>
                                                 <!-- ⚠️ Striping done here, not with the grid's
@@ -321,6 +467,52 @@
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
                                                 </Trigger>
+
+                                                <!-- Waiting: the driver could have been there earlier,
+                                                     and the early-arrival rule holds the vehicle at the
+                                                     door with the engine off. Amber, and BEFORE the late
+                                                     triggers below on purpose — though the two can never
+                                                     both fire on one row, because a vehicle cannot be
+                                                     both too early and too late for the same stop. That
+                                                     is what lets both of them own Background. -->
+                                                <DataTrigger Value="True">
+                                                    <DataTrigger.Binding>
+                                                        <MultiBinding Converter="{StaticResource EarlyArrivalWaitConverter}">
+                                                            <Binding Path="Wait" />
+                                                            <Binding Path="Data.EarlyArrivalWaitHighlightMinutes" Source="{StaticResource vmProxy}" />
+                                                        </MultiBinding>
+                                                    </DataTrigger.Binding>
+                                                    <Setter Property="Background" Value="{StaticResource EarlyArrivalWaitBrush}" />
+                                                    <Setter Property="Foreground" Value="Black" />
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Value="True">
+                                                            <Condition.Binding>
+                                                                <MultiBinding Converter="{StaticResource EarlyArrivalWaitConverter}">
+                                                                    <Binding Path="Wait" />
+                                                                    <Binding Path="Data.EarlyArrivalWaitHighlightMinutes" Source="{StaticResource vmProxy}" />
+                                                                </MultiBinding>
+                                                            </Condition.Binding>
+                                                        </Condition>
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background" Value="{StaticResource EarlyArrivalWaitActiveBrush}" />
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Value="True">
+                                                            <Condition.Binding>
+                                                                <MultiBinding Converter="{StaticResource EarlyArrivalWaitConverter}">
+                                                                    <Binding Path="Wait" />
+                                                                    <Binding Path="Data.EarlyArrivalWaitHighlightMinutes" Source="{StaticResource vmProxy}" />
+                                                                </MultiBinding>
+                                                            </Condition.Binding>
+                                                        </Condition>
+                                                        <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Background" Value="{StaticResource EarlyArrivalWaitActiveBrush}" />
+                                                </MultiDataTrigger>
 
                                                 <!-- Late: the ETA is past the promised hour by more
                                                      than the fifteen-minute window. -->
@@ -372,6 +564,21 @@
                                                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
                                                     <Setter Property="Foreground" Value="Red" />
                                                 </DataTrigger>
+
+                                                <!-- ⚠️ CustomRowStyle caps every row at 30px, which is
+                                                     right for a line of figures and two pixels short of
+                                                     a bar with its hours written under it: the cell was
+                                                     allowed to grow and the row was not, so the labels
+                                                     were sliced off at the ankles. Lifted only while the
+                                                     bar view is on, so the grid of figures keeps the
+                                                     density it was tuned for.
+
+                                                     Sets no Background, so it takes no part in the
+                                                     ordering the warning at the top of this list is
+                                                     about, and is last for the same reason. -->
+                                                <DataTrigger Binding="{Binding Data.AnyRowAsBar, Source={StaticResource vmProxy}}" Value="True">
+                                                    <Setter Property="MaxHeight" Value="46"/>
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </DataGrid.RowStyle>
@@ -379,9 +586,61 @@
                                         <DataGridTemplateColumn Width="Auto">
                                             <DataGridTemplateColumn.HeaderTemplate>
                                                 <DataTemplate>
-                                                    <Button Command="{Binding DataContext.OpenColumnSelectorCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.SelectFieldsToDisplayToolTip, Source={StaticResource vmProxy}}">
-                                                        <materialDesign:PackIcon Kind="Cog" Width="20" Height="20"/>
-                                                    </Button>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button Command="{Binding DataContext.OpenColumnSelectorCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.SelectFieldsToDisplayToolTip, Source={StaticResource vmProxy}}">
+                                                            <materialDesign:PackIcon Kind="Cog" Width="20" Height="20"/>
+                                                        </Button>
+
+                                                        <!-- The whole route to bars and back. Two states,
+                                                             decided by whether ANY stop is showing a bar:
+                                                             one switched on is enough to flip this icon,
+                                                             and pressing it then puts every stop back. So
+                                                             the header always leaves the grid in one
+                                                             state and never needs a third kind of press;
+                                                             the in-between case is told apart by the
+                                                             count in the tooltip and the dot below. -->
+                                                        <Grid>
+                                                            <Button Command="{Binding Data.ToggleAllRowsAsBarCommand, Source={StaticResource vmProxy}}"
+                                                                    Style="{StaticResource TripActionButtonStyle}"
+                                                                    ToolTip="{Binding Data.BarViewToggleTooltip, Source={StaticResource vmProxy}}">
+                                                                <materialDesign:PackIcon Width="20" Height="20">
+                                                                    <materialDesign:PackIcon.Style>
+                                                                        <Style TargetType="materialDesign:PackIcon">
+                                                                            <Setter Property="Kind" Value="ChartBar"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Data.AnyRowAsBar, Source={StaticResource vmProxy}}" Value="True">
+                                                                                    <Setter Property="Kind" Value="TableLarge"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </materialDesign:PackIcon.Style>
+                                                                </materialDesign:PackIcon>
+                                                            </Button>
+
+                                                            <!-- Some but not all: the icon says "back to
+                                                                 the grid" and that would be a half-truth
+                                                                 on its own. -->
+                                                            <Ellipse Width="6" Height="6" Fill="#FFE65100"
+                                                                     HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                     Margin="0,2,2,0"
+                                                                     IsHitTestVisible="False">
+                                                                <Ellipse.Style>
+                                                                    <Style TargetType="Ellipse">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <MultiDataTrigger>
+                                                                                <MultiDataTrigger.Conditions>
+                                                                                    <Condition Binding="{Binding Data.AnyRowAsBar, Source={StaticResource vmProxy}}" Value="True"/>
+                                                                                    <Condition Binding="{Binding Data.AllRowsAsBar, Source={StaticResource vmProxy}}" Value="False"/>
+                                                                                </MultiDataTrigger.Conditions>
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </MultiDataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Ellipse.Style>
+                                                            </Ellipse>
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.HeaderTemplate>
                                             <DataGridTemplateColumn.CellTemplate>
@@ -475,124 +734,599 @@
                                                             </Button>
                                                         </Grid>
 
+                                                        <!-- This one stop as a time bar, read beside the
+                                                             figures it came from. Pull-out and Pull-in
+                                                             have no bar to show: nobody was promised an
+                                                             hour at the garage. -->
+                                                        <Button Command="{Binding Data.ToggleRowAsBarCommand, Source={StaticResource vmProxy}}"
+                                                                CommandParameter="{Binding}"
+                                                                VerticalAlignment="Center">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
+                                                                    <!-- ⚠️ The tooltip belongs in the style with the
+                                                                         icon, not as an attribute on the button. As an
+                                                                         attribute it was a fixed string and kept
+                                                                         offering to show a bar on a row that was
+                                                                         already showing one, while the icon beside it
+                                                                         had correctly turned into "back to the
+                                                                         columns". -->
+                                                                    <Setter Property="ToolTip" Value="{Binding Data.TimelineRowToggleTooltip, Source={StaticResource vmProxy}}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding ShowAsBar}" Value="True">
+                                                                            <Setter Property="ToolTip" Value="{Binding Data.TimelineRowToggleBackTooltip, Source={StaticResource vmProxy}}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-out">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-in">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <materialDesign:PackIcon Width="18" Height="18">
+                                                                <materialDesign:PackIcon.Style>
+                                                                    <Style TargetType="materialDesign:PackIcon">
+                                                                        <Setter Property="Kind" Value="ChartBar"/>
+                                                                        <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding ShowAsBar}" Value="True">
+                                                                                <Setter Property="Kind" Value="TableLarge"/>
+                                                                                <Setter Property="Foreground" Value="#FFE65100"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </materialDesign:PackIcon.Style>
+                                                            </materialDesign:PackIcon>
+                                                        </Button>
+
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Binding="{Binding Name}" Width="250" IsReadOnly="True" Header="{Binding Data.ColumnHeaderName, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Name}"/>
-                                        <DataGridTextColumn Binding="{Binding Pickup, StringFormat=\{0:hh\\:mm\}}" Width="80" Header="{Binding Data.ColumnHeaderPickup, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Pickup}"/>
-                                        <DataGridTextColumn Binding="{Binding Appt, StringFormat=\{0:hh\\:mm\}}" Width="80" Header="{Binding Data.ColumnHeaderAppt, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Appt}"/>
-                                        <DataGridTextColumn Binding="{Binding ETA, StringFormat=\{0:hh\\:mm\}}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderETA, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=ETA}"/>
-                                        <DataGridTemplateColumn Width="25" IsReadOnly="True">
+                                        <DataGridTextColumn Binding="{Binding Name}" Width="250" IsReadOnly="True" Header="{Binding Data.ColumnHeaderName, Source={StaticResource vmProxy}}">
+                                            <!-- Stays through both views: in the bar layout it is
+                                                 what says whose stop each bar belongs to, which is
+                                                 why the bar itself does not carry the name. -->
+                                            <DataGridTextColumn.Visibility>
+                                                <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"
+                                                         Converter="{StaticResource ColumnVisibilityConverter}" ConverterParameter="Name"/>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Pickup, StringFormat=\{0:hh\\:mm\}}" Width="80" Header="{Binding Data.ColumnHeaderPickup, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Pickup">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Appt, StringFormat=\{0:hh\\:mm\}}" Width="80" Header="{Binding Data.ColumnHeaderAppt, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Appt">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <!-- The arrival hour, and what the early-arrival rule cost
+                                             to reach it. A template column rather than a text one
+                                             so the wait can sit against the hour it qualifies: the
+                                             dispatcher reads the two together, or reads a number
+                                             that quietly hides a driver parked outside a house. -->
+                                        <DataGridTemplateColumn Width="130" IsReadOnly="True" Header="{Binding Data.ColumnHeaderETA, Source={StaticResource vmProxy}}">
+                                            <DataGridTemplateColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="ETA">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTemplateColumn.Visibility>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Border Width="20" Height="20" ToolTip="{Binding Name}">
-                                                            <Border.Style>
-                                                                <Style TargetType="Border">
-                                                                    <Setter Property="CornerRadius" Value="10"/>
-                                                                    <Setter Property="Background" Value="Gray"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-out">
-                                                                            <Setter Property="Background" Value="Green"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-in">
-                                                                            <Setter Property="Background" Value="Red"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Pickup}">
-                                                                            <Setter Property="Background" Value="Green"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Dropoff}">
-                                                                            <Setter Property="Background" Value="Red"/>
-                                                                        </DataTrigger>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding ETA, StringFormat=\{0:hh\\:mm\}}" VerticalAlignment="Center"/>
 
-                                                                        <DataTrigger Binding="{Binding Arrive, Converter={StaticResource NullToBoolConverter}}" Value="True">
-                                                                            <Setter Property="Background" Value="Purple" />
-                                                                        </DataTrigger>
-                                                                        
-                                                                        <MultiDataTrigger>
-                                                                            <MultiDataTrigger.Conditions>
-                                                                                <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
-                                                                                <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Pickup}"/>
-                                                                            </MultiDataTrigger.Conditions>
-                                                                            <Setter Property="Background" Value="Black"/>
-                                                                            <Setter Property="CornerRadius" Value="2"/>
-                                                                        </MultiDataTrigger>
-                                                                        <MultiDataTrigger>
-                                                                            <MultiDataTrigger.Conditions>
-                                                                                <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
-                                                                                <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Dropoff}"/>
-                                                                            </MultiDataTrigger.Conditions>
-                                                                            <Setter Property="Background" Value="Black"/>
-                                                                            <Setter Property="CornerRadius" Value="2"/>
-                                                                        </MultiDataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Border.Style>
-                                                            <ContentControl Content="{Binding}">
-                                                                <ContentControl.Resources>
-                                                                    <DataTemplate x:Key="SequenceTemplate">
-                                                                        <TextBlock Text="{Binding Sequence}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                    </DataTemplate>
-                                                                    <DataTemplate x:Key="CarTemplate">
-                                                                        <materialDesign:PackIcon Kind="Car" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Width="18" Height="18"/>
-                                                                    </DataTemplate>
-                                                                    <DataTemplate x:Key="SelectedPickupTemplate">
-                                                                        <materialDesign:PackIcon Kind="ArrowTopRight" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                    </DataTemplate>
-                                                                    <DataTemplate x:Key="SelectedDropoffTemplate">
-                                                                        <materialDesign:PackIcon Kind="ArrowBottomRight" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                    </DataTemplate>
-                                                                </ContentControl.Resources>
-                                                                <ContentControl.Style>
-                                                                    <Style TargetType="ContentControl">
-                                                                        <Setter Property="ContentTemplate" Value="{StaticResource SequenceTemplate}"/>
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding Name}" Value="Pull-out">
-                                                                                <Setter Property="ContentTemplate" Value="{StaticResource CarTemplate}"/>
-                                                                            </DataTrigger>
-                                                                            <DataTrigger Binding="{Binding Name}" Value="Pull-in">
-                                                                                <Setter Property="ContentTemplate" Value="{StaticResource CarTemplate}"/>
-                                                                            </DataTrigger>
-                                                                            <MultiDataTrigger>
-                                                                                <MultiDataTrigger.Conditions>
-                                                                                    <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
-                                                                                    <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Pickup}"/>
-                                                                                </MultiDataTrigger.Conditions>
-                                                                                <Setter Property="ContentTemplate" Value="{StaticResource SelectedPickupTemplate}"/>
-                                                                            </MultiDataTrigger>
-                                                                            <MultiDataTrigger>
-                                                                                <MultiDataTrigger.Conditions>
-                                                                                    <Condition Binding="{Binding IsSelectedForMap}" Value="True"/>
-                                                                                    <Condition Binding="{Binding EventType}" Value="{x:Static models:ScheduleEventType.Dropoff}"/>
-                                                                                </MultiDataTrigger.Conditions>
-                                                                                <Setter Property="ContentTemplate" Value="{StaticResource SelectedDropoffTemplate}"/>
-                                                                            </MultiDataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </ContentControl.Style>
-                                                            </ContentControl>
+                                                        <!-- Only when the driver actually waits. -->
+                                                        <Border Margin="6,0,0,0"
+                                                                Padding="5,1"
+                                                                CornerRadius="8"
+                                                                Background="#FFF3CD"
+                                                                BorderBrush="#FFB300"
+                                                                BorderThickness="1"
+                                                                ToolTip="{Binding WaitExplanation}"
+                                                                Visibility="{Binding Wait, Converter={StaticResource NullToVis}}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <materialDesign:PackIcon Kind="ClockOutline"
+                                                                                         Width="12" Height="12"
+                                                                                         Foreground="#E65100"
+                                                                                         VerticalAlignment="Center"
+                                                                                         Margin="0,0,3,0"/>
+                                                                <TextBlock Text="{Binding Wait, Converter={StaticResource WaitDurationConverter}}"
+                                                                           FontSize="11"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="#E65100"
+                                                                           VerticalAlignment="Center"/>
+                                                            </StackPanel>
                                                         </Border>
-                                                    </Grid>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Binding="{Binding Distance}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderDistance, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Distance}"/>
-                                        <DataGridTextColumn Binding="{Binding Travel}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderTravel, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Travel}"/>
-                                        <DataGridTextColumn Binding="{Binding On}" Width="50" IsReadOnly="True" Header="{Binding Data.ColumnHeaderOn, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=On}"/>
-                                        <DataGridTextColumn Binding="{Binding SpaceType}" Width="80" Header="{Binding Data.ColumnHeaderSpace, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=SpaceTypeName}"/>
-                                        <DataGridTextColumn Binding="{Binding Address}" Width="250" Header="{Binding Data.ColumnHeaderAddress, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Address}"/>
-                                        <DataGridTextColumn Binding="{Binding Comment}" Width="200" IsReadOnly="True" Header="{Binding Data.ColumnHeaderComment, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Comment}"/>
-                                        <DataGridTextColumn Binding="{Binding Phone}" Width="120" IsReadOnly="True" Header="{Binding Data.ColumnHeaderPhone, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Phone}"/>
-                                        <DataGridTextColumn Binding="{Binding Arrive, StringFormat=\{0:hh\\:mm\}}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderArrive, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Arrive}"/>
-                                        <DataGridTextColumn Binding="{Binding Perform, StringFormat=\{0:hh\\:mm\}}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderPerform, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Perform}"/>
-                                        <DataGridTextColumn Binding="{Binding ArriveDist}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderArriveDist, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=ArriveDist}"/>
-                                        <DataGridTextColumn Binding="{Binding PerformDist}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderPerformDist, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=PerformDist}"/>
-                                        <DataGridTextColumn Binding="{Binding Driver}" Width="150" IsReadOnly="True" Header="{Binding Data.ColumnHeaderDriver, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Driver}"/>
-                                        <DataGridTextColumn Binding="{Binding GPSArrive}" Width="120" IsReadOnly="True" Header="{Binding Data.ColumnHeaderGPSArrive, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=GPSArrive}"/>
-                                        <DataGridTextColumn Binding="{Binding Odometer}" Width="100" IsReadOnly="True" Header="{Binding Data.ColumnHeaderOdometer, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=Odometer}"/>
-                                        <DataGridTextColumn Binding="{Binding AuthNo}" Width="120" IsReadOnly="True" Header="{Binding Data.ColumnHeaderAuthNo, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=AuthNo}"/>
-                                        <DataGridTextColumn Binding="{Binding FundingSource}" Header="{Binding Data.ColumnHeaderFundingSource, Source={StaticResource vmProxy}}" Visibility="{Binding Data.ColumnConfigurations, Source={StaticResource vmProxy}, Converter={StaticResource ColumnVisibilityConverter}, ConverterParameter=FundingSource}"/>
+                                        <DataGridTextColumn Binding="{Binding Wait, Converter={StaticResource WaitDurationConverter}}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderWait, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Wait">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+
+                                        <!-- Right where it has always been, after the arrival hour. -->
+                                        <DataGridTemplateColumn Width="25" IsReadOnly="True"
+                                                                CellTemplate="{StaticResource ScheduleMarkerTemplate}"
+                                                                Visibility="{Binding Data.AnyRowAsBar, Source={StaticResource vmProxy}, Converter={StaticResource InverseBoolToVis}}"/>
+
+                                        <!-- The route as time bars.
+                                             Width="*" so a bar spans whatever the window leaves
+                                             between the patient's name and the marker number, and
+                                             every hour on it can be marked and labelled.
+
+                                             It joins the grid the moment ONE stop is switched to a
+                                             bar, and the columns of figures fold away at the same
+                                             time (see DataColumnVisibilityConverter). That is not
+                                             a shortcut: a DataGrid's columns belong to the grid and
+                                             not to the row, so there is no way to give one row a
+                                             different set from its neighbours. Rows that are not
+                                             showing a bar keep their hours here as plain text, so
+                                             no row is ever left blank. -->
+                                        <DataGridTemplateColumn Width="*" IsReadOnly="True"
+                                                                Header="{Binding Data.ColumnHeaderTimeline, Source={StaticResource vmProxy}}"
+                                                                Visibility="{Binding Data.AnyRowAsBar, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}">
+                                            <!-- ⚠️ This one column opts out of two things the rest of
+                                                 the grid wants. CustomCellStyle centres cell content
+                                                 and sizes it to itself, which left the bar as wide as
+                                                 its own hour labels — a stub in the middle of an empty
+                                                 column — and its 30px ceiling cut the labels off at
+                                                 the knees. A bar has to have the width to be to
+                                                 scale, and the height to be read. -->
+                                            <DataGridTemplateColumn.CellStyle>
+                                                <Style TargetType="DataGridCell" BasedOn="{StaticResource ScheduleEventCellStyle}">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                    <Setter Property="MaxHeight" Value="42"/>
+                                                </Style>
+                                            </DataGridTemplateColumn.CellStyle>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Grid VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="8,2,12,2">
+
+                                                        <!-- Pull-out and Pull-in draw no bar: nobody was
+                                                             promised an hour at the garage, so there is
+                                                             no rule to show. Their hour, plainly. -->
+                                                        <TextBlock x:Name="GarageRow"
+                                                                   Text="{Binding ETA, StringFormat=\{0:hh\\:mm\}}"
+                                                                   FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center"
+                                                                   Visibility="Collapsed"/>
+
+                                                        <!-- A stop in the bar layout that the dispatcher
+                                                             has not opened: its three hours, muted. -->
+                                                        <StackPanel x:Name="QuietRow" Orientation="Horizontal" VerticalAlignment="Center" Opacity="0.65">
+                                                            <TextBlock Text="{Binding BarStartLabel}" FontSize="11"/>
+                                                            <TextBlock Text="→" FontSize="11" Margin="5,0"/>
+                                                            <TextBlock Text="{Binding BarEtaLabel}" FontSize="11" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="→" FontSize="11" Margin="5,0"/>
+                                                            <TextBlock Text="{Binding BarEndLabel}" FontSize="11"/>
+                                                        </StackPanel>
+
+                                                        <!-- ⚠️ Background="Transparent" is load-bearing here: a
+                                                             panel with no brush at all is invisible to the mouse,
+                                                             so the gaps where a stretch has no width were holes
+                                                             the pointer fell straight through and the tooltip
+                                                             never opened. Cursor="Help" is the other half of
+                                                             that: it tells the dispatcher there is something to
+                                                             hover before they hover it. And the stock delays —
+                                                             about a second to appear, five to vanish — read as
+                                                             broken on a grid you sweep across. -->
+                                                        <Grid x:Name="BarRow" Visibility="Collapsed"
+                                                              HorizontalAlignment="Stretch"
+                                                              Background="Transparent"
+                                                              Cursor="Help"
+                                                              ToolTipService.InitialShowDelay="250"
+                                                              ToolTipService.BetweenShowDelay="0"
+                                                              ToolTipService.ShowDuration="60000">
+
+                                                            <!-- Everything the bar draws, in figures. The bar
+                                                                 is for the shape of a route at a glance; a
+                                                                 dispatcher deciding whether a stop can be
+                                                                 moved needs the numbers, and should not have
+                                                                 to measure them off the screen by eye.
+
+                                                                 ⚠️ The DataContext is taken from the placement
+                                                                 target by hand. A tooltip is shown in its own
+                                                                 popup tree, and inheritance across that seam
+                                                                 is exactly the kind of thing that silently
+                                                                 leaves every row of this table blank. -->
+                                                            <Grid.ToolTip>
+                                                                <!-- ⚠️ Its own light ground, not the one tooltips get by default here,
+                                                                     which is dark. This is a table of figures with a
+                                                                     colour chip against every line, and the colours are
+                                                                     the ones the bar and the grid use: amber for waiting,
+                                                                     green for driving. Those are chosen to read on a
+                                                                     white row, and on dark grey they stop reading. -->
+                                                                <ToolTip DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                                         Background="White"
+                                                                         Foreground="#FF212121"
+                                                                         BorderBrush="#FFBDBDBD"
+                                                                         BorderThickness="1"
+                                                                         Padding="12,10">
+                                                                    <StackPanel MaxWidth="360">
+                                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <Grid.RowDefinitions>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                            </Grid.RowDefinitions>
+
+                                                                            <!-- Leaving the stop before -->
+                                                                            <Rectangle Grid.Row="0" Grid.Column="0" Width="10" Height="10" Fill="#FF37474F" Margin="0,2,8,2" VerticalAlignment="Center"/>
+                                                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Data.TipDeparture, Source={StaticResource vmProxy}}" Margin="0,2,16,2"/>
+                                                                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding BarStartLabel}" FontWeight="SemiBold" Margin="0,2"/>
+
+                                                                            <!-- The drive itself -->
+                                                                            <Rectangle Grid.Row="1" Grid.Column="0" Width="10" Height="10" Fill="#FF43A047" Margin="0,2,8,2" VerticalAlignment="Center"/>
+                                                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Data.TipDrive, Source={StaticResource vmProxy}}" Margin="0,2,16,2"/>
+                                                                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding BarTravelText}" FontWeight="SemiBold" Margin="0,2"/>
+
+                                                                            <!-- The two lines that only exist when
+                                                                                 the rule holds the vehicle back -->
+                                                                            <Rectangle Grid.Row="2" Grid.Column="0" Width="10" Height="10" Fill="#FFE65100" Margin="0,2,8,2" VerticalAlignment="Center"
+                                                                                       Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+                                                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Data.TipCouldArrive, Source={StaticResource vmProxy}}" Margin="0,2,16,2"
+                                                                                       Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+                                                                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding BarEarliestLabel}" FontWeight="SemiBold" Margin="0,2"
+                                                                                       Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+
+                                                                            <Rectangle Grid.Row="3" Grid.Column="0" Width="10" Height="10" Fill="#FFFFB300" Margin="0,2,8,2" VerticalAlignment="Center"
+                                                                                       Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+                                                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Data.TipWaiting, Source={StaticResource vmProxy}}" Foreground="#FFE65100" FontWeight="SemiBold" Margin="0,2,16,2"
+                                                                                       Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+                                                                            <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Wait, Converter={StaticResource WaitDurationConverter}}" Foreground="#FFE65100" FontWeight="Bold" Margin="0,2"
+                                                                                       Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+
+                                                                            <!-- The hour the column shows -->
+                                                                            <Rectangle Grid.Row="4" Grid.Column="0" Width="10" Height="10" Fill="#FF1B5E20" Margin="0,4,8,2" VerticalAlignment="Center"/>
+                                                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Data.TipEta, Source={StaticResource vmProxy}}" FontWeight="Bold" Margin="0,4,16,2"/>
+                                                                            <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding BarEtaLabel}" FontWeight="Bold" Margin="0,4,0,2"/>
+
+                                                                            <!-- Cushion, or overshoot -->
+                                                                            <Rectangle Grid.Row="5" Grid.Column="0" Width="10" Height="10" Margin="0,2,8,2" VerticalAlignment="Center">
+                                                                                <Rectangle.Style>
+                                                                                    <Style TargetType="Rectangle">
+                                                                                        <Setter Property="Fill" Value="#FFA5D6A7"/>
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding BarIsLate}" Value="True">
+                                                                                                <Setter Property="Fill" Value="#FFB71C1C"/>
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </Rectangle.Style>
+                                                                            </Rectangle>
+                                                                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding BarLastStretchCaption}" TextWrapping="Wrap" Margin="0,2,16,2"/>
+                                                                            <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding BarLastStretchText}" FontWeight="SemiBold" Margin="0,2"/>
+
+                                                                            <!-- What the patient was told -->
+                                                                            <Rectangle Grid.Row="6" Grid.Column="0" Width="10" Height="10" Fill="#FF37474F" Margin="0,2,8,2" VerticalAlignment="Center"/>
+                                                                            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Data.TipPromised, Source={StaticResource vmProxy}}" Margin="0,2,16,2"/>
+                                                                            <TextBlock Grid.Row="6" Grid.Column="2" Text="{Binding BarPromisedLabel}" FontWeight="SemiBold" Margin="0,2"/>
+                                                                        </Grid>
+
+                                                                        <!-- And the whole thing in one sentence,
+                                                                             for the case that is worth explaining. -->
+                                                                        <TextBlock Text="{Binding WaitExplanation}"
+                                                                                   TextWrapping="Wrap"
+                                                                                   Margin="0,10,0,0"
+                                                                                   MaxWidth="340"
+                                                                                   Foreground="#FF5D4037"
+                                                                                   Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+                                                                    </StackPanel>
+                                                                </ToolTip>
+                                                            </Grid.ToolTip>
+
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <!-- The three stretches, side by side, each as wide as
+                                                                 the minutes it takes. -->
+                                                            <Grid Grid.Row="0" Height="18">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="{Binding BarTravelWeight, Converter={StaticResource StarWidthConverter}}"/>
+                                                                    <ColumnDefinition Width="{Binding BarWaitWeight, Converter={StaticResource StarWidthConverter}}"/>
+                                                                    <ColumnDefinition Width="{Binding BarMarginWeight, Converter={StaticResource StarWidthConverter}}"/>
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <!-- Driving -->
+                                                                <Border Grid.Column="0" Background="#FF43A047" CornerRadius="3,0,0,3" Height="11" VerticalAlignment="Center"/>
+                                                                <!-- Standing still, because the rule holds the vehicle back -->
+                                                                <Border Grid.Column="1" Background="#FFFFB300" Height="11" VerticalAlignment="Center"/>
+                                                                <!-- The last stretch: the cushion the rule keeps in
+                                                                     front of the promised hour, or, running late,
+                                                                     the overshoot past it. Same stretch, opposite
+                                                                     meanings, so it changes colour. -->
+                                                                <Border Grid.Column="2" CornerRadius="0,3,3,0" Height="11" VerticalAlignment="Center">
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border">
+                                                                            <Setter Property="Background" Value="#FFA5D6A7"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding BarIsLate}" Value="True">
+                                                                                    <Setter Property="Background" Value="#FFB71C1C"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                </Border>
+
+                                                                <!-- Leaving the stop before -->
+                                                                <Rectangle Grid.Column="0" Width="2" Height="18" Fill="#FF37474F" HorizontalAlignment="Left"/>
+
+                                                                <!-- Where the driver could have been -->
+                                                                <Rectangle Grid.Column="1" Width="2" Height="18" Fill="#FFE65100" HorizontalAlignment="Left"
+                                                                           Visibility="{Binding Wait, Converter={StaticResource NullToVis}}"/>
+
+                                                                <!-- The two ends of the last stretch. The arrival is
+                                                                     always the heavy mark: it is the hour the ETA
+                                                                     column shows and the one every other reading
+                                                                     hangs off. It sits on the left when the vehicle
+                                                                     is early and on the right when it is late; the
+                                                                     promised hour takes the other end. -->
+                                                                <Rectangle Grid.Column="2" Width="3" Height="22" Fill="#FF1B5E20" HorizontalAlignment="Left"
+                                                                           Visibility="{Binding BarIsLate, Converter={StaticResource InverseBoolToVis}}"/>
+                                                                <Rectangle Grid.Column="0" Grid.ColumnSpan="3" Width="2" Height="18" Fill="#FF37474F" HorizontalAlignment="Right"
+                                                                           Visibility="{Binding BarIsLate, Converter={StaticResource InverseBoolToVis}}"/>
+
+                                                                <Rectangle Grid.Column="2" Width="2" Height="18" Fill="#FF37474F" HorizontalAlignment="Left"
+                                                                           Visibility="{Binding BarIsLate, Converter={StaticResource BoolToVis}}"/>
+                                                                <Rectangle Grid.Column="0" Grid.ColumnSpan="3" Width="3" Height="22" Fill="#FFB71C1C" HorizontalAlignment="Right"
+                                                                           Visibility="{Binding BarIsLate, Converter={StaticResource BoolToVis}}"/>
+
+                                                                <!-- How long the driver stands there, inside the
+                                                                     stretch that measures it, when that stretch is
+                                                                     wide enough to hold the words. -->
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding Wait, Converter={StaticResource WaitDurationConverter}}"
+                                                                           FontSize="10" FontWeight="Bold" Foreground="#FF4E342E"
+                                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                           IsHitTestVisible="False"
+                                                                           Visibility="{Binding BarShowsWaitText, Converter={StaticResource BoolToVis}}"/>
+                                                            </Grid>
+
+                                                            <!-- The hours, under the marks they belong to.
+                                                                 ⚠️ Two of them can be minutes apart — an arrival at
+                                                                 10:30 for a pickup promised at 10:30 — and minutes
+                                                                 apart on a bar is pixels apart on screen. An hour
+                                                                 with no room of its own is left out rather than
+                                                                 printed over its neighbour: two hours at the same
+                                                                 spot are not one hour badly drawn, they are a
+                                                                 smudge where a number was needed. Whatever is left
+                                                                 out is in the tooltip, in full. -->
+                                                            <Grid Grid.Row="1" Margin="0,3,0,0" IsHitTestVisible="False">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="{Binding BarTravelWeight, Converter={StaticResource StarWidthConverter}}"/>
+                                                                    <ColumnDefinition Width="{Binding BarWaitWeight, Converter={StaticResource StarWidthConverter}}"/>
+                                                                    <ColumnDefinition Width="{Binding BarMarginWeight, Converter={StaticResource StarWidthConverter}}"/>
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Grid.Column="0" Text="{Binding BarStartLabel}"
+                                                                           Style="{StaticResource TimelineHourStyle}"
+                                                                           HorizontalAlignment="Left"/>
+
+                                                                <TextBlock Grid.Column="1" Text="{Binding BarEarliestLabel}"
+                                                                           Style="{StaticResource TimelineHourStyle}"
+                                                                           Foreground="#FFE65100"
+                                                                           HorizontalAlignment="Left"
+                                                                           Visibility="{Binding BarShowsEarliestLabel, Converter={StaticResource BoolToVis}}"/>
+
+                                                                <TextBlock Grid.Column="2" Text="{Binding BarLeftMarkLabel}"
+                                                                           HorizontalAlignment="Left">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource TimelineHourStyle}">
+                                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                                            <Setter Property="Foreground" Value="#FF1B5E20"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding BarIsLate}" Value="True">
+                                                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                                    <Setter Property="Foreground" Value="#FF546E7A"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+
+                                                                <TextBlock Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding BarRightMarkLabel}"
+                                                                           HorizontalAlignment="Right"
+                                                                           Visibility="{Binding BarShowsRightLabel, Converter={StaticResource BoolToVis}}">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource TimelineHourStyle}">
+                                                                            <Setter Property="Foreground" Value="#FF546E7A"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding BarIsLate}" Value="True">
+                                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                                    <Setter Property="Foreground" Value="#FFB71C1C"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Grid>
+
+                                                        </Grid>
+                                                    </Grid>
+
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding ShowAsBar}" Value="True">
+                                                            <Setter TargetName="BarRow" Property="Visibility" Value="Visible"/>
+                                                            <Setter TargetName="QuietRow" Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-out">
+                                                            <Setter TargetName="GarageRow" Property="Visibility" Value="Visible"/>
+                                                            <Setter TargetName="QuietRow" Property="Visibility" Value="Collapsed"/>
+                                                            <Setter TargetName="BarRow" Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-in">
+                                                            <Setter TargetName="GarageRow" Property="Visibility" Value="Visible"/>
+                                                            <Setter TargetName="QuietRow" Property="Visibility" Value="Collapsed"/>
+                                                            <Setter TargetName="BarRow" Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTextColumn Binding="{Binding Distance}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderDistance, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Distance">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Travel}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderTravel, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Travel">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding On}" Width="50" IsReadOnly="True" Header="{Binding Data.ColumnHeaderOn, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="On">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding SpaceType}" Width="80" Header="{Binding Data.ColumnHeaderSpace, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="SpaceTypeName">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Address}" Width="250" Header="{Binding Data.ColumnHeaderAddress, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Address">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Comment}" Width="200" IsReadOnly="True" Header="{Binding Data.ColumnHeaderComment, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Comment">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Phone}" Width="120" IsReadOnly="True" Header="{Binding Data.ColumnHeaderPhone, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Phone">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Arrive, StringFormat=\{0:hh\\:mm\}}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderArrive, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Arrive">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Perform, StringFormat=\{0:hh\\:mm\}}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderPerform, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Perform">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding ArriveDist}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderArriveDist, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="ArriveDist">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding PerformDist}" Width="80" IsReadOnly="True" Header="{Binding Data.ColumnHeaderPerformDist, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="PerformDist">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Driver}" Width="150" IsReadOnly="True" Header="{Binding Data.ColumnHeaderDriver, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Driver">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding GPSArrive}" Width="120" IsReadOnly="True" Header="{Binding Data.ColumnHeaderGPSArrive, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="GPSArrive">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Odometer}" Width="100" IsReadOnly="True" Header="{Binding Data.ColumnHeaderOdometer, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="Odometer">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding AuthNo}" Width="120" IsReadOnly="True" Header="{Binding Data.ColumnHeaderAuthNo, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="AuthNo">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding FundingSource}" Header="{Binding Data.ColumnHeaderFundingSource, Source={StaticResource vmProxy}}">
+                                            <DataGridTextColumn.Visibility>
+                                                <MultiBinding Converter="{StaticResource DataColumnVisibilityConverter}" ConverterParameter="FundingSource">
+                                                    <Binding Path="Data.ColumnConfigurations" Source="{StaticResource vmProxy}"/>
+                                                    <Binding Path="Data.AnyRowAsBar" Source="{StaticResource vmProxy}"/>
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Visibility>
+                                        </DataGridTextColumn>
+                                        <!-- And in the bar layout, at the far right, where the bars
+                                             end. Same drawing, other end of the row. -->
+                                        <DataGridTemplateColumn Width="25" IsReadOnly="True"
+                                                                CellTemplate="{StaticResource ScheduleMarkerTemplate}"
+                                                                Visibility="{Binding Data.AnyRowAsBar, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                         </DockPanel>
