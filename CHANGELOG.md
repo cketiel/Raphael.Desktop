@@ -3,6 +3,21 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.8.1] - 2026-09-10
+
+⚠️ **`v1.8.0` was tagged and never released.** Its help bundle predated the rewrite below, and a tag
+that does not contain what ships is a tag that lies. The code is identical; only this version was
+distributed.
+
+### Changed
+- The Schedule tab's help is rewritten. The six topics said what the controls were rather than what
+  the screen is for: colours were listed without saying what to do when they appear, the live
+  behaviour was one flat list instead of an answer to "why did this part of my screen move", and each
+  release had bolted its news onto the end. *Schedules — planning the day* is now a tour of the tab
+  with every column and colour that decides something, including the amber waiting row. *Why the
+  screen changes on its own* is organised by region. *How long the driver waits* gains a worked
+  example and what to do about a long wait.
+
 ## [1.8.0] - 2026-09-10
 
 ⚠️ Needs Raphael.Backend deployed with the `EarlyArrivalWait` migration applied. The waiting time
