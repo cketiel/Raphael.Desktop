@@ -3,6 +3,58 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.8.0] - 2026-09-10
+
+⚠️ Needs Raphael.Backend deployed with the `EarlyArrivalWait` migration applied. The waiting time
+is derived by the server; against an older API the figure is simply absent and the rest of the tab
+works as before.
+
+### Added
+- The waiting time the early-arrival rule creates at a pickup is now worked out, stored and shown.
+  A vehicle is never displayed arriving more than a quarter of an hour before the hour the patient
+  was promised - five minutes on a return - and what is not shortened is the drive, so the
+  difference is a driver sitting at a door with the engine off. That figure used to be computed to
+  raise the ETA and then discarded. It now appears as a chip against the arrival hour, as an
+  optional `Wait` column, and as an amber row past a threshold an administrator sets
+  (`Scheduling.EarlyArrivalWaitHighlightMinutes`, 30 by default, API only for now).
+- A timeline view of the route: each stop drawn as a bar to scale - the drive, the wait, and the
+  margin the rule keeps in front of the promised hour - with every hour marked and a full breakdown
+  on hover. Switchable per row or for the whole grid.
+- Reordering stops into a less efficient order is reported instead of passing unremarked: a
+  non-blocking notice names the stops that ended up out of hour, and the order is saved as left.
+  The dispatcher has the last word.
+- Will Call now reaches every open Schedule tab live, both directions - a trip turned into a Will
+  Call and a Will Call activated. Until now only the dispatcher who pressed the button saw it.
+
+### Changed
+- The garage departure hour and the waiting time at each pickup are derived by the server on every
+  change of a route's shape, rather than trusted to whichever client happened to work them out.
+  Paths that never computed them - reassigning a run from the Trips tab, for one - no longer leave
+  the hour describing a route that has ceased to exist.
+- A measured travel time is now filed against the hour the vehicle leaves as well as the two points
+  it runs between, which is how the server files a leg it bought.
+
+### Fixed
+- The garage departure hour was recalculated on screen and never saved. The decision to write it
+  compared the new hour against the row it had just been written into, so a save that never
+  happened could never be retried: the dispatcher read the right departure all day and the driver
+  was handed the wrong one.
+- A trip's dropoff could be dragged in front of its own pickup, and the garage events could be
+  dragged out of position. The check for both existed but never ran: the grid never bound the
+  view model as its drag handler, so the whole of `IDragSource` was dead code.
+- Travel times were bought for the hour the route had *before* the change that moved them, and the
+  client treated a leg as measured for ever once it had been measured once, whatever hour the
+  vehicle now left at. Routing a nine o'clock patient onto a route that used to start at eleven
+  priced the drive in eleven o'clock traffic - and that figure is what the garage hour is derived
+  from, so the error did not stay in the traffic estimate.
+- Routing a trip in front of the whole route wrote an arrival hour chained off the garage hour the
+  route had before it went in front, leaving the row wrong until some later recalculation happened
+  to correct it.
+- The Schedule tab ignored the language switch. Its labels were read once when the tab opened and
+  never again - it is the only screen not built on `BaseViewModel`, which is where every other tab
+  gets that subscription - so half of it stayed in the language loaded at start-up while anything
+  built later came out in the current one.
+
 ## [1.7.0] - 2026-09-09
 
 ### Added

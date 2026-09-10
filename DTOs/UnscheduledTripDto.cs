@@ -30,8 +30,16 @@ namespace Raphael.Desktop.DTOs
         public DateTime Date { get; set; }
         public string CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
-        public TimeSpan? FromTime { get; set; }
-        public TimeSpan? ToTime { get; set; }
+        /// <summary>
+        /// The window the patient was promised. Moves at runtime: turning a trip into a Will
+        /// Call, and activating one, both rewrite it — and another dispatcher's screen has to
+        /// show the new hour without being reloaded.
+        /// </summary>
+        [ObservableProperty]
+        private TimeSpan? _fromTime;
+
+        [ObservableProperty]
+        private TimeSpan? _toTime;
         public string PickupAddress { get; set; }
         public string DropoffAddress { get; set; }
         public string SpaceType { get; set; }
@@ -58,8 +66,15 @@ namespace Raphael.Desktop.DTOs
         /// <remarks>
         /// ⚠️ Read-only from here. It moves through the two Will Call endpoints and
         /// nowhere else; the grid uses it to decide which of the two buttons to offer.
+        ///
+        /// <para>
+        /// Observable because those two buttons are the thing it decides between: a plain
+        /// property changes underneath the row and the grid goes on offering "activate" on a
+        /// trip that is no longer waiting for anybody.
+        /// </para>
         /// </remarks>
-        public bool WillCall { get; set; }
+        [ObservableProperty]
+        private bool _willCall;
 
         /// <summary>
         /// Trip status as the server names it. Moves at runtime: the grid's row style,

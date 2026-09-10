@@ -34,6 +34,31 @@ namespace Raphael.Desktop.Services
         }
 
         /// <summary>
+        /// The running settings the dispatch screen draws itself with, or <c>null</c> when this
+        /// API does not serve them yet.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Never throws. This decides a shade of background, and a screen that refused to open
+        /// a route because it could not read a threshold would be a worse screen than one using
+        /// the built-in default. Callers fall back on their own number.
+        /// </remarks>
+        public async Task<DispatchSettingsDto> GetDispatchSettingsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_endPoint}/dispatch-settings");
+
+                if (!response.IsSuccessStatusCode) return null;
+
+                return await response.Content.ReadFromJsonAsync<DispatchSettingsDto>();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// The two events of one trip, or <c>null</c> when this API does not serve them yet.
         /// </summary>
         /// <remarks>

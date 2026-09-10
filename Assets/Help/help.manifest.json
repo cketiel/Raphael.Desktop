@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.7.0"
+    "Raphael.Desktop": "1.8.0"
   },
-  "builtUtc": "2026-09-09T18:39:13.016Z",
-  "sourceCommit": "98cfc43",
+  "builtUtc": "2026-09-10T09:10:48.507Z",
+  "sourceCommit": "6f156ba",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.7.0",
+      "lastReviewed": "1.8.0",
       "roles": [
         "admin",
         "dispatcher",
@@ -342,7 +342,7 @@
       "id": "desktop/schedules/stop-order",
       "mode": "how-to",
       "since": "1.6.0",
-      "lastReviewed": "1.6.0",
+      "lastReviewed": "1.8.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -351,6 +351,21 @@
       "title": {
         "es": "Cambiar el orden de las paradas",
         "en": "Change the order of the stops"
+      }
+    },
+    {
+      "id": "desktop/schedules/early-arrival",
+      "mode": "explanation",
+      "since": "1.8.0",
+      "lastReviewed": "1.8.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Schedules",
+      "title": {
+        "es": "Cuánto espera el conductor",
+        "en": "How long the driver waits"
       }
     },
     {
@@ -372,7 +387,7 @@
       "id": "desktop/schedules/live-board",
       "mode": "explanation",
       "since": "1.6.0",
-      "lastReviewed": "1.6.0",
+      "lastReviewed": "1.8.0",
       "roles": [
         "admin",
         "dispatcher"

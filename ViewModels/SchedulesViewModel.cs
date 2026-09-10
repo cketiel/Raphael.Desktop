@@ -19,6 +19,7 @@ using Raphael.Desktop.Views.Schedules;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -30,8 +31,20 @@ namespace Raphael.Desktop.ViewModels
 {
     public partial class SchedulesViewModel : ObservableObject, IDragSource, IDropTarget
     {      
-        // Flag to prevent concurrent recalculations.
-        private bool _isRecalculating = false;
+        /// <summary>One recalculation of this route at a time.</summary>
+        /// <remarks>
+        /// ⚠️ A gate and not a flag, because the two callers want opposite things from it. The
+        /// five-second refresh has nothing to lose by skipping a pass — the next one is five
+        /// seconds away — but a recalculation the dispatcher started by dragging a stop carries
+        /// a change that is already on their screen, and a plain <c>if (busy) return;</c>
+        /// swallowed it: the route went back to its old order at the next reload with no error
+        /// and no log. So the dispatcher's call waits its turn and the timer's gives up.
+        /// </remarks>
+        private readonly SemaphoreSlim _recalculationGate = new SemaphoreSlim(1, 1);
+
+        // Whether a recalculation is in flight, for the readers that only need to peek and get
+        // out of the way (the refresh timer, the dispatch board).
+        private volatile bool _isRecalculating;
 
         private bool _isDataLoading = false; // New flag to avoid duplicates
 
@@ -220,6 +233,11 @@ namespace Raphael.Desktop.ViewModels
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
 
+            DismissStopOrderAdvisoryCommand = new RelayCommand(() => StopOrderAdvisory = null);
+
+            ToggleAllRowsAsBarCommand = new RelayCommand(ToggleAllRowsAsBar);
+            ToggleRowAsBarCommand = new RelayCommand<ScheduleDto>(ToggleRowAsBar);
+
             // The counter follows the collection rather than every place that touches it: rows
             // leave from a reload, from a routing, and from a cancellation arriving over the hub.
             UnscheduledTrips.CollectionChanged += (_, __) => UpdateUnscheduledSummary();
@@ -375,6 +393,13 @@ namespace Raphael.Desktop.ViewModels
                 {
                     ColumnConfigurations.Add(config);
                 }
+
+                // ⚠️ And then whatever this build knows about that the saved file does not.
+                // Without this, a column added after a dispatcher first arranged their grid is
+                // invisible to them for ever: the saved list wins whole, and the defaults below
+                // only run for somebody who has never touched the selector. The Wait column
+                // shipped after most dispatchers had already saved a layout.
+                AddMissingKnownColumns();
             }
             else
             {
@@ -385,6 +410,7 @@ namespace Raphael.Desktop.ViewModels
                 ColumnConfigurations.Add(new ColumnConfig { PropertyName = "Pickup", Header = "Pickup", IsVisible = true });
                 ColumnConfigurations.Add(new ColumnConfig { PropertyName = "Appt", Header = "Appt", IsVisible = true });
                 ColumnConfigurations.Add(new ColumnConfig { PropertyName = "ETA", Header = "ETA", IsVisible = true });
+                ColumnConfigurations.Add(new ColumnConfig { PropertyName = "Wait", Header = "Wait", IsVisible = false });
                 ColumnConfigurations.Add(new ColumnConfig { PropertyName = "Distance", Header = "Distance", IsVisible = true });
                 ColumnConfigurations.Add(new ColumnConfig { PropertyName = "Travel", Header = "Travel", IsVisible = true });
                 ColumnConfigurations.Add(new ColumnConfig { PropertyName = "On", Header = "On", IsVisible = true });
@@ -406,6 +432,33 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// Columns this build knows about that a saved layout predates.
+        /// </summary>
+        /// <remarks>
+        /// Appended rather than merged in place: the order of the saved list is the dispatcher's
+        /// arrangement and is not this method's to rewrite. Hidden until somebody asks for it: the
+        /// waiting time already reaches the eye through the chip on the arrival hour and the colour
+        /// of the row, and this grid scrolls sideways as it is.
+        /// </remarks>
+        private void AddMissingKnownColumns()
+        {
+            var known = new[]
+            {
+                new ColumnConfig { PropertyName = "Wait", Header = "Wait", IsVisible = false },
+            };
+
+            foreach (var column in known)
+            {
+                var alreadyThere = ColumnConfigurations.Any(
+                    c => string.Equals(c.PropertyName, column.PropertyName, StringComparison.Ordinal));
+
+                if (alreadyThere) continue;
+
+                ColumnConfigurations.Add(column);
+            }
+        }
+
         public async Task InitializeAsync(DateTime? date = null, VehicleRoute route = null, bool isLiveTracking = false)
         {
             if (IsInitialized) return;
@@ -415,6 +468,10 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 await LoadInitialDataListsAsync();
+
+                // The administrator's threshold for colouring a waiting row. Never throws and
+                // never blocks: it falls back to the built-in default.
+                await LoadDispatchSettingsAsync();
 
                 if (date.HasValue)
                 {
@@ -518,6 +575,11 @@ namespace Raphael.Desktop.ViewModels
 
             Schedules.ReplaceAll(visible);
 
+            // The rows are new objects every time; the bar view lives in the view model.
+            RestoreBarFlags();
+            NotifyBarViewChanged();
+
+            ComputeBarSegments();
             CalculateVisualOffsets();
         }
 
@@ -587,6 +649,8 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 var latestSchedules = await _scheduleService.GetSchedulesAsync(SelectedVehicleRoute.Id, SelectedDate);
+
+                NotePullOutEtaFromServer(latestSchedules);
 
                 // Only events that changed will be updated
                 bool stateChanged = MergeScheduleUpdates(latestSchedules);
@@ -681,6 +745,7 @@ namespace Raphael.Desktop.ViewModels
                     // If it exists, we update its properties.
                     // Since ScheduleDto is an ObservableObject, the UI will react to every change.
                     existingSchedule.ETA = latestSchedule.ETA;
+                    existingSchedule.Wait = latestSchedule.Wait;
                     existingSchedule.Arrive = latestSchedule.Arrive;
                     existingSchedule.Perform = latestSchedule.Perform;
                     existingSchedule.Performed = latestSchedule.Performed;
@@ -846,8 +911,9 @@ namespace Raphael.Desktop.ViewModels
                 var schedules = await _scheduleService.GetSchedulesAsync(SelectedVehicleRoute.Id, SelectedDate);
                                                           
                 _masterSchedules.AddRange(schedules);
+                NotePullOutEtaFromServer(schedules);
                 FilterSchedules();
-              
+
                 // UpdateMapViewForAllPoints();
                 UpdateRouteSummary();
             }
@@ -882,6 +948,10 @@ namespace Raphael.Desktop.ViewModels
                 SelectedUnscheduledTripPoints.Clear();
                 SelectedUnscheduledTrip = null;
 
+                // This runs on a change of route or of day. The notice belonged to the route
+                // that is leaving the screen.
+                StopOrderAdvisory = null;
+
                 // 2. Obtener datos del servidor
                 // Timed one by one and not with a scope around the WhenAll: they run in
                 // parallel, so a single scope would only report the slower of the two and
@@ -903,6 +973,7 @@ namespace Raphael.Desktop.ViewModels
                 using (PerfLog.Measure("Schedule.Bind.Schedules"))
                 {
                     _masterSchedules.AddRange(schedules);
+                    NotePullOutEtaFromServer(schedules);
                     FilterSchedules();
                 }
 
@@ -1054,14 +1125,26 @@ namespace Raphael.Desktop.ViewModels
                 // Si hay un previo, insertamos justo después. Si no, después del Pull-out (que es seq 0).
                 int targetSequence = (previousSchedule != null) ? (previousSchedule.Sequence ?? 0) + 1 : 1;
 
+                // Whether this trip goes in at the head of the route, in front of everything.
+                // It is the case that needs care: the garage hour is about to move to fit this
+                // patient, so the hour it has right now describes a route that is ending.
+                bool insertsAtHead = previousSchedule == null || previousSchedule.Name == "Pull-out";
+
                 double originLat, originLng;
                 TimeSpan previousEta, previousServiceTime;
 
-                if (previousSchedule == null || previousSchedule.Name == "Pull-out")
+                if (insertsAtHead)
                 {
                     originLat = vehicleRoute.GarageLatitude;
                     originLng = vehicleRoute.GarageLongitude;
-                    previousEta = Schedules.FirstOrDefault(s => s.Name == "Pull-out")?.ETA ?? (tripToSchedule.FromTime ?? TimeSpan.Zero) - TimeSpan.FromMinutes(30);
+
+                    // ⚠️ Anchored on the hour the patient was promised, not on the garage hour
+                    // on screen. Pricing the drive against the old departure was buying eleven
+                    // o'clock traffic for a vehicle that, once this nine o'clock patient goes
+                    // in front, leaves at eight — and the figure it bought is what the garage
+                    // hour is then derived from, so the error did not stay in the traffic
+                    // estimate. Recomputed properly below, once the leg is known.
+                    previousEta = tripToSchedule.FromTime ?? TimeSpan.Zero;
                     previousServiceTime = TimeSpan.Zero;
                 }
                 else
@@ -1115,6 +1198,24 @@ namespace Raphael.Desktop.ViewModels
 
                 double pDistance = pickupLeg.DistanceMiles;
                 TimeSpan pTravelTime = TimeSpan.FromSeconds(pickupLeg.DurationInTrafficSeconds ?? pickupLeg.DurationSeconds);
+
+                if (insertsAtHead)
+                {
+                    // Now the drive is known, so the departure is too: the vehicle leaves the
+                    // garage early enough to be at the door on time. This is the same formula
+                    // the server applies to the Pull-out row, on purpose — the hour written
+                    // here and the hour written there have to be one hour, not two that happen
+                    // to be close.
+                    //
+                    // ⚠️ It used to chain off the garage hour the route had before this trip
+                    // went in front of it, so the row was saved wrong and stayed wrong until a
+                    // recalculation happened to run and happened to save.
+                    previousEta = ClampToDayEnds(
+                        (tripToSchedule.FromTime ?? TimeSpan.Zero)
+                        - TimeSpan.FromMinutes(PullOutPreparationMinutes)
+                        - pTravelTime);
+                }
+
                 TimeSpan pCalculatedEta = previousEta + previousServiceTime + pTravelTime;
                 TimeSpan pFinalEta = pCalculatedEta;
                 if (previousSchedule == null || previousSchedule.EventType != ScheduleEventType.Pickup)
@@ -1672,6 +1773,256 @@ namespace Raphael.Desktop.ViewModels
             if (moved) InvalidateMapMarkers();
         }
 
+        #region What the early-arrival rule costs
+
+        /// <summary>
+        /// Minutes of waiting from which a row is coloured. The chip shows any wait at all.
+        /// </summary>
+        /// <remarks>
+        /// An administrator's number, read once when the screen opens. Thirty until the server
+        /// says otherwise: an operation running tight routes may want to see a quarter of an
+        /// hour, one with slack would have every row painted at that setting and would stop
+        /// reading the colour at all.
+        /// </remarks>
+        [ObservableProperty]
+        private int _earlyArrivalWaitHighlightMinutes = 30;
+
+        private async Task LoadDispatchSettingsAsync()
+        {
+            var settings = await _scheduleService.GetDispatchSettingsAsync();
+
+            // Null is an older API or a server that could not be reached. The default stands.
+            if (settings is null || settings.EarlyArrivalWaitHighlightMinutes <= 0) return;
+
+            EarlyArrivalWaitHighlightMinutes = settings.EarlyArrivalWaitHighlightMinutes;
+        }
+
+        #endregion
+
+        #region The route as bars
+
+        /// <summary>
+        /// The stops switched to bars, by schedule id.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The rows themselves cannot hold this across a reload: every load builds fresh
+        /// ScheduleDto objects, so a stop switched to a bar would snap back to figures the next
+        /// time the route refreshed — which, with a drag or a colleague's change, is constantly.
+        /// The ids survive; <see cref="FilterSchedules"/> puts the flag back on the new rows.
+        /// </remarks>
+        private readonly HashSet<int> _rowsAsBar = new HashSet<int>();
+
+        /// <summary>Puts the bar flags back on rows that have just been rebuilt by a load.</summary>
+        private void RestoreBarFlags()
+        {
+            if (_rowsAsBar.Count == 0) return;
+
+            foreach (var stop in Schedules)
+            {
+                stop.ShowAsBar = _rowsAsBar.Contains(stop.Id);
+            }
+        }
+
+        /// <summary>
+        /// Whether any stop is showing its time bar.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ One stop is enough, and it does three things at once: it flips the header icon, it
+        /// brings the bar column into the grid, and it folds the columns of figures away.
+        ///
+        /// <para>
+        /// The third of those is not a choice. A DataGrid's columns belong to the grid and not to
+        /// the row — there is no way to give one row a different set from its neighbours, and no
+        /// column spanning — so a stop can only be shown as a full-width bar by putting the whole
+        /// grid in that shape. Rows that are not showing a bar keep their hours as plain text in
+        /// the bar column, so none of them is left blank.
+        /// </para>
+        /// </remarks>
+        public bool AnyRowAsBar => Schedules.Any(s => s.ShowAsBar);
+
+        /// <summary>
+        /// Whether every stop that can show a bar is showing one.
+        /// </summary>
+        /// <remarks>
+        /// Only used to tell the in-between state apart, so the header can own up to it with a
+        /// dot and a count instead of pretending the whole route is in one view.
+        /// </remarks>
+        public bool AllRowsAsBar => BarCapableRows.Any() && BarCapableRows.All(s => s.ShowAsBar);
+
+        /// <summary>How many stops are showing a bar, for the header's tooltip.</summary>
+        public int RowsAsBarCount => BarCapableRows.Count(s => s.ShowAsBar);
+
+        public int BarCapableRowCount => BarCapableRows.Count();
+
+        /// <summary>
+        /// The stops a bar means anything for.
+        /// </summary>
+        /// <remarks>
+        /// Pull-out and Pull-in are excluded and always show as they are. They are the vehicle
+        /// leaving the garage and coming back: no patient is promised an hour at either, so there
+        /// is no early-arrival rule to draw and nothing to wait for.
+        /// </remarks>
+        private IEnumerable<ScheduleDto> BarCapableRows =>
+            Schedules.Where(s => s.Name != "Pull-out" && s.Name != "Pull-in");
+
+        public string BarViewToggleTooltip => AnyRowAsBar
+            ? string.Format(
+                LocalizationService.Instance["TimelineViewToggleBackTooltip"],
+                RowsAsBarCount,
+                BarCapableRowCount)
+            : LocalizationService.Instance["TimelineViewToggleTooltip"];
+
+        public ICommand ToggleAllRowsAsBarCommand { get; }
+
+        public ICommand ToggleRowAsBarCommand { get; }
+
+        /// <summary>
+        /// Switches every stop to whichever state the header is not already reporting.
+        /// </summary>
+        /// <remarks>
+        /// Two states, with "any" deciding what the header shows: one stop switched on is enough
+        /// to flip the header icon, and pressing the header then puts every stop back. So the
+        /// header always leaves the grid in one state and never needs a third kind of press.
+        /// The mixed case is told apart by the count in its tooltip, not by another behaviour.
+        /// </remarks>
+        private void ToggleAllRowsAsBar()
+        {
+            var target = !AnyRowAsBar;
+
+            _rowsAsBar.Clear();
+
+            foreach (var stop in BarCapableRows)
+            {
+                stop.ShowAsBar = target;
+                if (target) _rowsAsBar.Add(stop.Id);
+            }
+
+            NotifyBarViewChanged();
+        }
+
+        private void ToggleRowAsBar(ScheduleDto stop)
+        {
+            if (stop is null) return;
+            if (stop.Name == "Pull-out" || stop.Name == "Pull-in") return;
+
+            stop.ShowAsBar = !stop.ShowAsBar;
+
+            if (stop.ShowAsBar) _rowsAsBar.Add(stop.Id);
+            else _rowsAsBar.Remove(stop.Id);
+
+            NotifyBarViewChanged();
+        }
+
+        private void NotifyBarViewChanged()
+        {
+            OnPropertyChanged(nameof(AnyRowAsBar));
+            OnPropertyChanged(nameof(AllRowsAsBar));
+            OnPropertyChanged(nameof(RowsAsBarCount));
+            OnPropertyChanged(nameof(BarCapableRowCount));
+            OnPropertyChanged(nameof(BarViewToggleTooltip));
+        }
+
+        #endregion
+
+        #region The order the dispatcher chose
+
+        /// <summary>
+        /// What the dispatcher's own ordering costs, stated once and never enforced.
+        /// </summary>
+        /// <remarks>
+        /// The dispatcher has the last word on the order of a route: they know things the
+        /// schedule does not — a patient who has to be collected before a shift change, a
+        /// wheelchair vehicle that has to be back for a school run — so the order they choose is
+        /// the order that ships and is saved. This says what it costs, and nothing else.
+        ///
+        /// <para>
+        /// The one rule that is not advice is a dropoff before its own pickup, and that is
+        /// refused during the drag, in <see cref="DragOver"/>, not warned about here.
+        /// </para>
+        /// </remarks>
+        [ObservableProperty]
+        private string _stopOrderAdvisory;
+
+        partial void OnStopOrderAdvisoryChanged(string value)
+        {
+            OnPropertyChanged(nameof(HasStopOrderAdvisory));
+        }
+
+        public bool HasStopOrderAdvisory => !string.IsNullOrWhiteSpace(StopOrderAdvisory);
+
+        public ICommand DismissStopOrderAdvisoryCommand { get; }
+
+        /// <summary>
+        /// Names the stops the current order puts out of the hour they were promised, or null
+        /// when the route reads in order.
+        /// </summary>
+        /// <remarks>
+        /// Like is compared with like: pickups against pickups by the hour the patient was told
+        /// a vehicle would come, dropoffs against dropoffs by the hour of the appointment.
+        /// Measuring a pickup window against an appointment hour would flag half of a perfectly
+        /// ordinary route, because the two are not the same promise.
+        /// </remarks>
+        private string BuildStopOrderAdvisory()
+        {
+            var lines = new List<string>();
+
+            CollectOutOfOrderStops(ScheduleEventType.Pickup, stop => stop.Pickup, lines);
+            CollectOutOfOrderStops(ScheduleEventType.Dropoff, stop => stop.Appt, lines);
+
+            if (lines.Count == 0) return null;
+
+            var header = string.Format(
+                LocalizationService.Instance["StopOrderAdvisoryHeader"],
+                lines.Count);
+
+            return header + Environment.NewLine + string.Join(Environment.NewLine, lines);
+        }
+
+        /// <summary>
+        /// Walks one kind of stop in route order and reports every one that sits behind a stop
+        /// promised a later hour.
+        /// </summary>
+        private void CollectOutOfOrderStops(
+            ScheduleEventType eventType,
+            Func<ScheduleDto, TimeSpan?> commitmentOf,
+            List<string> lines)
+        {
+            ScheduleDto latest = null;
+            TimeSpan? latestHour = null;
+
+            foreach (var stop in Schedules)
+            {
+                if (stop.EventType != eventType) continue;
+
+                // A stop already performed is history and one nobody drove to is out of the
+                // chain: neither is something the dispatcher can still reorder.
+                if (stop.Performed) continue;
+                if (stop.Status == "Canceled" && stop.Arrive == null) continue;
+
+                var hour = commitmentOf(stop);
+                if (hour == null) continue;
+
+                if (latestHour.HasValue && hour.Value < latestHour.Value)
+                {
+                    lines.Add(string.Format(
+                        LocalizationService.Instance["StopOrderAdvisoryLine"],
+                        stop.Name,
+                        hour.Value.ToString(@"hh\:mm"),
+                        latest?.Name,
+                        latestHour.Value.ToString(@"hh\:mm")));
+
+                    // The benchmark stays on the latest hour seen: with 07:00, 10:00, 08:00 it
+                    // is the 08:00 that is out of place, not the 10:00 all over again.
+                    continue;
+                }
+
+                latest = stop;
+                latestHour = hour;
+            }
+        }
+
+        #endregion
+
         #region Drag and Drop Implementation
 
         // --- IDragSource: Controls the start of the drag ---
@@ -1685,6 +2036,19 @@ namespace Raphael.Desktop.ViewModels
         public void StartDrag(IDragInfo dragInfo)
         {
             _dragPairedLegIndex = -1;
+
+            // ⚠️ These two lines are what makes a drag happen at all, and they are the whole
+            // reason this method exists as well as the paired-leg work below.
+            //
+            // GongSolutions hands the drag to DragDrop.DefaultDragHandler until a DragHandler is
+            // bound, and that default fills in Data and Effects. The moment this view model was
+            // bound as the handler it took that job over — and this method, which until then had
+            // never run, did not do it. Data stayed null, Effects stayed None, and no stop on the
+            // route could be dragged anywhere.
+            dragInfo.Data = dragInfo.SourceItem;
+            dragInfo.Effects = dragInfo.Data is null
+                ? DragDropEffects.None
+                : DragDropEffects.Move;
 
             if (dragInfo.SourceItem is not ScheduleDto source) return;
 
@@ -1708,6 +2072,54 @@ namespace Raphael.Desktop.ViewModels
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether this drop would still leave a trip's pickup in front of its own dropoff.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Worked out on where the two rows END UP, not on the raw insertion index, and that
+        /// distinction is the whole method. <c>InsertIndex</c> is the slot the row is inserted
+        /// *before*, counted on the list as it stands with the dragged row still in it — so
+        /// dragging a stop one place down reports an index one higher than the place it will
+        /// occupy, and the other leg shifts too when the dragged row passes it.
+        ///
+        /// <para>
+        /// Comparing the raw index refused moves that broke nothing: a pickup sitting two rows
+        /// above its dropoff could not be nudged one row down into the gap between them, which
+        /// is a perfectly ordinary swap. The dispatcher had to do it in two steps — drag the
+        /// row below upwards instead — and the rule looked arbitrary, which is worse than a rule
+        /// that is merely strict.
+        /// </para>
+        /// </remarks>
+        private bool LandsOnTheRightSideOfItsOwnLeg(IDropInfo dropInfo, ScheduleDto sourceItem)
+        {
+            var from = Schedules.IndexOf(sourceItem);
+            if (from < 0) return true;
+
+            // Where the dragged row actually comes to rest: dropping below its own position
+            // closes the gap it leaves behind.
+            var to = dropInfo.InsertIndex > from
+                ? dropInfo.InsertIndex - 1
+                : dropInfo.InsertIndex;
+
+            var pairedAfter = IndexAfterMove(_dragPairedLegIndex, from, to);
+
+            return sourceItem.EventType == ScheduleEventType.Dropoff
+                ? to > pairedAfter
+                : to < pairedAfter;
+        }
+
+        /// <summary>Where a row ends up once another row is lifted out and put back in.</summary>
+        private static int IndexAfterMove(int index, int from, int to)
+        {
+            if (index == from) return to;
+
+            // Everything the dragged row passed over slides one place the other way.
+            if (from < index && index <= to) return index - 1;
+            if (to <= index && index < from) return index + 1;
+
+            return index;
         }
 
         public bool CanStartDrag(IDragInfo dragInfo)
@@ -1765,18 +2177,10 @@ namespace Raphael.Desktop.ViewModels
             // 2 and 3. The two legs of a trip cannot cross: a Dropoff may not land before its
             // Pickup, and a Pickup may not land after its Dropoff. The index of the other leg
             // was resolved in StartDrag; the list does not move until Drop.
-            if (_dragPairedLegIndex >= 0)
+            if (_dragPairedLegIndex >= 0 && !LandsOnTheRightSideOfItsOwnLeg(dropInfo, sourceItem))
             {
-                // dropInfo.InsertIndex gives us the position *before* which it will be inserted.
-                var crossesItsOwnLeg = sourceItem.EventType == ScheduleEventType.Dropoff
-                    ? dropInfo.InsertIndex <= _dragPairedLegIndex
-                    : dropInfo.InsertIndex >= _dragPairedLegIndex;
-
-                if (crossesItsOwnLeg)
-                {
-                    dropInfo.Effects = DragDropEffects.None;
-                    return;
-                }
+                dropInfo.Effects = DragDropEffects.None;
+                return;
             }
 
             // If all validations pass, we display the "Move" visual effect.
@@ -1804,27 +2208,33 @@ namespace Raphael.Desktop.ViewModels
             // 3. Recalcular y Persistir
             IsBusy = true;
             BusyMessage = "Saving route order...";
+
+            // Whatever the last move was told, this move has not been judged yet.
+            StopOrderAdvisory = null;
+
             try
             {
-                // Actualizamos las secuencias según el nuevo orden visual, y las mandamos
-                // TODAS en una sola petición. Antes era un PUT por parada, esperado uno tras
-                // otro contra un servidor que está en internet: mover una parada en una ruta
-                // de veinte costaba veinte viajes de ida y vuelta, y si uno fallaba la ruta
-                // quedaba a medio renumerar.
-                for (int i = 0; i < Schedules.Count; i++)
-                {
-                    Schedules[i].Sequence = i;
-                }
-
-                await PersistSequenceAsync(Schedules);
-
-                // Ahora ejecutamos el cálculo de ETAs basado en este nuevo orden
+                // ⚠️ Las secuencias NO se asignan ni se guardan aquí. Lo hacía, y con los ETAs
+                // todavía viejos: el servidor recibía ese lote, derivaba la hora del garaje con
+                // el tiempo de trayecto del tramo que el arrastre acababa de deshacer, la
+                // escribía mal y se la difundía por RouteChanged a los demás despachadores. La
+                // segunda escritura la corregía un segundo después.
+                //
+                // ChainEtas ya numera (current.Sequence = i) y compara contra el valor previo,
+                // así que al no venir pre-asignadas detecta el cambio de orden y mete esas filas
+                // en el lote. Una sola petición, con las horas ya calculadas, y una sola difusión.
                 await RecalculateScheduleAsync(0);
 
                 // Refrescamos solo la ruta. Reordenar paradas no toca la lista de viajes sin
                 // ruta: recargarla aquí volvía a traer y a repintar los ~400 viajes del día
                 // por cada arrastre.
                 await LoadSchedulesAsync();
+
+                // Judged on the order that was actually saved, and only once it is saved. The
+                // dispatcher is being told what this costs, not asked to reconsider: the move
+                // is already on the route by the time the notice appears, and dismissing it
+                // changes nothing.
+                StopOrderAdvisory = BuildStopOrderAdvisory();
             }
             catch (Exception ex)
             {
@@ -1883,6 +2293,24 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         private readonly Dictionary<int, string> _legKeyByScheduleId = new Dictionary<int, string>();
 
+        /// <summary>How long the vehicle needs at the garage before it can leave.</summary>
+        private const int PullOutPreparationMinutes = 20;
+
+        /// <summary>
+        /// The garage hour as the server last told us it stands, and whether we have been told.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Kept apart from the hour on screen on purpose. The recalculation used to decide
+        /// whether to save the Pull-out by comparing what it had just worked out against the
+        /// row it had just written it into — so a save that never happened could never be
+        /// retried: the next pass computed the same hour, found the screen already showing it,
+        /// and sent nothing. The dispatcher saw the right departure all day and the driver was
+        /// handed the wrong one.
+        /// </remarks>
+        private TimeSpan? _pullOutEtaOnServer;
+
+        private bool _pullOutEtaOnServerKnown;
+
         /// <summary>
         /// Recalculates the route after its <b>shape</b> changed — a stop moved, was added,
         /// removed or cancelled.
@@ -1899,20 +2327,46 @@ namespace Raphael.Desktop.ViewModels
         /// endpoints changed, in a single batched request.
         /// </para>
         /// </remarks>
-        private async Task RecalculateScheduleAsync(int startIndex)
+        /// <param name="waitForTurn">
+        /// True for anything the dispatcher started — a drag, a routing, an unrouting: those
+        /// carry a change already visible on screen and must not be dropped. False for the
+        /// refresh timer, which skips rather than queues.
+        /// </param>
+        private async Task RecalculateScheduleAsync(int startIndex, bool waitForTurn = true)
         {
             // Usamos Schedules (la lista visual ordenada) para el cálculo
-            if (_isRecalculating || Schedules.Count <= 2) return;
+            if (Schedules.Count <= 2) return;
+
+            if (waitForTurn) await _recalculationGate.WaitAsync();
+            else if (!await _recalculationGate.WaitAsync(0)) return;
 
             try
             {
                 _isRecalculating = true;
 
+                // ⚠️ Chained BEFORE anything is priced, and thrown away. Pricing a leg needs the
+                // hour the vehicle leaves for it, and a change of shape is precisely what has
+                // just moved that hour. Asking first meant every leg was measured against the
+                // hour it had before the change: routing a nine o'clock patient onto a route
+                // that used to start at eleven bought the drive to the garage door in eleven
+                // o'clock traffic for a vehicle that now leaves at eight.
+                //
+                // This pass costs nothing — it is arithmetic over the rows already on screen —
+                // and it puts a believable departure hour on every stop for the request below.
+                var baseline = SnapshotRoute();
+
+                ChainEtas(startIndex, null, baseline);
+
                 await FetchChangedTravelTimesAsync(startIndex);
 
-                await ResequenceAndPersistAsync(startIndex);
+                // And again with the hours that came back, which is the pass that saves.
+                await ResequenceAndPersistAsync(startIndex, baseline);
             }
-            finally { _isRecalculating = false; }
+            finally
+            {
+                _isRecalculating = false;
+                _recalculationGate.Release();
+            }
         }
 
         /// <summary>
@@ -1927,15 +2381,23 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         private async Task ResequenceEtasFromAsync(int startIndex)
         {
-            if (_isRecalculating || Schedules.Count <= 2) return;
+            if (Schedules.Count <= 2) return;
+
+            // Skips rather than queues: this is the refresh timer, and the next pass is five
+            // seconds away.
+            if (!await _recalculationGate.WaitAsync(0)) return;
 
             try
             {
                 _isRecalculating = true;
 
-                await ResequenceAndPersistAsync(startIndex);
+                await ResequenceAndPersistAsync(startIndex, SnapshotRoute());
             }
-            finally { _isRecalculating = false; }
+            finally
+            {
+                _isRecalculating = false;
+                _recalculationGate.Release();
+            }
         }
 
         /// <summary>
@@ -1947,6 +2409,10 @@ namespace Raphael.Desktop.ViewModels
 
             var wanted = new List<RouteLegRequestItemDto>();
             var targets = new List<ScheduleDto>();
+
+            // The key each measurement will be filed under, worked out with the request so the
+            // two cannot describe different hours.
+            var keys = new List<string>();
 
             for (int i = from; i < Schedules.Count; i++)
             {
@@ -1961,9 +2427,25 @@ namespace Raphael.Desktop.ViewModels
 
                 if (previous == null) continue;
 
-                var key = LegKeyOf(previous, current);
+                var date = current.Date ?? SelectedDate;
 
-                // Already measured over exactly this pair of points: the road has not moved.
+                // The hour the vehicle is planned to leave the previous stop — the same
+                // expression the chain uses, and by now the caller has already re-chained the
+                // route so it is the hour after the change, not before it.
+                var departure = PlannedDepartureFrom(previous);
+
+                // Falling back to this stop's own scheduled hour keeps the leg in the right hour
+                // of the day when the chain ahead has no estimate at all — otherwise it would be
+                // priced as leaving at midnight.
+                if (departure == TimeSpan.Zero)
+                {
+                    departure = current.Pickup ?? current.Appt ?? TimeSpan.Zero;
+                }
+
+                var key = LegKeyOf(previous, current, date, departure);
+
+                // Already measured over exactly this pair of points, leaving at this hour:
+                // neither the road nor the traffic we asked about has moved.
                 if (current.Travel.HasValue
                     && _legKeyByScheduleId.TryGetValue(current.Id, out var known)
                     && known == key)
@@ -1972,6 +2454,7 @@ namespace Raphael.Desktop.ViewModels
                 }
 
                 targets.Add(current);
+                keys.Add(key);
 
                 wanted.Add(new RouteLegRequestItemDto
                 {
@@ -1980,15 +2463,11 @@ namespace Raphael.Desktop.ViewModels
                     DestLat = current.ScheduleLatitude,
                     DestLng = current.ScheduleLongitude,
 
-                    // The hour the vehicle is planned to leave, not the hour the dispatcher is
-                    // looking at the screen. A route built the evening before was being priced
-                    // against last night's traffic.
-                    Date = current.Date ?? SelectedDate,
-
-                    // Falling back to this stop's own scheduled hour keeps the leg in the right
-                    // hour of the day when the chain ahead has no estimate yet — otherwise it
-                    // would be priced as leaving at midnight.
-                    DepartureTime = previous.ETA ?? current.Pickup ?? current.Appt
+                    // The day the vehicle drives it, not the day the dispatcher is looking at
+                    // the screen. A route built the evening before was being priced against
+                    // last night's traffic.
+                    Date = date,
+                    DepartureTime = departure
                 });
             }
 
@@ -2000,14 +2479,15 @@ namespace Raphael.Desktop.ViewModels
             {
                 var leg = i < legs.Count ? legs[i] : null;
 
-                // ⚠️ A leg nobody could price keeps whatever it had. Writing a zero here would
-                // tell the dispatcher the vehicle arrives the instant it leaves.
+                // ⚠️ A leg nobody could price keeps whatever it had, and stays unrecorded so the
+                // next pass asks again. Writing a zero here would tell the dispatcher the
+                // vehicle arrives the instant it leaves.
                 if (leg == null || !leg.IsUsable) continue;
 
                 targets[i].Distance = leg.DistanceMiles;
                 targets[i].Travel = TimeSpan.FromSeconds(leg.DurationInTrafficSeconds ?? leg.DurationSeconds);
 
-                _legKeyByScheduleId[targets[i].Id] = LegKeyOf(FindValidPrevious(Schedules.IndexOf(targets[i])), targets[i]);
+                _legKeyByScheduleId[targets[i].Id] = keys[i];
             }
         }
 
@@ -2015,20 +2495,86 @@ namespace Raphael.Desktop.ViewModels
         /// Walks the route from <paramref name="startIndex"/>, chaining arrival times and saving
         /// only the rows that actually changed.
         /// </summary>
-        private async Task ResequenceAndPersistAsync(int startIndex)
+        private async Task ResequenceAndPersistAsync(
+            int startIndex,
+            IReadOnlyDictionary<int, (int? Sequence, TimeSpan? Eta, TimeSpan? Travel, double? Distance)> baseline)
         {
-            int from = Math.Max(1, startIndex);
-
-            // Collected as we walk and written once at the end. The walk used to await a PUT
+            // Collected as we chain and written once at the end. The walk used to await a PUT
             // inside itself — twice per stop in the worst case — so a route of twenty stops
             // held the interface for up to forty round trips, and this runs on a timer.
             var moved = new List<ScheduleDto>();
 
+            ChainEtas(startIndex, moved, baseline);
+
+            var sent = await PersistSequenceAsync(moved);
+
+            // Only for what actually went out. If the write threw we never get here, and if it
+            // never left we do not pretend it did: either way the next pass sees the garage
+            // hour as still unsent and tries again.
+            if (!sent) return;
+
+            foreach (var stop in moved)
+            {
+                if (stop.Name != "Pull-out") continue;
+
+                _pullOutEtaOnServer = stop.ETA;
+                _pullOutEtaOnServerKnown = true;
+            }
+        }
+
+        /// <summary>
+        /// Walks the route from <paramref name="startIndex"/>, chaining arrival times off the
+        /// hour the vehicle leaves each stop. Pure arithmetic: no network, no saving.
+        /// </summary>
+        /// <param name="moved">
+        /// Collects the rows whose stored values changed, for the caller to persist. Null for a
+        /// provisional pass whose only job is to give the pricing step a departure hour.
+        /// </param>
+        /// <summary>What the route held before this recalculation touched it.</summary>
+        /// <remarks>
+        /// ⚠️ Taken before the first walk, not read off the rows during the last one, and that is
+        /// the whole point of it. A recalculation walks the route twice — once to give the
+        /// pricing step a departure hour it can believe, once for real — and both walks write
+        /// their answers onto the rows. Asking a row during the second walk what it held before
+        /// therefore returned what the first walk had just put there, so a stop whose hour had
+        /// moved looked untouched and was left out of the batch that gets saved.
+        ///
+        /// <para>
+        /// It cost a reorder its saved order, which was patched on its own and did not go far
+        /// enough. It also cost every stop further down the route its new arrival hour, because
+        /// those stops keep their position when something above them moves: only their hours
+        /// change, and only their hours were being missed. They were recomputed on screen and
+        /// never written, so the grid told one story and the database another — a pickup showing
+        /// 11:38 whose own dropoff, further down, said 10:56.
+        /// </para>
+        /// </remarks>
+        private Dictionary<int, (int? Sequence, TimeSpan? Eta, TimeSpan? Travel, double? Distance)>
+            SnapshotRoute()
+        {
+            var snapshot = new Dictionary<int, (int?, TimeSpan?, TimeSpan?, double?)>(Schedules.Count);
+
+            foreach (var stop in Schedules)
+            {
+                snapshot[stop.Id] = (stop.Sequence, stop.ETA, stop.Travel, stop.Distance);
+            }
+
+            return snapshot;
+        }
+
+        private void ChainEtas(
+            int startIndex,
+            List<ScheduleDto> moved,
+            IReadOnlyDictionary<int, (int? Sequence, TimeSpan? Eta, TimeSpan? Travel, double? Distance)> baseline)
+        {
+            int from = Math.Max(1, startIndex);
+
+            // Before the walk: the first stop's arrival is chained off the garage hour, so that
+            // hour has to be settled first.
+            SyncPullOutEta(moved);
+
             for (int i = from; i < Schedules.Count; i++)
             {
                 var current = Schedules[i];
-
-                var before = (current.Sequence, current.ETA, current.Travel, current.Distance);
 
                 var validPrevious = FindValidPrevious(i) ?? Schedules[0];
 
@@ -2045,23 +2591,19 @@ namespace Raphael.Desktop.ViewModels
                 {
                     TimeSpan travelToCurrent = current.Travel ?? TimeSpan.Zero;
 
-                    if (validPrevious.Name != null && validPrevious.Name.Equals("Pull-out"))
-                    {
-                        var pullOutEta = current.Pickup - (TimeSpan.FromMinutes(20) + travelToCurrent);
+                    // The garage hour used to be derived right here, on the iteration of
+                    // whichever stop happened to follow the Pull-out. It is done in
+                    // SyncPullOutEta now, before this walk starts — see the remarks there.
 
-                        if (validPrevious.ETA != pullOutEta)
-                        {
-                            validPrevious.ETA = pullOutEta;
-                            if (!moved.Contains(validPrevious)) moved.Add(validPrevious);
-                        }
-                    }
+                    // CÁLCULO DE ETA SIGUIENTE. Una sola definición de "a qué hora sale el
+                    // vehículo de la parada anterior", compartida con el paso que compra los
+                    // tramos: si las dos no coinciden, se valora un trayecto a una hora y se
+                    // planifica a otra.
+                    TimeSpan calculatedEta = PlannedDepartureFrom(validPrevious) + travelToCurrent;
 
-                    // CÁLCULO DE ETA SIGUIENTE
-                    TimeSpan prevService = (validPrevious.Name == "Pull-out")
-                        ? TimeSpan.Zero
-                        : TimeSpan.FromMinutes(validPrevious.On ?? 15);
-
-                    TimeSpan calculatedEta = DepartureTimeOf(validPrevious) + prevService + travelToCurrent;
+                    // La hora a la que el conductor podría estar en el punto si condujera y ya
+                    // está. Lo que venga después la sube, nunca la baja.
+                    TimeSpan earliestArrival = calculatedEta;
 
                     // Violaciones de tiempo
                     if (current.EventType == ScheduleEventType.Pickup && current.Pickup.HasValue)
@@ -2071,17 +2613,348 @@ namespace Raphael.Desktop.ViewModels
                     }
 
                     current.ETA = calculatedEta;
+
+                    // ⚠️ La diferencia entre las dos horas es el conductor parado, y es el dato
+                    // que este cálculo llevaba años tirando a la basura. El servidor la deriva
+                    // también y tiene la última palabra; esto es para que la pantalla no espere
+                    // a un viaje de ida y vuelta para decirlo.
+                    current.Wait = WaitFrom(current, earliestArrival, calculatedEta);
                 }
 
-                // Only what moved. This loop runs on a five-second timer with the screen open,
-                // and it used to write every row of the route on every pass.
-                if (before != (current.Sequence, current.ETA, current.Travel, current.Distance))
-                {
-                    if (!moved.Contains(current)) moved.Add(current);
-                }
+                // Only what moved, measured against what the route held before this
+                // recalculation began. This loop runs on a five-second timer with the screen
+                // open, and it used to write every row of the route on every pass.
+                if (moved == null) continue;
+
+                var now = (current.Sequence, current.ETA, current.Travel, current.Distance);
+
+                if (baseline.TryGetValue(current.Id, out var was) && was == now) continue;
+
+                if (!moved.Contains(current)) moved.Add(current);
             }
 
-            await PersistSequenceAsync(moved);
+            // The bars and the sentence that explains them are read straight off the chain, so
+            // they are redrawn with it rather than waiting for the next load.
+            ComputeBarSegments();
+        }
+
+        /// <summary>A time of day with the seconds cut off, not rounded.</summary>
+        /// <remarks>
+        /// Cut and not rounded on purpose: an hour shown as 10:30 must mean the same instant
+        /// wherever it is read, and rounding would make 10:30:31 into 10:31 in one place and
+        /// leave it as 10:30 in another.
+        /// </remarks>
+        private static TimeSpan ToWholeMinutes(TimeSpan value)
+        {
+            return TimeSpan.FromMinutes(Math.Floor(value.TotalMinutes));
+        }
+
+        /// <summary>
+        /// Works out each stop's time bar and, where the driver waits, says so in words.
+        /// </summary>
+        /// <remarks>
+        /// Pure arithmetic over the rows already on screen. Called after anything that can move
+        /// an hour — a load, a filter, a chain — because both the bar and the sentence are read
+        /// straight off the chain and would otherwise describe the route as it was.
+        ///
+        /// <para>
+        /// Pull-out and Pull-in get no bar. They are the vehicle leaving the garage and coming
+        /// back: nobody was promised an hour at either, so there is no rule to draw.
+        /// </para>
+        /// </remarks>
+        private void ComputeBarSegments()
+        {
+            for (int i = 0; i < Schedules.Count; i++)
+            {
+                var stop = Schedules[i];
+
+                if (stop.Name == "Pull-out" || stop.Name == "Pull-in")
+                {
+                    stop.BarTravelWeight = 0;
+                    stop.BarWaitWeight = 0;
+                    stop.BarMarginWeight = 0;
+                    stop.WaitExplanation = null;
+                    continue;
+                }
+
+                // ⚠️ Everything here is cut back to whole minutes before anything is compared
+                // or measured, because whole minutes are what the bar writes on itself. The
+                // chain runs on seconds — Google returns a leg as seconds and the hours are
+                // summed from there — so an arrival at 10:30:34 for a pickup promised at 10:30
+                // is thirty-four seconds late. Printed as hours they read 10:30 and 10:30, and
+                // the bar was calling that stop late by "0 m". Either the drawing agrees with
+                // its own labels or it makes the dispatcher doubt both.
+                var departure = ToWholeMinutes(PlannedDepartureFrom(FindValidPrevious(i)));
+                var eta = ToWholeMinutes(stop.ETA ?? departure);
+
+                var promised = stop.EventType == ScheduleEventType.Pickup ? stop.Pickup : stop.Appt;
+                if (promised.HasValue) promised = ToWholeMinutes(promised.Value);
+
+                // ⚠️ A waiting time that contradicts the arrival is thrown away rather than
+                // drawn. The early-arrival rule can only ever pull an arrival forward to just
+                // before the hour the patient was promised, so a stop reached at or after that
+                // hour cannot have been waiting — and a row cannot be marked as arriving too
+                // early and too late at once.
+                //
+                // The figure comes from the server, which is the one place that derives it, and
+                // this screen is distributed separately from that server: an older API is a
+                // normal state of this ecosystem, not an accident. It does not get to make the
+                // dispatcher read a contradiction.
+                if (stop.Wait.HasValue && promised.HasValue && eta >= promised.Value)
+                {
+                    stop.Wait = null;
+                }
+
+                var wait = ToWholeMinutes(stop.Wait ?? TimeSpan.Zero);
+
+                // Where the driver could have been, which is the arrival before the rule raised
+                // it. Derived rather than stored: one number is enough to keep in the database.
+                var earliestArrival = eta - wait;
+
+                var travel = earliestArrival - departure;
+                if (travel < TimeSpan.Zero) travel = TimeSpan.Zero;
+
+                // The last stretch of the bar is the distance between the arrival and the hour
+                // that was promised — but which of the two comes first decides what it means.
+                // Early, it is the cushion the rule keeps in front of the promise. Late, it is
+                // the overshoot. Same stretch, opposite readings, so the bar has to say which.
+                stop.BarIsLate = promised.HasValue && eta > promised.Value;
+
+                var lastStretch = promised.HasValue
+                    ? (stop.BarIsLate ? eta - promised.Value : promised.Value - eta)
+                    : TimeSpan.Zero;
+
+                stop.BarTravelWeight = travel.TotalMinutes;
+                stop.BarWaitWeight = wait.TotalMinutes;
+                stop.BarMarginWeight = lastStretch.TotalMinutes;
+
+                // A bar with no length at all would collapse and read as a missing row rather
+                // than as a stop with nothing between it and the last one.
+                if (stop.BarTravelWeight + stop.BarWaitWeight + stop.BarMarginWeight <= 0)
+                {
+                    stop.BarTravelWeight = 1;
+                }
+
+                stop.BarStartLabel = departure.ToString(@"hh\:mm");
+                stop.BarEarliestLabel = earliestArrival.ToString(@"hh\:mm");
+                stop.BarEtaLabel = eta.ToString(@"hh\:mm");
+                stop.BarEndLabel = (promised ?? eta).ToString(@"hh\:mm");
+
+                // Whichever way round the last stretch runs, these two are its ends.
+                var etaLabel = eta.ToString(@"hh\:mm");
+                var promisedLabel = promised?.ToString(@"hh\:mm");
+
+                stop.BarLeftMarkLabel = stop.BarIsLate ? promisedLabel : etaLabel;
+                stop.BarRightMarkLabel = stop.BarIsLate ? etaLabel : promisedLabel;
+                stop.BarPromisedLabel = promisedLabel;
+
+                // What each stretch costs, for the tooltip that reads the bar out loud. A bar
+                // shows shape at a glance; the dispatcher who wants the figures should not have
+                // to measure them off the screen with their eye.
+                stop.BarTravelText = FormatWait(travel);
+                stop.BarLastStretchText = FormatWait(lastStretch);
+
+                // What fits on the bar and what has to wait for the tooltip. Measured as a share
+                // of the whole bar and not in minutes, because what decides whether two hours
+                // collide is how many pixels apart their marks are drawn, and that depends on
+                // the length of the bar they are drawn on. Ten minutes is half of a twenty
+                // minute bar and a sliver of a two hour one.
+                var span = stop.BarTravelWeight + stop.BarWaitWeight + stop.BarMarginWeight;
+
+                double Share(double minutes) => span > 0 ? minutes / span : 0;
+
+                stop.BarShowsWaitText = Share(stop.BarWaitWeight) >= 0.25;
+
+                stop.BarShowsEarliestLabel =
+                    stop.BarWaitWeight > 0
+                    && Math.Min(Share(stop.BarTravelWeight), Share(stop.BarWaitWeight)) >= 0.10;
+
+                stop.BarShowsRightLabel = Share(stop.BarMarginWeight) >= 0.10;
+                stop.BarLastStretchCaption = LocalizationService.Instance[
+                    stop.BarIsLate ? "TimelineTipLate" : "TimelineTipMargin"];
+
+                stop.WaitExplanation = wait > TimeSpan.Zero && promised.HasValue
+                    ? string.Format(
+                        LocalizationService.Instance["EarlyArrivalWaitExplanation"],
+                        earliestArrival.ToString(@"hh\:mm"),
+                        eta.ToString(@"hh\:mm"),
+                        promised.Value.ToString(@"hh\:mm"),
+                        FormatWait(wait))
+                    : null;
+            }
+        }
+
+        /// <summary>A wait as a dispatcher would say it: "45 m", "2 h 05 m".</summary>
+        private static string FormatWait(TimeSpan wait)
+        {
+            return wait.TotalHours >= 1
+                ? $"{(int)wait.TotalHours} h {wait.Minutes:00} m"
+                : $"{(int)wait.TotalMinutes} m";
+        }
+
+        /// <summary>
+        /// How long the driver waits at a stop, or null when there is nothing to report.
+        /// </summary>
+        /// <remarks>
+        /// Only pickups, because the early-arrival limit only applies there: a dropoff has no
+        /// such rule — the patient is already in the vehicle — and the garage events have a
+        /// sentinel hour rather than a promise to anybody.
+        ///
+        /// <para>
+        /// Once the driver has arrived, the plan stops being the story: what happened is in
+        /// <c>Arrive</c> and <c>Perform</c>, and the last figure is left standing rather than
+        /// recomputed against hours that have since moved.
+        /// </para>
+        /// </remarks>
+        private static TimeSpan? WaitFrom(ScheduleDto stop, TimeSpan earliestArrival, TimeSpan eta)
+        {
+            if (stop.EventType != ScheduleEventType.Pickup) return null;
+
+            if (stop.Arrive.HasValue) return stop.Wait;
+
+            // ⚠️ Nobody waits past the hour they were promised. Here the gap can only be the
+            // rule's doing — this runs at the point where the rule is applied — but the same
+            // guard is written on the server, which has to work the rule out from stored hours,
+            // and the two must not be able to disagree about what a wait is. A stop cannot be
+            // shown arriving early and arriving late at once.
+            if (stop.Pickup is { } promised && eta >= promised) return null;
+
+            var gap = eta - earliestArrival;
+
+            return gap > TimeSpan.Zero ? gap : (TimeSpan?)null;
+        }
+
+        /// <summary>
+        /// The hour the vehicle is planned to leave a stop for the next one.
+        /// </summary>
+        /// <remarks>
+        /// Arrival plus the time spent there. Nothing is spent at the garage: nobody is served
+        /// at a Pull-out, and the wait before it is already inside the hour itself.
+        ///
+        /// <para>
+        /// ⚠️ One definition, used both to chain the route and to price its legs. They were two
+        /// expressions in two methods, and they were allowed to drift.
+        /// </para>
+        /// </remarks>
+        private static TimeSpan PlannedDepartureFrom(ScheduleDto stop)
+        {
+            if (stop == null) return TimeSpan.Zero;
+
+            var service = stop.Name == "Pull-out"
+                ? TimeSpan.Zero
+                : TimeSpan.FromMinutes(stop.On ?? 15);
+
+            return DepartureTimeOf(stop) + service;
+        }
+
+        /// <summary>
+        /// Re-derives the garage departure hour from the route's first real stop.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Deliberately outside the walk in <see cref="ResequenceAndPersistAsync"/>, and
+        /// deliberately compared against the hour the server has rather than the one on screen.
+        ///
+        /// <para>
+        /// It used to sit inside that walk, on the iteration of whichever stop followed the
+        /// Pull-out, and it wrote the new hour into the row before knowing whether the save
+        /// would carry it. Two failures came out of that, both seen in dispatch. The derivation
+        /// was skipped whenever that stop was already performed or was a cancellation nobody
+        /// drove to, and whenever the walk started further down the route. And once screen and
+        /// database disagreed they could never agree again: the next pass compared the hour it
+        /// had just computed against the one already on screen, found them equal, and sent
+        /// nothing — so routing a six o'clock patient onto a route that began at seven left the
+        /// dispatcher looking at the right departure and the driver holding the wrong one.
+        /// </para>
+        ///
+        /// <para>
+        /// The server derives this hour too, and has the last word. This is not redundant: the
+        /// screen has to show the departure the moment the route changes, without waiting for a
+        /// round trip.
+        /// </para>
+        /// </remarks>
+        private void SyncPullOutEta(List<ScheduleDto> moved)
+        {
+            // ⚠️ Schedules in index order, not _masterSchedules ordered by Sequence. During a
+            // recalculation the index in this list IS the running order — it is what ChainEtas
+            // and FetchChangedTravelTimesAsync both chain against — and a drag reorders exactly
+            // this list. _masterSchedules is left in its loaded order by Drop, so reading the
+            // route from it made this method depend on Drop having renumbered the rows first.
+            var pullOut = Schedules.FirstOrDefault(s => s.Name == "Pull-out");
+
+            // Once the driver has left, the hour is history and Perform holds it. Moving the
+            // estimate now rewrites a departure that already happened.
+            if (pullOut == null || pullOut.Performed) return;
+
+            // ⚠️ And once ANYTHING on the route has been performed, the garage hour stops moving,
+            // even if the Pull-out row itself was never marked. Stated as a rule rather than
+            // relied on as a coincidence: this list is filtered, a performed stop is hidden from
+            // it unless the dispatcher asks, and deriving the departure from the first stop still
+            // *pending* would walk the garage hour forward every time a driver completed
+            // something.
+            if (Schedules.Any(s => s.Performed)) return;
+
+            var firstStop = Schedules.FirstOrDefault(s =>
+                s.TripId.HasValue
+                && s.Name != "Pull-in"
+                // A cancellation nobody drove to sets no hour for the garage. One the driver
+                // did reach is a real stop and stays in the chain.
+                && (s.Status != "Canceled" || s.Arrive != null));
+
+            // An empty route keeps the hour it has: Pull-out and Pull-in outlive the last trip
+            // on purpose, and inventing a departure with nothing to derive it from is worse
+            // than leaving the one already there.
+            if (firstStop == null) return;
+
+            var commitment = firstStop.Pickup ?? firstStop.Appt;
+            if (commitment == null) return;
+
+            // Pinned to the ends of the day exactly as the server pins it. Without the same
+            // clamp on both sides, an early enough trip makes the two disagree for good: the
+            // server stores 00:00, this keeps the negative hour it worked out, and every
+            // refresh sends the same rejected value again.
+            var hour = ClampToDayEnds(
+                commitment.Value
+                - TimeSpan.FromMinutes(PullOutPreparationMinutes)
+                - (firstStop.Travel ?? TimeSpan.Zero));
+
+            // On screen straight away, whatever the server ends up storing.
+            pullOut.ETA = hour;
+
+            // But the decision to send is taken against the server's copy, never against the
+            // line above.
+            if (moved == null) return;
+            if (_pullOutEtaOnServerKnown && _pullOutEtaOnServer == hour) return;
+
+            if (!moved.Contains(pullOut)) moved.Add(pullOut);
+        }
+
+        /// <summary>
+        /// Pins an hour that ran off either end of the day to that end of the day.
+        /// </summary>
+        /// <remarks>
+        /// The garage events have no patient waiting on them, so an hour the <c>time</c> column
+        /// cannot hold is pinned rather than refused. Mirrors <c>ScheduleService.ClampToDayEnds</c>
+        /// on the server, and has to keep mirroring it.
+        /// </remarks>
+        private static TimeSpan ClampToDayEnds(TimeSpan value)
+        {
+            if (value < TimeSpan.Zero) return TimeSpan.Zero;
+
+            var endOfDay = new TimeSpan(23, 59, 59);
+            return value > endOfDay ? endOfDay : value;
+        }
+
+        /// <summary>
+        /// Records the garage hour as it came from the server, so the next recalculation knows
+        /// whether its own answer still has to be written.
+        /// </summary>
+        private void NotePullOutEtaFromServer(IEnumerable<ScheduleDto> fromServer)
+        {
+            var pullOut = fromServer?.FirstOrDefault(s => s.Name == "Pull-out");
+            if (pullOut == null) return;
+
+            _pullOutEtaOnServer = pullOut.ETA;
+            _pullOutEtaOnServerKnown = true;
         }
 
         /// <summary>
@@ -2091,9 +2964,14 @@ namespace Raphael.Desktop.ViewModels
         /// Nothing happens when the list is empty, which is the common case on the refresh
         /// timer: most passes find the route exactly as they left it.
         /// </remarks>
-        private async Task PersistSequenceAsync(IEnumerable<ScheduleDto> stops)
+        /// <returns>
+        /// Whether a request actually went out. Callers that record what the server now holds
+        /// need to tell "nothing to send" apart from "sent", or they end up remembering a write
+        /// that never happened.
+        /// </returns>
+        private async Task<bool> PersistSequenceAsync(IEnumerable<ScheduleDto> stops)
         {
-            if (SelectedVehicleRoute == null) return;
+            if (SelectedVehicleRoute == null) return false;
 
             var payload = stops
                 .Select(s => new ScheduleStopSequenceDto
@@ -2106,7 +2984,7 @@ namespace Raphael.Desktop.ViewModels
                 })
                 .ToList();
 
-            if (payload.Count == 0) return;
+            if (payload.Count == 0) return false;
 
             await _scheduleService.ResequenceAsync(new ScheduleResequenceRequest
             {
@@ -2114,6 +2992,8 @@ namespace Raphael.Desktop.ViewModels
                 Date = SelectedDate,
                 Stops = payload
             });
+
+            return true;
         }
 
         /// <summary>
@@ -2156,16 +3036,38 @@ namespace Raphael.Desktop.ViewModels
             return stop.ETA ?? TimeSpan.Zero;
         }
 
-        /// <summary>The pair of points a travel time was measured over, to four decimals.</summary>
-        private static string LegKeyOf(ScheduleDto from, ScheduleDto to)
+        /// <summary>
+        /// What makes a measured travel time the same measurement: the pair of points, to four
+        /// decimals, and the hour the vehicle leaves for it.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The hour is not decoration. The server files a bought leg under
+        /// <c>(origin, destination, departure hour, weekday or weekend)</c> — see
+        /// <c>RouteCacheKey.BucketFor</c> — so two departures an hour apart are two different
+        /// answers to it, and rightly: the same street at eight and at eleven is not the same
+        /// drive.
+        ///
+        /// <para>
+        /// This key used to carry only the four coordinates. A leg once measured was then
+        /// treated as measured forever, so moving a route from eleven in the morning to eight
+        /// kept the drive it had been quoted for eleven o'clock traffic — and, because the
+        /// travel time feeds the garage hour, that stale figure propagated straight into the
+        /// hour the driver is told to leave.
+        /// </para>
+        /// </remarks>
+        private static string LegKeyOf(ScheduleDto from, ScheduleDto to, DateTime date, TimeSpan departure)
         {
             if (from == null || to == null) return string.Empty;
+
+            var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
 
             return string.Join("|",
                 (int)Math.Round(from.ScheduleLatitude * 10000),
                 (int)Math.Round(from.ScheduleLongitude * 10000),
                 (int)Math.Round(to.ScheduleLatitude * 10000),
-                (int)Math.Round(to.ScheduleLongitude * 10000));
+                (int)Math.Round(to.ScheduleLongitude * 10000),
+                (int)departure.TotalHours,
+                isWeekend ? 1 : 0);
         }
 
         private async Task RecalculateScheduleAsyncOld(int startIndex)
@@ -2968,7 +3870,67 @@ namespace Raphael.Desktop.ViewModels
                 string.Equals(code, NotificationKeys.Events.DriverCompletedTrip, StringComparison.OrdinalIgnoreCase))
             {
                 OnUiThread(() => RefreshRouteForTrip(tripId));
+                return;
             }
+
+            // ===== Will Call, both directions =====
+            //
+            // A trip becoming a Will Call and a Will Call being activated are the same fact to
+            // this screen: the hours the patient was promised have moved, and the row's two
+            // buttons have swapped over. Whoever pressed the button gets a reload out of
+            // ExecuteWillCallAsync; every other dispatcher watching the same day used to get
+            // nothing at all, and went on being offered "activate" on a trip that was no longer
+            // waiting for anybody — or worse, read an hour that had been rewritten.
+            //
+            // ⚠️ Like the driver's flags above, no new event was invented. Both of these are
+            // published already and already arrive over the inbox hub; they were simply not
+            // being listened to here.
+            if (string.Equals(code, NotificationKeys.Events.WillCallCreated, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(code, NotificationKeys.Events.WillCallActivated, StringComparison.OrdinalIgnoreCase))
+            {
+                OnUiThread(() => _ = ApplyWillCallChangeAsync(tripId));
+            }
+        }
+
+        /// <summary>
+        /// Brings one trip's Will Call state up to date on this screen.
+        /// </summary>
+        /// <remarks>
+        /// One trip is read, not the day's backlog: this arrives whenever anybody anywhere
+        /// activates a Will Call, and reloading four hundred rows to change one of them would
+        /// make a busy morning unusable.
+        ///
+        /// <para>
+        /// A failed read is left alone rather than guessed at. The row keeps saying what it last
+        /// knew, which is what it would have said anyway had the notice never arrived.
+        /// </para>
+        /// </remarks>
+        private async Task ApplyWillCallChangeAsync(int tripId)
+        {
+            // It may also be on the route, where the promised hour is what the whole chain of
+            // arrival times is built from.
+            RefreshRouteForTrip(tripId);
+
+            var row = UnscheduledTrips.FirstOrDefault(t => t.Id == tripId);
+            if (row is null) return;
+
+            TripReadDto current;
+
+            try
+            {
+                current = await _tripService.GetTripByIdAsync(tripId);
+            }
+            catch
+            {
+                return;
+            }
+
+            if (current is null) return;
+
+            row.WillCall = current.WillCall;
+            row.FromTime = current.FromTime;
+            row.ToTime = current.ToTime;
+            row.Status = current.Status;
         }
 
         /// <summary>
@@ -3065,6 +4027,42 @@ namespace Raphael.Desktop.ViewModels
         #endregion
 
 
+        /// <summary>
+        /// Re-reads every label on this screen in the language now selected.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This tab did not follow the language at all, and the reason is one word in its
+        /// class declaration: it derives from <c>ObservableObject</c> and every other screen
+        /// derives from <c>BaseViewModel</c>, whose constructor is what subscribes to
+        /// <c>LanguageChanged</c>. Nothing here was ever told to look again, so the labels stayed
+        /// in whatever language was loaded when the tab was opened — while anything built later,
+        /// like the order notice, came out in the language of the moment. Hence half the screen
+        /// in one language and half in the other.
+        ///
+        /// <para>
+        /// The empty name tells WPF that every property changed, which is what re-reads the
+        /// indexer lookups in the region below. What it cannot reach is text already built into
+        /// a string: the hours and captions baked onto each row, and the order notice. Those are
+        /// made again here.
+        /// </para>
+        /// </remarks>
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(string.Empty);
+
+            // Sentences and captions already assembled onto the rows.
+            ComputeBarSegments();
+
+            // The header's tooltip counts stops in words.
+            NotifyBarViewChanged();
+
+            // And the notice about the order, if one is standing.
+            if (HasStopOrderAdvisory)
+            {
+                StopOrderAdvisory = BuildStopOrderAdvisory();
+            }
+        }
+
         #region Translation
 
         // Schedules Grid
@@ -3076,6 +4074,8 @@ namespace Raphael.Desktop.ViewModels
         public string ColumnHeaderPickup => LocalizationService.Instance["Pickup"];
         public string ColumnHeaderAppt => LocalizationService.Instance["Appt"];
         public string ColumnHeaderETA => LocalizationService.Instance["ETA"];
+        public string ColumnHeaderWait => LocalizationService.Instance["Wait"];
+        public string ColumnHeaderTimeline => LocalizationService.Instance["Timeline"];
         public string ColumnHeaderDistance => LocalizationService.Instance["Distance"];
         public string ColumnHeaderTravel => LocalizationService.Instance["Travel"];
         public string ColumnHeaderOn => LocalizationService.Instance["On"];
@@ -3121,6 +4121,19 @@ namespace Raphael.Desktop.ViewModels
         //public string ColumnHeaderDistance => LocalizationService.Instance["Distance"];
         public string ColumnHeaderPickupCity => LocalizationService.Instance["PickupCity"];
         public string ColumnHeaderDropoffCity => LocalizationService.Instance["DropoffCity"];
+
+        // The order the dispatcher chose
+        public string StopOrderAdvisoryDismissText => LocalizationService.Instance["StopOrderAdvisoryDismiss"];
+
+        // The route as bars
+        public string TimelineRowToggleTooltip => LocalizationService.Instance["TimelineRowToggleTooltip"];
+        public string TipDeparture => LocalizationService.Instance["TimelineTipDeparture"];
+        public string TipDrive => LocalizationService.Instance["TimelineTipDrive"];
+        public string TipCouldArrive => LocalizationService.Instance["TimelineTipCouldArrive"];
+        public string TipWaiting => LocalizationService.Instance["TimelineTipWaiting"];
+        public string TipEta => LocalizationService.Instance["TimelineTipEta"];
+        public string TipPromised => LocalizationService.Instance["TimelineTipPromised"];
+        public string TimelineRowToggleBackTooltip => LocalizationService.Instance["TimelineRowToggleBackTooltip"];
 
         // A trip cancelled somewhere else while this tab was open
         public string TripCancelledRowLabel => LocalizationService.Instance["TripCancelledRowLabel"];
