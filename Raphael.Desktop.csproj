@@ -14,7 +14,7 @@
 	<Version>1.9.0</Version>
 	<AssemblyVersion>1.9.0.0</AssemblyVersion>
 	<FileVersion>1.9.0.0</FileVersion>
-	<InformationalVersion>1.9.0-rc.1</InformationalVersion>
+	<InformationalVersion>1.9.0-rc.2</InformationalVersion>
 
 	<!-- Stamped into the assembly at compile time and read back by VersionHelper.Build.
 	     It used to be the file's last-write timestamp, which copying the folder rewrites:
