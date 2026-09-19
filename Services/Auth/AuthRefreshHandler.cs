@@ -60,13 +60,22 @@ namespace Raphael.Desktop.Services.Auth
                 return response;
             }
 
-            var renewed = await TokenRenewal
+            var outcome = await TokenRenewal
                 .EnsureRenewedAsync(tokenSent, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (!renewed)
+            // ⚠️ Only SessionOver ends the session. Unavailable means nothing was decided —
+            // no network, a timeout, a 409 because another request renewed a second ago, a
+            // 500 from a server still starting — and the request simply fails, which the
+            // screen that made it can retry. Before this, ANY failure to renew signalled
+            // expiry and threw the dispatcher back to the sign-in screen mid-assignment.
+            if (outcome != TokenRenewal.RenewalOutcome.Renewed)
             {
-                SessionManager.SignalExpired();
+                if (outcome == TokenRenewal.RenewalOutcome.SessionOver)
+                {
+                    SessionManager.SignalExpired();
+                }
+
                 return response;
             }
 
