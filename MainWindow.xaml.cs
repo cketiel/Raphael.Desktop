@@ -52,6 +52,19 @@ namespace Raphael.Desktop
 
             Title = VersionHelper.WindowTitle;
 
+            // ⚠️ Advice, never a gate: the server answered the request normally and said, in a
+            // header, that this build is below the version it expects. It goes in the title
+            // rather than a dialog because a dispatcher in the middle of a shift cannot act on
+            // it anyway — somebody has to bring them a new build. A modal here would interrupt
+            // the work to deliver news the person cannot use.
+            Services.Auth.ClientVersionHandler.OutdatedDetected += minimum =>
+                Dispatcher.Invoke(() =>
+                {
+                    Title = string.IsNullOrWhiteSpace(minimum)
+                        ? $"{VersionHelper.WindowTitle}  —  UPDATE AVAILABLE"
+                        : $"{VersionHelper.WindowTitle}  —  UPDATE AVAILABLE (server expects {minimum}+)";
+                });
+
             _viewModel = new MainWindowViewModel();
             DataContext = _viewModel;
 
@@ -1051,6 +1064,12 @@ namespace Raphael.Desktop
 
         private void Logout()
         {
+            // Tell the server first: SessionManager.Clear() is about to wipe the credential
+            // this needs. Not awaited -- signing out of the application must never wait on the
+            // network, and the server forgetting the session a second late costs nothing.
+            var refreshToken = SessionManager.RefreshToken;
+            _ = Services.Auth.TokenRenewal.RevokeAsync(refreshToken);
+
             SessionManager.Clear();
 
             var loginWindow = new LoginWindow();

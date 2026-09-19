@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
+using System;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using Raphael.Desktop.Helpers;
-using Raphael.Desktop.Views;
-using System.Windows;
+using Raphael.Desktop.Services.Auth;
 
 namespace Raphael.Desktop.Services
 {
     public static class ApiClientFactory
     {
-        private static readonly string _baseUrl = App.Configuration["ApiAddress:ApiTest"];  // App.Configuration["ApiAddress:ApiTest"]; // App.Configuration["ApiAddress:ApiService"];// App.Configuration["ApiAddress:GatewayService"];
-        private static readonly string _prefix = "api/";
-        private static readonly string URI = _baseUrl + _prefix;
+        private const string Prefix = "api/";
+
+        /// <summary>The API root every service talks to, including the <c>api/</c> segment.</summary>
+        public static string URI => ApiEnvironment.BaseUrl + Prefix;
 
         /// <summary>
         /// One handler for the whole application, and therefore one connection pool.
@@ -25,12 +19,10 @@ namespace Raphael.Desktop.Services
         /// connections to a server that is on the internet and never releasing them. Sharing
         /// the handler keeps the TLS handshakes down to the ones actually needed.
         ///
-        /// The clients on top of it stay per-service on purpose: each one bakes in the bearer
-        /// token that was current when it was built, and that is the behaviour the services
-        /// already rely on.
-        ///
         /// PooledConnectionLifetime is what stops a long-lived pool from pinning a stale DNS
-        /// answer — the reason a static HttpClient is otherwise a bad idea.
+        /// answer — the reason a static HttpClient is otherwise a bad idea. It also matters
+        /// more than it used to: moving the backend is now a CNAME change, and a pool that
+        /// pinned the old address would keep talking to the old server.
         /// </summary>
         private static readonly SocketsHttpHandler SharedHandler = new()
         {
@@ -40,58 +32,39 @@ namespace Raphael.Desktop.Services
             AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
         };
 
-        public static HttpClient Create()
-        {
-            //System.Net.ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-            var client = new HttpClient(SharedHandler, disposeHandler: false)
+        /// <summary>
+        /// Signed-in traffic: identifies the build, carries the token, renews it on expiry.
+        /// </summary>
+        private static readonly HttpMessageHandler AuthenticatedPipeline =
+            new AuthRefreshHandler
             {
-                BaseAddress = new Uri(URI)
+                InnerHandler = new ClientVersionHandler { InnerHandler = SharedHandler }
             };
 
-            if (!string.IsNullOrEmpty(SessionManager.Token))
-            {
-                if (JwtHelper.IsTokenExpired(SessionManager.Token))
-                {
-                    MessageBox.Show("Your session has expired. Please log in again.", "Session expired", MessageBoxButton.OK, MessageBoxImage.Warning);
+        /// <summary>
+        /// Traffic that happens before there is a session — signing in, asking the server its
+        /// version. Same connection pool, no credential.
+        /// </summary>
+        private static readonly HttpMessageHandler AnonymousPipeline =
+            new ClientVersionHandler { InnerHandler = SharedHandler };
 
-                    SessionManager.Clear();
+        /// <summary>
+        /// A client for a signed-in service.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This method used to decide, on every construction, whether the session had
+        /// expired — and if it had, show a message box, close every open window and then return
+        /// the client anyway with no credential. It ran inside the constructor of roughly
+        /// twenty-five services, on whatever thread that constructor happened to be on, and it
+        /// took unsaved work with it. Expiry is now handled per request by
+        /// <see cref="AuthRefreshHandler"/>, which renews instead of ending, and signing out is
+        /// one decision in one place.
+        /// </remarks>
+        public static HttpClient Create() =>
+            new(AuthenticatedPipeline, disposeHandler: false) { BaseAddress = new Uri(URI) };
 
-                    // Open login window
-                    var login = new LoginWindow();
-                    login.Show();
-
-                    foreach (Window window in Application.Current.Windows)
-                    {
-                        // If it is not the login window, it closes
-                        if (window is not LoginWindow)
-                        {
-                            window.Close();
-                        }
-                    }
-
-                    // Close all windows except the main one (if necessary)
-                    /*foreach (Window window in Application.Current.Windows)
-                    {
-                        if (window != Application.Current.MainWindow)
-                        {
-                            window.Close();
-                        }
-                    }
-
-                    // Close the main window (in case we are in MainWindow or another)
-                    Application.Current.MainWindow?.Close();
-                                     
-                
-                    Application.Current.MainWindow = login;*/
-
-                    return client;
-                }
-
-                client.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", SessionManager.Token);
-            }
-
-            return client;
-        }
+        /// <summary>A client for calls made before sign-in.</summary>
+        public static HttpClient CreateAnonymous() =>
+            new(AnonymousPipeline, disposeHandler: false) { BaseAddress = new Uri(ApiEnvironment.BaseUrl) };
     }
 }

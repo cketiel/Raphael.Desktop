@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
 using System;
@@ -38,14 +38,7 @@ namespace Raphael.Desktop.Services
 
         public DispatchBoardService()
         {
-            var baseUrl = App.Configuration["ApiAddress:ApiTest"];
-
-            if (string.IsNullOrWhiteSpace(baseUrl))
-            {
-                throw new InvalidOperationException("ApiAddress:ApiTest is not configured.");
-            }
-
-            var hubUrl = $"{baseUrl.TrimEnd('/')}/hubs/dispatch";
+            var hubUrl = $"{ApiEnvironment.BaseUrl.TrimEnd('/')}/hubs/dispatch";
 
             Trace($"hub url {hubUrl}");
 

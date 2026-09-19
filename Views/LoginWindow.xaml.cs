@@ -19,6 +19,11 @@ namespace Raphael.Desktop.Views
             VersionRun.Text = VersionHelper.Version;
             BuildRun.Text = VersionHelper.Build;
 
+            // Left empty in production on purpose: see VersionHelper.WindowTitle.
+            EnvironmentRun.Text = ApiEnvironment.IsProduction
+                ? string.Empty
+                : $"{ApiEnvironment.Name.ToUpperInvariant()} — {ApiEnvironment.BaseUrl}";
+
             UpdateLoginButtonState();           
         }
 
@@ -111,6 +116,13 @@ namespace Raphael.Desktop.Views
             //StorageHelper.SaveUsername(username);
             SessionManager.IntegratorId = result.IntegratorId; 
             SessionManager.ProviderId = result.ProviderId;
+
+            // What turns an expiry into a renewal instead of an interruption. Absent when
+            // signing in to a server that predates refresh tokens, and the application works
+            // exactly as it used to in that case.
+            SessionManager.RefreshToken = result.RefreshToken;
+            SessionManager.AccessTokenExpiresAtUtc =
+                result.AccessTokenExpiresAtUtc == default ? null : result.AccessTokenExpiresAtUtc;
 
             var mainWindow = new MainWindow();
             mainWindow.WindowState = WindowState.Maximized;
