@@ -3,6 +3,50 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.9.0] - 2026-09-20
+
+⚠️ **This is the version the Azure cutover starts from.** The server it talks to is no longer
+compiled in: it is declared in `appsettings.json`, and moving the office to another backend is an
+edit to that file rather than a new build. Session renewal needs a backend that serves
+`POST /api/Auth/refresh` (Raphael.Backend 1.1.0 or later); against an older one everything else
+works and the session simply ends when its token does, as it did before.
+
+### Added
+- The server is chosen in configuration. `appsettings.json` now declares both endpoints -
+  production and development - and names the one in use; the old `ApiAddress:ApiTest` key, whose
+  name said test and whose value was production, is still read as a fallback so a workstation
+  updated without editing its file still comes up with a server.
+- The window title and the sign-in screen name the environment - and only when it is not
+  production. A warning shown every day stops being read.
+- Every request identifies the application and its version to the server (`X-Client-App`,
+  `X-Client-Version`), sign-in included. Sign-in built its own client, which is why the first call
+  any user made was the one missing from the server's telemetry.
+
+### Changed
+- **The session renews itself and no longer interrupts a shift.** What it replaces ran in the
+  constructor of some twenty-five services: on finding the token expired it showed a message box,
+  closed every window with whatever was unsaved in them, and then made the call anyway without a
+  credential. Renewals are serialised, because a dispatch board on screen gets twenty 401s in the
+  same second and each renewal replaces the refresh token - unserialised, nineteen of them would
+  present a token the server had just retired, which is its definition of theft.
+- A request is not sent when the session is already known to be over, and a token whose stated
+  expiry has passed is renewed before the call rather than after its 401 - one round trip instead
+  of two.
+
+### Fixed
+- **Signing in switched off TLS certificate validation for the entire process.** Every call the
+  application made afterwards accepted any certificate.
+- A 409 or a 500 from the renewal endpoint is no longer read as a dead session. 409 is the answer
+  the server gives when another request renewed seconds earlier - the one failure where a client
+  must not send the user back to the sign-in screen - and this client signed them out on it. The
+  decision is now a single pure function checked case by case against the old behaviour: nine
+  cases, six of which used to end the session and no longer do (409 both ways, 500, 502, 429, 408).
+  A renewal that fails because the network is down leaves the session untouched.
+- The end of a session no longer stacks error boxes behind the notice. Every screen still on
+  display kept calling, each call came back 401, and each surfaced its own dialog - so a dispatcher
+  was told the session had ended and then, on top of it, that loading trips had failed for reasons
+  unspecified.
+
 ## [1.8.1] - 2026-09-10
 
 ⚠️ **`v1.8.0` was tagged and never released.** Its help bundle predated the rewrite below, and a tag
