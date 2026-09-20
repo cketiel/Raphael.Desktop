@@ -193,7 +193,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error reassigning run: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error reassigning run: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 await LoadAllTripsAsync(); // Rollback visual
             }
             finally
@@ -383,7 +383,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error during unschedule: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error during unschedule: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -451,7 +451,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error canceling trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error canceling trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -475,7 +475,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error restoring trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error restoring trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -502,7 +502,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error updating trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error updating trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

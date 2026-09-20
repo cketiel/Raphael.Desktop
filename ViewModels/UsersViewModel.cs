@@ -79,7 +79,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading users: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error loading users: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -113,7 +113,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error preparing to add user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error preparing to add user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -136,7 +136,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error preparing to edit user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error preparing to edit user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -158,7 +158,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error deleting user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error deleting user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

@@ -134,7 +134,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"Error saving user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error saving user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -71,7 +71,7 @@ namespace Raphael.Desktop.Models
                 if (string.IsNullOrEmpty(Logo))
                     return "pack://application:,,,/Assets/no-image.png";
                
-                string baseUrl = App.Configuration["ApiAddress:ApiTest"].TrimEnd('/');
+                string baseUrl = Services.ApiEnvironment.BaseUrl.TrimEnd('/');
                
                 string logoPath = Logo.StartsWith("logos/") ? Logo : $"logos/{Logo}";
 

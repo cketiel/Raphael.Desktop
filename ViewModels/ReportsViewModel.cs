@@ -444,7 +444,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error generating report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error generating report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -606,7 +606,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while generating the Excel report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while generating the Excel report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -731,7 +731,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -817,7 +817,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while generating the report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while generating the report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -892,7 +892,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while generating the GPS report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while generating the GPS report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -975,7 +975,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

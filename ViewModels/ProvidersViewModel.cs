@@ -61,7 +61,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading providers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error loading providers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally { IsLoading = false; }
         }
@@ -89,7 +89,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error saving provider: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error saving provider: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -107,7 +107,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error deleting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error deleting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

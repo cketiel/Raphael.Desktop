@@ -28,7 +28,7 @@ namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
             {               
                 if (string.IsNullOrWhiteSpace(vm.CurrentGroup.Name))
                 {                   
-                    MessageBox.Show(Services.LocalizationService.Instance["NameIsRequiredError"],
+                    Helpers.UiError.Show(Services.LocalizationService.Instance["NameIsRequiredError"],
                                     Services.LocalizationService.Instance["ValidationErrorTitle"],
                                     MessageBoxButton.OK, MessageBoxImage.Error);
                     return;

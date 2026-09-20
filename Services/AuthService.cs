@@ -18,14 +18,20 @@ namespace Raphael.Desktop.Services
 
         public AuthService()
         {
-            _httpClient = new HttpClient();
-            //_baseUri = "API" ?? throw new ApiException("API address configuration is missing.");
-            _baseUri = App.Configuration["ApiAddress:ApiTest"] ?? throw new ApiException("API address configuration is missing.");
+            // The shared pipeline, so signing in uses the same connection pool as everything
+            // else and identifies the build like everything else. It used to build a bare
+            // HttpClient of its own, which is why the first call any user ever makes was the
+            // one call missing from the server's telemetry.
+            _httpClient = ApiClientFactory.CreateAnonymous();
+            _baseUri = ApiEnvironment.BaseUrl;
 
             try
             {
-                _httpClient.BaseAddress = new Uri(_baseUri);
-                _httpClient.Timeout = TimeSpan.FromSeconds(9000); // Set reasonable timeout //30
+                // ⚠️ Was 9000 seconds, next to a comment reading "set reasonable timeout //30".
+                // Two and a half hours of a frozen sign-in window is not a timeout, it is the
+                // absence of one. Sixty is long enough for a cold start and short enough that
+                // somebody can tell something is wrong.
+                _httpClient.Timeout = TimeSpan.FromSeconds(60);
             }
             catch (UriFormatException ex)
             {
@@ -58,8 +64,15 @@ namespace Raphael.Desktop.Services
             var showRealResponse = "Real response";
             try
             {
-                System.Net.ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-
+                // ⚠️ REMOVED, 2026-09-19: this line used to set
+                //   ServicePointManager.ServerCertificateValidationCallback = (...) => true;
+                // It is global and it is permanent. Signing in switched off TLS certificate
+                // validation for the entire process, so from that moment every call the
+                // application made -- patient names, addresses, phone numbers, signatures --
+                // would have accepted any certificate anybody presented. It defeats the point
+                // of HTTPS on exactly the traffic that most needs it, and it is not needed:
+                // api.raphaeldh.com has a real certificate. If a certificate error ever
+                // appears here, the certificate is the thing to fix.
                 using var response = await _httpClient.PostAsJsonAsync("api/auth/login", request);
 
                 if (!response.IsSuccessStatusCode)

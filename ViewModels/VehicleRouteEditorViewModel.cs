@@ -202,8 +202,8 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (ApiException ex)
             {
-                MessageBox.Show($"Saving error: {ex.Message}", "API error", MessageBoxButton.OK, MessageBoxImage.Error);
-                //MessageBox.Show($"Error al guardar: {ex.Message}\nDetalles: {ex.Details}", "Error de API", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Saving error: {ex.Message}", "API error", MessageBoxButton.OK, MessageBoxImage.Error);
+                //Helpers.UiError.Show($"Error al guardar: {ex.Message}\nDetalles: {ex.Details}", "Error de API", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             
         }

@@ -1282,7 +1282,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            Helpers.UiError.Show(
                 ex.Message,
                 LocalizationService.Instance["NotificationArchive"],
                 MessageBoxButton.OK,
@@ -1331,7 +1331,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            Helpers.UiError.Show(
                 ex.Message,
                 LocalizationService.Instance["NotificationAcknowledgeTitle"],
                 MessageBoxButton.OK,
@@ -1465,7 +1465,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            Helpers.UiError.Show(
                 ex.Message,
                 LocalizationService.Instance["NotificationExport"],
                 MessageBoxButton.OK,

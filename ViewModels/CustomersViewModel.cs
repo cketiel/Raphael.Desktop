@@ -184,7 +184,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                         $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
                         "Server error",
                         MessageBoxButton.OK,
@@ -192,7 +192,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                         $"Unexpected error: {ex.Message}",
                         "Error",
                         MessageBoxButton.OK,
@@ -300,7 +300,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"An error occurred while exporting the data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"An error occurred while exporting the data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

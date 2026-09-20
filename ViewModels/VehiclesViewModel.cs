@@ -199,7 +199,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {               
-                MessageBox.Show($"Failed to load data: {ex.Message}\n\n{ex.InnerException?.Message}", "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Failed to load data: {ex.Message}\n\n{ex.InnerException?.Message}", "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {              
@@ -259,7 +259,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                         string.Format(ErrorSavingVehicle, ex.Message),
                         ErrorTitle,
                         MessageBoxButton.OK,
@@ -338,12 +338,12 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                             string.Format(LocalizationService.Instance["ErrorDeletingVehicle"], ex.Message), // ej: "Error deleting vehicle: {0}"
                             ErrorTitle,
                             MessageBoxButton.OK,
                             MessageBoxImage.Error);
-                    //MessageBox.Show($"Error deleting vehicle: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    //Helpers.UiError.Show($"Error deleting vehicle: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -451,7 +451,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An unexpected error occurred during export: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An unexpected error occurred during export: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

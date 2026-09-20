@@ -112,7 +112,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not load required data for the form: {ex.Message}", "Loading Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Could not load required data for the form: {ex.Message}", "Loading Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -167,7 +167,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while saving: {ex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while saving: {ex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

@@ -115,6 +115,9 @@
             <LineBreak/>
             <Run x:Name="BuildRun"/>
             <LineBreak/>
+            <!-- Only filled in when this build is not pointed at production. -->
+            <Run x:Name="EnvironmentRun" FontWeight="Bold" Foreground="#C62828"/>
+            <LineBreak/>
             <Run Text="© Raphael Ecosystem"/>   
         </TextBlock>
     </Grid>

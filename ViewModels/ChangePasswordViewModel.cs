@@ -42,7 +42,7 @@ namespace Raphael.Desktop.ViewModels
         {
             if (NewPassword != ConfirmPassword)
             {
-                MessageBox.Show("The new password and confirmation password do not match.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show("The new password and confirmation password do not match.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -62,7 +62,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"Error changing password: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error changing password: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

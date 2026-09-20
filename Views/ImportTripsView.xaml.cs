@@ -152,7 +152,7 @@ namespace Raphael.Desktop.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     string.Format(LocalizationService.Instance["import.export.Failed"], ex.Message),
                     LocalizationService.Instance["import.ExportFailed"],
                     MessageBoxButton.OK,

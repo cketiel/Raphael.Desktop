@@ -39,16 +39,7 @@ namespace Raphael.Desktop.Services
 
         public NotificationSignalRService()
         {
-            var baseUrl =
-                App.Configuration["ApiAddress:ApiTest"];
-
-            if (string.IsNullOrWhiteSpace(baseUrl))
-            {
-                throw new InvalidOperationException(
-                    "ApiAddress:ApiTest is not configured.");
-            }
-
-            baseUrl = baseUrl.TrimEnd('/');
+            var baseUrl = ApiEnvironment.BaseUrl.TrimEnd('/');
 
             var hubUrl =
                 $"{baseUrl}/hubs/notifications"; // app.MapHub<NotificationHub>("/hubs/notifications"); 

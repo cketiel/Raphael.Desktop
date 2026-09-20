@@ -428,6 +428,11 @@ namespace Raphael.Desktop.ViewModels
             Application.Current.Dispatcher.Invoke(
                 () =>
                 {
+                // Tell the server first: SessionManager.Clear() is about to wipe the credential
+                // this needs. Not awaited -- signing out of the application must never wait on the
+                // network, and the server forgetting the session a second late costs nothing.
+                var refreshToken = SessionManager.RefreshToken;
+                _ = Services.Auth.TokenRenewal.RevokeAsync(refreshToken);
                     SessionManager.Clear();
                     var loginWindow =
                         new LoginWindow();

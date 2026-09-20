@@ -64,7 +64,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"An error occurred while loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -81,7 +81,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"An error occurred while loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }*/
 

@@ -121,12 +121,12 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                             string.Format(LocalizationService.Instance["ErrorDeletingVehicle"], ex.Message), // ej: "Error deleting role: {0}"
                             ErrorTitle,
                             MessageBoxButton.OK,
                             MessageBoxImage.Error);
-                    //MessageBox.Show($"Error deleting vehicle: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    //Helpers.UiError.Show($"Error deleting vehicle: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

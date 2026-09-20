@@ -156,14 +156,14 @@ namespace Raphael.Desktop.ViewModels
                     }
                     else
                     {
-                        MessageBox.Show("No se pudo cancelar la ruta. Revisa la consola para más detalles.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Helpers.UiError.Show("No se pudo cancelar la ruta. Revisa la consola para más detalles.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }*/
 
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show($"Error canceling: {ex.Message}", "API error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    //MessageBox.Show($"Error al eliminar: {ex.Message}\nDetalles: {ex.Details}", "Error de API", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error canceling: {ex.Message}", "API error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    //Helpers.UiError.Show($"Error al eliminar: {ex.Message}\nDetalles: {ex.Details}", "Error de API", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

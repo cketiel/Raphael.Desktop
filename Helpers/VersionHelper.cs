@@ -28,8 +28,20 @@ public static class VersionHelper
         }
     }
 
+    /// <summary>
+    /// Title for every window: the build, and the environment when it is not production.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Nothing is appended when this IS production, and that is the point. A warning that
+    /// shows on every screen every day stops being read, and then the one machine that is
+    /// quietly pointed at DEV looks exactly like the twenty that are not. A workstation on DEV
+    /// writes real trips into the wrong database and nothing about it appears broken.
+    /// CLIENT_CONFIG_POLICY.md section 2.3.
+    /// </remarks>
     public static string WindowTitle =>
-        $"Raphael Desktop v{Version}";
+        Services.ApiEnvironment.IsProduction
+            ? $"Raphael Desktop v{Version}"
+            : $"Raphael Desktop v{Version}  —  {Services.ApiEnvironment.Name.ToUpperInvariant()}";
 
     /// <summary>
     /// The day this build was compiled, as the project file stamped it. "—" if absent.

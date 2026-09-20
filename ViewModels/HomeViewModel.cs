@@ -2307,7 +2307,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (ApiException ex)
             {
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
                     "Error del servidor",
                     MessageBoxButton.OK,
@@ -2315,7 +2315,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     $"Error inesperado: {ex.Message}",
                     "Error",
                     MessageBoxButton.OK,
@@ -2387,7 +2387,7 @@ namespace Raphael.Desktop.ViewModels
             catch (Exception ex)
             {
 
-                MessageBox.Show($"An error occurred while loading trips: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while loading trips: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -2786,7 +2786,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (ApiException ex)
             {
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
                     "Error del servidor",
                     MessageBoxButton.OK,
@@ -2794,7 +2794,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     $"Error inesperado: {ex.Message}",
                     "Error",
                     MessageBoxButton.OK,
@@ -2825,7 +2825,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error updating trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error updating trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -2849,7 +2849,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error canceling trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error canceling trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -2883,11 +2883,11 @@ namespace Raphael.Desktop.ViewModels
                 catch (ApiException ex)
                 {
                     // Other API errors (400, 404, 500)
-                    MessageBox.Show($"Server error ({ex.StatusCode}): {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Server error ({ex.StatusCode}): {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 catch (Exception ex) // Connection errors or unexpected
                 {
-                    MessageBox.Show($"Error restoring trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); // Unexpected error
+                    Helpers.UiError.Show($"Error restoring trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); // Unexpected error
                 }
             }
         }
