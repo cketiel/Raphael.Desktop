@@ -231,7 +231,7 @@ namespace Raphael.Desktop.Services
                     //(apiEx.StatusCode == System.Net.HttpStatusCode.BadRequest && apiEx.ErrorDetails != null && apiEx.ErrorDetails.Contains("already exists")))
                     /*catch (ApiException ex)
                     {
-                        MessageBox.Show(
+                        Helpers.UiError.Show(
                             $"Error {ex.StatusCode}:\n{ex.ErrorDetails}",
                             "Error del servidor",
                             MessageBoxButton.OK,
@@ -240,7 +240,7 @@ namespace Raphael.Desktop.Services
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(
+                        Helpers.UiError.Show(
                             $"Error inesperado: {ex.Message}",
                             "Error",
                             MessageBoxButton.OK,

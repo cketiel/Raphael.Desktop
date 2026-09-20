@@ -43,6 +43,35 @@ namespace Raphael.Desktop.Helpers
         public static bool CanRenew => !string.IsNullOrEmpty(RefreshToken);
 
         /// <summary>
+        /// True from the moment the session is known to be over until somebody signs in again.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// ⚠️ Not the same as <see cref="IsAuthenticated"/>, and not the same as the one-shot
+        /// guard inside <see cref="SignalExpired"/>, which is reset by <see cref="Clear"/>
+        /// within the same breath. This one stays true across the whole collapse.
+        /// </para>
+        /// <para>
+        /// It exists for one purpose: when a session ends, every call already in flight fails
+        /// at once, and each one used to put its own error box on screen behind the "please
+        /// sign in again" message. A dispatcher got told the session had ended and then told
+        /// that loading trips had failed with an unspecified error, which is true, useless,
+        /// and alarming. <c>UiError</c> reads this and stays quiet.
+        /// </para>
+        /// </remarks>
+        public static bool HasEnded { get; private set; }
+
+        /// <summary>
+        /// Lets error messages speak again. Called when somebody starts signing in.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ At the START of the attempt and not after it succeeds, so that anything raised
+        /// while signing in is seen. A mark left standing would swallow the next real failure
+        /// on the theory that it belonged to a session that ended minutes ago.
+        /// </remarks>
+        public static void ClearEndedMark() => HasEnded = false;
+
+        /// <summary>
         /// Raised once when the session cannot be renewed and the user has to sign in again.
         /// </summary>
         /// <remarks>
@@ -64,6 +93,10 @@ namespace Raphael.Desktop.Helpers
         {
             // Twenty parallel calls all get a 401 within the same second. Without this the user
             // is told twenty times.
+            // Set before the one-shot guard, and deliberately outside it: every one of the
+            // twenty parallel calls must see it, not just the first one through.
+            HasEnded = true;
+
             if (System.Threading.Interlocked.Exchange(ref _expiredSignalled, 1) != 0)
             {
                 return;

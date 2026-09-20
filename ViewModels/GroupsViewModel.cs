@@ -71,7 +71,7 @@ namespace Raphael.Desktop.ViewModels
             catch (Exception ex)
             {              
                 Console.WriteLine($"Error loading groups: {ex.Message}");
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     string.Format(LocalizationService.Instance["ErrorLoadingData"], ex.Message), // ej: "Error al cargar datos: {0}"
                     ErrorTitle,
                     MessageBoxButton.OK,
@@ -106,7 +106,7 @@ namespace Raphael.Desktop.ViewModels
                 catch (Exception ex)
                 {                   
                     Console.WriteLine($"Error adding group: {ex.Message}");                   
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                         string.Format(ErrorAddingGroupText, ex.Message),
                         ErrorTitle,
                         MessageBoxButton.OK,
@@ -138,7 +138,7 @@ namespace Raphael.Desktop.ViewModels
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Error deleting group: {ex.Message}");
-                        MessageBox.Show(
+                        Helpers.UiError.Show(
                             string.Format(LocalizationService.Instance["ErrorDeletingGroup"], ex.Message), // ej: "Error al eliminar el grupo: {0}"
                             ErrorTitle,
                             MessageBoxButton.OK,

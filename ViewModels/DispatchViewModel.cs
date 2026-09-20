@@ -560,7 +560,7 @@ namespace Raphael.Desktop.ViewModels
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error restoring trip: {ex.Message}");
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                         $"Error restoring trip: {ex.Message}",
                         "Error",
                         MessageBoxButton.OK,
@@ -598,7 +598,7 @@ namespace Raphael.Desktop.ViewModels
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error canceling trip: {ex.Message}");
-                    MessageBox.Show(
+                    Helpers.UiError.Show(
                         string.Format(LocalizationService.Instance["ErrorCancelingTrip"], ex.Message), // ej: "Error al cancelar el viaje: {0}"
                         ErrorTitle,
                         MessageBoxButton.OK,
@@ -661,7 +661,7 @@ namespace Raphael.Desktop.ViewModels
             catch (Exception ex)
             {
                
-                MessageBox.Show($"An error occurred while loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"An error occurred while loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {

@@ -61,7 +61,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"Could not load units: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Could not load units: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -95,7 +95,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"Error saving item: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error saving item: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

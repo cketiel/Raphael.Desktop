@@ -1,4 +1,4 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using Microsoft.Win32;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
@@ -79,7 +79,7 @@ namespace Raphael.Desktop.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Helpers.UiError.Show(
                     LocalizationService.Instance["home.ExportFailed"] + ex.Message,
                     LocalizationService.Instance["home.ExportTitle"],
                     MessageBoxButton.OK,

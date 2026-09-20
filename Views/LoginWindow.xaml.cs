@@ -68,6 +68,10 @@ namespace Raphael.Desktop.Views
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
+            // Anything that failed with the previous session has had its say by now. From
+            // here on, an error box is about THIS attempt and must be visible.
+            SessionManager.ClearEndedMark();
+
             // Reset UI state
             ErrorMessageText.Visibility = Visibility.Collapsed;
             LoginProgress.Visibility = Visibility.Visible;

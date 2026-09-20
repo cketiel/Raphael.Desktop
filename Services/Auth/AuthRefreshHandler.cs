@@ -32,6 +32,68 @@ namespace Raphael.Desktop.Services.Auth
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
+            //
+            // Asked before it is sent, not discovered afterwards.
+            //
+            // When a session is over, every screen still on display keeps calling. Each call
+            // used to travel to the server, come back 401, and surface as its own error box
+            // behind the "please sign in again" message -- a dispatcher was told the session
+            // had ended and then that loading trips had failed with an unspecified error.
+            // Nothing was broken. The credential had simply run out, and the application went
+            // and asked anyway.
+            //
+            // So: a request that cannot succeed is not sent. No round trip, no failure, and
+            // nothing for a screen to report.
+            //
+            if (SessionManager.HasEnded)
+            {
+                return new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                {
+                    RequestMessage = request,
+                    ReasonPhrase = "The session has ended; this request was not sent."
+                };
+            }
+
+            //
+            // The token's own expiry, which the server stated at sign-in, rather than waiting
+            // for a 401 to find out. Renewing here costs one call instead of two, and where
+            // renewal is impossible it ends the session before a screen can report a failure.
+            //
+            // ⚠️ Harmless and idle under the current Desktop policy, where the access token
+            // outlives the session and never expires while the application is open. It is
+            // here for every other policy, and for the day this one changes.
+            //
+            if (SessionManager.AccessTokenExpiresAtUtc is { } expiresAt &&
+                expiresAt <= DateTime.UtcNow &&
+                !string.IsNullOrEmpty(SessionManager.Token))
+            {
+                if (!SessionManager.CanRenew)
+                {
+                    SessionManager.SignalExpired();
+
+                    return new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                    {
+                        RequestMessage = request,
+                        ReasonPhrase = "The access token had expired and cannot be renewed."
+                    };
+                }
+
+                var ahead = await TokenRenewal
+                    .EnsureRenewedAsync(SessionManager.Token, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (ahead == TokenRenewal.RenewalOutcome.SessionOver)
+                {
+                    SessionManager.SignalExpired();
+
+                    return new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                    {
+                        RequestMessage = request,
+                        ReasonPhrase = "The session has ended; this request was not sent."
+                    };
+                }
+            }
+
             var tokenSent = SessionManager.Token;
 
             if (!string.IsNullOrEmpty(tokenSent))

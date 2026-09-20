@@ -60,7 +60,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (ApiException ex)
             {
-                MessageBox.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show($"Error loading data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -80,7 +80,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show($"Error saving the new Space Type: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error saving the new Space Type: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -104,7 +104,7 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (ApiException ex)
                 {
-                    MessageBox.Show($"Error deleting Space Type: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show($"Error deleting Space Type: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
