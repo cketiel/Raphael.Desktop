@@ -338,6 +338,43 @@
                                                  Width="27"
                                                  Height="27"/>
                     </Button>
+                    <!-- Drivers waiting for a call back. Next to the bell and apart from it: these
+                         are not notices somebody has not read, they are people on the road waiting
+                         for the office to phone them, and the count is the whole office's. -->
+                    <Grid Width="52"
+                          Height="60"
+                          Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+
+                        <Button x:Name="CallRequestsButton"
+                                Command="{Binding OpenCallRequestsCommand}"
+                                Style="{StaticResource NotificationButtonStyle}"
+                                ToolTip="{Binding CallRequestsTooltip}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+
+                            <materialDesign:PackIcon Kind="PhoneInTalkOutline"
+                                                     Width="26"
+                                                     Height="26"/>
+                        </Button>
+
+                        <Border Width="21"
+                                Height="21"
+                                CornerRadius="11"
+                                Background="#EA8600"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,7,0,0"
+                                Visibility="{Binding CallRequestsBadgeVisibility}">
+
+                            <TextBlock Text="{Binding CallRequestsWaiting}"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+
                     <!-- Notifications -->
                     <Grid Width="58"
                           Height="60"

@@ -228,6 +228,61 @@ public sealed class NotificationToastViewModel
             _onActionRequired?.Invoke();
     }
 
+    /// <summary>Metadata key that ties a card to a driver's call request.</summary>
+    public const string CallRequestIdKey = "CallRequestId";
+
+    /// <summary>
+    /// A card about a driver's call request: same lanes, sound and mute as any notice, but opening
+    /// it goes to the call queue rather than to the inbox.
+    /// </summary>
+    public void ShowCallRequest(NotificationDto card, Action open)
+    {
+        if (card is null || Preferences.IsMuted)
+            return;
+
+        var level = NotificationAlertLevels.For(card);
+
+        var lane = level == NotificationAlertLevel.ActionRequired
+            ? Floating
+            : Inline;
+
+        var item = new NotificationToastItemViewModel(
+            card,
+            level,
+            _text,
+            shown => lane.Remove(shown),
+            _ => open?.Invoke());
+
+        var isNew = lane.Add(item);
+
+        if (isNew && Preferences.ShouldSound(level))
+            NotificationAlertPreferences.Play(level);
+
+        if (isNew && level == NotificationAlertLevel.ActionRequired)
+            _onActionRequired?.Invoke();
+    }
+
+    /// <summary>
+    /// Takes down every card about one call request: somebody took it or closed it, or a newer
+    /// card is about to replace it. An alert must not keep asking for what is already handled.
+    /// </summary>
+    public void RemoveCallRequest(int callRequestId)
+    {
+        var key = callRequestId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        foreach (var lane in new[] { Inline, Floating })
+        {
+            var stale = lane.Items
+                .Where(item => item.Dto.Metadata is not null &&
+                               item.Dto.Metadata.TryGetValue(CallRequestIdKey, out var id) &&
+                               id == key)
+                .ToList();
+
+            foreach (var item in stale)
+                lane.Remove(item);
+        }
+    }
+
     public void Mute(TimeSpan span)
     {
         Preferences.MuteFor(span);

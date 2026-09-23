@@ -63,4 +63,18 @@ namespace Raphael.Desktop.DTOs
         /// </summary>
         public DateTime AtUtc { get; set; }
     }
+
+    /// <summary>
+    /// A driver's call request changed. Carries the driver's and the route's names (staff data) and
+    /// no patient data. <see cref="Change"/> is one of <see cref="CallRequestChanges"/>.
+    /// </summary>
+    public class CallRequestChangedMessage
+    {
+        public string Change { get; set; } = string.Empty;
+
+        /// <summary>Who caused it. Nobody is alerted about what they just did themselves.</summary>
+        public int? ByUserId { get; set; }
+
+        public CallRequestSummaryDto Request { get; set; } = new();
+    }
 }

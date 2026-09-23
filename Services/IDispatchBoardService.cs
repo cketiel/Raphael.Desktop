@@ -18,6 +18,14 @@ namespace Raphael.Desktop.Services
 
         event EventHandler<VehiclePositionMessage>? VehiclePosition;
 
+        event EventHandler<CallRequestChangedMessage>? CallRequestChanged;
+
+        /// <summary>
+        /// The connection came back. Anything missed while it was down is lost, so a screen that
+        /// keeps state reloads it here.
+        /// </summary>
+        event EventHandler? Reconnected;
+
         HubConnectionState State { get; }
 
         Task StartAsync();
@@ -27,6 +35,9 @@ namespace Raphael.Desktop.Services
 
         /// <summary>Listen to one route: its order, its hours and its vehicle.</summary>
         Task WatchRouteAsync(int vehicleRouteId, DateTime date);
+
+        /// <summary>Listen to the drivers' call-back queue. The server only allows office staff.</summary>
+        Task WatchCallRequestsAsync();
 
         Task StopAsync();
     }

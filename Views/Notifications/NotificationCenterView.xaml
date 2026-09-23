@@ -4,6 +4,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             xmlns:local="clr-namespace:Raphael.Desktop.Views.Notifications"
              helpers:HelpAssist.TopicId="desktop/notifications/center"
              Height="Auto"
              Width="Auto">
@@ -287,6 +288,25 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Drivers waiting for a call back: somebody on the road with a problem. -->
+                    <Button Command="{Binding SelectCallRequestsCommand}" Cursor="Hand" Margin="0 0 8 0"
+                            Visibility="{Binding HasCallRequestsWaiting, Converter={StaticResource BoolToVis}}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="#FFF4E5" BorderBrush="#F9AB00" BorderThickness="1"
+                                        CornerRadius="12" Padding="10 2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="PhoneInTalk" Width="15" Height="15"
+                                                                 VerticalAlignment="Center" Foreground="#B06000" />
+                                        <TextBlock Text="{Binding CallRequestsWaitingLabel}" Margin="6 0 0 0"
+                                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Foreground="#5F3B00" />
+                                    </StackPanel>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <Border Background="{StaticResource AccentSoft}" CornerRadius="12" Padding="10 3" Margin="0 0 8 0">
                         <TextBlock Text="{Binding InProgressLabel}" FontSize="12" VerticalAlignment="Center"
                                    Foreground="{StaticResource AccentDeep}" />
@@ -305,7 +325,7 @@
                          materialDesign:HintAssist.Hint="{Binding SearchHint}"
                          MinWidth="180" MaxWidth="360" Margin="20 0"
                          HorizontalAlignment="Right" VerticalAlignment="Center"
-                         Visibility="{Binding IsListing, Converter={StaticResource BoolToVis}}" />
+                         Visibility="{Binding IsNotificationListing, Converter={StaticResource BoolToVis}}" />
 
                 <Button Grid.Column="2"
                         Command="{Binding ToggleWindowCommand}"
@@ -339,6 +359,52 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
+
+                <DockPanel>
+
+                <!-- The drivers' call-back queue. First in the strip because it is the one where
+                     somebody is waiting on the other end, and apart from the tabs below because
+                     its rows are shared requests, not notices. -->
+                <Button DockPanel.Dock="Left" VerticalAlignment="Top"
+                        Cursor="Hand" Margin="0 0 10 6" Background="Transparent" BorderThickness="0"
+                        Command="{Binding SelectCallRequestsCommand}"
+                        Visibility="{Binding HasCallRequests, Converter={StaticResource BoolToVis}}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Chip" CornerRadius="14" Padding="12 6"
+                                    Background="#FFF4E5" BorderBrush="#F9AB00" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon x:Name="ChipIcon" Kind="PhoneInTalk"
+                                                             Width="15" Height="15" VerticalAlignment="Center"
+                                                             Margin="0 0 6 0" Foreground="#B06000" />
+                                    <TextBlock x:Name="ChipText" Text="{Binding CallRequestsTabHeader}"
+                                               VerticalAlignment="Center" Foreground="#5F3B00" FontWeight="SemiBold" />
+                                    <Border x:Name="Badge" Background="{StaticResource Danger}"
+                                            CornerRadius="8" MinWidth="16" Height="16"
+                                            Margin="6 0 0 0" Padding="4 0" VerticalAlignment="Center"
+                                            Visibility="{Binding HasCallRequestsWaiting, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock x:Name="BadgeText" Text="{Binding CallRequestsWaiting}" Foreground="White"
+                                                   FontSize="10" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Chip" Property="Background" Value="#FFE8C2" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsCallRequestsSelected}" Value="True">
+                                    <Setter TargetName="Chip" Property="Background" Value="#B06000" />
+                                    <Setter TargetName="Chip" Property="BorderBrush" Value="#8A4B00" />
+                                    <Setter TargetName="ChipIcon" Property="Foreground" Value="White" />
+                                    <Setter TargetName="ChipText" Property="Foreground" Value="White" />
+                                    <Setter TargetName="Badge" Property="Background" Value="White" />
+                                    <Setter TargetName="BadgeText" Property="Foreground" Value="#B3261E" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
 
                 <!-- Tabs as a wrapping strip: eight of them do not fit on one line on a
                      small monitor, and a clipped label is a label nobody can read. -->
@@ -414,8 +480,12 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Toolbar: bulk actions on the left, the page counter on the right. -->
-                <Grid Grid.Row="1" Margin="0 2 0 4">
+                </DockPanel>
+
+                <!-- Toolbar: bulk actions on the left, the page counter on the right. The call
+                     queue has its own, inside its panel. -->
+                <Grid Grid.Row="1" Margin="0 2 0 4"
+                      Visibility="{Binding IsNotificationListing, Converter={StaticResource BoolToVis}}">
 
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -508,9 +578,16 @@
             <!-- ===================== The list ===================== -->
             <Grid Grid.Row="3" Margin="12 0 12 0">
 
-                <TextBlock Text="{Binding EmptyListText}" HorizontalAlignment="Center"
-                           VerticalAlignment="Center" Opacity="0.5" TextWrapping="Wrap"
-                           Visibility="{Binding SelectedTab.HasRows, Converter={StaticResource InverseBoolToVis}}" />
+                <Grid Visibility="{Binding IsNotificationListing, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding EmptyListText}" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Opacity="0.5" TextWrapping="Wrap"
+                               Visibility="{Binding SelectedTab.HasRows, Converter={StaticResource InverseBoolToVis}}" />
+                </Grid>
+
+                <!-- The call queue takes the place of the inbox while its chip is selected. -->
+                <local:CallRequestsPanel DataContext="{Binding CallRequests}"
+                                         Margin="0 0 0 8"
+                                         Visibility="{Binding Data.IsCallRequestsSelected, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}" />
 
                 <ListBox x:Name="InboxList"
                          ItemsSource="{Binding SelectedTab.Items}"
@@ -521,7 +598,7 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          MouseDoubleClick="InboxList_MouseDoubleClick"
                          KeyDown="InboxList_KeyDown"
-                         Visibility="{Binding IsListing, Converter={StaticResource BoolToVis}}">
+                         Visibility="{Binding IsNotificationListing, Converter={StaticResource BoolToVis}}">
 
                     <ListBox.ItemTemplate>
                         <DataTemplate>

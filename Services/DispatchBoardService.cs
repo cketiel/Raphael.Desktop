@@ -28,11 +28,14 @@ namespace Raphael.Desktop.Services
         private string? _watchedDay;
         private int? _watchedRouteId;
         private string? _watchedRouteDay;
+        private bool _watchingCallRequests;
 
         public event EventHandler<TripRoutedMessage>? TripRouted;
         public event EventHandler<TripUnroutedMessage>? TripUnrouted;
         public event EventHandler<RouteChangedMessage>? RouteChanged;
         public event EventHandler<VehiclePositionMessage>? VehiclePosition;
+        public event EventHandler<CallRequestChangedMessage>? CallRequestChanged;
+        public event EventHandler? Reconnected;
 
         public HubConnectionState State => _connection.State;
 
@@ -59,6 +62,7 @@ namespace Raphael.Desktop.Services
             {
                 Trace("reconnected, asking for the groups again");
                 await RestoreWatchesAsync();
+                Reconnected?.Invoke(this, EventArgs.Empty);
             };
 
             _connection.Closed += ex =>
@@ -138,11 +142,27 @@ namespace Raphael.Desktop.Services
             await SafeInvokeAsync("WatchRoute", vehicleRouteId, day);
         }
 
+        public async Task WatchCallRequestsAsync()
+        {
+            if (_watchingCallRequests) return;
+
+            _watchingCallRequests = true;
+
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"call requests queued, connection is {_connection.State}");
+                return;
+            }
+
+            await SafeInvokeAsync("WatchCallRequests");
+        }
+
         public async Task StopAsync()
         {
             _watchedDay = null;
             _watchedRouteId = null;
             _watchedRouteDay = null;
+            _watchingCallRequests = false;
 
             try
             {
@@ -183,6 +203,13 @@ namespace Raphael.Desktop.Services
                     Trace($"<- VehiclePosition route {m?.VehicleRouteId}");
                     VehiclePosition?.Invoke(this, m);
                 });
+
+            _connection.On<CallRequestChangedMessage>(
+                "CallRequestChanged", m =>
+                {
+                    Trace($"<- CallRequestChanged {m?.Change} request {m?.Request?.Id}");
+                    CallRequestChanged?.Invoke(this, m);
+                });
         }
 
         private async Task RestoreWatchesAsync()
@@ -194,6 +221,9 @@ namespace Raphael.Desktop.Services
 
             if (_watchedRouteId.HasValue && _watchedRouteDay != null)
                 await SafeInvokeAsync("WatchRoute", _watchedRouteId.Value, _watchedRouteDay);
+
+            if (_watchingCallRequests)
+                await SafeInvokeAsync("WatchCallRequests");
         }
 
         private async Task SafeInvokeAsync(string method, params object?[] args)

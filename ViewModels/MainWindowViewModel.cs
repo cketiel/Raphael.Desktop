@@ -6,6 +6,7 @@ using Raphael.Desktop.Commands;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.CallRequests;
 using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.Views;
 
@@ -54,6 +55,8 @@ namespace Raphael.Desktop.ViewModels
         public ICommand SelectionChangedCommand { get; }
 
         public ICommand OpenNotificationCenterCommand { get; }
+
+        public ICommand OpenCallRequestsCommand { get; }
 
         #region Translation
 
@@ -213,6 +216,46 @@ namespace Raphael.Desktop.ViewModels
         #endregion
 
 
+        #region Drivers' call requests
+
+        // The queue lives in CallRequestBoard, owned by the main window. This only draws the
+        // header counter next to the bell and opens the Calls tab.
+
+        private CallRequestBoard? _callBoard;
+
+        private Action? _openCallRequests;
+
+        /// <summary>Drivers waiting for somebody in the office to call them back.</summary>
+        public int CallRequestsWaiting => _callBoard?.WaitingCount ?? 0;
+
+        public Visibility CallRequestsBadgeVisibility =>
+            CallRequestsWaiting > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        public string CallRequestsTooltip =>
+            string.Format(
+                LocalizationService.Instance["CallRequestsWaitingLabel"],
+                CallRequestsWaiting);
+
+        public void InitializeCallRequests(CallRequestBoard board, Action openCallRequests)
+        {
+            _callBoard = board;
+            _openCallRequests = openCallRequests;
+
+            _callBoard.Changed += (_, _) => RaiseCallRequestCounters();
+        }
+
+        private void RaiseCallRequestCounters()
+        {
+            OnPropertyChanged(nameof(CallRequestsWaiting));
+            OnPropertyChanged(nameof(CallRequestsBadgeVisibility));
+            OnPropertyChanged(nameof(CallRequestsTooltip));
+        }
+
+        #endregion
+
+
         public MainWindowViewModel()
         {
             // Visibility logic:
@@ -244,6 +287,10 @@ namespace Raphael.Desktop.ViewModels
             OpenNotificationCenterCommand =
                 new RelayCommand(
                     OpenNotificationCenter);
+
+            OpenCallRequestsCommand =
+                new RelayCommand(
+                    () => _openCallRequests?.Invoke());
 
             Languages =
                 new ObservableCollection<LanguageOption>

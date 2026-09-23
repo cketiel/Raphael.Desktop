@@ -8,12 +8,15 @@
              xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
              xmlns:views="clr-namespace:Raphael.Desktop.Views.Schedules"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             xmlns:schedules="clr-namespace:Raphael.Desktop.Views.Schedules"
+             xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              helpers:HelpAssist.TopicId="desktop/schedules/overview"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              Height="Auto" Width="Auto">
 
     <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="CallCardVisibility" />
         <DataTemplate DataType="{x:Type vm:SchedulesViewModel}">
             <views:ScheduleView />
         </DataTemplate>
@@ -57,7 +60,17 @@
 
         <Grid Margin="4 0 4 4">
 
-            <TabControl  HorizontalAlignment="Stretch"
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- The driver's call being handled, when this tab was opened to take one. -->
+            <schedules:CallCard DataContext="{Binding ActiveCall}"
+                                Visibility="{Binding DataContext.HasActiveCall, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource CallCardVisibility}}" />
+
+            <TabControl  Grid.Row="1"
+                 HorizontalAlignment="Stretch"
                  VerticalAlignment="Stretch"
                  HorizontalContentAlignment="Stretch"
                  VerticalContentAlignment="Stretch">

@@ -42,7 +42,12 @@ namespace Raphael.Desktop.Views
         /// </summary>
         public void ReleaseNotifications()
         {
+            _viewModel?.CloseCall();
             _viewModel?.ScheduleContentViewModel?.ReleaseNotifications();
         }
+
+        /// <summary>Shows a driver's call on top of this tab, and their route on the day they asked.</summary>
+        public Task AttendCallAsync(ViewModels.CallRequests.CallCardViewModel card, DateTime date, int vehicleRouteId) =>
+            _viewModel.AttendCallAsync(card, date, vehicleRouteId);
     }
 }
