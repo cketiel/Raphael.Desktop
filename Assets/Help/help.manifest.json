@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.9.0"
   },
-  "builtUtc": "2026-09-20T19:37:08.368Z",
-  "sourceCommit": "9b3314c",
+  "builtUtc": "2026-09-23T23:44:08.593Z",
+  "sourceCommit": "71bc9a0",
   "languages": [
     "es",
     "en"
@@ -73,7 +73,7 @@
       "id": "desktop/notifications/overview",
       "mode": "explanation",
       "since": "1.3.0",
-      "lastReviewed": "1.4.0",
+      "lastReviewed": "1.10.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -133,7 +133,7 @@
       "id": "desktop/notifications/center",
       "mode": "how-to",
       "since": "1.3.0",
-      "lastReviewed": "1.4.0",
+      "lastReviewed": "1.10.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -142,6 +142,21 @@
       "title": {
         "es": "El Centro de notificaciones",
         "en": "The Notification Centre"
+      }
+    },
+    {
+      "id": "desktop/notifications/call-requests",
+      "mode": "how-to",
+      "since": "1.10.0",
+      "lastReviewed": "1.10.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Notification",
+      "title": {
+        "es": "Llamadas de conductores — devolver la llamada con todo delante",
+        "en": "Driver calls — calling back with everything in front of you"
       }
     },
     {
@@ -387,7 +402,7 @@
       "id": "desktop/schedules/live-board",
       "mode": "explanation",
       "since": "1.6.0",
-      "lastReviewed": "1.8.0",
+      "lastReviewed": "1.10.0",
       "roles": [
         "admin",
         "dispatcher"
