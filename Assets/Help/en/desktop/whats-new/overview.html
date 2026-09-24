@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What's new · Raphael Help</title>
 <meta name="description" content="What changed in your work with each version, in order, and where it is explained.">
-<meta name="help-covers" content="Raphael.Desktop 1.9.0">
+<meta name="help-covers" content="Raphael.Desktop 1.10.0">
 <meta name="help-built" content="2026-09-24">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
@@ -20,7 +20,7 @@
     <a class="rf-brand" href="../../../en/desktop/getting-started/overview.html">
       <span class="rf-brand-mark" aria-hidden="true">R</span>
       <span>Raphael Help</span>
-      <span class="rf-brand-sub">1.9.0</span>
+      <span class="rf-brand-sub">1.10.0</span>
     </a>
 
     <div class="rf-search">
@@ -59,6 +59,11 @@
 
       <p>This is not the technical change log: it is what changes <strong>in your shift</strong>. New topics also carry a <strong>&quot;New in X.Y.Z&quot;</strong> badge in the contents for the two versions following their arrival.</p>
 <p>To find out which version you have, use the gear → <strong>&quot;About Raphael&quot;</strong>.</p>
+<h2 id="1-10-0">1.10.0<a class="help-anchor" href="#1-10-0" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>Drivers no longer phone you: they ask you to call them.</strong> They press <strong>Call me</strong> on their phone and the request shows up on every workstation at once: an alert sounds, the <strong>phone</strong> icon next to the bell counts how many are waiting, and the first chip of the Notification Centre, <strong>&quot;Calls&quot;</strong>, is the queue, in order of arrival.</p>
+<p><strong>&quot;Attend&quot; puts everything in front of you before you dial.</strong> The request moves into your name for the whole office - nobody else calls them - the driver is told you have it, and a <strong>&quot;Call&quot;</strong> tab opens with their <a class="help-term" href="../../../en/_shared/glossary/run.html" data-term-title="Route" data-term-summary="A vehicle, a driver and a span of dates and hours. It is the unit trips are assigned to.">route</a>, their vehicle and the number to call. If they do not pick up, <strong>&quot;No answer&quot;</strong> tells them, and you hear as soon as they say they can talk. When you are done, <strong>&quot;Resolve&quot;</strong> with the reason.</p>
+<p><strong>On the driver's phone</strong>, the buttons for calling the office are still there but greyed out: they ask for the call now. All of it, step by step: <a href="../../../en/desktop/notifications/call-requests.html">Driver calls</a>.</p>
+<p><strong>And in Schedule</strong>, choosing a route for today shows the vehicle at once at its last report, if it is recent, instead of waiting for the next one.</p>
 <h2 id="1-9-0">1.9.0<a class="help-anchor" href="#1-9-0" aria-label="Enlace a esta sección">#</a></h2>
 <p><strong>The session no longer throws you out mid-shift.</strong> Until now, when the credential ran out you got a notice, every window closed - with whatever you had half-finished inside them - and you had to sign in again. It now renews itself while you work, and ends only when it really ends: at the end of the day, or when you sign out.</p>
 <p><strong>And when it ends, it says so once.</strong> Every screen you had open kept asking the server and stacked its own error box behind the notice: you were told the session had ended and then, on top of it, that trips had failed to load, with nothing to say why.</p>
@@ -69,7 +74,7 @@
 <h2 id="1-8-0">1.8.0<a class="help-anchor" href="#1-8-0" aria-label="Enlace a esta sección">#</a></h2>
 <p><strong>You can now see how long a driver will be waiting.</strong> A pickup is never shown with the vehicle arriving more than a quarter of an hour before the hour the patient was promised - five minutes on a <a class="help-term" href="../../../en/_shared/glossary/leg.html" data-term-title="Leg — outbound and return" data-term-summary="A round journey is not one trip, it is two: Appointment and Return, each with its own number and status.">return</a> trip. When that rule takes effect the driver sits at the door, and until now that time appeared nowhere: you read a column of perfectly reasonable hours with no way of knowing that one of your drivers was going to be parked for two of them.</p>
 <p>It now sits beside the arrival hour as <code>08:45 ⏱ 45 m</code>, and the whole row turns amber past half an hour. On a morning with more trips than vehicles, that is capacity you stop burning without noticing.</p>
-<p><strong>The <a class="help-term" href="../../../en/_shared/glossary/run.html" data-term-title="Route" data-term-summary="A vehicle, a driver and a span of dates and hours. It is the unit trips are assigned to.">route</a> can be read as time bars.</strong> The bars button, next to the cog in the first column, swaps the grid for a list where every stop is a bar drawn to scale: green for the drive, amber for the wait, and each hour marked in its place. In one pass you can see which stops have an amber stretch. Hover one and you get the full breakdown, with the minutes of every stretch.</p>
+<p><strong>The route can be read as time bars.</strong> The bars button, next to the cog in the first column, swaps the grid for a list where every stop is a bar drawn to scale: green for the drive, amber for the wait, and each hour marked in its place. In one pass you can see which stops have an amber stretch. Hover one and you get the full breakdown, with the minutes of every stretch.</p>
 <p>All of it in <a href="../../../en/desktop/schedules/early-arrival.html">How long the driver waits</a>.</p>
 <p><strong>The order is yours to decide.</strong> If you reorder the stops and the result is not the most efficient one, the screen tells you - and saves your order anyway. It is a notice, not a question: you know things the schedule does not. The one thing still refused is leaving a trip's dropoff before its own pickup.</p>
 <p><strong>And the route's hours no longer drift.</strong> Several things were worked out on screen and never written down: the garage departure hour, and the hours of every stop below a change. It looked right and came back wrong on the next reload. Travel times, on top of that, were being priced for the hour the route had <strong>before</strong> the change.</p>
@@ -125,7 +130,7 @@
       <section class="rf-related"><h2>See also</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../en/desktop/getting-started/overview.html"><strong>Raphael Desktop in five minutes</strong><span>What each tab does, what each role sees, and where to start a shift.</span></a><a class="rf-related-card" href="../../../en/desktop/notifications/overview.html"><strong>What the system tells you, and why</strong><span>The three ways something that happened on the road reaches your screen, and the rule that governs all of them.</span></a></div></section>
 
       <footer class="rf-foot">
-        <span data-covers>Covers Raphael.Desktop 1.9.0</span>
+        <span data-covers>Covers Raphael.Desktop 1.10.0</span>
         <span>Updated 2026-09-24</span>
         <button class="rf-btn" type="button" data-diagnostics>Copy report for support</button>
       </footer>
@@ -135,12 +140,12 @@
 
   <aside class="rf-aside" aria-label="On this page">
     <p class="rf-aside-title">On this page</p>
-    <ul><li class="rf-lvl-2"><a href="#1-9-0">1.9.0</a></li><li class="rf-lvl-2"><a href="#1-8-1">1.8.1</a></li><li class="rf-lvl-2"><a href="#1-8-0">1.8.0</a></li><li class="rf-lvl-2"><a href="#1-7-0">1.7.0</a></li><li class="rf-lvl-2"><a href="#1-6-1">1.6.1</a></li><li class="rf-lvl-2"><a href="#1-6-0">1.6.0</a></li><li class="rf-lvl-2"><a href="#1-5-1">1.5.1</a></li><li class="rf-lvl-2"><a href="#1-5-0">1.5.0</a></li><li class="rf-lvl-2"><a href="#1-4-0">1.4.0</a></li><li class="rf-lvl-2"><a href="#1-3-0">1.3.0</a></li></ul>
+    <ul><li class="rf-lvl-2"><a href="#1-10-0">1.10.0</a></li><li class="rf-lvl-2"><a href="#1-9-0">1.9.0</a></li><li class="rf-lvl-2"><a href="#1-8-1">1.8.1</a></li><li class="rf-lvl-2"><a href="#1-8-0">1.8.0</a></li><li class="rf-lvl-2"><a href="#1-7-0">1.7.0</a></li><li class="rf-lvl-2"><a href="#1-6-1">1.6.1</a></li><li class="rf-lvl-2"><a href="#1-6-0">1.6.0</a></li><li class="rf-lvl-2"><a href="#1-5-1">1.5.1</a></li><li class="rf-lvl-2"><a href="#1-5-0">1.5.0</a></li><li class="rf-lvl-2"><a href="#1-4-0">1.4.0</a></li><li class="rf-lvl-2"><a href="#1-3-0">1.3.0</a></li></ul>
   </aside>
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/whats-new/overview","lang":"en","app":"Raphael.Desktop","appVersion":"1.9.0","built":"2026-09-24","sourceCommit":"4e5e8cf","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/whats-new/overview","lang":"en","app":"Raphael.Desktop","appVersion":"1.10.0","built":"2026-09-24","sourceCommit":"fd0b31a","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
 <script src="../../../assets/search-index.en.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

@@ -3,6 +3,37 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.10.0] - 2026-09-24
+
+⚠️ **Needs Raphael.Backend 1.2.0 (RE-026) in the same environment.** Against an older backend the
+Calls chip and the phone icon stay empty and everything else works as in 1.9.0. Install it on the
+workstations only once the backend is serving the call requests, and **before** Driver 1.6.0
+reaches the phones: a driver asking for a call that no office screen shows is the one order that
+must not happen.
+
+### Added
+- **Driver calls.** A driver presses "Call me" and the request lands in a queue every dispatcher
+  sees at once: the new "Calls" chip, first in the Notification Center, and a phone icon beside the
+  bell counting the drivers waiting. Attend takes the request in your name for the whole office,
+  tells the driver "Dispatch is on it", and opens their route in a dedicated "Call" tab with the
+  vehicle and a call card on top. No answer, Release, Take over (confirmed), Resolve with a reason,
+  Reopen, the day in numbers, and an Excel export that leaves the notes out.
+- Alerts with sound for new, released and reopened requests, and only for the holder when a driver
+  reminds or says they can talk now - the same lanes, sound switch and mute as every other notice.
+- Help topic `desktop/notifications/call-requests`, and the Center, overview and live board topics
+  updated.
+
+### Changed
+- The call queue reads as part of the Notification Center: the inbox's one-line rows, headings by
+  state, pages of fifty, and a detail pane built like the notice reading pane. The Center's palette
+  and styles move to a shared dictionary so both use the same ones.
+- Choosing a route of today in Schedule shows the vehicle at once from its last report, if that
+  report is under fifteen minutes old, instead of leaving the map empty until the next one.
+
+### Fixed
+- The call queue's "today" is the business day where trips are operated, not this computer's: a
+  dispatcher in another time zone no longer gets an empty export after midnight there.
+
 ## [1.9.0] - 2026-09-20
 
 ⚠️ **This is the version the Azure cutover starts from.** The server it talks to is no longer
