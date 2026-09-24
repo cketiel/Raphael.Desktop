@@ -584,10 +584,14 @@
                                Visibility="{Binding SelectedTab.HasRows, Converter={StaticResource InverseBoolToVis}}" />
                 </Grid>
 
-                <!-- The call queue takes the place of the inbox while its chip is selected. -->
-                <local:CallRequestsPanel DataContext="{Binding CallRequests}"
-                                         Margin="0 0 0 8"
-                                         Visibility="{Binding Data.IsCallRequestsSelected, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}" />
+                <!-- The call queue takes the place of the inbox while its chip is selected.
+                     ⚠️ The visibility lives on this wrapper, bound straight to the Notification
+                     Center's view model, the same way the inbox list beside it is. It used to sit
+                     on the panel itself through vmProxy, and in testing the panel stayed on screen
+                     under every other tab, with the inbox toolbar showing above it. -->
+                <Grid Visibility="{Binding IsCallRequestsSelected, Converter={StaticResource BoolToVis}}">
+                    <local:CallRequestsPanel DataContext="{Binding CallRequests}" Margin="0 0 0 8" />
+                </Grid>
 
                 <ListBox x:Name="InboxList"
                          ItemsSource="{Binding SelectedTab.Items}"
