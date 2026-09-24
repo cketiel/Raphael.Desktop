@@ -102,6 +102,18 @@ namespace Raphael.Desktop.ViewModels
 
         public bool IsInitialized { get; private set; } = false;
 
+        /// <summary>
+        /// A route asked for before this tab finished opening. <see cref="InitializeAsync"/> opens on
+        /// it instead of the first route of the list.
+        /// </summary>
+        private (DateTime Date, int RouteId)? _pendingRoute;
+
+        /// <summary>
+        /// The route asked for through <see cref="ShowRouteAsync"/> is not on the list — outside its
+        /// dates, or suspended. Raised instead of silently showing a different route.
+        /// </summary>
+        public event EventHandler<int>? RouteUnavailable;
+
         [ObservableProperty]
         private bool _isLoading;
 
@@ -465,6 +477,12 @@ namespace Raphael.Desktop.ViewModels
 
             IsLoading = true;
 
+            var pending = _pendingRoute;
+            _pendingRoute = null;
+
+            if (pending.HasValue)
+                date = pending.Value.Date;
+
             try
             {
                 await LoadInitialDataListsAsync();
@@ -476,14 +494,24 @@ namespace Raphael.Desktop.ViewModels
                 if (date.HasValue)
                 {
                     //SelectedDate = date.Value;
-                    _selectedDate = date.Value; 
-                    OnPropertyChanged(nameof(SelectedDate)); 
+                    _selectedDate = date.Value;
+                    OnPropertyChanged(nameof(SelectedDate));
                 }
 
-                if (route != null)
-                {                   
+                if (pending.HasValue)
+                {
+                    // ⚠️ No fallback to the first route: a dispatcher on the phone with one driver
+                    // must never be shown another driver's route.
+                    _selectedVehicleRoute = VehicleRoutes.FirstOrDefault(r => r.Id == pending.Value.RouteId);
+                    OnPropertyChanged(nameof(SelectedVehicleRoute));
+
+                    if (_selectedVehicleRoute == null)
+                        RouteUnavailable?.Invoke(this, pending.Value.RouteId);
+                }
+                else if (route != null)
+                {
                     _selectedVehicleRoute = VehicleRoutes.FirstOrDefault(r => r.Id == route.Id) ?? VehicleRoutes.FirstOrDefault();
-                    OnPropertyChanged(nameof(SelectedVehicleRoute)); 
+                    OnPropertyChanged(nameof(SelectedVehicleRoute));
                 }
                 else if (VehicleRoutes.Any() && SelectedVehicleRoute == null)
                 {
@@ -500,8 +528,13 @@ namespace Raphael.Desktop.ViewModels
                 // so and start being told what the others do to them.
                 UpdateBoardWatches();
 
-                // After the initial loading, we check if a recalculation is needed.
-                await CheckForPendingRecalculation();
+                // After the initial loading, we check if a recalculation is needed. Not when the
+                // tab was opened on a driver's route to take their call: that recalculation writes
+                // ETAs, and looking at a route must not rewrite it.
+                if (!pending.HasValue)
+                    await CheckForPendingRecalculation();
+                else
+                    _ = SeedVehiclePositionAsync();
 
                 if (isLiveTracking)
                 {
@@ -518,10 +551,17 @@ namespace Raphael.Desktop.ViewModels
                     {
                         Console.WriteLine($"Error al obtener la ubicación inicial del conductor: {ex.Message}");
                         
-                    }*/                   
+                    }*/
                 }
 
                 IsInitialized = true;
+
+                // Asked for while this tab was still opening.
+                if (_pendingRoute is { } late)
+                {
+                    _pendingRoute = null;
+                    _ = ShowRouteAsync(late.Date, late.RouteId);
+                }
             }
             catch (Exception ex)
             {
@@ -1593,11 +1633,123 @@ namespace Raphael.Desktop.ViewModels
 
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
+            {
                 _ = LoadSchedulesAsync(); // no es necesario volver a cargar los viajes
+                _ = SeedVehiclePositionAsync();
+            }
 
 
             /*if (CanLoadSchedulesAndTrips())
                 LoadSchedulesAndTripsCommand.Execute(null);*/
+        }
+
+        /// <summary>
+        /// Shows one route on one day, the way a dispatcher picking them by hand would, in a single
+        /// load. What opening a driver's call uses.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ Never runs <see cref="CheckForPendingRecalculation"/>: it writes ETAs, and opening a
+        /// route to look at it must not rewrite it. A route that is not on the list raises
+        /// <see cref="RouteUnavailable"/> instead of falling back to another one.
+        /// </remarks>
+        public async Task ShowRouteAsync(DateTime date, int vehicleRouteId)
+        {
+            if (!IsInitialized)
+            {
+                _pendingRoute = (date.Date, vehicleRouteId);
+                return;
+            }
+
+            if (_allVehicleRoutesMaster.All(r => r.Id != vehicleRouteId))
+            {
+                RouteUnavailable?.Invoke(this, vehicleRouteId);
+                return;
+            }
+
+            // The group filter left on in this tab may be hiding the route.
+            if (VehicleRoutes.All(r => r.Id != vehicleRouteId))
+            {
+                _selectedVehicleGroup = VehicleGroups.FirstOrDefault(g => g.Id == 0) ?? _selectedVehicleGroup;
+                OnPropertyChanged(nameof(SelectedVehicleGroup));
+                VehicleRoutes.ReplaceAll(_allVehicleRoutesMaster);
+            }
+
+            StopVehicleAnimator();
+            HasVehiclePosition = false;
+            _lastVehicleReportUtc = null;
+
+            _selectedDate = date.Date;
+            OnPropertyChanged(nameof(SelectedDate));
+
+            _selectedVehicleRoute = VehicleRoutes.First(r => r.Id == vehicleRouteId);
+            OnPropertyChanged(nameof(SelectedVehicleRoute));
+
+            UpdateBoardWatches();
+
+            await LoadSchedulesAndTripsAsync();
+
+            _ = SeedVehiclePositionAsync();
+        }
+
+        /// <summary>
+        /// How old a last report may be and still be drawn as where the vehicle is. The driver's
+        /// app reports every thirty seconds while it tracks, so a gap this long means it stopped.
+        /// </summary>
+        private static readonly TimeSpan MaxSeedPositionAge = TimeSpan.FromMinutes(15);
+
+        /// <summary>
+        /// Puts the vehicle on the map from its last report, instead of leaving the map empty until
+        /// the next one arrives (up to thirty seconds).
+        /// </summary>
+        /// <remarks>
+        /// Only for today, and only a recent report: tomorrow's plan with today's position on it,
+        /// or today's map with yesterday's, would be a lie.
+        /// </remarks>
+        private async Task SeedVehiclePositionAsync()
+        {
+            var route = SelectedVehicleRoute;
+
+            // The business's today, not this machine's: a call opened after midnight in New York
+            // from a clock still on the previous day has to show the vehicle too.
+            if (route == null || SelectedDate.Date != Services.CallRequests.BusinessDay.Today)
+                return;
+
+            try
+            {
+                var fix = await _gpsService.GetLatestGpsDataAsync(route.Id);
+
+                // The dispatcher moved on while this was loading.
+                if (fix == null || SelectedVehicleRoute?.Id != route.Id)
+                    return;
+
+                var atUtc = DateTime.SpecifyKind(fix.DateTime, DateTimeKind.Utc);
+
+                // Only a position recent enough to still be where the vehicle is. The endpoint
+                // returns the route's last report from any day, and the map shows no age: without
+                // this, yesterday's last report, or the spot where a driver's app stopped
+                // reporting an hour ago, would be drawn exactly like a live one.
+                if (DateTime.UtcNow - atUtc > MaxSeedPositionAge)
+                    return;
+
+                // A live report beat it here; it is newer by definition.
+                if (_lastVehicleReportUtc.HasValue && _lastVehicleReportUtc.Value >= atUtc)
+                    return;
+
+                ApplyVehiclePosition(new VehiclePositionMessage
+                {
+                    VehicleRouteId = route.Id,
+                    Latitude = fix.Latitude,
+                    Longitude = fix.Longitude,
+                    Speed = fix.Speed,
+                    Direction = fix.Direction,
+                    AtUtc = atUtc
+                });
+            }
+            catch (Exception ex)
+            {
+                // The next live report places it anyway.
+                Console.WriteLine($"Could not load the last known position: {ex.Message}");
+            }
         }
 
         // The stops highlighted on the map by the current selection: the clicked event and the

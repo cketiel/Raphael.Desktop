@@ -10,12 +10,16 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Globalization;
 using MaterialDesignThemes.Wpf;
+using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.CallRequests;
 using Raphael.Desktop.Services.Help;
 using Raphael.Desktop.Services.Notifications;
 using Raphael.Desktop.ViewModels;
+using Raphael.Desktop.ViewModels.CallRequests;
 using Raphael.Desktop.Views;
 using Raphael.Desktop.Views.Notifications;
 
@@ -39,6 +43,17 @@ namespace Raphael.Desktop
         private NotificationCenterWindow? _notificationCenterWindow;
         private NotificationToastViewModel? _toasts;
         private NotificationAlertWindow? _notificationAlertWindow;
+
+        /// <summary>
+        /// The drivers' call-back queue. Null for roles that do not work it: the server would
+        /// refuse them anyway, and they have no bell to hang it on.
+        /// </summary>
+        private readonly CallRequestBoard? _callBoard;
+        private readonly CallRequestActions? _callActions;
+
+        /// <summary>The one Schedule tab where calls are taken, reused from one call to the next.</summary>
+        private SchedulesView? _callWorkbench;
+        private TabItem? _callWorkbenchTab;
 
         /// <summary>
         /// Shutting down closes the owned panel window, which asks for the panel back.
@@ -112,6 +127,18 @@ namespace Raphael.Desktop
                 OpenNotificationCenter,
                 _toasts.Show);
 
+            // One queue for the whole application, like the inbox: the header counter, the alerts,
+            // the Calls tab and the call card all read it, so they cannot disagree.
+            if (_viewModel.IsGeneralVisible)
+            {
+                _callBoard = new CallRequestBoard(new CallRequestApiClient(), new DispatchBoardService());
+                _callActions = new CallRequestActions(_callBoard, OpenCallWorkbench);
+
+                _callBoard.LiveChange += (_, message) => AnnounceCallRequest(message);
+
+                _viewModel.InitializeCallRequests(_callBoard, () => ShowCallRequestInCenter(null));
+            }
+
             string currentRole = SessionManager.Role;
             bool IsDriver = currentRole == "2";
             if (IsDriver)
@@ -144,6 +171,19 @@ namespace Raphael.Desktop
             UserNameTextBlock.Text = SessionManager.Username;
 
             await _viewModel.StartNotificationsAsync();
+
+            if (_callBoard is not null)
+            {
+                try
+                {
+                    await _callBoard.StartAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Never stops the application from starting. The queue loads on the next reload.
+                    FileLogger.Log($"Call requests: could not start. {ex.Message}");
+                }
+            }
         }
 
         private async void MainWindow_Closed(
@@ -163,6 +203,9 @@ namespace Raphael.Desktop
                 _notificationCenter?.ViewModel.Close();
 
                 await _viewModel.StopNotificationsAsync();
+
+                if (_callBoard is not null)
+                    await _callBoard.StopAsync();
             }
             catch
             {
@@ -220,6 +263,9 @@ namespace Raphael.Desktop
             panel.ViewModel.OpenTripRequested = OpenTripInDispatch;
 
             panel.ViewModel.AlertSettingsRequested = OpenAlertSettings;
+
+            if (_callActions is not null)
+                panel.ViewModel.CallRequests = new CallRequestsPanelViewModel(_callActions);
 
             return panel;
         }
@@ -297,6 +343,149 @@ namespace Raphael.Desktop
                 new DispatchView(),
                 PackIconKind.WrenchClock);
         }
+
+        #endregion
+
+        #region Drivers' call requests
+
+        /// <summary>Opens the Notification Center on the call queue, on one request if given.</summary>
+        private void ShowCallRequestInCenter(int? callRequestId)
+        {
+            if (WindowState == WindowState.Minimized)
+                WindowState = WindowState.Normal;
+
+            Activate();
+
+            OpenNotificationCenter();
+
+            _notificationCenter?.ViewModel.ShowCallRequests(callRequestId);
+        }
+
+        /// <summary>
+        /// Opens the driver's route on the day they asked, with the call card on top, in the one
+        /// Schedule tab reserved for calls.
+        /// </summary>
+        /// <remarks>
+        /// A tab of its own, reused from one call to the next: the Schedule tab a dispatcher was
+        /// planning tomorrow in is never taken over by a call.
+        /// </remarks>
+        private async void OpenCallWorkbench(CallRequestSummaryDto request)
+        {
+            if (request.VehicleRouteId is not int routeId || _callActions is null)
+                return;
+
+            // A tab being closed stops answering to its name straight away (CloseTabWithAnimation).
+            var stillOpen = _callWorkbench is not null &&
+                            _callWorkbenchTab is not null &&
+                            _callWorkbenchTab.Tag is not null &&
+                            MainTabControl.Items.Contains(_callWorkbenchTab);
+
+            if (!stillOpen)
+            {
+                _callWorkbench = new SchedulesView(_notificationService);
+
+                OpenTab(
+                    LocalizationService.Instance["CallRequestWorkbenchTab"],
+                    _callWorkbench,
+                    PackIconKind.PhoneInTalk);
+
+                _callWorkbenchTab = MainTabControl.Items
+                    .OfType<TabItem>()
+                    .FirstOrDefault(tab => tab.Content is Grid grid && grid.Children.Contains(_callWorkbench));
+            }
+            else
+            {
+                MainTabControl.SelectedItem = _callWorkbenchTab;
+            }
+
+            CurrentMenu = MENU.Schedules;
+
+            var card = new CallCardViewModel(_callActions, request);
+            card.OpenInQueueRequested += (_, id) => ShowCallRequestInCenter(id);
+
+            try
+            {
+                await _callWorkbench!.AttendCallAsync(card, request.OperatingDate, routeId);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Call requests: could not open the route of request {request.Id}. {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// What a change in the queue is allowed to do to the screen.
+        /// </summary>
+        /// <remarks>
+        /// A new request, one back in the queue, or a driver insisting interrupts everybody, the
+        /// way a Will Call does: somebody on the road is waiting. A reminder or "I can talk now" on
+        /// a case being handled only reaches whoever holds it. Nobody is told about what they did
+        /// themselves, and any card about a request that is now taken or closed comes down.
+        /// </remarks>
+        private void AnnounceCallRequest(CallRequestChangedMessage message)
+        {
+            var request = message.Request;
+            var me = CallRequestBoard.CurrentUserId;
+
+            _toasts?.RemoveCallRequest(request.Id);
+
+            if (message.ByUserId == me)
+                return;
+
+            var waiting = request.Status == CallRequestStatuses.Waiting;
+            var mine = request.Status == CallRequestStatuses.InProgress && request.ClaimedByUserId == me;
+
+            var key = message.Change switch
+            {
+                CallRequestChanges.Requested or CallRequestChanges.Reopened when waiting => "callrequest.toast.requested",
+                CallRequestChanges.Released when waiting => "callrequest.toast.released",
+                CallRequestChanges.Reminded when waiting => "callrequest.toast.reminded",
+                CallRequestChanges.Reminded when mine => "callrequest.toast.remindedMine",
+                CallRequestChanges.DriverAvailable when mine => "callrequest.toast.available",
+                CallRequestChanges.DriverAvailable when waiting => "callrequest.toast.availableWaiting",
+                CallRequestChanges.Cancelled when request.ClaimedByUserId == me => "callrequest.toast.cancelledMine",
+                _ => null
+            };
+
+            if (key is null)
+                return;
+
+            var actionRequired = key != "callrequest.toast.cancelledMine";
+
+            _toasts?.ShowCallRequest(
+                CallRequestToast(key, request, actionRequired),
+                () => ShowCallRequestInCenter(request.Id));
+        }
+
+        /// <summary>
+        /// A card for the alert stack. Built as a notification so it gets the same lanes, sound and
+        /// mute, and translated the same way, from a message key and its parameters. Staff data only.
+        /// </summary>
+        private static Models.NotificationDto CallRequestToast(
+            string messageKey,
+            CallRequestSummaryDto request,
+            bool actionRequired) => new()
+        {
+            Id = Guid.NewGuid(),
+            BusinessEventCode = "DRIVER_CALL_REQUEST",
+            Type = actionRequired ? NotificationKeys.Type.ActionRequired : string.Empty,
+            Severity = actionRequired ? NotificationKeys.Severity.Warning : NotificationKeys.Severity.Information,
+            Title = request.DriverName,
+            Message = request.RouteName ?? string.Empty,
+            CreatedAtUtc = DateTime.UtcNow,
+            Recipients = [],
+            Actions = [],
+            Metadata = new Dictionary<string, string>
+            {
+                [NotificationKeys.Metadata.MessageKey] = messageKey,
+                [NotificationToastViewModel.CallRequestIdKey] = request.Id.ToString(CultureInfo.InvariantCulture),
+                ["DriverName"] = request.DriverName,
+                ["RouteName"] = request.RouteName ?? string.Empty,
+                ["Time"] = CallRequestText.ExactTime(request.RequestedAtUtc),
+                ["Count"] = request.ReminderCount.ToString(CultureInfo.InvariantCulture),
+                ["Waiting"] = CallRequestText.Duration(DateTime.UtcNow - CallRequestText.Utc(request.QueuedAtUtc))
+            }
+        };
 
         #endregion
 

@@ -12,6 +12,7 @@ using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.Services.Notifications;
+using Raphael.Desktop.ViewModels.CallRequests;
 
 namespace Raphael.Desktop.ViewModels;
 
@@ -105,8 +106,20 @@ public sealed class NotificationCenterViewModel : BaseViewModel
 
         BuildTabs();
 
-        SelectTabCommand = new RelayCommandObject(
-            parameter => SelectedTab = parameter as NotificationTabViewModel);
+        SelectTabCommand = new RelayCommandObject(parameter =>
+        {
+            if (parameter is not NotificationTabViewModel tab)
+                return;
+
+            IsCallRequestsSelected = false;
+            SelectedTab = tab;
+
+            // Coming back from the call queue to the tab that was already selected changes nothing
+            // in SelectedTab, so its chip has to be lit by hand.
+            tab.IsSelected = true;
+        });
+
+        SelectCallRequestsCommand = new RelayCommandObject(_ => IsCallRequestsSelected = true);
 
         ToggleReadCommand = new RelayCommandObject(ToggleRead);
 
@@ -202,6 +215,8 @@ public sealed class NotificationCenterViewModel : BaseViewModel
     #region Commands
 
     public ICommand SelectTabCommand { get; }
+
+    public ICommand SelectCallRequestsCommand { get; }
 
     public ICommand ToggleReadCommand { get; }
 
@@ -411,6 +426,96 @@ public sealed class NotificationCenterViewModel : BaseViewModel
 
     #endregion
 
+    #region Drivers' call requests
+
+    private CallRequestsPanelViewModel? _callRequests;
+
+    private bool _isCallRequestsSelected;
+
+    /// <summary>
+    /// The call-back queue, shown under its own chip. Not one of <see cref="Tabs"/>: its rows are
+    /// requests with a shared state, not notices, and they come from a different place.
+    /// </summary>
+    public CallRequestsPanelViewModel? CallRequests
+    {
+        get => _callRequests;
+        set
+        {
+            if (_callRequests is not null)
+                _callRequests.PropertyChanged -= OnCallRequestsChanged;
+
+            SetProperty(ref _callRequests, value);
+
+            if (_callRequests is not null)
+                _callRequests.PropertyChanged += OnCallRequestsChanged;
+
+            OnPropertyChanged(nameof(HasCallRequests));
+            RaiseCallRequestCounters();
+        }
+    }
+
+    public bool HasCallRequests => CallRequests is not null;
+
+    public bool IsCallRequestsSelected
+    {
+        get => _isCallRequestsSelected;
+        set
+        {
+            if (!SetProperty(ref _isCallRequestsSelected, value))
+                return;
+
+            if (value)
+            {
+                foreach (var tab in Tabs)
+                    tab.IsSelected = false;
+
+                IsReading = false;
+                IsAdminOpen = false;
+            }
+            else if (SelectedTab is not null)
+            {
+                SelectedTab.IsSelected = true;
+            }
+
+            OnPropertyChanged(nameof(IsNotificationListing));
+        }
+    }
+
+    /// <summary>The inbox list and its toolbar are on screen: not a notice, not the admin area, not the calls.</summary>
+    public bool IsNotificationListing => IsListing && !IsCallRequestsSelected;
+
+    public int CallRequestsWaiting => CallRequests?.WaitingCount ?? 0;
+
+    public bool HasCallRequestsWaiting => CallRequestsWaiting > 0;
+
+    public string CallRequestsTabHeader => LocalizationService.Instance["CallRequestsTab"];
+
+    public string CallRequestsWaitingLabel => string.Format(
+        LocalizationService.Instance["CallRequestsWaitingLabel"],
+        CallRequestsWaiting);
+
+    /// <summary>Opens the call queue, on one request if given. What the alerts and the header counter call.</summary>
+    public void ShowCallRequests(int? callRequestId)
+    {
+        IsCallRequestsSelected = true;
+        CallRequests?.Show(callRequestId);
+    }
+
+    private void OnCallRequestsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(CallRequestsPanelViewModel.WaitingCount) or "")
+            RaiseCallRequestCounters();
+    }
+
+    private void RaiseCallRequestCounters()
+    {
+        OnPropertyChanged(nameof(CallRequestsWaiting));
+        OnPropertyChanged(nameof(HasCallRequestsWaiting));
+        OnPropertyChanged(nameof(CallRequestsWaitingLabel));
+    }
+
+    #endregion
+
     #region Selection, search, grouping and tabs
 
     public NotificationTabViewModel SelectedTab
@@ -568,6 +673,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
                 return;
 
             OnPropertyChanged(nameof(IsListing));
+            OnPropertyChanged(nameof(IsNotificationListing));
             OnPropertyChanged(nameof(ReadingPositionLabel));
         }
     }
@@ -615,8 +721,9 @@ public sealed class NotificationCenterViewModel : BaseViewModel
             return;
 
         // The administration area covers the panel; a notice opening underneath it would
-        // never be seen.
+        // never be seen. Same for the call queue.
         IsAdminOpen = false;
+        IsCallRequestsSelected = false;
 
         var tab = Tabs.FirstOrDefault(candidate => candidate.IndexOf(item) >= 0);
 
@@ -796,6 +903,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
                 return;
 
             OnPropertyChanged(nameof(IsListing));
+            OnPropertyChanged(nameof(IsNotificationListing));
         }
     }
 
