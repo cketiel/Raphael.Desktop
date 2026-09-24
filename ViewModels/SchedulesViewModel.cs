@@ -1709,7 +1709,9 @@ namespace Raphael.Desktop.ViewModels
         {
             var route = SelectedVehicleRoute;
 
-            if (route == null || SelectedDate.Date != DateTime.Today)
+            // The business's today, not this machine's: a call opened after midnight in New York
+            // from a clock still on the previous day has to show the vehicle too.
+            if (route == null || SelectedDate.Date != Services.CallRequests.BusinessDay.Today)
                 return;
 
             try

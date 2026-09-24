@@ -10,6 +10,12 @@
              Width="Auto">
 
     <UserControl.Resources>
+        <ResourceDictionary>
+
+            <!-- Palette, cards, rows and toolbar buttons: shared with the call queue panel. -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="NotificationTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
@@ -18,21 +24,6 @@
         <!-- Reaches the view model from inside an item template, where the DataContext is
              the row. Same proxy the rest of the application uses. -->
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
-
-        <!-- ===================== Palette =====================
-             The purple the application is themed with (MaterialDesign DeepPurple, the same
-             #673AB7 as MainBorderColor in Styles/Colors.xaml) and the tones derived from
-             it. Written out rather than taken from the theme keys so this panel keeps its
-             contrast if the theme is ever re-based. Red and amber stay as they are: they
-             mean overdue and disconnected, not decoration. -->
-        <SolidColorBrush x:Key="Accent" Color="#673AB7" />
-        <SolidColorBrush x:Key="AccentDeep" Color="#4527A0" />
-        <SolidColorBrush x:Key="AccentStrong" Color="#5E35B1" />
-        <SolidColorBrush x:Key="AccentSoft" Color="#EDE7F6" />
-        <SolidColorBrush x:Key="AccentSurface" Color="#F5F2FB" />
-        <SolidColorBrush x:Key="AccentBorder" Color="#DCD2F0" />
-        <SolidColorBrush x:Key="AccentText" Color="#3B3357" />
-        <SolidColorBrush x:Key="Danger" Color="#D93025" />
 
         <!-- One section of the administration area, in the left rail.
              A ToggleButton and not a Button: IsChecked is a real boolean dependency
@@ -68,62 +59,6 @@
             </Setter>
         </Style>
 
-        <!-- A block of either the administration area or an open notice. Each one is one
-             subject — the patient, the line, the kept records — so each one gets its own
-             frame instead of being another paragraph in a column. -->
-        <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="BorderBrush" Value="#E6E1F0" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Background" Value="White" />
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Margin" Value="0 0 0 12" />
-        </Style>
-
-        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="{StaticResource AccentText}" />
-            <Setter Property="Margin" Value="0 0 0 6" />
-        </Style>
-
-        <Style x:Key="CardHintStyle" TargetType="TextBlock">
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Opacity" Value="0.75" />
-            <Setter Property="Margin" Value="0 0 0 12" />
-        </Style>
-
-        <!-- ===================== Detail tiles =====================
-             One labelled value. They flow instead of sitting in a fixed grid, so a card
-             with four fields is four fields tall and one with fourteen closes up around
-             them; and a field with nothing in it is never built, so no card ever shows a
-             label with a dash after it. -->
-        <DataTemplate x:Key="DetailFieldTemplate">
-            <StackPanel MinWidth="{Binding TileWidth}" Margin="0 0 18 12">
-                <TextBlock Text="{Binding Label}"
-                           FontSize="10.5" Opacity="0.55"
-                           Foreground="{StaticResource AccentText}"
-                           TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding Value}"
-                           FontSize="13" Margin="0 1 0 0"
-                           TextWrapping="Wrap" Foreground="#202124" />
-            </StackPanel>
-        </DataTemplate>
-
-        <ItemsPanelTemplate x:Key="DetailFieldPanel">
-            <WrapPanel Orientation="Horizontal" />
-        </ItemsPanelTemplate>
-
-        <!-- Title of a card in an open notice: an icon and a name. -->
-        <Style x:Key="CardIconStyle" TargetType="materialDesign:PackIcon">
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="18" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0 0 8 0" />
-            <Setter Property="Foreground" Value="{StaticResource Accent}" />
-        </Style>
-
         <Style x:Key="AdminColumnHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -155,86 +90,7 @@
             </Setter>
         </Style>
 
-        <!-- A row of the inbox. Its actions stay out of the way until the pointer is on
-             it, which is what keeps a list of fifty rows readable. -->
-        <Style x:Key="InboxRowStyle" TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="RowBorder"
-                                Background="{Binding RowBackground}"
-                                BorderBrush="#E8EAED"
-                                BorderThickness="0 0 0 1"
-                                Padding="8 0">
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="RowBorder" Property="Background" Value="#FFFFFF" />
-                                <Setter TargetName="RowBorder" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect BlurRadius="6"
-                                                          ShadowDepth="0"
-                                                          Opacity="0.28"
-                                                          Color="#5F6368" />
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="RowBorder" Property="Background" Value="#E1D7F5" />
-                            </Trigger>
-
-                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="RowBorder" Property="BorderBrush" Value="{StaticResource Accent}" />
-                                <Setter TargetName="RowBorder" Property="BorderThickness" Value="0 0 0 2" />
-                            </Trigger>
-
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Icon-only action, quiet until hovered. -->
-        <Style x:Key="RowActionStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="6" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="#5F6368" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Chip"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="14"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chip" Property="Background" Value="{StaticResource AccentSoft}" />
-                                <Setter Property="Foreground" Value="{StaticResource AccentDeep}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="ToolbarButtonStyle"
-               TargetType="Button"
-               BasedOn="{StaticResource RowActionStyle}">
-            <Setter Property="Padding" Value="8" />
-        </Style>
-
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Border BorderThickness="1"

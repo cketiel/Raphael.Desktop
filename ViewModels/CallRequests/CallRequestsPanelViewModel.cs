@@ -33,6 +33,22 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
 
     private bool _showClosed;
 
+    /// <summary>The same page size as the inbox beside it.</summary>
+    public const int PageSize = 50;
+
+    private int _pageIndex;
+
+    private int _total;
+
+    public CallRequestGroup WaitingGroup { get; } =
+        new(0, "CallRequestGroupWaiting", MaterialDesignThemes.Wpf.PackIconKind.PhoneClock);
+
+    public CallRequestGroup InProgressGroup { get; } =
+        new(1, "CallRequestGroupInProgress", MaterialDesignThemes.Wpf.PackIconKind.Headset);
+
+    public CallRequestGroup ClosedGroup { get; } =
+        new(2, "CallRequestClosedToday", MaterialDesignThemes.Wpf.PackIconKind.PhoneCheck);
+
     public CallRequestsPanelViewModel(CallRequestActions actions)
     {
         _actions = actions;
@@ -102,6 +118,12 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
 
         ExportCommand = new RelayCommandObject(_ => Export());
 
+        PreviousPageCommand = new RelayCommandObject(_ => GoToPage(_pageIndex - 1), _ => _pageIndex > 0);
+
+        NextPageCommand = new RelayCommandObject(_ => GoToPage(_pageIndex + 1), _ => (_pageIndex + 1) * PageSize < _total);
+
+        ToggleClosedCommand = new RelayCommandObject(_ => ShowClosed = !ShowClosed);
+
         _board.Changed += (_, _) => Sync();
         _board.Tick += (_, _) => Tick();
 
@@ -110,9 +132,34 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
 
     private static LocalizationService L => LocalizationService.Instance;
 
-    public ObservableCollection<CallRequestItemViewModel> Open { get; } = [];
+    /// <summary>
+    /// The rows of the page on screen. The view sorts and groups them; this only decides which
+    /// ones are on the page, so a row that changes state moves on screen without the list being
+    /// cleared, and without losing its selection.
+    /// </summary>
+    public ObservableCollection<CallRequestItemViewModel> PageItems { get; } = [];
 
-    public ObservableCollection<CallRequestItemViewModel> Closed { get; } = [];
+    public ICommand PreviousPageCommand { get; }
+
+    public ICommand NextPageCommand { get; }
+
+    public ICommand ToggleClosedCommand { get; }
+
+    /// <summary>"1–50 of 73", as the inbox counts its pages.</summary>
+    public string RangeLabel =>
+        _total == 0
+            ? string.Empty
+            : string.Format(
+                L["CallRequestRange"],
+                _pageIndex * PageSize + 1,
+                Math.Min((_pageIndex + 1) * PageSize, _total),
+                _total);
+
+    public bool HasPages => _total > PageSize;
+
+    public int ClosedCount => ClosedGroup.Count;
+
+    public bool HasClosed => ClosedCount > 0;
 
     public CallRequestDetailViewModel Detail { get; }
 
@@ -158,6 +205,24 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
                 _ = Detail.LoadAsync(value.Id);
 
             OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(SelectedRow));
+        }
+    }
+
+    /// <summary>What the list binds its selection to.</summary>
+    /// <remarks>
+    /// ⚠️ A null from the list is ignored. The list lets go of its selection whenever the row
+    /// moves, changes heading or leaves the page — which is exactly what Release does to it — and
+    /// taking that as "the dispatcher picked nothing" is how the detail used to jump to another
+    /// request. Only a real click on another row changes what is open.
+    /// </remarks>
+    public CallRequestItemViewModel? SelectedRow
+    {
+        get => Selected;
+        set
+        {
+            if (value is not null)
+                Selected = value;
         }
     }
 
@@ -166,19 +231,24 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
     public bool ShowClosed
     {
         get => _showClosed;
-        set => SetProperty(ref _showClosed, value);
+        set
+        {
+            if (SetProperty(ref _showClosed, value))
+                Sync();
+        }
     }
 
     public int WaitingCount => _board.WaitingCount;
 
     public bool HasWaiting => WaitingCount > 0;
 
-    public bool IsEmpty => Open.Count == 0;
+    /// <summary>Nothing open. The closed ones, if any, are behind their own bar at the foot.</summary>
+    public bool IsEmpty => WaitingGroup.Count + InProgressGroup.Count == 0 && PageItems.Count == 0;
 
     #region The day in numbers
 
     private IEnumerable<CallRequestSummaryDto> Today =>
-        _board.All.Where(r => r.OperatingDate.Date == DateTime.Today);
+        _board.All.Where(r => r.OperatingDate.Date == BusinessDay.Today);
 
     public string TodaySummaryText
     {
@@ -221,6 +291,54 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
         }
     }
 
+    // The same figures as TodaySummaryText, one per pill.
+
+    public string SummaryCountText => string.Format(L["CallRequestPillCount"], Today.Count());
+
+    private List<TimeSpan> Waits => Today
+        .Where(r => r.ClaimedAtUtc.HasValue)
+        .Select(r => r.ClaimedAtUtc!.Value - r.RequestedAtUtc)
+        .ToList();
+
+    private List<TimeSpan> Handlings => Today
+        .Where(r => r.Status == CallRequestStatuses.Resolved && r.ClaimedAtUtc.HasValue && r.ClosedAtUtc.HasValue)
+        .Select(r => r.ClosedAtUtc!.Value - r.ClaimedAtUtc!.Value)
+        .ToList();
+
+    public bool HasSummaryWait => Waits.Count > 0;
+
+    public string SummaryWaitText =>
+        HasSummaryWait ? string.Format(L["CallRequestPillWait"], CallRequestText.Duration(Average(Waits))) : string.Empty;
+
+    public bool HasSummaryHandle => Handlings.Count > 0;
+
+    public string SummaryHandleText =>
+        HasSummaryHandle ? string.Format(L["CallRequestPillHandle"], CallRequestText.Duration(Average(Handlings))) : string.Empty;
+
+    private string? TopReason => Today
+        .Where(r => !string.IsNullOrWhiteSpace(r.ReasonCode))
+        .GroupBy(r => r.ReasonCode)
+        .OrderByDescending(g => g.Count())
+        .Select(g => CallRequestText.Reason(g.Key))
+        .FirstOrDefault();
+
+    public bool HasSummaryReason => TopReason is not null;
+
+    public string SummaryReasonText =>
+        TopReason is { } reason ? string.Format(L["CallRequestPillReason"], reason) : string.Empty;
+
+    private void RaiseSummary()
+    {
+        OnPropertyChanged(nameof(TodaySummaryText));
+        OnPropertyChanged(nameof(SummaryCountText));
+        OnPropertyChanged(nameof(HasSummaryWait));
+        OnPropertyChanged(nameof(SummaryWaitText));
+        OnPropertyChanged(nameof(HasSummaryHandle));
+        OnPropertyChanged(nameof(SummaryHandleText));
+        OnPropertyChanged(nameof(HasSummaryReason));
+        OnPropertyChanged(nameof(SummaryReasonText));
+    }
+
     private static TimeSpan Average(List<TimeSpan> spans) =>
         TimeSpan.FromTicks((long)spans.Average(span => span.Ticks));
 
@@ -235,8 +353,27 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
         if (item.IsClosed)
             ShowClosed = true;
 
+        // To the page the row is on, or an alert would open a request the list does not show.
+        var position = Ordered().IndexOf(item);
+
+        if (position >= 0)
+            GoToPage(position / PageSize);
+
         Selected = item;
     }
+
+    private void GoToPage(int index)
+    {
+        _pageIndex = index;
+        Sync();
+    }
+
+    /// <summary>Every row that belongs in the list, in queue order, across all pages.</summary>
+    private List<CallRequestItemViewModel> Ordered() =>
+        _items.Values
+            .Where(i => i.IsOpen || ShowClosed)
+            .OrderBy(i => i.SortKey, StringComparer.Ordinal)
+            .ToList();
 
     private void Sync()
     {
@@ -260,19 +397,23 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
         foreach (var gone in _items.Keys.Where(id => !seen.Contains(id)).ToList())
             _items.Remove(gone);
 
-        var open = _items.Values
-            .Where(i => i.IsOpen)
-            .OrderBy(i => i.IsWaiting ? 0 : 1)
-            .ThenBy(i => i.IsWaiting ? i.Dto.QueuedAtUtc : i.Dto.ClaimedAtUtc ?? i.Dto.QueuedAtUtc)
-            .ToList();
+        foreach (var item in _items.Values)
+            item.Group = item.IsWaiting ? WaitingGroup : item.IsInProgress ? InProgressGroup : ClosedGroup;
 
-        var closed = _items.Values
-            .Where(i => i.IsClosed)
-            .OrderByDescending(i => i.Dto.ClosedAtUtc ?? i.Dto.QueuedAtUtc)
-            .ToList();
+        WaitingGroup.Count = _items.Values.Count(i => i.IsWaiting);
+        InProgressGroup.Count = _items.Values.Count(i => i.IsInProgress);
+        ClosedGroup.Count = _items.Values.Count(i => i.IsClosed);
 
-        Reconcile(Open, open);
-        Reconcile(Closed, closed);
+        var ordered = Ordered();
+
+        _total = ordered.Count;
+
+        // A page that emptied (the last closed row reopened, the closed ones folded away) gives
+        // way to the last one that still has rows.
+        if (_pageIndex * PageSize >= _total)
+            _pageIndex = Math.Max(0, (_total - 1) / PageSize);
+
+        Reconcile(PageItems, ordered.Skip(_pageIndex * PageSize).Take(PageSize).ToList());
 
         if (Selected is not null && !_items.ContainsKey(Selected.Id))
         {
@@ -288,7 +429,15 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
         OnPropertyChanged(nameof(WaitingCount));
         OnPropertyChanged(nameof(HasWaiting));
         OnPropertyChanged(nameof(IsEmpty));
-        OnPropertyChanged(nameof(TodaySummaryText));
+        OnPropertyChanged(nameof(RangeLabel));
+        OnPropertyChanged(nameof(HasPages));
+        OnPropertyChanged(nameof(ClosedCount));
+        OnPropertyChanged(nameof(HasClosed));
+
+        // The list may have let go of the row while it moved: give it back.
+        OnPropertyChanged(nameof(SelectedRow));
+
+        RaiseSummary();
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -297,10 +446,14 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
         foreach (var item in _items.Values)
             item.Tick();
 
-        OnPropertyChanged(nameof(TodaySummaryText));
+        RaiseSummary();
     }
 
-    /// <summary>Moves rows into place instead of clearing the list, so the selection and the scroll survive.</summary>
+    /// <summary>
+    /// Takes out what left the page and adds what arrived. Never moves a row: the order is the
+    /// view's, sorted live on <see cref="CallRequestItemViewModel.SortKey"/>. Moving rows in the
+    /// collection is what made the list drop its selection.
+    /// </summary>
     private static void Reconcile(
         ObservableCollection<CallRequestItemViewModel> target,
         List<CallRequestItemViewModel> desired)
@@ -313,14 +466,12 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
                 target.RemoveAt(i);
         }
 
-        for (var i = 0; i < desired.Count; i++)
-        {
-            var current = target.IndexOf(desired[i]);
+        var present = new HashSet<CallRequestItemViewModel>(target);
 
-            if (current < 0)
-                target.Insert(i, desired[i]);
-            else if (current != i)
-                target.Move(current, i);
+        foreach (var item in desired)
+        {
+            if (!present.Contains(item))
+                target.Add(item);
         }
     }
 
@@ -344,7 +495,7 @@ public sealed class CallRequestsPanelViewModel : BaseViewModel
         var dialog = new SaveFileDialog
         {
             Filter = "Excel (*.xlsx)|*.xlsx",
-            FileName = $"call-requests-{DateTime.Today:yyyy-MM-dd}.xlsx"
+            FileName = $"call-requests-{BusinessDay.Today:yyyy-MM-dd}.xlsx"
         };
 
         if (dialog.ShowDialog() != true)

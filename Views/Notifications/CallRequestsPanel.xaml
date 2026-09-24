@@ -3,145 +3,135 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
-             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              xmlns:services="clr-namespace:Raphael.Desktop.Services"
+             xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:local="clr-namespace:Raphael.Desktop.Views.Notifications">
 
-    <!-- DataContext: CallRequestsPanelViewModel. The drivers' call-back queue, inside the
-         Notification Center. Waiting requests first, in order of arrival; the detail on the right
-         holds everything the dispatcher needs before calling the driver back. -->
+    <!-- DataContext: CallRequestsPanelViewModel. The drivers' call-back queue: the first chip of the
+         Notification Center, and built to read as part of it. The list on the left is the inbox's
+         list — one line per row, the state as a coloured icon, the time on the right giving way to
+         the action under the pointer, pages of fifty. The detail on the right is the inbox's
+         reading pane: a header card with who, the state and the number to call, then one card per
+         subject. -->
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <ResourceDictionary>
 
-        <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
+            <!-- The Notification Center's palette, cards, rows and toolbar buttons. -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="NotificationTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-        <SolidColorBrush x:Key="Accent" Color="#673AB7" />
-        <SolidColorBrush x:Key="AccentSoft" Color="#EDE7F6" />
-        <SolidColorBrush x:Key="AccentBorder" Color="#DCD2F0" />
-        <SolidColorBrush x:Key="Muted" Color="#5F6368" />
+            <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
 
-        <Style x:Key="ChipStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="7 1" />
-            <Setter Property="Margin" Value="6 0 0 0" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
+            <SolidColorBrush x:Key="Muted" Color="#5F6368" />
 
-        <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
-            <Setter Property="Margin" Value="0 0 8 8" />
-            <Setter Property="Padding" Value="12 4" />
-            <Setter Property="Height" Value="32" />
-        </Style>
+            <!-- A small fact on a row or under the name: a count, a flag, a reason. -->
+            <Style x:Key="PillStyle" TargetType="Border">
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="8 1" />
+                <Setter Property="Margin" Value="6 0 0 0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
 
-        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
-            <Setter Property="Margin" Value="0 0 8 8" />
-            <Setter Property="Padding" Value="14 4" />
-            <Setter Property="Height" Value="32" />
-        </Style>
+            <Style x:Key="PillTextStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
 
-        <Style x:Key="SectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource Muted}" />
-            <Setter Property="Margin" Value="0 12 0 4" />
-        </Style>
+            <!-- The larger pills of the header card. -->
+            <Style x:Key="StatePillStyle" TargetType="Border">
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Padding" Value="10 4" />
+                <Setter Property="Margin" Value="0 0 8 6" />
+            </Style>
 
-        <!-- One request in the list. Who and which line on the left; the exact time and how long
-             they have waited on the right, because the office answers in order of arrival. -->
-        <DataTemplate x:Key="RequestRow">
-            <Border Padding="10 7" BorderBrush="#EEEEEE" BorderThickness="0 0 0 1" Background="Transparent">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+            <!-- The day in numbers, above the list. -->
+            <Style x:Key="StatPillStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource AccentSurface}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Padding" Value="10 3" />
+                <Setter Property="Margin" Value="0 0 8 0" />
+            </Style>
 
-                    <Ellipse Width="9" Height="9" Margin="0 5 10 0" VerticalAlignment="Top"
-                             Fill="{Binding StatusBrush}" />
+            <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
+                <Setter Property="Margin" Value="0 0 8 8" />
+                <Setter Property="Padding" Value="14 4" />
+                <Setter Property="Height" Value="34" />
+            </Style>
 
-                    <StackPanel Grid.Column="1">
-                        <TextBlock TextTrimming="CharacterEllipsis">
-                            <Run Text="{Binding DriverName, Mode=OneWay}" FontWeight="SemiBold" />
-                            <Run Text="  ·  " Foreground="{StaticResource Muted}" />
-                            <Run Text="{Binding RouteText, Mode=OneWay}" Foreground="{StaticResource Muted}" />
-                        </TextBlock>
+            <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                <Setter Property="Margin" Value="0 0 8 8" />
+                <Setter Property="Padding" Value="12 4" />
+                <Setter Property="Height" Value="34" />
+                <Setter Property="Foreground" Value="{StaticResource AccentDeep}" />
+                <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+            </Style>
 
-                        <WrapPanel Margin="0 2 0 0">
-                            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{Binding StatusBrush}"
-                                       VerticalAlignment="Center" />
+            <!-- One fact of the driver's day: an icon and a sentence. -->
+            <Style x:Key="FactIconStyle" TargetType="materialDesign:PackIcon">
+                <Setter Property="Width" Value="18" />
+                <Setter Property="Height" Value="18" />
+                <Setter Property="Margin" Value="0 1 10 0" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="Foreground" Value="{StaticResource AccentStrong}" />
+            </Style>
 
-                            <Border Style="{StaticResource ChipStyle}" Background="#FCE8E6"
-                                    Visibility="{Binding HasMissedCall, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding AttemptsText}" FontSize="11" Foreground="#B3261E" />
-                            </Border>
+            <Style x:Key="FactTextStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="Foreground" Value="#202124" />
+            </Style>
 
-                            <Border Style="{StaticResource ChipStyle}" Background="#E6F4EA"
-                                    Visibility="{Binding DriverCanTalk, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding DriverCanTalkText}" FontSize="11" Foreground="#137333" />
-                            </Border>
+            <!-- The page on screen, sorted and grouped live: a row that changes state changes its
+                 place and its heading here, without the list being rebuilt or losing the row the
+                 dispatcher has open. -->
+            <CollectionViewSource x:Key="PageView"
+                                  Source="{Binding PageItems}"
+                                  IsLiveSortingRequested="True"
+                                  IsLiveGroupingRequested="True">
+                <CollectionViewSource.SortDescriptions>
+                    <scm:SortDescription PropertyName="SortKey" Direction="Ascending" />
+                </CollectionViewSource.SortDescriptions>
+                <CollectionViewSource.GroupDescriptions>
+                    <PropertyGroupDescription PropertyName="Group" />
+                </CollectionViewSource.GroupDescriptions>
+                <CollectionViewSource.LiveSortingProperties>
+                    <sys:String>SortKey</sys:String>
+                </CollectionViewSource.LiveSortingProperties>
+                <CollectionViewSource.LiveGroupingProperties>
+                    <sys:String>Group</sys:String>
+                </CollectionViewSource.LiveGroupingProperties>
+            </CollectionViewSource>
 
-                            <Border Style="{StaticResource ChipStyle}" Background="#FEF7E0"
-                                    Visibility="{Binding IsStaleClaim, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestStaleClaim]}"
-                                           FontSize="11" Foreground="#B06000" />
-                            </Border>
-
-                            <Border Style="{StaticResource ChipStyle}" Background="#FEF7E0"
-                                    Visibility="{Binding IsFromEarlierDay, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding EarlierDayText}" FontSize="11" Foreground="#B06000" />
-                            </Border>
-
-                            <Border Style="{StaticResource ChipStyle}" Background="#F1F3F4"
-                                    Visibility="{Binding HasReason, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding ReasonText}" FontSize="11" />
-                            </Border>
-                        </WrapPanel>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" HorizontalAlignment="Right" Margin="10 0 0 0">
-                        <TextBlock Text="{Binding RequestedAtText}" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 2 0 0">
-                            <TextBlock Text="{Binding WaitingText}" FontSize="12" Foreground="{Binding WaitingBrush}"
-                                       VerticalAlignment="Center" />
-                            <Border Style="{StaticResource ChipStyle}" Background="#FCE8E6" ToolTip="{Binding ReminderTooltip}"
-                                    Visibility="{Binding HasReminders, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding ReminderText}" FontSize="11" FontWeight="Bold" Foreground="#B3261E" />
-                            </Border>
-                            <Border Style="{StaticResource ChipStyle}" Background="{StaticResource AccentSoft}"
-                                    Visibility="{Binding IsRepeatOfDay, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding NumberOfDayText}" FontSize="11" Foreground="{StaticResource Accent}" />
-                            </Border>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ===================== Toolbar and the day in numbers ===================== -->
-        <Grid Margin="0 0 0 6">
+        <!-- ===================== Toolbar =====================
+             The inbox's toolbar: the actions on the left, the page counter on the right. -->
+        <Grid Margin="0 2 0 4">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Command="{Binding RefreshCommand}" Style="{StaticResource MaterialDesignIconButton}" Width="34" Height="34"
-                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestRefresh]}">
-                    <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" />
-                </Button>
+            <StackPanel Orientation="Horizontal">
 
+                <!-- The one action that matters most here: whoever has waited longest. -->
                 <Button Command="{Binding AttendNextCommand}" Style="{StaticResource MaterialDesignRaisedButton}"
-                        Height="30" Padding="12 0" Margin="6 0 6 0">
+                        Height="32" Padding="12 0" Margin="0 0 8 0">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="PhoneForward" Width="16" Height="16" VerticalAlignment="Center" />
                         <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
@@ -149,58 +139,311 @@
                     </StackPanel>
                 </Button>
 
-                <Button Command="{Binding ExportCommand}" Style="{StaticResource MaterialDesignIconButton}" Width="34" Height="34"
+                <Border Width="1" Background="#DADCE0" Margin="4 6" />
+
+                <Button Command="{Binding RefreshCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestRefresh]}">
+                    <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" />
+                </Button>
+
+                <Button Command="{Binding ExportCommand}" Style="{StaticResource ToolbarButtonStyle}"
                         ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestExport]}">
                     <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" />
                 </Button>
 
                 <Button Click="Help_Click" Tag="desktop/notifications/call-requests"
-                        Style="{StaticResource MaterialDesignIconButton}" Width="34" Height="34"
+                        Style="{StaticResource ToolbarButtonStyle}"
                         ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestHelp]}">
                     <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" />
                 </Button>
+
             </StackPanel>
 
-            <TextBlock Grid.Column="1" Text="{Binding TodaySummaryText}" FontSize="12"
-                       Foreground="{StaticResource Muted}" VerticalAlignment="Center"
-                       HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" Margin="12 0 0 0" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+
+                <TextBlock Text="{Binding RangeLabel}" VerticalAlignment="Center"
+                           FontSize="12" Opacity="0.75" Margin="0 0 8 0" />
+
+                <Button Command="{Binding PreviousPageCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestPreviousPage]}">
+                    <materialDesign:PackIcon Kind="ChevronLeft" Width="18" Height="18" />
+                </Button>
+
+                <Button Command="{Binding NextPageCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNextPage]}">
+                    <materialDesign:PackIcon Kind="ChevronRight" Width="18" Height="18" />
+                </Button>
+
+            </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1">
+        <!-- ===================== The day in numbers ===================== -->
+        <WrapPanel Grid.Row="1" Margin="0 0 0 8">
+
+            <Border Style="{StaticResource StatPillStyle}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="PhoneLog" Width="14" Height="14" VerticalAlignment="Center"
+                                             Foreground="{StaticResource AccentStrong}" />
+                    <TextBlock Text="{Binding SummaryCountText}" Margin="6 0 0 0" FontSize="12"
+                               FontWeight="SemiBold" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StatPillStyle}"
+                    Visibility="{Binding HasSummaryWait, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="TimerSandEmpty" Width="14" Height="14" VerticalAlignment="Center"
+                                             Foreground="{StaticResource AccentStrong}" />
+                    <TextBlock Text="{Binding SummaryWaitText}" Margin="6 0 0 0" FontSize="12"
+                               Foreground="{StaticResource AccentText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StatPillStyle}"
+                    Visibility="{Binding HasSummaryHandle, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Headset" Width="14" Height="14" VerticalAlignment="Center"
+                                             Foreground="{StaticResource AccentStrong}" />
+                    <TextBlock Text="{Binding SummaryHandleText}" Margin="6 0 0 0" FontSize="12"
+                               Foreground="{StaticResource AccentText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StatPillStyle}"
+                    Visibility="{Binding HasSummaryReason, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="TagOutline" Width="14" Height="14" VerticalAlignment="Center"
+                                             Foreground="{StaticResource AccentStrong}" />
+                    <TextBlock Text="{Binding SummaryReasonText}" Margin="6 0 0 0" FontSize="12"
+                               Foreground="{StaticResource AccentText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+        </WrapPanel>
+
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="5*" MinWidth="320" />
-                <ColumnDefinition Width="6*" MinWidth="360" />
+                <ColumnDefinition Width="5*" MinWidth="380" />
+                <ColumnDefinition Width="6*" MinWidth="380" />
             </Grid.ColumnDefinitions>
 
             <!-- ===================== The queue ===================== -->
-            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4">
+            <Border Background="White" BorderBrush="#E6E1F0" BorderThickness="1" CornerRadius="10">
                 <DockPanel>
 
-                    <!-- What closed today, folded away: the history of the day, not the work. -->
-                    <Expander DockPanel.Dock="Bottom" IsExpanded="{Binding ShowClosed, Mode=TwoWay}"
-                              Header="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestClosedToday]}">
-                        <ListBox x:Name="ClosedList" ItemsSource="{Binding Closed}"
-                                 SelectionChanged="List_SelectionChanged"
-                                 ItemTemplate="{StaticResource RequestRow}" MaxHeight="260"
-                                 HorizontalContentAlignment="Stretch" BorderThickness="0"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
-                    </Expander>
+                    <!-- What closed today, folded away at the foot: the record of the day, not the
+                         work still to do. Its count is always visible, folded or not. -->
+                    <Button DockPanel.Dock="Bottom" Command="{Binding ToggleClosedCommand}"
+                            Cursor="Hand" HorizontalContentAlignment="Stretch"
+                            Visibility="{Binding HasClosed, Converter={StaticResource BoolToVis}}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bar" Background="{StaticResource AccentSurface}"
+                                        BorderBrush="{StaticResource AccentBorder}" BorderThickness="0 1 0 0"
+                                        CornerRadius="0 0 10 10" Padding="14 9">
+                                    <ContentPresenter />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bar" Property="Background" Value="{StaticResource AccentSoft}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <materialDesign:PackIcon Kind="PhoneCheck" Width="16" Height="16" VerticalAlignment="Center"
+                                                     Foreground="{StaticResource AccentStrong}" />
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8 0 0 0">
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestClosedToday]}"
+                                           FontWeight="SemiBold" Foreground="{StaticResource AccentText}" VerticalAlignment="Center" />
+                                <Border Style="{StaticResource PillStyle}" Background="White" Margin="8 0 0 0">
+                                    <TextBlock Text="{Binding ClosedCount}" Style="{StaticResource PillTextStyle}"
+                                               Foreground="{StaticResource AccentDeep}" />
+                                </Border>
+                            </StackPanel>
+
+                            <materialDesign:PackIcon x:Name="Chevron" Grid.Column="2" Width="20" Height="20"
+                                                     VerticalAlignment="Center" Foreground="{StaticResource AccentDeep}">
+                                <materialDesign:PackIcon.Style>
+                                    <Style TargetType="materialDesign:PackIcon">
+                                        <Setter Property="Kind" Value="ChevronUp" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ShowClosed}" Value="True">
+                                                <Setter Property="Kind" Value="ChevronDown" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </materialDesign:PackIcon.Style>
+                            </materialDesign:PackIcon>
+                        </Grid>
+                    </Button>
 
                     <Grid>
-                        <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestQueueEmpty]}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
-                                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
 
-                        <!-- ⚠️ No SelectedItem binding on either list. Two lists bound two-way to one
-                             property fight: the one that does not hold the item clears its selection
-                             and pushes null back, and the detail closes under the dispatcher. The
-                             code-behind keeps them in step instead. -->
-                        <ListBox x:Name="OpenList" ItemsSource="{Binding Open}"
-                                 SelectionChanged="List_SelectionChanged"
-                                 ItemTemplate="{StaticResource RequestRow}"
-                                 HorizontalContentAlignment="Stretch" BorderThickness="0"
+                        <!-- Nothing open: said, not left blank. -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
+                            <materialDesign:PackIcon Kind="PhoneCheck" Width="44" Height="44" HorizontalAlignment="Center"
+                                                     Foreground="{StaticResource AccentBorder}" />
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestQueueEmpty]}"
+                                       Margin="0 8 0 0" Opacity="0.6" HorizontalAlignment="Center" />
+                        </StackPanel>
+
+                        <ListBox x:Name="QueueList"
+                                 ItemsSource="{Binding Source={StaticResource PageView}}"
+                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                 SelectionChanged="QueueList_SelectionChanged"
+                                 ItemContainerStyle="{StaticResource InboxRowStyle}"
+                                 BorderThickness="0" Background="Transparent"
+                                 HorizontalContentAlignment="Stretch"
+                                 VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 Visibility="{Binding IsEmpty, Converter={StaticResource InverseBoolToVis}}" />
+                                 Visibility="{Binding IsEmpty, Converter={StaticResource InverseBoolToVis}}">
+
+                            <!-- A heading per state, with the whole state's count: "Waiting 3" is three
+                                 drivers, however the pages fall. -->
+                            <ListBox.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#FAF8FD" BorderBrush="#ECE7F5" BorderThickness="0 0 0 1"
+                                                    Padding="12 7 12 6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="{Binding Name.Icon}" Width="15" Height="15"
+                                                                             VerticalAlignment="Center"
+                                                                             Foreground="{StaticResource AccentStrong}" />
+                                                    <TextBlock Text="{Binding Name.Title}" Margin="8 0 0 0"
+                                                               FontSize="12" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource AccentDeep}" VerticalAlignment="Center" />
+                                                    <Border Style="{StaticResource PillStyle}" Background="{StaticResource AccentSoft}">
+                                                        <TextBlock Text="{Binding Name.Count}" Style="{StaticResource PillTextStyle}"
+                                                                   Foreground="{StaticResource AccentDeep}" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </ListBox.GroupStyle>
+
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="44">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="92" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- The state, the way the inbox shows a severity. -->
+                                        <Border Width="28" Height="28" CornerRadius="14" VerticalAlignment="Center"
+                                                Background="{Binding StateBackground}">
+                                            <materialDesign:PackIcon Kind="{Binding StateIcon}" Width="16" Height="16"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                     Foreground="{Binding StateBrush}" />
+                                        </Border>
+
+                                        <!-- Who, and which line. -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DriverName}" FontWeight="{Binding NameWeight}"
+                                                       MaxWidth="190" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <Border Style="{StaticResource PillStyle}" Background="{StaticResource AccentSoft}">
+                                                <TextBlock Text="{Binding RouteText}" Style="{StaticResource PillTextStyle}"
+                                                           Foreground="{StaticResource AccentDeep}" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Where it stands, and what is special about it. -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10 0 6 0"
+                                                    VerticalAlignment="Center" ClipToBounds="True">
+                                            <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}"
+                                                       FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+
+                                            <Border Style="{StaticResource PillStyle}" Background="#FEF2F2" ToolTip="{Binding ReminderTooltip}"
+                                                    Visibility="{Binding HasReminders, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding ReminderText}" Style="{StaticResource PillTextStyle}" Foreground="#D32F2F" />
+                                            </Border>
+
+                                            <Border Style="{StaticResource PillStyle}" Background="#FEF2F2" ToolTip="{Binding AttemptsText}"
+                                                    Visibility="{Binding HasMissedCall, Converter={StaticResource BoolToVis}}">
+                                                <materialDesign:PackIcon Kind="PhoneMissed" Width="13" Height="13" Foreground="#D32F2F" />
+                                            </Border>
+
+                                            <Border Style="{StaticResource PillStyle}" Background="#F0FDF4" ToolTip="{Binding DriverCanTalkText}"
+                                                    Visibility="{Binding DriverCanTalk, Converter={StaticResource BoolToVis}}">
+                                                <materialDesign:PackIcon Kind="PhoneRing" Width="13" Height="13" Foreground="#2E7D32" />
+                                            </Border>
+
+                                            <Border Style="{StaticResource PillStyle}" Background="{StaticResource AccentSoft}"
+                                                    Visibility="{Binding IsRepeatOfDay, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding NumberOfDayText}" Style="{StaticResource PillTextStyle}"
+                                                           Foreground="{StaticResource AccentDeep}" />
+                                            </Border>
+
+                                            <Border Style="{StaticResource PillStyle}" Background="#FEFCE8"
+                                                    Visibility="{Binding IsFromEarlierDay, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding EarlierDayText}" Style="{StaticResource PillTextStyle}" Foreground="#B47C00" />
+                                            </Border>
+
+                                            <Border Style="{StaticResource PillStyle}" Background="#FEFCE8"
+                                                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestStaleClaim]}"
+                                                    Visibility="{Binding IsStaleClaim, Converter={StaticResource BoolToVis}}">
+                                                <materialDesign:PackIcon Kind="TimerAlertOutline" Width="13" Height="13" Foreground="#B47C00" />
+                                            </Border>
+
+                                            <Border Style="{StaticResource PillStyle}" Background="#F1F3F4"
+                                                    Visibility="{Binding HasReason, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding ReasonText}" Style="{StaticResource PillTextStyle}" Foreground="#5F6368" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- How long: coloured while the driver waits. -->
+                                        <TextBlock Grid.Column="3" Text="{Binding WaitingText}" Foreground="{Binding WaitingBrush}"
+                                                   FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0 0 10 0" />
+
+                                        <!-- The exact time gives way to "Attend" under the pointer, the way the
+                                             inbox's time gives way to its actions. -->
+                                        <Grid Grid.Column="4">
+                                            <TextBlock x:Name="RowTime" Text="{Binding RequestedAtText}"
+                                                       FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Margin="0 0 6 0" />
+
+                                            <Button x:Name="RowAttend" Style="{StaticResource RowActionStyle}"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Collapsed"
+                                                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestAttend]}"
+                                                    Command="{Binding DataContext.AttendCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                    CommandParameter="{Binding}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="PhoneInTalk" Width="17" Height="17" />
+                                                    <TextBlock Margin="5 0 2 0" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestAttend]}" />
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+
+                                    <DataTemplate.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True" />
+                                                <Condition Binding="{Binding IsWaiting}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="RowTime" Property="Visibility" Value="Collapsed" />
+                                            <Setter TargetName="RowAttend" Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Grid>
                 </DockPanel>
             </Border>
@@ -208,157 +451,454 @@
             <!-- ===================== The detail ===================== -->
             <Grid Grid.Column="1" Margin="12 0 0 0">
 
-                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestPickOne]}"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
-                           Visibility="{Binding HasSelection, Converter={StaticResource InverseBoolToVis}}" />
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding HasSelection, Converter={StaticResource InverseBoolToVis}}">
+                    <materialDesign:PackIcon Kind="PhoneInTalkOutline" Width="56" Height="56" HorizontalAlignment="Center"
+                                             Foreground="{StaticResource AccentBorder}" />
+                    <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestPickOne]}"
+                               Margin="0 10 0 0" Opacity="0.6" HorizontalAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0 0 6 0"
                               Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
-                    <StackPanel Margin="0 0 8 12">
+                    <StackPanel Margin="0 0 0 14">
 
-                        <!-- Who, and the number to call. -->
-                        <TextBlock FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap">
-                            <Run Text="{Binding Selected.DriverName, Mode=OneWay}" />
-                            <Run Text="  ·  " Foreground="{StaticResource Muted}" FontWeight="Normal" />
-                            <Run Text="{Binding Selected.RouteText, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" />
-                        </TextBlock>
+                        <!-- ===== Who, where it stands, the number to call, what to do ===== -->
+                        <Border Background="{StaticResource AccentSurface}" BorderBrush="{StaticResource AccentBorder}"
+                                BorderThickness="1" CornerRadius="12" Padding="18 16" Margin="0 0 0 12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="{Binding Detail.VehicleText}" Foreground="{StaticResource Muted}" Margin="0 2 0 0"
-                                   Visibility="{Binding Detail.HasVehicle, Converter={StaticResource BoolToVis}}" />
+                                <Border Width="46" Height="46" CornerRadius="23" VerticalAlignment="Top"
+                                        Background="{Binding Selected.StateBackground}">
+                                    <materialDesign:PackIcon Kind="{Binding Selected.StateIcon}" Width="26" Height="26"
+                                                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                             Foreground="{Binding Selected.StateBrush}" />
+                                </Border>
 
-                        <StackPanel Orientation="Horizontal" Margin="0 8 0 0">
-                            <materialDesign:PackIcon Kind="Phone" Width="20" Height="20" VerticalAlignment="Center"
-                                                     Foreground="{StaticResource Accent}" />
-                            <TextBox Text="{Binding Detail.PhoneText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
-                                     FontSize="18" FontWeight="SemiBold" Margin="6 0 8 0" VerticalAlignment="Center"
-                                     Background="Transparent" />
-                            <Button Command="{Binding CopyPhoneCommand}" Style="{StaticResource MaterialDesignIconButton}"
-                                    Width="30" Height="30"
-                                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCopyPhone]}">
-                                <materialDesign:PackIcon Kind="ContentCopy" Width="16" Height="16" />
-                            </Button>
-                        </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="16 0 0 0">
 
-                        <!-- When they asked, how long ago, and how many times. -->
-                        <WrapPanel Margin="0 6 0 0">
-                            <TextBlock VerticalAlignment="Center">
-                                <Run Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestAskedAt], Mode=OneWay}" />
-                                <Run Text="{Binding Selected.RequestedAtText, Mode=OneWay}" FontWeight="SemiBold" />
-                            </TextBlock>
-                            <TextBlock Text="{Binding Selected.WaitingText}" Foreground="{Binding Selected.WaitingBrush}"
-                                       Margin="10 0 0 0" VerticalAlignment="Center" />
-                            <Border Style="{StaticResource ChipStyle}" Background="#FCE8E6"
-                                    Visibility="{Binding Selected.HasReminders, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding Selected.ReminderTooltip}" FontSize="11" Foreground="#B3261E" />
-                            </Border>
-                            <Border Style="{StaticResource ChipStyle}" Background="{StaticResource AccentSoft}"
-                                    Visibility="{Binding Selected.IsRepeatOfDay, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{Binding Selected.NumberOfDayText}" FontSize="11" Foreground="{StaticResource Accent}" />
-                            </Border>
-                        </WrapPanel>
+                                    <TextBlock Text="{Binding Selected.DriverName}" FontSize="20" FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentText}" TextWrapping="Wrap" />
 
-                        <TextBlock Text="{Binding Selected.StatusText}" Foreground="{Binding Selected.StatusBrush}"
-                                   FontWeight="SemiBold" Margin="0 6 0 0" />
+                                    <WrapPanel Margin="0 6 0 0">
+                                        <Border Background="{StaticResource Accent}" CornerRadius="10" Padding="9 2" Margin="0 0 8 4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="MapMarkerPath" Width="13" Height="13"
+                                                                         VerticalAlignment="Center" Foreground="White" />
+                                                <TextBlock Text="{Binding Selected.RouteText}" Margin="5 0 0 0" FontSize="11.5"
+                                                           FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                        <TextBlock Text="{Binding Detail.VehicleText}" FontSize="12" Opacity="0.75"
+                                                   VerticalAlignment="Center" Margin="0 0 10 4"
+                                                   Visibility="{Binding Detail.HasVehicle, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock FontSize="12" Opacity="0.75" VerticalAlignment="Center" Margin="0 0 0 4">
+                                            <Run Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestAskedAt], Mode=OneWay}" />
+                                            <Run Text="{Binding Selected.RequestedAtText, Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                    </WrapPanel>
 
-                        <TextBlock Text="{Binding Selected.AttemptsText}" Foreground="#B3261E" Margin="0 2 0 0"
-                                   Visibility="{Binding Selected.HasMissedCall, Converter={StaticResource BoolToVis}}" />
-                        <TextBlock Text="{Binding Selected.DriverCanTalkText}" Foreground="#137333" FontWeight="SemiBold" Margin="0 2 0 0"
-                                   Visibility="{Binding Selected.DriverCanTalk, Converter={StaticResource BoolToVis}}" />
+                                    <!-- The state right now, and everything that makes this request unusual. -->
+                                    <WrapPanel Margin="0 12 0 0">
+                                        <Border Style="{StaticResource StatePillStyle}" Background="{Binding Selected.StateBackground}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="{Binding Selected.StateIcon}" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="{Binding Selected.StateBrush}" />
+                                                <TextBlock Text="{Binding Selected.StatusText}" Margin="6 0 0 0" FontSize="12"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"
+                                                           Foreground="{Binding Selected.StateBrush}" />
+                                            </StackPanel>
+                                        </Border>
 
-                        <!-- What can be done, depending on who holds it. -->
-                        <WrapPanel Margin="0 12 0 0">
-                            <Button Command="{Binding AttendCommand}" Style="{StaticResource PrimaryButton}"
-                                    Visibility="{Binding Selected.IsWaiting, Converter={StaticResource BoolToVis}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="PhoneInTalk" Width="16" Height="16" VerticalAlignment="Center" />
-                                    <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
-                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestAttend]}" />
+                                        <Border Style="{StaticResource StatePillStyle}" Background="White">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="ClockOutline" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="{Binding Selected.WaitingBrush}" />
+                                                <TextBlock Text="{Binding Selected.WaitingText}" Margin="6 0 0 0" FontSize="12"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center"
+                                                           Foreground="{Binding Selected.WaitingBrush}" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="#FEF2F2"
+                                                Visibility="{Binding Selected.HasReminders, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="BellRing" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="#D32F2F" />
+                                                <TextBlock Text="{Binding Selected.ReminderTooltip}" Margin="6 0 0 0" FontSize="12"
+                                                           VerticalAlignment="Center" Foreground="#D32F2F" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="#FEF2F2"
+                                                Visibility="{Binding Selected.HasMissedCall, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="PhoneMissed" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="#D32F2F" />
+                                                <TextBlock Text="{Binding Selected.AttemptsText}" Margin="6 0 0 0" FontSize="12"
+                                                           VerticalAlignment="Center" Foreground="#D32F2F" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="#F0FDF4"
+                                                Visibility="{Binding Selected.DriverCanTalk, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="PhoneRing" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="#2E7D32" />
+                                                <TextBlock Text="{Binding Selected.DriverCanTalkText}" Margin="6 0 0 0" FontSize="12"
+                                                           FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#2E7D32" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="{StaticResource AccentSoft}"
+                                                Visibility="{Binding Selected.IsRepeatOfDay, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding Selected.NumberOfDayText}" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentDeep}" />
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="#FEFCE8"
+                                                Visibility="{Binding Selected.IsFromEarlierDay, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding Selected.EarlierDayText}" FontSize="12" Foreground="#B47C00" />
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="#FEFCE8"
+                                                Visibility="{Binding Selected.IsStaleClaim, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="TimerAlertOutline" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="#B47C00" />
+                                                <TextBlock Margin="6 0 0 0" FontSize="12" VerticalAlignment="Center" Foreground="#B47C00"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestStaleClaim]}" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource StatePillStyle}" Background="#F1F3F4"
+                                                Visibility="{Binding Selected.HasReason, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="TagOutline" Width="15" Height="15"
+                                                                         VerticalAlignment="Center" Foreground="#5F6368" />
+                                                <TextBlock Text="{Binding Selected.ReasonText}" Margin="6 0 0 0" FontSize="12"
+                                                           VerticalAlignment="Center" Foreground="#5F6368" />
+                                            </StackPanel>
+                                        </Border>
+                                    </WrapPanel>
+
+                                    <!-- The number to call: the biggest thing on the card after the name. -->
+                                    <Border Background="White" BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                                            CornerRadius="10" Padding="12 8" Margin="0 8 0 0" HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource AccentSoft}"
+                                                    VerticalAlignment="Center">
+                                                <materialDesign:PackIcon Kind="Phone" Width="19" Height="19"
+                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                         Foreground="{StaticResource Accent}" />
+                                            </Border>
+                                            <StackPanel Margin="10 0 6 0" VerticalAlignment="Center">
+                                                <TextBlock FontSize="10.5" Opacity="0.6" Foreground="{StaticResource AccentText}"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestPhoneLabel]}" />
+                                                <TextBox Text="{Binding Detail.PhoneText, Mode=OneWay}" IsReadOnly="True"
+                                                         BorderThickness="0" Background="Transparent" Padding="0"
+                                                         FontSize="19" FontWeight="SemiBold" Foreground="#202124"
+ />
+                                            </StackPanel>
+                                            <Button Command="{Binding CopyPhoneCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCopyPhone]}">
+                                                <materialDesign:PackIcon Kind="ContentCopy" Width="17" Height="17" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- What can be done, depending on who holds it. -->
+                                    <WrapPanel Margin="0 14 0 0">
+                                        <Button Command="{Binding AttendCommand}" Style="{StaticResource PrimaryButton}"
+                                                Visibility="{Binding Selected.IsWaiting, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="PhoneInTalk" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestAttend]}" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding StartResolveCommand}" Style="{StaticResource PrimaryButton}"
+                                                Visibility="{Binding Selected.IsOpen, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="CheckCircleOutline" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestResolve]}" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding NoAnswerCommand}" Style="{StaticResource ActionButton}"
+                                                Visibility="{Binding Selected.IsMine, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="PhoneMissed" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNoAnswer]}" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding ReleaseCommand}" Style="{StaticResource ActionButton}"
+                                                Visibility="{Binding Selected.IsMine, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="UndoVariant" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestRelease]}" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding TakeOverCommand}" Style="{StaticResource ActionButton}"
+                                                Visibility="{Binding Selected.IsHeldByOther, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="AccountSwitch" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestTakeOver]}" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding ReopenCommand}" Style="{StaticResource ActionButton}"
+                                                Visibility="{Binding Selected.CanReopen, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Restore" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestReopen]}" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding OpenRouteCommand}" Style="{StaticResource ActionButton}"
+                                                Visibility="{Binding Selected.HasRoute, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="MapMarkerPath" Width="16" Height="16" VerticalAlignment="Center" />
+                                                <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
+                                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestOpenRoute]}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
                                 </StackPanel>
-                            </Button>
-                            <Button Command="{Binding TakeOverCommand}" Style="{StaticResource ActionButton}"
-                                    Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestTakeOver]}"
-                                    Visibility="{Binding Selected.IsHeldByOther, Converter={StaticResource BoolToVis}}" />
-                            <Button Command="{Binding NoAnswerCommand}" Style="{StaticResource ActionButton}"
-                                    Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNoAnswer]}"
-                                    Visibility="{Binding Selected.IsMine, Converter={StaticResource BoolToVis}}" />
-                            <Button Command="{Binding StartResolveCommand}" Style="{StaticResource PrimaryButton}"
-                                    Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestResolve]}"
-                                    Visibility="{Binding Selected.IsOpen, Converter={StaticResource BoolToVis}}" />
-                            <Button Command="{Binding ReleaseCommand}" Style="{StaticResource ActionButton}"
-                                    Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestRelease]}"
-                                    Visibility="{Binding Selected.IsMine, Converter={StaticResource BoolToVis}}" />
-                            <Button Command="{Binding ReopenCommand}" Style="{StaticResource ActionButton}"
-                                    Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestReopen]}"
-                                    Visibility="{Binding Selected.CanReopen, Converter={StaticResource BoolToVis}}" />
-                            <Button Command="{Binding OpenRouteCommand}" Style="{StaticResource ActionButton}"
-                                    Visibility="{Binding Selected.HasRoute, Converter={StaticResource BoolToVis}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="MapMarkerPath" Width="16" Height="16" VerticalAlignment="Center" />
-                                    <TextBlock Margin="6 0 0 0" VerticalAlignment="Center"
-                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestOpenRoute]}" />
-                                </StackPanel>
-                            </Button>
-                        </WrapPanel>
+                            </Grid>
+                        </Border>
 
                         <local:CallResolveForm DataContext="{Binding Resolve}" />
 
-                        <!-- How the driver's day is going. -->
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestTheirDay]}" />
-
-                        <ProgressBar IsIndeterminate="True" Height="3"
+                        <!-- Loading and failure, above the cards, as in the inbox's reading pane. -->
+                        <ProgressBar Style="{StaticResource MaterialDesignLinearProgressBar}"
+                                     IsIndeterminate="True" Margin="0 0 0 12"
+                                     Foreground="{StaticResource Accent}"
                                      Visibility="{Binding Detail.IsLoading, Converter={StaticResource BoolToVis}}" />
 
-                        <TextBlock Text="{Binding Detail.ErrorText}" Foreground="#B3261E" TextWrapping="Wrap"
-                                   Visibility="{Binding Detail.HasError, Converter={StaticResource BoolToVis}}" />
-
-                        <StackPanel Visibility="{Binding Detail.HasRouteContext, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="{Binding Detail.PullOutText}" />
-                            <TextBlock Text="{Binding Detail.ProgressText}" Margin="0 2 0 0" />
-                            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
-                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNow]}"
-                                           FontWeight="SemiBold" Margin="0 0 6 0" />
-                                <TextBlock Text="{Binding Detail.NextStopText}" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding Detail.NextStopLatenessText}" Foreground="{Binding Detail.NextStopLatenessBrush}"
-                                           FontWeight="SemiBold" Margin="8 0 0 0"
-                                           Visibility="{Binding Detail.HasNextStopLateness, Converter={StaticResource BoolToVis}}" />
+                        <Border Background="#FCE8E6" CornerRadius="8" Padding="12 8" Margin="0 0 0 12"
+                                Visibility="{Binding Detail.HasError, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AlertCircleOutline" Width="18" Height="18"
+                                                         VerticalAlignment="Center" Foreground="#B3261E" />
+                                <TextBlock Text="{Binding Detail.ErrorText}" Margin="10 0 0 0"
+                                           Foreground="#B3261E" TextWrapping="Wrap" VerticalAlignment="Center" />
                             </StackPanel>
-                            <TextBlock Text="{Binding Detail.LastPerformedText}" Margin="0 2 0 0" TextWrapping="Wrap"
-                                       Visibility="{Binding Detail.HasLastPerformed, Converter={StaticResource BoolToVis}}" />
-                            <TextBlock Text="{Binding Detail.AtRequestText}" Margin="0 2 0 0" TextWrapping="Wrap"
-                                       Foreground="{StaticResource Muted}"
-                                       Visibility="{Binding Detail.HasAtRequest, Converter={StaticResource BoolToVis}}" />
-                        </StackPanel>
+                        </Border>
 
-                        <TextBlock Text="{Binding Detail.LastPositionText}" Margin="0 6 0 0" TextWrapping="Wrap"
-                                   Visibility="{Binding Detail.HasDetail, Converter={StaticResource BoolToVis}}" />
+                        <!-- ===== The driver's day ===== -->
+                        <Border Style="{StaticResource CardStyle}"
+                                Visibility="{Binding Detail.HasDetail, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0 0 0 12">
+                                    <materialDesign:PackIcon Kind="CalendarClock" Style="{StaticResource CardIconStyle}" />
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Margin="0"
+                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCardDay]}" />
+                                </StackPanel>
 
-                        <!-- What happened, in order. -->
-                        <TextBlock Style="{StaticResource SectionLabel}"
-                                   Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestHistory]}" />
-                        <ItemsControl ItemsSource="{Binding Detail.Timeline}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0 1">
-                                        <TextBlock Text="{Binding TimeText}" Width="90" Foreground="{StaticResource Muted}" />
-                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                <TextBlock Style="{StaticResource CardHintStyle}" Margin="0"
+                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNoDayContext]}"
+                                           Visibility="{Binding Detail.HasRouteContext, Converter={StaticResource InverseBoolToVis}}" />
 
-                        <StackPanel Visibility="{Binding Detail.HasOtherRequests, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Style="{StaticResource SectionLabel}"
-                                       Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestOthersToday]}" />
-                            <ItemsControl ItemsSource="{Binding Detail.OtherRequests}" />
-                        </StackPanel>
+                                <StackPanel Visibility="{Binding Detail.HasRouteContext, Converter={StaticResource BoolToVis}}">
 
-                        <!-- ⚠️ Written by a dispatcher and may name a patient. Shown only here. -->
-                        <StackPanel Visibility="{Binding Detail.HasNote, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Style="{StaticResource SectionLabel}"
-                                       Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNote]}" />
-                            <TextBlock Text="{Binding Detail.NoteText}" TextWrapping="Wrap" />
-                        </StackPanel>
+                                    <!-- How far into the route: a bar reads at a glance where "7 of 12" needs reading. -->
+                                    <TextBlock Text="{Binding Detail.ProgressText}" FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentText}" />
+                                    <ProgressBar Value="{Binding Detail.ProgressDone, Mode=OneWay}"
+                                                 Maximum="{Binding Detail.ProgressTotal, Mode=OneWay}"
+                                                 Height="6" Margin="0 6 0 14"
+                                                 Foreground="{StaticResource Accent}" Background="{StaticResource AccentSoft}"
+                                                 BorderThickness="0" />
+
+                                    <Grid Margin="0 0 0 10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="Garage" Style="{StaticResource FactIconStyle}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Detail.PullOutText}" Style="{StaticResource FactTextStyle}" />
+                                    </Grid>
+
+                                    <Grid Margin="0 0 0 10"
+                                          Visibility="{Binding Detail.HasLastPerformed, Converter={StaticResource BoolToVis}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="CheckCircleOutline" Style="{StaticResource FactIconStyle}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Detail.LastPerformedText}" Style="{StaticResource FactTextStyle}" />
+                                    </Grid>
+
+                                    <!-- Where the driver should be now, and how late. -->
+                                    <Grid Margin="0 0 0 10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="ArrowRightBoldCircleOutline" Style="{StaticResource FactIconStyle}" />
+                                        <WrapPanel Grid.Column="1">
+                                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentText}" Margin="0 0 6 0"
+                                                       Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNow]}" />
+                                            <TextBlock Text="{Binding Detail.NextStopText}" Style="{StaticResource FactTextStyle}" />
+                                            <Border Style="{StaticResource PillStyle}" Background="White" BorderThickness="1"
+                                                    BorderBrush="{Binding Detail.NextStopLatenessBrush}"
+                                                    Visibility="{Binding Detail.HasNextStopLateness, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding Detail.NextStopLatenessText}" Style="{StaticResource PillTextStyle}"
+                                                           Foreground="{Binding Detail.NextStopLatenessBrush}" />
+                                            </Border>
+                                        </WrapPanel>
+                                    </Grid>
+
+                                    <Grid Visibility="{Binding Detail.HasAtRequest, Converter={StaticResource BoolToVis}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="MapMarkerOutline" Style="{StaticResource FactIconStyle}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Detail.AtRequestText}" Style="{StaticResource FactTextStyle}"
+                                                   Foreground="{StaticResource Muted}" />
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== The vehicle and where it was last seen ===== -->
+                        <Border Style="{StaticResource CardStyle}"
+                                Visibility="{Binding Detail.HasDetail, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0 0 0 12">
+                                    <materialDesign:PackIcon Kind="MapMarkerRadiusOutline" Style="{StaticResource CardIconStyle}" />
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Margin="0"
+                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCardPosition]}" />
+                                </StackPanel>
+
+                                <Grid Margin="0 0 0 10" Visibility="{Binding Detail.HasVehicle, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <materialDesign:PackIcon Kind="VanPassenger" Style="{StaticResource FactIconStyle}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Detail.VehicleText}" Style="{StaticResource FactTextStyle}" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <materialDesign:PackIcon Kind="CrosshairsGps" Style="{StaticResource FactIconStyle}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Detail.LastPositionText}" Style="{StaticResource FactTextStyle}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== What happened, in order ===== -->
+                        <Border Style="{StaticResource CardStyle}"
+                                Visibility="{Binding Detail.HasDetail, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0 0 0 12">
+                                    <materialDesign:PackIcon Kind="History" Style="{StaticResource CardIconStyle}" />
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Margin="0"
+                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCardHistory]}" />
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding Detail.Timeline}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="72" />
+                                                    <ColumnDefinition Width="26" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="{Binding TimeText}" FontSize="11.5" Opacity="0.65"
+                                                           HorizontalAlignment="Right" Margin="0 3 8 0" />
+
+                                                <!-- The thread that joins one step to the next. -->
+                                                <Rectangle x:Name="Thread" Grid.Column="1" Width="2" Fill="{StaticResource AccentBorder}"
+                                                           HorizontalAlignment="Center" Margin="0 22 0 0" />
+
+                                                <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" VerticalAlignment="Top"
+                                                        Background="{StaticResource AccentSoft}">
+                                                    <materialDesign:PackIcon Kind="{Binding Icon}" Width="13" Height="13"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                             Foreground="{StaticResource AccentDeep}" />
+                                                </Border>
+
+                                                <TextBlock Grid.Column="2" Text="{Binding Text}" FontSize="13" TextWrapping="Wrap"
+                                                           Margin="8 2 0 14" Foreground="#202124" />
+                                            </Grid>
+
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                    <Setter TargetName="Thread" Property="Visibility" Value="Hidden" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== The driver's other requests today ===== -->
+                        <Border Style="{StaticResource CardStyle}"
+                                Visibility="{Binding Detail.HasOtherRequests, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0 0 0 10">
+                                    <materialDesign:PackIcon Kind="PhoneLog" Style="{StaticResource CardIconStyle}" />
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Margin="0"
+                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCardOthers]}" />
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding Detail.OtherRequests}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="#F0EDF6" BorderThickness="0 0 0 1" Padding="0 6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="PhoneOutline" Width="14" Height="14"
+                                                                             VerticalAlignment="Center" Foreground="{StaticResource AccentStrong}" />
+                                                    <TextBlock Text="{Binding}" Margin="8 0 0 0" FontSize="13"
+                                                               TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== The closing note =====
+                             ⚠️ Written by a dispatcher and may name a patient. Shown here only:
+                             never exported, never logged, never sent over the board. -->
+                        <Border Style="{StaticResource CardStyle}" Background="#FFFDF4" BorderBrush="#F1E0AE"
+                                Visibility="{Binding Detail.HasNote, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0 0 0 6">
+                                    <materialDesign:PackIcon Kind="NoteTextOutline" Style="{StaticResource CardIconStyle}"
+                                                             Foreground="#B47C00" />
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Margin="0"
+                                               Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestCardNote]}" />
+                                </StackPanel>
+                                <TextBlock FontSize="11.5" Foreground="#B47C00" Margin="0 0 0 8" TextWrapping="Wrap"
+                                           Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[CallRequestNoteWarning]}" />
+                                <TextBlock Text="{Binding Detail.NoteText}" FontSize="13" TextWrapping="Wrap" Foreground="#202124" />
+                            </StackPanel>
+                        </Border>
 
                     </StackPanel>
                 </ScrollViewer>

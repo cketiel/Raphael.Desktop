@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using MaterialDesignThemes.Wpf;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
@@ -100,8 +101,8 @@ public sealed class CallRequestDetailViewModel : BaseViewModel
 
         if (dto is not null)
         {
-            foreach (var line in dto.Timeline)
-                Timeline.Add(new CallRequestTimelineLine(line));
+            for (var i = 0; i < dto.Timeline.Count; i++)
+                Timeline.Add(new CallRequestTimelineLine(dto.Timeline[i], isLast: i == dto.Timeline.Count - 1));
 
             foreach (var other in dto.OtherRequestsOfDay)
                 OtherRequests.Add(DescribeOther(other));
@@ -144,6 +145,13 @@ public sealed class CallRequestDetailViewModel : BaseViewModel
 
     public string ProgressText =>
         Route is null ? string.Empty : string.Format(L["CallRequestProgress"], Route.StopsDone, Route.StopsTotal);
+
+    /// <summary>Stops done, for the progress bar. Its maximum never drops to zero: an empty bar, not a broken one.</summary>
+    public double ProgressDone => Route?.StopsDone ?? 0;
+
+    public double ProgressTotal => Math.Max(1, Route?.StopsTotal ?? 1);
+
+    public bool HasPosition => _dto?.LastPosition is not null;
 
     public string NextStopText =>
         Route?.Next is { } next ? DescribeStop(next) : L["CallRequestNoNextStop"];
@@ -250,8 +258,25 @@ public sealed class CallRequestDetailViewModel : BaseViewModel
 /// <summary>One line of a request's history, as the dispatcher reads it.</summary>
 public sealed class CallRequestTimelineLine
 {
-    public CallRequestTimelineLine(CallRequestTimelineItemDto item)
+    public CallRequestTimelineLine(CallRequestTimelineItemDto item, bool isLast)
     {
+        IsLast = isLast;
+
+        Icon = item.Type switch
+        {
+            CallRequestChanges.Requested => PackIconKind.PhoneOutgoing,
+            CallRequestChanges.Reminded => PackIconKind.BellRing,
+            CallRequestChanges.Claimed => PackIconKind.PhoneInTalk,
+            CallRequestChanges.TakenOver => PackIconKind.AccountSwitch,
+            CallRequestChanges.Released => PackIconKind.UndoVariant,
+            CallRequestChanges.CallNotAnswered => PackIconKind.PhoneMissed,
+            CallRequestChanges.DriverAvailable => PackIconKind.PhoneRing,
+            CallRequestChanges.Resolved => PackIconKind.CheckCircle,
+            CallRequestChanges.Cancelled => PackIconKind.PhoneCancel,
+            CallRequestChanges.Reopened => PackIconKind.Restore,
+            _ => PackIconKind.CircleSmall
+        };
+
         TimeText = CallRequestText.ExactTime(item.AtUtc);
 
         var what = CallRequestText.Change(item.Type);
@@ -270,4 +295,9 @@ public sealed class CallRequestTimelineLine
     public string TimeText { get; }
 
     public string Text { get; }
+
+    public PackIconKind Icon { get; }
+
+    /// <summary>The last step draws no line below it.</summary>
+    public bool IsLast { get; }
 }

@@ -1,5 +1,8 @@
+using System.Windows;
 using System.Windows.Media;
+using MaterialDesignThemes.Wpf;
 using Raphael.Desktop.DTOs;
+using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.Services.CallRequests;
 
@@ -51,6 +54,8 @@ public sealed class CallRequestItemViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsStaleClaim));
         OnPropertyChanged(nameof(StatusBrush));
         OnPropertyChanged(nameof(ClaimAgeText));
+        OnPropertyChanged(nameof(StateBrush));
+        OnPropertyChanged(nameof(StateBackground));
     }
 
     #region State
@@ -69,7 +74,7 @@ public sealed class CallRequestItemViewModel : BaseViewModel
 
     public bool CanReopen =>
         (Dto.Status == CallRequestStatuses.Resolved || Dto.Status == CallRequestStatuses.Cancelled) &&
-        Dto.OperatingDate.Date == DateTime.Today;
+        Dto.OperatingDate.Date == BusinessDay.Today;
 
     public bool IsStaleClaim =>
         IsInProgress &&
@@ -128,7 +133,7 @@ public sealed class CallRequestItemViewModel : BaseViewModel
 
     public string NumberOfDayText => string.Format(L["CallRequestNthToday"], Dto.RequestNumberOfDay);
 
-    public bool IsFromEarlierDay => IsOpen && Dto.OperatingDate.Date < DateTime.Today;
+    public bool IsFromEarlierDay => IsOpen && Dto.OperatingDate.Date < BusinessDay.Today;
 
     public string EarlierDayText =>
         string.Format(L["CallRequestFromDay"], Dto.OperatingDate.ToString("d", CallRequestText.Culture));
@@ -167,6 +172,91 @@ public sealed class CallRequestItemViewModel : BaseViewModel
     public bool HasReason => !string.IsNullOrWhiteSpace(Dto.ReasonCode);
 
     public string ReasonText => CallRequestText.Reason(Dto.ReasonCode);
+
+    #endregion
+
+    #region How the row looks
+
+    private CallRequestGroup? _group;
+
+    /// <summary>The heading the row sits under. Set by the panel, which owns the headings.</summary>
+    public CallRequestGroup? Group
+    {
+        get => _group;
+        set => SetProperty(ref _group, value);
+    }
+
+    /// <summary>
+    /// The row's place in the queue, as one string the list can sort on: waiting by arrival,
+    /// being handled by when it was taken, closed with the latest first.
+    /// </summary>
+    public string SortKey
+    {
+        get
+        {
+            if (IsWaiting)
+                return $"0{CallRequestText.Utc(Dto.QueuedAtUtc).Ticks:D20}";
+
+            if (IsInProgress)
+                return $"1{CallRequestText.Utc(Dto.ClaimedAtUtc ?? Dto.QueuedAtUtc).Ticks:D20}";
+
+            var closed = CallRequestText.Utc(Dto.ClosedAtUtc ?? Dto.QueuedAtUtc).Ticks;
+
+            return $"2{DateTime.MaxValue.Ticks - closed:D20}";
+        }
+    }
+
+    /// <summary>
+    /// The state as one colour, in the language the notification rows already speak: red for a
+    /// driver kept waiting too long or a call that did not connect, amber for one getting there,
+    /// green for a driver who can talk or a closed case, purple for somebody in the office on it.
+    /// </summary>
+    private string Tone =>
+        HasMissedCall ? NotificationKeys.Severity.Error
+        : DriverCanTalk ? NotificationKeys.Severity.Success
+        : IsWaiting ? (Waiting >= RedAfter ? NotificationKeys.Severity.Error
+                     : Waiting >= AmberAfter ? NotificationKeys.Severity.Warning
+                     : NotificationKeys.Severity.Information)
+        : IsInProgress ? (IsStaleClaim ? NotificationKeys.Severity.Warning : AccentTone)
+        : Dto.Status == CallRequestStatuses.Resolved ? NotificationKeys.Severity.Success
+        : NeutralTone;
+
+    private const string AccentTone = "Accent";
+    private const string NeutralTone = "Neutral";
+
+    private static readonly Brush AccentSurface = Frozen("#EDE7F6");
+    private static readonly Brush NeutralSurface = Frozen("#F1F3F4");
+    private static readonly Brush MineRow = Frozen("#F7F4FC");
+
+    public Brush StateBrush => Tone switch
+    {
+        AccentTone => Accent,
+        NeutralTone => Neutral,
+        var tone => NotificationSeverityPalette.Foreground(tone)
+    };
+
+    public Brush StateBackground => Tone switch
+    {
+        AccentTone => AccentSurface,
+        NeutralTone => NeutralSurface,
+        var tone => NotificationSeverityPalette.Background(tone)
+    };
+
+    public PackIconKind StateIcon =>
+        HasMissedCall ? PackIconKind.PhoneMissed
+        : DriverCanTalk ? PackIconKind.PhoneRing
+        : IsWaiting ? PackIconKind.PhoneClock
+        : IsMine ? PackIconKind.PhoneInTalk
+        : IsInProgress ? PackIconKind.Headset
+        : Dto.Status == CallRequestStatuses.Resolved ? PackIconKind.PhoneCheck
+        : Dto.Status == CallRequestStatuses.Cancelled ? PackIconKind.PhoneCancel
+        : PackIconKind.PhoneOff;
+
+    /// <summary>The dispatcher's own cases are tinted, the way the inbox tints what is unread.</summary>
+    public Brush RowBackground => IsMine ? MineRow : Brushes.Transparent;
+
+    /// <summary>A driver still waiting is the row that needs somebody: it reads heavier.</summary>
+    public FontWeight NameWeight => IsWaiting ? FontWeights.SemiBold : FontWeights.Normal;
 
     #endregion
 

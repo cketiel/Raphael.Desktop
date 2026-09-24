@@ -83,6 +83,9 @@ namespace Raphael.Desktop.Services.CallRequests
 
             _started = true;
 
+            // Not awaited: the queue must not wait on a list of providers to show up.
+            _ = BusinessDay.LoadAsync();
+
             _hub.CallRequestChanged += OnHubMessage;
             _hub.Reconnected += OnHubReconnected;
 
