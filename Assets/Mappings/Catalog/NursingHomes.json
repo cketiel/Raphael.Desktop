@@ -1,0 +1,19 @@
+{
+  "Name": "Nursing homes (Florida, CMS)",
+  "Kind": "Integrator",
+  "CategoryCode": "NursingHome",
+  "HeaderTokens": [ "Centro", "Ciudad", "Condado", "Teléfono" ],
+  "ColumnMappings": {
+    "Centro": "Name",
+    "Ciudad": "City",
+    "Condado": "County",
+    "ZIP": "Zip",
+    "Teléfono": "Phone",
+    "Camas certificadas": "Beds",
+    "Cadena": "ChainName",
+    "Dirección": "Address",
+    "Sitio web": "Website",
+    "Email de contacto": "Email",
+    "Persona clave": "ContactName"
+  }
+}

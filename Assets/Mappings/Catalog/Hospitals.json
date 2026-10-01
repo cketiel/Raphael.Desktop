@@ -1,0 +1,18 @@
+{
+  "Name": "Hospitals (Florida, CMS)",
+  "Kind": "Integrator",
+  "CategoryCode": "Hospital",
+  "HeaderTokens": [ "Hospital", "Ciudad", "Condado", "Tipo de hospital" ],
+  "ColumnMappings": {
+    "Hospital": "Name",
+    "Ciudad": "City",
+    "Condado": "County",
+    "ZIP": "Zip",
+    "Teléfono": "Phone",
+    "Tipo de hospital": "FacilityType",
+    "Dirección": "Address",
+    "Sitio web": "Website",
+    "Email de contacto": "Email",
+    "Persona clave para transporte de altas": "ContactName"
+  }
+}

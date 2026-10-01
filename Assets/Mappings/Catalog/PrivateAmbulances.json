@@ -1,0 +1,19 @@
+{
+  "Name": "Private ambulance companies (Florida, DOH EMS)",
+  "Kind": "Provider",
+  "CategoryCode": "PrivateAmbulance",
+  "HeaderTokens": [ "Empresa", "Licencia EMS", "Tipo BLS/ALS" ],
+  "ColumnMappings": {
+    "Empresa": "Name",
+    "Ciudad": "City",
+    "ZIP": "Zip",
+    "Teléfono": "Phone",
+    "Licencia EMS": "EmsLicense",
+    "Tipo BLS/ALS": "ServiceLevel",
+    "Vence licencia": "LicenseExpiresOn",
+    "Dirección de contacto": "Address",
+    "Website": "Website",
+    "Email": "Email",
+    "Director o administrador": "ContactName"
+  }
+}

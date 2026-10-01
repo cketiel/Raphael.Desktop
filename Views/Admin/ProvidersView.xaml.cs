@@ -1,4 +1,4 @@
-﻿using Raphael.Desktop.ViewModels;
+using Raphael.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,5 +23,16 @@ namespace Raphael.Desktop.Views.Admin
             InitializeComponent();
             this.DataContext = new ProvidersViewModel();
         }
+
+        /// <summary>
+        /// Takes the user to the catalog tab: the entities we could work with, as opposed to
+        /// the ones on this screen, which are the ones we do.
+        /// </summary>
+        private void OpenCatalog_Click(object sender, RoutedEventArgs e)
+        {
+            Helpers.AdminTabNavigator.SelectSiblingTab(
+                this, Services.LocalizationService.Instance["catalog.Tab"]);
+        }
+
     }
 }

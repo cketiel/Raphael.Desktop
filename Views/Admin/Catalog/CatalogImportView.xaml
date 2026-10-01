@@ -1,0 +1,132 @@
+<Window x:Class="Raphael.Desktop.Views.Admin.Catalog.CatalogImportView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+        Title="{Binding WindowTitle}"
+        Height="640" Width="900"
+        WindowStartupLocation="CenterOwner"
+        Background="White"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- File and template -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="280" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0"
+                    Content="{Binding BrowseText}"
+                    Command="{Binding BrowseCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Margin="0,0,10,0" />
+
+            <TextBlock Grid.Column="1"
+                       Text="{Binding FilePath}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       FontSize="12" Opacity="0.8" />
+
+            <ComboBox Grid.Column="3"
+                      ItemsSource="{Binding Templates}"
+                      SelectedItem="{Binding SelectedTemplate}"
+                      DisplayMemberPath="Name"
+                      materialDesign:HintAssist.Hint="{Binding TemplateText}"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+        </Grid>
+
+        <!-- What the file turned out to hold, before anything is sent -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding Summary}"
+                   TextWrapping="Wrap"
+                   FontSize="12" Opacity="0.8"
+                   Margin="0,0,0,12" />
+
+        <!-- Preview and problems, side by side -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0">
+                <TextBlock DockPanel.Dock="Top" Text="{Binding PreviewText}"
+                           FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                <DataGrid ItemsSource="{Binding Preview}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          RowHeight="26"
+                          EnableRowVirtualization="True"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          Style="{StaticResource CustomDataGridStyles}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding RowNumber}" Width="Auto" />
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                        <DataGridTextColumn Header="City" Binding="{Binding City}" Width="*" />
+                        <DataGridTextColumn Header="County" Binding="{Binding County}" Width="*" />
+                        <DataGridTextColumn Header="ZIP" Binding="{Binding Zip}" Width="Auto" />
+                        <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="Auto" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Text="{Binding ProblemsText}"
+                           FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                <DataGrid ItemsSource="{Binding Problems}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          RowHeight="26"
+                          EnableRowVirtualization="True"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          Style="{StaticResource CustomDataGridStyles}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding RowNumber}" Width="Auto" />
+                        <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="Auto" />
+                        <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+
+        <!-- Progress -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0"
+                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+            <ProgressBar Width="120" Height="4" IsIndeterminate="True"
+                         VerticalAlignment="Center" Margin="0,0,10,0" />
+            <TextBlock Text="{Binding Progress}" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <Border Grid.Row="4" Background="#F5F5F5" Padding="12" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{Binding StopText}"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Margin="0,0,10,0" />
+                <Button Content="{Binding ImportText}"
+                        Command="{Binding ImportCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

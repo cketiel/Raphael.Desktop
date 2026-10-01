@@ -1,9 +1,10 @@
-﻿<UserControl x:Class="Raphael.Desktop.Views.Admin.ProvidersView" 
+<UserControl x:Class="Raphael.Desktop.Views.Admin.ProvidersView" 
 		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
-        xmlns:converters="clr-namespace:Raphael.Desktop.Converters">
+        xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+        xmlns:services="clr-namespace:Raphael.Desktop.Services">
 
     <UserControl.Resources>
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
@@ -21,9 +22,24 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
             <Button Command="{Binding AddCommand}" HorizontalAlignment="Left" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Margin="0,0,0,10">
-                <materialDesign:PackIcon Kind="Add" />
+                    <materialDesign:PackIcon Kind="Add" />
+                </Button>
+            <!-- RE-027: this tab holds who we work with, the catalog holds who we could. -->
+            <Button Click="OpenCatalog_Click"
+                    Style="{StaticResource MaterialDesignFlatButton}"
+                    Margin="12,0,0,0"
+                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance},
+                                      Path=[catalog.OpenCatalog]}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="BookOpenVariant" VerticalAlignment="Center" />
+                    <TextBlock Margin="6,0,0,0" VerticalAlignment="Center"
+                               Text="{Binding Source={x:Static services:LocalizationService.Instance},
+                                              Path=[catalog.Tab]}" />
+                </StackPanel>
             </Button>
+        </StackPanel>
 
             <DataGrid Grid.Row="1" ItemsSource="{Binding Providers}"
                       SelectedItem="{Binding SelectedProvider}"
