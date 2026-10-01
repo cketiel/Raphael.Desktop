@@ -99,7 +99,7 @@ namespace Raphael.Desktop.DTOs
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 50;
 
-        public CatalogSortBy SortBy { get; set; } = CatalogSortBy.Relevance;
+        public CatalogSortBy SortBy { get; set; } = CatalogSortBy.Group;
     }
 
     public enum CatalogSortBy
@@ -107,7 +107,16 @@ namespace Raphael.Desktop.DTOs
         Relevance = 0,
         Name = 1,
         City = 2,
-        Newest = 3
+        Newest = 3,
+
+        /// <summary>
+        /// By group, and inside each group by best match. The default.
+        /// </summary>
+        /// <remarks>
+        /// What lets the grid draw a header per group: a page of fifty can only be grouped on
+        /// screen if the rows of one group arrive together, which is the server's job.
+        /// </remarks>
+        Group = 4
     }
 
     /// <summary>Why a row has no coordinates. Mirrors the server enum by value.</summary>
@@ -120,9 +129,24 @@ namespace Raphael.Desktop.DTOs
         Failed = 4
     }
 
+    /// <summary>
+    /// What the list view model needs of a row, whichever catalog it came from.
+    /// </summary>
+    /// <remarks>
+    /// Exists so the shared view model can label the groups without knowing which of the two
+    /// catalogs it is driving.
+    /// </remarks>
+    public interface ICatalogGroupedRow
+    {
+        int CategoryId { get; }
+
+        /// <summary>The group's name in the user's language. Set by the view model.</summary>
+        string GroupLabel { get; set; }
+    }
+
     // ---- Integrator side ----------------------------------------------------------------
 
-    public class CatalogIntegratorListItemDto
+    public class CatalogIntegratorListItemDto : ICatalogGroupedRow
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -153,6 +177,25 @@ namespace Raphael.Desktop.DTOs
 
         /// <summary>Total companies that added it. Null unless the caller is the general broker.</summary>
         public int? AddedByCompanyCount { get; set; }
+
+        // ---- The rest of the row, so the grid can show every column ------------------
+
+        public string? Address { get; set; }
+        public string? ChainName { get; set; }
+        public string? Comments { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public int GeocodeStatus { get; set; }
+
+        /// <summary>
+        /// The group's name in the user's language, for the grid's group headers.
+        /// </summary>
+        /// <remarks>
+        /// Filled by this application and never sent by the server, which has no idea which
+        /// language anybody is reading in. It travels on the row because WPF groups by a
+        /// property of the item and nothing else.
+        /// </remarks>
+        public string GroupLabel { get; set; } = string.Empty;
     }
 
     public class CatalogIntegratorDto
@@ -250,7 +293,7 @@ namespace Raphael.Desktop.DTOs
 
     // ---- Provider side ------------------------------------------------------------------
 
-    public class CatalogProviderListItemDto
+    public class CatalogProviderListItemDto : ICatalogGroupedRow
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -278,6 +321,24 @@ namespace Raphael.Desktop.DTOs
         public bool InMyCompany { get; set; }
         public int? MyProviderId { get; set; }
         public int? AddedByCompanyCount { get; set; }
+
+        // ---- The rest of the row, so the grid can show every column ------------------
+
+        public string? Address { get; set; }
+        public string? Comments { get; set; }
+        public bool? IsPrimaryNemt { get; set; }
+        public DateTime? SourceUpdatedOn { get; set; }
+        public string? EmsLicense { get; set; }
+        public string? PlanSegment { get; set; }
+        public string? CoverageArea { get; set; }
+        public string? ProviderContact { get; set; }
+        public string? EvidenceNote { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public int GeocodeStatus { get; set; }
+
+        /// <summary>The group's name in the user's language. See the integrator twin.</summary>
+        public string GroupLabel { get; set; } = string.Empty;
     }
 
     public class CatalogProviderDto

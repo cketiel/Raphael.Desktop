@@ -18,6 +18,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -52,17 +53,36 @@
         </Grid>
 
         <!-- What the file turned out to hold, before anything is sent -->
-        <TextBlock Grid.Row="1"
+        <TextBlock Grid.Row="2"
                    Text="{Binding Summary}"
                    TextWrapping="Wrap"
                    FontSize="12" Opacity="0.8"
                    Margin="0,0,0,12"
                    Visibility="{Binding HasFile, Converter={StaticResource BoolToVis}}" />
 
+        <!-- Why some rows did not become entities of their own. Shown only when it happened,
+             and worded as an explanation rather than a count, because "50" on its own reads as
+             fifty failures. -->
+        <Border Grid.Row="1" Background="#FFF8E1" BorderBrush="#FFE082" BorderThickness="1"
+                CornerRadius="3" Padding="12,10" Margin="0,0,0,12"
+                Visibility="{Binding HasMerged, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="InformationOutline" Width="22" Height="22"
+                                         Foreground="#F57F17" VerticalAlignment="Top"
+                                         Margin="0,2,10,0" />
+                <StackPanel>
+                    <TextBlock Text="{Binding DuplicatesTitle}" FontWeight="SemiBold"
+                               FontSize="13" Foreground="#E65100" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding DuplicatesExplained}" TextWrapping="Wrap"
+                               FontSize="12" MaxWidth="940" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
         <!-- Left: what is in the file. Right: what the catalog did with it.
              Both carry a line of explanation, because "preview" and "problems" told the user
              nothing about why there were two grids. -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*" />
                 <ColumnDefinition Width="12" />
@@ -81,7 +101,7 @@
                           IsReadOnly="True"
                           SelectionUnit="FullRow"
                           AlternationCount="2"
-                          GridLinesVisibility="None"
+                          GridLinesVisibility="Vertical"
                           EnableRowVirtualization="True"
                           EnableColumnVirtualization="True"
                           ScrollViewer.CanContentScroll="True"
@@ -117,7 +137,7 @@
                           IsReadOnly="True"
                           SelectionUnit="FullRow"
                           AlternationCount="2"
-                          GridLinesVisibility="None"
+                          GridLinesVisibility="Vertical"
                           EnableRowVirtualization="True"
                           ScrollViewer.CanContentScroll="True"
                           VirtualizingPanel.IsVirtualizing="True"
@@ -149,7 +169,7 @@
 
         <!-- Progress while sending, and the tally once it stops. The tally stays on screen:
              a dialog that says nothing after the work is a dialog somebody runs twice. -->
-        <Border Grid.Row="3" Background="#F5F5F5" Padding="12" Margin="0,12,0,0">
+        <Border Grid.Row="4" Background="#F5F5F5" Padding="12" Margin="0,12,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

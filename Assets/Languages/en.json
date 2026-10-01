@@ -1105,5 +1105,15 @@
     "catalog.outcome.Created": "Added",
     "catalog.outcome.Updated": "Updated",
     "catalog.outcome.Rejected": "Rejected",
-    "catalog.outcome.Merged": "{0} rows of the file describe this same entity (rows {1})"
+    "catalog.outcome.Merged": "{0} rows of the file describe this same entity (rows {1})",
+
+    "catalog.ColumnLatitude": "Latitude",
+    "catalog.ColumnLongitude": "Longitude",
+    "catalog.ColumnPrimaryNemt": "NEMT main",
+    "catalog.ColumnSourceUpdated": "Source checked",
+    "catalog.InMyCompanyHint": "Ticked: only the ones your company already added. Unticked: only the ones it has not. Blank (a square): everything.",
+    "catalog.IncludeInactiveHint": "A catalog entity is never deleted. When it stops being of interest it is marked retired and disappears from this list; tick this to see those too.",
+    "catalog.GeocodeHint": "Asks for the latitude and longitude of the rows on this page that have none, using the address. Needed to put an entity on a map or measure distance to it. The whole system shares 1,500 lookups a day, so it is a button somebody presses rather than something the import does on its own.",
+    "catalog.DuplicatesTitle": "Repeated entities in this file",
+    "catalog.DuplicatesExplained": "{0} rows of this file were NOT imported as entities of their own, because they describe an entity another row already describes: same group, same name, same ZIP.\n\nThis is the file's own doing, not an error. Its header says an institution may appear in more than one record — typically the same building registered twice under different CMS types. For the purpose of phoning somebody, that is one place.\n\nThe repeated rows were folded into the entity they belong to, and nothing was lost: a detail one row supplies and the other leaves blank is kept. The \"What the catalog did\" panel names the rows that were folded together."
 }

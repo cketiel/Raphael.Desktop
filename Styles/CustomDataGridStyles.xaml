@@ -210,40 +210,15 @@
         </Style.Triggers>
     </Style>
 
-    <!-- The cell template of CustomCellStyle without the height cap, and left-aligned: a name,
-         a city and an address read from the left. Numbers that want centring say so per column. -->
-    <Style x:Key="ContentCellStyle" TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource {x:Type DataGridCell}}">
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type DataGridCell}">
-                    <Grid Background="{TemplateBinding Background}">
-                        <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          Margin="0"/>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <!-- The row paints selection; a cell that painted it too would draw a box inside
-                 the row. Same reasoning as TripSelectionCellStyle. -->
-            <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
+    <!-- Exactly what the Home grid wears, in one key, for the grids that are not Home.
 
-    <!-- What a list of records wears: the base grid, left-aligned headers, rows that size to
-         their content. The counterpart of CustomDataGridStyles, which caps row height. -->
+         It is a composition and not a new look: the same base, the same centred headers and
+         the same cell style the Home grid names one by one. Spelling them out per grid is how
+         two screens that are meant to read alike stop reading alike. -->
     <Style x:Key="ContentDataGridStyle" TargetType="{x:Type DataGrid}" BasedOn="{StaticResource CustomDataGridStyle}">
-        <Setter Property="ColumnHeaderStyle" Value="{StaticResource CustomColumnHeaderStyle}"/>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource CenteredColumnHeaderStyle}"/>
         <Setter Property="RowStyle" Value="{StaticResource ContentRowStyle}"/>
-        <Setter Property="CellStyle" Value="{StaticResource ContentCellStyle}"/>
+        <Setter Property="CellStyle" Value="{StaticResource TripSelectionCellStyle}"/>
     </Style>
 
 </ResourceDictionary>

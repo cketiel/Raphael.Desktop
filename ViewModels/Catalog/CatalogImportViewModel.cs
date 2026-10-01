@@ -180,6 +180,38 @@ namespace Raphael.Desktop.ViewModels.Catalog
             private set => SetProperty(ref _progress, value);
         }
 
+        private int _mergedCount;
+
+        /// <summary>How many rows of the file turned out to repeat another row.</summary>
+        public int MergedCount
+        {
+            get => _mergedCount;
+            private set
+            {
+                if (SetProperty(ref _mergedCount, value))
+                {
+                    OnPropertyChanged(nameof(HasMerged));
+                    OnPropertyChanged(nameof(DuplicatesExplained));
+                }
+            }
+        }
+
+        public bool HasMerged => MergedCount > 0;
+
+        /// <summary>
+        /// Why some rows did not become entities of their own, spelled out.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ This panel exists because the number is alarming on its own. A 381-row file that
+        /// produces 331 entities reads as fifty failures unless something says, in the same
+        /// breath, that the fifty were repeats of rows already in the file and that nothing was
+        /// lost. Leaving the user to work that out is how a correct import gets undone.
+        /// </remarks>
+        public string DuplicatesExplained =>
+            string.Format(LocalizationService.Instance["catalog.DuplicatesExplained"], MergedCount);
+
+        public string DuplicatesTitle => LocalizationService.Instance["catalog.DuplicatesTitle"];
+
         public bool CanImport =>
             Stage == CatalogImportStage.Ready
             && _read is not null
@@ -225,6 +257,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
             Outcomes.Clear();
             Progress = null;
             AnythingImported = false;
+            MergedCount = 0;
 
             if (SelectedTemplate is null || string.IsNullOrWhiteSpace(FilePath))
             {
@@ -314,6 +347,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
             Stage = CatalogImportStage.Running;
             Outcomes.Clear();
             AnythingImported = false;
+            MergedCount = 0;
 
             var created = 0;
             var updated = 0;
@@ -373,6 +407,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 _cancellation = null;
 
                 AnythingImported = created + updated > 0;
+                MergedCount = merged;
 
                 Progress = string.Format(
                     LocalizationService.Instance[

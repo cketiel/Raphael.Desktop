@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Raphael.Desktop.DTOs;
@@ -26,6 +28,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
     /// </para>
     /// </remarks>
     public abstract class CatalogListViewModelBase<TItem> : ObservableObject
+        where TItem : ICatalogGroupedRow
     {
         protected const int DefaultPageSize = 50;
 
@@ -42,6 +45,13 @@ namespace Raphael.Desktop.ViewModels.Catalog
         protected CatalogListViewModelBase()
         {
             Items = new ObservableCollection<TItem>();
+
+            // ⚠️ Held as a field, never built on the fly. A CollectionViewSource created inside
+            // a property getter is collected while its view is still attached to the grid, and
+            // WPF then dies inside ListCollectionView.PrepareLocalArray — the fault the
+            // notification centre hit and wrote down.
+            _grouped = new CollectionViewSource { Source = Items };
+            _grouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ICatalogGroupedRow.GroupLabel)));
             Categories = new ObservableCollection<CatalogCategoryDto>();
             Counties = new ObservableCollection<CountyDto>();
             Suggestions = new ObservableCollection<CatalogSuggestionDto>();
@@ -56,7 +66,19 @@ namespace Raphael.Desktop.ViewModels.Catalog
             LocalizationService.Instance.LanguageChanged += OnLanguageChanged;
         }
 
+        private readonly CollectionViewSource _grouped;
+
         public ObservableCollection<TItem> Items { get; }
+
+        /// <summary>
+        /// The rows with a header over each group.
+        /// </summary>
+        /// <remarks>
+        /// The grouping only reads correctly because the server returns a page already ordered
+        /// by group — see CatalogSortBy.Group. Group a page that arrives in another order and
+        /// you get a header every few rows.
+        /// </remarks>
+        public ICollectionView ItemsView => _grouped.View;
 
         public ObservableCollection<CatalogCategoryDto> Categories { get; }
 
@@ -263,6 +285,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
 
                 foreach (var item in page.Items)
                 {
+                    item.GroupLabel = GroupLabelFor(item.CategoryId);
                     Items.Add(item);
                 }
 
@@ -304,6 +327,29 @@ namespace Raphael.Desktop.ViewModels.Catalog
         }
 
         public bool HasSuggestions => Suggestions.Count > 0;
+
+        /// <summary>
+        /// The group's name in the user's language, from the categories already loaded.
+        /// </summary>
+        /// <remarks>
+        /// The server sends the code and not the name, because it has no idea which language
+        /// anybody is reading in. Falling back to the code is better than a blank header: it
+        /// still tells you which group you are looking at.
+        /// </remarks>
+        private string GroupLabelFor(int categoryId)
+        {
+            foreach (var category in Categories)
+            {
+                if (category.Id == categoryId)
+                {
+                    return LocalizationService.Instance.CurrentLanguage == "es"
+                        ? category.NameEs
+                        : category.NameEn;
+                }
+            }
+
+            return string.Empty;
+        }
 
         private async Task NextPageAsync()
         {
@@ -410,5 +456,27 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public string ColumnEmail => LocalizationService.Instance["catalog.ColumnEmail"];
         public string ColumnContact => LocalizationService.Instance["catalog.ColumnContact"];
         public string ColumnInMyCompany => LocalizationService.Instance["catalog.ColumnInMyCompany"];
+        public string ColumnWebsite => LocalizationService.Instance["catalog.LabelWebsite"];
+        public string ColumnAddress => LocalizationService.Instance["catalog.LabelAddress"];
+        public string ColumnState => LocalizationService.Instance["catalog.LabelState"];
+        public string ColumnComments => LocalizationService.Instance["catalog.LabelComments"];
+        public string ColumnChain => LocalizationService.Instance["catalog.LabelChain"];
+        public string ColumnLatitude => LocalizationService.Instance["catalog.ColumnLatitude"];
+        public string ColumnLongitude => LocalizationService.Instance["catalog.ColumnLongitude"];
+        public string ColumnActive => LocalizationService.Instance["catalog.LabelIsActive"];
+        public string ColumnProviderContact => LocalizationService.Instance["catalog.LabelProviderContact"];
+        public string ColumnEmsLicense => LocalizationService.Instance["catalog.LabelEmsLicense"];
+        public string ColumnLicenseExpires => LocalizationService.Instance["catalog.LabelLicenseExpires"];
+        public string ColumnPrimaryNemt => LocalizationService.Instance["catalog.ColumnPrimaryNemt"];
+        public string ColumnPlanSegment => LocalizationService.Instance["catalog.LabelPlanSegment"];
+        public string ColumnCoverageArea => LocalizationService.Instance["catalog.LabelCoverageArea"];
+        public string ColumnEvidence => LocalizationService.Instance["catalog.LabelEvidence"];
+        public string ColumnSourceUpdated => LocalizationService.Instance["catalog.ColumnSourceUpdated"];
+
+        // Tooltips that say what a control is for. Three of these exist because nothing on the
+        // screen explained them and the user had to ask.
+        public string InMyCompanyHint => LocalizationService.Instance["catalog.InMyCompanyHint"];
+        public string IncludeInactiveHint => LocalizationService.Instance["catalog.IncludeInactiveHint"];
+        public string GeocodeHint => LocalizationService.Instance["catalog.GeocodeHint"];
     }
 }

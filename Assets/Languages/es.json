@@ -1105,5 +1105,15 @@
     "catalog.outcome.Created": "Añadida",
     "catalog.outcome.Updated": "Actualizada",
     "catalog.outcome.Rejected": "Rechazada",
-    "catalog.outcome.Merged": "{0} filas del fichero describen esta misma entidad (filas {1})"
+    "catalog.outcome.Merged": "{0} filas del fichero describen esta misma entidad (filas {1})",
+
+    "catalog.ColumnLatitude": "Latitud",
+    "catalog.ColumnLongitude": "Longitud",
+    "catalog.ColumnPrimaryNemt": "NEMT principal",
+    "catalog.ColumnSourceUpdated": "Verificado en origen",
+    "catalog.InMyCompanyHint": "Marcada: solo las que tu empresa ya añadió. Desmarcada: solo las que no. En blanco (un cuadrado): todas.",
+    "catalog.IncludeInactiveHint": "Una entidad del catálogo no se borra nunca. Cuando deja de interesar se marca como retirada y desaparece de la lista; marca esto para verlas también.",
+    "catalog.GeocodeHint": "Pide la latitud y la longitud de las filas de esta página que no las tengan, a partir de la dirección. Hacen falta para situar una entidad en un mapa o medir distancias hasta ella. El sistema entero comparte 1.500 consultas al día, por eso es un botón que alguien pulsa y no algo que haga la importación por su cuenta.",
+    "catalog.DuplicatesTitle": "Entidades repetidas en este fichero",
+    "catalog.DuplicatesExplained": "{0} filas de este fichero NO se importaron como entidades propias, porque describen una entidad que ya describe otra fila: mismo grupo, mismo nombre y mismo ZIP.\n\nEs cosa del fichero, no un error. Su propia cabecera dice que una institución puede aparecer en más de un registro — normalmente el mismo edificio dado de alta dos veces bajo tipos distintos de CMS. Para llamar por teléfono, eso es un solo sitio.\n\nLas filas repetidas se fundieron con la entidad a la que pertenecen, y no se perdió nada: un dato que una fila trae y la otra deja en blanco se conserva. El panel «Lo que hizo el catálogo» dice qué filas se fundieron con cuál."
 }

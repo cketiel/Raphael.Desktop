@@ -78,6 +78,10 @@
 <p>The spreadsheet icon opens the import window.</p>
 <ol><li>Choose the file.</li><li>Choose the <strong>source format</strong>: there is one per group, and it is what says which column is which.</li><li>Look at the preview. The line above it says how many rows came out, which row the header was on, and how many rows without a name were skipped — the source files carry plenty of blank rows and those are not a problem.</li><li>If the format does not recognise a column in the file, you are told. That column <strong>is not imported</strong>.</li><li>Press <strong>Import</strong>. It goes in batches, and you can stop it.</li></ol>
 <blockquote><p><strong>Running the same file again duplicates nothing.</strong> Each entity is recognised by its group, its name and its ZIP, so a second pass <strong>corrects</strong> the rows rather than repeating them. That is also why stopping halfway loses nothing: what was sent is saved, and the next pass finishes the rest.</p></blockquote>
+<h3 id="why-fewer-entities-arrive-than-the-file-has-rows">Why fewer entities arrive than the file has rows<a class="help-anchor" href="#why-fewer-entities-arrive-than-the-file-has-rows" aria-label="Enlace a esta sección">#</a></h3>
+<p>Because the files name the same entity more than once, and say so themselves: the hospitals sheet prints <em>&quot;una institución puede aparecer en más de un registro&quot;</em> above its own header. One hospital appears once as <em>Acute Care Hospitals</em> and again as <em>PART A PROVIDER — HOSPITAL</em>: two CMS records of the same building, and for the purpose of phoning somebody that is one place, not two.</p>
+<p>Those rows are <strong>merged into a single entity</strong>, and the <em>Detail</em> column on the right says which. The 381 rows of the hospitals file are 331 entities and 50 merged rows.</p>
+<p>Merging <strong>loses nothing</strong>: if one record carries the email and the other does not, the entity keeps the email. An empty cell in these files means &quot;not verified&quot;, not &quot;has none&quot; — each sheet says so in its own notes — so a gap never erases what another row did know.</p>
 <h2 id="coordinates">Coordinates<a class="help-anchor" href="#coordinates" aria-label="Enlace a esta sección">#</a></h2>
 <p>Entities arrive without coordinates, and they are fetched <strong>only when needed</strong>, with the marker button, for the rows on the page that have none.</p>
 <blockquote><p>⚠️ The whole system shares a cap of <strong>1,500 geocoding lookups a day</strong>. That is why they are not fetched during an import: a catalog of thousands of rows would burn several days of quota and leave tomorrow's trips without coordinates.</p></blockquote>
@@ -97,7 +101,7 @@
 
   <aside class="rf-aside" aria-label="On this page">
     <p class="rf-aside-title">On this page</p>
-    <ul><li class="rf-lvl-2"><a href="#the-three-groups">The three groups</a></li><li class="rf-lvl-2"><a href="#searching">Searching</a></li><li class="rf-lvl-2"><a href="#adding-an-entity-to-your-company">Adding an entity to your company</a></li><li class="rf-lvl-2"><a href="#importing-a-file">Importing a file</a></li><li class="rf-lvl-2"><a href="#coordinates">Coordinates</a></li><li class="rf-lvl-2"><a href="#who-changed-what">Who changed what</a></li></ul>
+    <ul><li class="rf-lvl-2"><a href="#the-three-groups">The three groups</a></li><li class="rf-lvl-2"><a href="#searching">Searching</a></li><li class="rf-lvl-2"><a href="#adding-an-entity-to-your-company">Adding an entity to your company</a></li><li class="rf-lvl-2"><a href="#importing-a-file">Importing a file</a></li><li class="rf-lvl-3"><a href="#why-fewer-entities-arrive-than-the-file-has-rows">Why fewer entities arrive than the file has rows</a></li><li class="rf-lvl-2"><a href="#coordinates">Coordinates</a></li><li class="rf-lvl-2"><a href="#who-changed-what">Who changed what</a></li></ul>
   </aside>
 
 </div>

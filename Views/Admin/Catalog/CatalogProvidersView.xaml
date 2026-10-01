@@ -23,87 +23,93 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Filters -->
-            <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <!-- ⚠️ Nothing on this row carries an explicit Height. An outlined Material control
+                 draws its floating hint above its own text, and pinning it to 30px cut the hint
+                 in half and left the two dropdowns looking empty — which is why the search box
+                 could not be read, let alone used. RunsView sizes its outlined combo the same
+                 way: by leaving it alone. -->
+            <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
 
                 <Button Command="{Binding AddCommand}"
                         Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
-                        ToolTip="{Binding AddText}" Margin="0,0,12,0">
+                        ToolTip="{Binding AddText}" Margin="0,0,12,0"
+                        VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="Add" />
                 </Button>
 
                 <!-- Delay=250 is how this application debounces a search box. A DispatcherTimer
                      would be a second mechanism for something the binding already does. -->
-                <TextBox Width="240" Height="30" Margin="0,0,12,0"
+                <TextBox Width="260" Margin="0,0,10,0" VerticalAlignment="Center"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
                          materialDesign:HintAssist.Hint="{Binding SearchHint}"
                          materialDesign:TextFieldAssist.HasClearButton="True"
                          materialDesign:TextFieldAssist.HasLeadingIcon="True"
                          materialDesign:TextFieldAssist.LeadingIcon="Magnify"
                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                         FontSize="12" VerticalContentAlignment="Center" />
+                         FontSize="12" />
 
-                <ComboBox Width="190" Height="30" Margin="0,0,12,0"
+                <ComboBox Width="200" Margin="0,0,10,0" VerticalAlignment="Center"
                           ItemsSource="{Binding Categories}"
                           SelectedItem="{Binding SelectedCategory}"
                           DisplayMemberPath="NameEn"
                           materialDesign:HintAssist.Hint="{Binding AllCategoriesText}"
+                          materialDesign:TextFieldAssist.HasClearButton="True"
                           Style="{StaticResource MaterialDesignOutlinedComboBox}"
                           FontSize="12" />
 
-                <ComboBox Width="170" Height="30" Margin="0,0,12,0"
+                <ComboBox Width="170" Margin="0,0,10,0" VerticalAlignment="Center"
                           ItemsSource="{Binding Counties}"
                           SelectedItem="{Binding SelectedCounty}"
                           DisplayMemberPath="Name"
                           materialDesign:HintAssist.Hint="{Binding AllCountiesText}"
+                          materialDesign:TextFieldAssist.HasClearButton="True"
                           Style="{StaticResource MaterialDesignOutlinedComboBox}"
                           FontSize="12" />
 
+                <!-- Three states on purpose: ours, not ours, and everything. Unchecked is not
+                     the same question as "show me the ones we do not have". -->
                 <CheckBox Content="{Binding InMyCompanyText}" Margin="0,0,12,0"
                           VerticalAlignment="Center" FontSize="12"
                           IsThreeState="True"
+                          ToolTip="{Binding InMyCompanyHint}"
                           IsChecked="{Binding InMyCompanyFilter}" />
 
                 <CheckBox Content="{Binding IncludeInactiveText}" Margin="0,0,12,0"
                           VerticalAlignment="Center" FontSize="12"
+                          ToolTip="{Binding IncludeInactiveHint}"
                           IsChecked="{Binding IncludeInactive}" />
 
                 <Button Command="{Binding ClearFiltersCommand}"
                         Style="{StaticResource MaterialDesignToolButton}"
-                        ToolTip="{Binding ClearFiltersText}" Margin="0,0,12,0">
+                        ToolTip="{Binding ClearFiltersText}" Margin="0,0,12,0"
+                        VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="FilterRemoveOutline" />
                 </Button>
 
-                <!-- Import and export sit next to each other and do opposite things, so
-                     they are told apart twice over: by the direction of the arrow and by the
-                     colour. Two identical spreadsheet icons side by side is how somebody
-                     overwrites a catalog meaning to take a copy of it. -->
+                <!-- Import and export sit next to each other and do opposite things, so they
+                     are told apart twice over: by the icon and by the colour, the same pair of
+                     cues the Home toolbar uses for its own two. -->
                 <Button Command="{Binding ImportCommand}"
-                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Style="{StaticResource MaterialDesignToolButton}"
                         ToolTip="{Binding ImportText}" Margin="0,0,4,0"
-                        Foreground="#2E7D32">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="FileImportOutline" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding ImportShortText}" Margin="6,0,0,0"
-                                   VerticalAlignment="Center" FontSize="11" />
-                    </StackPanel>
+                        VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="DatabaseImport" Width="24" Height="24"
+                                             Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
                 </Button>
 
                 <Button Command="{Binding ExportCommand}"
-                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Style="{StaticResource MaterialDesignToolButton}"
                         ToolTip="{Binding ExportText}" Margin="0,0,12,0"
-                        Foreground="#1565C0">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="FileExportOutline" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding ExportShortText}" Margin="6,0,0,0"
-                                   VerticalAlignment="Center" FontSize="11" />
-                    </StackPanel>
+                        VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="MicrosoftExcel" Width="24" Height="24"
+                                             Foreground="Green" />
                 </Button>
 
                 <Button Command="{Binding GeocodeCommand}"
                         Style="{StaticResource MaterialDesignToolButton}"
-                        ToolTip="{Binding GeocodeText}">
-                    <materialDesign:PackIcon Kind="MapMarkerPlusOutline" />
+                        ToolTip="{Binding GeocodeHint}"
+                        VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="MapMarkerPlusOutline" Width="24" Height="24" />
                 </Button>
 
             </WrapPanel>
@@ -132,29 +138,83 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- ⚠️ Virtualisation is not optional here: this grid holds thousands of rows,
-                 and it must never be wrapped in a ScrollViewer — that cancels virtualisation
-                 outright, which is the fault RE-008 measured.
+            <!-- The Home grid, wearing the same four styles, with the same virtualisation and
+                 the same three frozen columns.
 
-                 ⚠️ RowHeight is deliberately NOT set, and neither does the Home grid set it.
-                 Pinning it looks harmless and is not: the Material cell padding, 8 above and 8
-                 below, stops fitting beside the text and every row renders as a slice through
-                 the middle of its own letters. Rows size to their content instead. -->
+                 ⚠️ RowHeight is left alone. Home binds it to a property that is NaN unless the
+                 dispatcher asks for a compact grid; pinning it to a number is what made every
+                 row render as a slice through the middle of its own letters.
+
+                 ⚠️ Never wrap this in a ScrollViewer: that cancels virtualisation outright,
+                 which is the fault RE-008 measured. The grid scrolls horizontally by itself,
+                 which is why every column below has a width in pixels and none has a star. -->
             <DataGrid Grid.Row="2"
-                      ItemsSource="{Binding Items}"
+                      ItemsSource="{Binding ItemsView}"
                       SelectedItem="{Binding SelectedItem}"
+
+                      SelectionMode="Single"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
-                      SelectionMode="Single"
-                      SelectionUnit="FullRow"
+                      AlternationCount="2"
+
+                      FrozenColumnCount="3"
+
                       EnableRowVirtualization="True"
                       EnableColumnVirtualization="True"
                       ScrollViewer.CanContentScroll="True"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.VirtualizationMode="Recycling"
-                      AlternationCount="2"
-                      GridLinesVisibility="None"
-                      Style="{StaticResource ContentDataGridStyle}">
+                      VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+
+                      Style="{StaticResource CustomDataGridStyle}"
+                      ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                      RowStyle="{StaticResource ContentRowStyle}"
+                      CellStyle="{StaticResource TripSelectionCellStyle}"
+                      SelectionUnit="FullRow"
+                      Cursor="Hand">
+
+                <!-- One header per group. The server returns the page already ordered by group
+                     (CatalogSortBy.Group); without that these headers would appear every few
+                     rows instead of three times. -->
+                <DataGrid.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.ContainerStyle>
+                            <Style TargetType="GroupItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="GroupItem">
+                                            <StackPanel>
+                                                <Border Background="#E3F2FD"
+                                                        BorderBrush="#90CAF9"
+                                                        BorderThickness="0,0,0,1"
+                                                        Padding="12,6">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="FolderOutline"
+                                                                                 VerticalAlignment="Center"
+                                                                                 Foreground="#1565C0" />
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   Margin="8,0,0,0"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#0D47A1"
+                                                                   VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding ItemCount, StringFormat=({0})}"
+                                                                   Margin="6,0,0,0"
+                                                                   Opacity="0.7"
+                                                                   Foreground="#0D47A1"
+                                                                   VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <ItemsPresenter />
+                                            </StackPanel>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </GroupStyle.ContainerStyle>
+                    </GroupStyle>
+                </DataGrid.GroupStyle>
+
                 <DataGrid.Columns>
 
                     <DataGridTemplateColumn Width="Auto">
@@ -179,7 +239,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Header="" Width="36">
+                    <DataGridTemplateColumn Header="" Width="40">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <materialDesign:PackIcon Kind="CheckDecagram" Foreground="#4caf50"
@@ -190,24 +250,73 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
+                    <!-- ===== What the job needs first =====
+                         Ordered for the person about to pick up the phone, not for the
+                         database: the name, then every way of reaching them, then where they
+                         are, then the notes of what was said. Everything else follows. -->
+
                     <DataGridTextColumn Header="{Binding Data.ColumnName, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding Name}" Width="2*" />
-                    <DataGridTextColumn Header="{Binding Data.ColumnServiceLevel, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding ServiceLevel}" Width="Auto" />
-                    <DataGridTextColumn Header="{Binding Data.ColumnCity, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding City}" Width="*" />
-                    <DataGridTextColumn Header="{Binding Data.ColumnCounty, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding CountyName}" Width="Auto" />
-                    <DataGridTextColumn Header="{Binding Data.ColumnZip, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding Zip}" Width="Auto" />
+                                        Binding="{Binding Name}" Width="280" />
+
                     <DataGridTextColumn Header="{Binding Data.ColumnPhone, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding Phone}" Width="Auto" />
+                                        Binding="{Binding Phone}" Width="130" />
                     <DataGridTextColumn Header="{Binding Data.ColumnEmail, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding Email}" Width="*" />
+                                        Binding="{Binding Email}" Width="220" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnWebsite, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Website}" Width="240" />
                     <DataGridTextColumn Header="{Binding Data.ColumnContact, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding ContactName}" Width="*" />
+                                        Binding="{Binding ContactName}" Width="200" />
+                    <!-- The line a broker publishes for companies like ours, which is not the
+                         same as its general contact and is the one worth dialling. -->
+                    <DataGridTextColumn Header="{Binding Data.ColumnProviderContact, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding ProviderContact}" Width="220" />
+
+                    <DataGridTextColumn Header="{Binding Data.ColumnAddress, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Address}" Width="260" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnCity, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding City}" Width="150" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnCounty, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding CountyName}" Width="120" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnState, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding State}" Width="55" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnZip, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Zip}" Width="75" />
+
+                    <DataGridTextColumn Header="{Binding Data.ColumnComments, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Comments}" Width="240" />
+
+                    <!-- ===== The rest of what the row holds ===== -->
+
+                    <DataGridTextColumn Header="{Binding Data.ColumnGroup, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding GroupLabel}" Width="180" />
                     <DataGridTextColumn Header="{Binding Data.ColumnNpi, Source={StaticResource vmProxy}}"
-                                        Binding="{Binding Npi}" Width="Auto" />
+                                        Binding="{Binding Npi}" Width="120" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnServiceLevel, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding ServiceLevel}" Width="120" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnEmsLicense, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding EmsLicense}" Width="130" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnLicenseExpires, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding LicenseExpiresOn, StringFormat=d}" Width="120" />
+                    <DataGridCheckBoxColumn Header="{Binding Data.ColumnPrimaryNemt, Source={StaticResource vmProxy}}"
+                                            Binding="{Binding IsPrimaryNemt}" Width="95" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnPlanSegment, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding PlanSegment}" Width="220" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnCoverageArea, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding CoverageArea}" Width="220" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnEvidence, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding EvidenceNote}" Width="240" />
+                    <!-- The source's own verification date, not ours: a row can be freshly
+                         imported and still say it was last checked two years ago. -->
+                    <DataGridTextColumn Header="{Binding Data.ColumnSourceUpdated, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding SourceUpdatedOn, StringFormat=d}" Width="120" />
+
+                    <DataGridTextColumn Header="{Binding Data.ColumnLatitude, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Latitude, StringFormat=F6}" Width="95" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnLongitude, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding Longitude, StringFormat=F6}" Width="95" />
+
+                    <DataGridCheckBoxColumn Header="{Binding Data.ColumnActive, Source={StaticResource vmProxy}}"
+                                            Binding="{Binding IsActive}" Width="70" />
 
                 </DataGrid.Columns>
             </DataGrid>
