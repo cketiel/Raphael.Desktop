@@ -1,4 +1,4 @@
-﻿using Raphael.Desktop.Models;
+using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.Commands;
 using System.Collections.ObjectModel;
@@ -92,7 +92,11 @@ namespace Raphael.Desktop.ViewModels
         {
             if (item == null) return;
 
-            if (MessageBox.Show($"Delete integrator {item.Name}?", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show(
+                string.Format(ConfirmDeleteText, item.Name),
+                ConfirmTitle,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
                 try
                 {
@@ -105,5 +109,24 @@ namespace Raphael.Desktop.ViewModels
                 }
             }
         }
+
+        #region Translation
+
+        public string AddText => LocalizationService.Instance["admin.AddIntegrator"];
+        public string EditText => LocalizationService.Instance["Edit"];
+        public string DeleteText => LocalizationService.Instance["admin.DeleteIntegrator"];
+
+        public string ColumnName => LocalizationService.Instance["Name"];
+        public string ColumnFundingSource => LocalizationService.Instance["admin.FundingSource"];
+        public string ColumnApiKey => LocalizationService.Instance["admin.ApiKey"];
+        public string ColumnActive => LocalizationService.Instance["Active"];
+        public string ColumnCreated => LocalizationService.Instance["Created"];
+
+        public string ConfirmDeleteText => LocalizationService.Instance["admin.ConfirmDeleteIntegrator"];
+        public string ConfirmTitle => LocalizationService.Instance["ConfirmDeleteTitle"];
+        public string ErrorTitle => LocalizationService.Instance["ErrorTitle"];
+
+        #endregion
+
     }
 }

@@ -147,7 +147,17 @@
 
                  ⚠️ Never wrap this in a ScrollViewer: that cancels virtualisation outright,
                  which is the fault RE-008 measured. The grid scrolls horizontally by itself,
-                 which is why every column below has a width in pixels and none has a star. -->
+                 which is why every column below has a width in pixels and none has a star.
+
+                 ⚠️ VirtualizationMode is Standard and not Recycling, which is the whole fix for
+                 the one row that rendered taller and with its cells out of line with everybody
+                 else's. Recycling hands a row's container on to a different row; with column
+                 virtualisation and a frozen block, a reused container can keep the measurements
+                 it had at the old horizontal offset, and the row it is handed to draws against
+                 the wrong ones. Exactly one bad row, and only after scrolling sideways. Both
+                 grids in ScheduleView — the only others here with frozen columns and a
+                 horizontal scrollbar — already say Standard for this reason. Still virtualised:
+                 containers are created and dropped rather than passed around. -->
             <DataGrid Grid.Row="2"
                       ItemsSource="{Binding ItemsView}"
                       SelectedItem="{Binding SelectedItem}"
@@ -164,7 +174,7 @@
                       ScrollViewer.CanContentScroll="True"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
                       VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.VirtualizationMode="Standard"
                       VirtualizingPanel.IsVirtualizingWhenGrouping="True"
 
                       Style="{StaticResource CustomDataGridStyle}"

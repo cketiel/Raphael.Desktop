@@ -88,11 +88,13 @@
                     <views:ProfileView helpers:HelpAssist.TopicId="desktop/admin/profile" />
                 </TabItem>
 
-                <TabItem Header="Integrators">
+                <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+                                          Path=[admin.IntegratorsTab]}">
                     <views:IntegratorsView helpers:HelpAssist.TopicId="desktop/admin/integrators" />
                 </TabItem>
 
-                <TabItem Header="Providers">
+                <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+                                          Path=[admin.ProvidersTab]}">
                     <views:ProvidersView helpers:HelpAssist.TopicId="desktop/admin/providers" />
                 </TabItem>
 

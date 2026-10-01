@@ -55,10 +55,10 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
-                                <Button Command="{Binding Data.EditCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}">
+                                <Button Command="{Binding Data.EditCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" ToolTip="{Binding Data.EditText, Source={StaticResource vmProxy}}">
                                     <materialDesign:PackIcon Kind="Pencil" Foreground="Orange"/>
                                 </Button>
-                                <Button Command="{Binding Data.DeleteCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}">
+                                <Button Command="{Binding Data.DeleteCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" ToolTip="{Binding Data.DeleteText, Source={StaticResource vmProxy}}">
                                     <materialDesign:PackIcon Kind="Delete" Foreground="Red"/>
                                 </Button>
                             </StackPanel>
@@ -66,11 +66,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
-                <DataGridTextColumn Header="Funding Source" Binding="{Binding FundingSourceName}" Width="*" />
-                <DataGridTextColumn Header="API Key" Binding="{Binding ApiKey}" Width="2*" />
-                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" />
-                <DataGridTextColumn Header="Created" Binding="{Binding Created, StringFormat=d}" />
+                <DataGridTextColumn Header="{Binding Data.ColumnName, Source={StaticResource vmProxy}}" Binding="{Binding Name}" Width="*" />
+                <DataGridTextColumn Header="{Binding Data.ColumnFundingSource, Source={StaticResource vmProxy}}" Binding="{Binding FundingSourceName}" Width="*" />
+                <DataGridTextColumn Header="{Binding Data.ColumnApiKey, Source={StaticResource vmProxy}}" Binding="{Binding ApiKey}" Width="2*" />
+                <DataGridCheckBoxColumn Header="{Binding Data.ColumnActive, Source={StaticResource vmProxy}}" Binding="{Binding IsActive}" />
+                <DataGridTextColumn Header="{Binding Data.ColumnCreated, Source={StaticResource vmProxy}}" Binding="{Binding Created, StringFormat=d}" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

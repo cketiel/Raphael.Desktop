@@ -69,7 +69,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Header="Logo" Width="Auto">
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnLogo, Source={StaticResource vmProxy}}" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Ellipse Width="28" Height="28" Margin="0" Stroke="#2196f3" StrokeThickness="1">
@@ -82,15 +82,15 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="Company" Binding="{Binding Name}" Width="*" />
-                    <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="Auto" />
-                    <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*" />
-                    <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="2*" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnCompany, Source={StaticResource vmProxy}}" Binding="{Binding Name}" Width="*" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnPhone, Source={StaticResource vmProxy}}" Binding="{Binding Phone}" Width="Auto" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnEmail, Source={StaticResource vmProxy}}" Binding="{Binding Email}" Width="*" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnAddress, Source={StaticResource vmProxy}}" Binding="{Binding Address}" Width="2*" />
 
                     <!-- A provider without a timezone falls back to the server's configured
                          default. That is a reasonable stopgap and a bad permanent state, so
                          it is visible rather than silent. -->
-                    <DataGridTemplateColumn Header="Time zone" Width="200">
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnTimeZone, Source={StaticResource vmProxy}}" Width="200">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

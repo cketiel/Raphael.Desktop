@@ -1,4 +1,4 @@
-﻿using Raphael.Desktop.Models;
+using Raphael.Desktop.Models;
 using Raphael.Desktop.Commands;
 using Raphael.Desktop.Services;
 using System.Windows;
@@ -167,7 +167,7 @@ namespace Raphael.Desktop.ViewModels
         {
             if (string.IsNullOrWhiteSpace(Provider.Name))
             {
-                MessageBox.Show("Company Name is required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(CompanyNameRequiredText, ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -186,5 +186,30 @@ namespace Raphael.Desktop.ViewModels
                 window.DialogResult = false;
             }
         }
+
+        #region Translation
+
+        public string WindowTitle => LocalizationService.Instance["admin.ProviderDetails"];
+        public string HeadingText => LocalizationService.Instance["admin.ProviderInformation"];
+        public string CompanyNameHint => LocalizationService.Instance["admin.CompanyName"];
+        public string AddressHint => LocalizationService.Instance["Address"];
+        public string EmailHint => LocalizationService.Instance["Email"];
+        public string PhoneHint => LocalizationService.Instance["Phone"];
+        public string WebsiteHint => LocalizationService.Instance["Website"];
+        public string ContactNameHint => LocalizationService.Instance["ContactName"];
+        public string NotesHint => LocalizationService.Instance["Notes"];
+        public string LatitudeHint => LocalizationService.Instance["Latitude"];
+        public string LongitudeHint => LocalizationService.Instance["Longitude"];
+
+        public string CompanyLogoText => LocalizationService.Instance["admin.CompanyLogo"];
+        public string ChooseLogoText => LocalizationService.Instance["admin.ChooseLogo"];
+
+        public string SaveText => LocalizationService.Instance["Save"];
+        public string CancelText => LocalizationService.Instance["Cancel"];
+        public string CompanyNameRequiredText => LocalizationService.Instance["admin.CompanyNameRequired"];
+        public string ValidationTitle => LocalizationService.Instance["admin.ValidationTitle"];
+
+        #endregion
+
     }
 }
