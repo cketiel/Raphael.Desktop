@@ -20,19 +20,35 @@ using RelayCommand = CommunityToolkit.Mvvm.Input.RelayCommand;
 
 namespace Raphael.Desktop.ViewModels.Catalog
 {
+    /// <summary>Where the dialog is in its one job.</summary>
+    public enum CatalogImportStage
+    {
+        /// <summary>No file chosen yet.</summary>
+        Empty = 0,
+
+        /// <summary>A file is read and waiting to be sent.</summary>
+        Ready = 1,
+
+        /// <summary>Sending.</summary>
+        Running = 2,
+
+        /// <summary>Finished. Nothing more to send until another file is chosen.</summary>
+        Done = 3
+    }
+
     /// <summary>
-    /// Loads a source spreadsheet into the catalog: pick the file, pick the template, look at
-    /// what came out, then send it.
+    /// Loads a source spreadsheet into the catalog: pick the file, look at what came out of it,
+    /// send it, and see what the catalog did with each entity.
     /// </summary>
     /// <remarks>
     /// The same screen fills either catalog; what differs is behind
     /// <see cref="ICatalogImportTarget"/>.
     ///
     /// <para>
-    /// The rules this follows are the ones the trip import learned the hard way, written down
-    /// in IMPORT_SPEC.md §2.1: one request in flight at a time, 100 rows a batch, a quarter of
-    /// a second between batches. The batch size is not about payload — it is about each batch
-    /// finishing well inside the server's timeout.
+    /// The sending rules are the ones the trip import learned the hard way (IMPORT_SPEC.md
+    /// §2.1): one request in flight, 100 rows a batch, a quarter of a second between batches.
+    /// The batch size is about each batch finishing inside the server's timeout, not about
+    /// payload size.
     /// </para>
     /// </remarks>
     public class CatalogImportViewModel : ObservableObject
@@ -62,33 +78,68 @@ namespace Raphael.Desktop.ViewModels.Catalog
             Templates = new ObservableCollection<CatalogMappingTemplate>(
                 XlsxCatalogReader.LoadTemplates(target.Kind));
 
-            Preview = new ObservableCollection<CatalogPreviewRow>();
-            Problems = new ObservableCollection<CatalogImportProblem>();
+            FileRows = new ObservableCollection<CatalogPreviewRow>();
+            Outcomes = new ObservableCollection<CatalogImportOutcomeRow>();
 
-            BrowseCommand = new RelayCommand(Browse);
+            BrowseCommand = new RelayCommand(Browse, () => !IsRunning);
             ImportCommand = new AsyncRelayCommand(ImportAsync, () => CanImport);
-            CancelCommand = new RelayCommand(CancelRun, () => IsRunning);
+            StopCommand = new RelayCommand(StopRun, () => IsRunning);
+            CloseCommand = new RelayCommand<Window>(Close);
 
             SelectedTemplate = Templates.FirstOrDefault();
 
-            // No LanguageChanged subscription here, unlike the list view models. This one lives
-            // in a modal dialog that cannot outlive a language switch, and the singleton holding
-            // a lambda back to it would keep every row it read alive for the rest of the session.
+            // No LanguageChanged subscription: this lives in a modal dialog that cannot outlive
+            // a language switch, and the singleton holding a lambda back to it would keep every
+            // row it read alive for the rest of the session.
         }
 
         public ObservableCollection<CatalogMappingTemplate> Templates { get; }
 
-        /// <summary>The first rows as they will be sent, so somebody can see before sending.</summary>
-        public ObservableCollection<CatalogPreviewRow> Preview { get; }
+        /// <summary>
+        /// Every row the file yielded, as it will be sent.
+        /// </summary>
+        /// <remarks>
+        /// All of them, not a sample. It showed the first fifty once, which made it impossible
+        /// to tell a short list from a truncated one. The grid is virtualised; two thousand
+        /// rows cost nothing to show.
+        /// </remarks>
+        public ObservableCollection<CatalogPreviewRow> FileRows { get; }
 
-        public ObservableCollection<CatalogImportProblem> Problems { get; }
+        /// <summary>
+        /// What the catalog did with each entity, filled as the batches come back.
+        /// </summary>
+        /// <remarks>
+        /// One line per entity, not per row of the file: the whole point is to be able to see
+        /// that three rows became one hospital, which is the single most confusing thing these
+        /// files do.
+        /// </remarks>
+        public ObservableCollection<CatalogImportOutcomeRow> Outcomes { get; }
 
         public IRelayCommand BrowseCommand { get; }
         public IAsyncRelayCommand ImportCommand { get; }
-        public IRelayCommand CancelCommand { get; }
+        public IRelayCommand StopCommand { get; }
+        public IRelayCommand<Window> CloseCommand { get; }
 
-        /// <summary>Whether anything actually reached the catalog, so the list can refresh.</summary>
+        /// <summary>Whether anything reached the catalog, so the list behind can refresh.</summary>
         public bool AnythingImported { get; private set; }
+
+        private CatalogImportStage _stage = CatalogImportStage.Empty;
+        public CatalogImportStage Stage
+        {
+            get => _stage;
+            private set
+            {
+                if (SetProperty(ref _stage, value))
+                {
+                    RaiseState();
+                }
+            }
+        }
+
+        public bool IsRunning => Stage == CatalogImportStage.Running;
+        public bool IsDone => Stage == CatalogImportStage.Done;
+        public bool HasFile => _read is not null;
+        public bool HasOutcomes => Outcomes.Count > 0;
 
         private CatalogMappingTemplate? _selectedTemplate;
         public CatalogMappingTemplate? SelectedTemplate
@@ -99,8 +150,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 if (SetProperty(ref _selectedTemplate, value))
                 {
                     // Rows read under the old template say nothing about the new one.
-                    ResetRead();
-                    RaiseState();
+                    ReadFile();
                 }
             }
         }
@@ -122,30 +172,18 @@ namespace Raphael.Desktop.ViewModels.Catalog
         }
 
         private string? _progress;
+
+        /// <summary>Running commentary while sending, then the final tally.</summary>
         public string? Progress
         {
             get => _progress;
             private set => SetProperty(ref _progress, value);
         }
 
-        private bool _isRunning;
-        public bool IsRunning
-        {
-            get => _isRunning;
-            private set
-            {
-                if (SetProperty(ref _isRunning, value))
-                {
-                    RaiseState();
-                }
-            }
-        }
-
         public bool CanImport =>
-            !IsRunning
+            Stage == CatalogImportStage.Ready
             && _read is not null
             && _read.Rows.Count > 0
-            && SelectedTemplate is not null
             && ResolveCategoryId() is not null;
 
         private int? ResolveCategoryId()
@@ -179,12 +217,21 @@ namespace Raphael.Desktop.ViewModels.Catalog
         }
 
         /// <summary>
-        /// Parses the file locally and shows what came out. Nothing leaves the machine yet.
+        /// Parses the file locally and shows every row it yielded. Nothing leaves the machine.
         /// </summary>
         private void ReadFile()
         {
+            FileRows.Clear();
+            Outcomes.Clear();
+            Progress = null;
+            AnythingImported = false;
+
             if (SelectedTemplate is null || string.IsNullOrWhiteSpace(FilePath))
             {
+                _read = null;
+                Summary = null;
+                Stage = CatalogImportStage.Empty;
+                RaiseState();
                 return;
             }
 
@@ -192,11 +239,9 @@ namespace Raphael.Desktop.ViewModels.Catalog
             {
                 _read = XlsxCatalogReader.Read(FilePath, SelectedTemplate);
 
-                Preview.Clear();
-
-                foreach (var row in _read.Rows.Take(50))
+                foreach (var row in _read.Rows)
                 {
-                    Preview.Add(new CatalogPreviewRow
+                    FileRows.Add(new CatalogPreviewRow
                     {
                         RowNumber = row.RowNumber,
                         Name = row.Get("Name"),
@@ -207,8 +252,6 @@ namespace Raphael.Desktop.ViewModels.Catalog
                         Email = row.Get("Email")
                     });
                 }
-
-                Problems.Clear();
 
                 Summary = string.Format(
                     LocalizationService.Instance["catalog.ReadSummary"],
@@ -224,12 +267,14 @@ namespace Raphael.Desktop.ViewModels.Catalog
                         LocalizationService.Instance["catalog.UnmappedColumns"],
                         string.Join(", ", _read.UnmappedColumns));
                 }
+
+                Stage = CatalogImportStage.Ready;
             }
             catch (Exception exception)
             {
                 _read = null;
-                Preview.Clear();
                 Summary = null;
+                Stage = CatalogImportStage.Empty;
 
                 UiError.Show(
                     exception.Message,
@@ -266,18 +311,22 @@ namespace Raphael.Desktop.ViewModels.Catalog
             var sourceFile = System.IO.Path.GetFileName(FilePath) ?? string.Empty;
 
             _cancellation = new CancellationTokenSource();
-            IsRunning = true;
-            Problems.Clear();
+            Stage = CatalogImportStage.Running;
+            Outcomes.Clear();
             AnythingImported = false;
 
             var created = 0;
             var updated = 0;
             var failed = 0;
+            var merged = 0;
             var sent = 0;
+            var stopped = false;
 
             try
             {
-                foreach (var batch in Chunk(_read.Rows, BatchSize))
+                // Batched by entity, not every hundred rows: see CatalogRowBatcher for
+                // why a hospital must not straddle a boundary.
+                foreach (var batch in CatalogRowBatcher.Batch(_read.Rows, BatchSize))
                 {
                     _cancellation.Token.ThrowIfCancellationRequested();
 
@@ -287,54 +336,31 @@ namespace Raphael.Desktop.ViewModels.Catalog
                     created += result.Created;
                     updated += result.Updated;
                     failed += result.Failed;
+                    merged += result.Merged;
                     sent += batch.Count;
 
-                    foreach (var line in result.Rows.Where(r =>
-                                 r.Outcome == CatalogImportOutcome.Rejected))
+                    foreach (var line in result.Rows)
                     {
-                        Problems.Add(new CatalogImportProblem
-                        {
-                            RowNumber = line.RowNumber,
-                            Field = line.Field,
-                            Reason = CatalogProblems.Describe(line.ErrorCode)
-                        });
+                        Outcomes.Add(CatalogImportOutcomeRow.From(line));
                     }
 
                     Progress = string.Format(
                         LocalizationService.Instance["catalog.ImportProgress"],
-                        sent, _read.Rows.Count, created, updated, failed);
+                        sent, _read.Rows.Count, created, updated, merged, failed);
 
                     // One request in flight, with a pause between. Concurrency here is what
                     // broke the trip import before it was written down.
                     await Task.Delay(PauseBetweenBatchesMs, _cancellation.Token);
                 }
-
-                AnythingImported = created + updated > 0;
-
-                MessageBox.Show(
-                    string.Format(
-                        LocalizationService.Instance["catalog.ImportDone"], created, updated, failed),
-                    LocalizationService.Instance["catalog.Import"],
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
             }
             catch (OperationCanceledException)
             {
-                // Stopping is not losing: everything sent so far is already saved, and running
-                // the file again updates those rows rather than duplicating them.
-                AnythingImported = created + updated > 0;
-
-                MessageBox.Show(
-                    string.Format(
-                        LocalizationService.Instance["catalog.ImportStopped"], created, updated),
-                    LocalizationService.Instance["catalog.Import"],
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                // Stopping is not losing: everything sent is already saved, and running the
+                // file again updates those rows rather than duplicating them.
+                stopped = true;
             }
             catch (Exception exception)
             {
-                AnythingImported = created + updated > 0;
-
                 UiError.Show(
                     exception.Message,
                     LocalizationService.Instance["catalog.ImportFailed"],
@@ -343,44 +369,42 @@ namespace Raphael.Desktop.ViewModels.Catalog
             }
             finally
             {
-                IsRunning = false;
                 _cancellation?.Dispose();
                 _cancellation = null;
+
+                AnythingImported = created + updated > 0;
+
+                Progress = string.Format(
+                    LocalizationService.Instance[
+                        stopped ? "catalog.ImportStopped" : "catalog.ImportDone"],
+                    created, updated, merged, failed);
+
+                Stage = CatalogImportStage.Done;
+                OnPropertyChanged(nameof(HasOutcomes));
             }
         }
 
-        private void CancelRun()
+        private void StopRun()
         {
             _cancellation?.Cancel();
         }
 
-        private static IEnumerable<IReadOnlyList<T>> Chunk<T>(IReadOnlyList<T> source, int size)
+        private static void Close(Window? window)
         {
-            for (var i = 0; i < source.Count; i += size)
-            {
-                yield return source.Skip(i).Take(size).ToList();
-            }
-        }
-
-        private void ResetRead()
-        {
-            _read = null;
-            Preview.Clear();
-            Problems.Clear();
-            Summary = null;
-            Progress = null;
-
-            if (!string.IsNullOrWhiteSpace(FilePath))
-            {
-                ReadFile();
-            }
+            window?.Close();
         }
 
         private void RaiseState()
         {
             OnPropertyChanged(nameof(CanImport));
+            OnPropertyChanged(nameof(IsRunning));
+            OnPropertyChanged(nameof(IsDone));
+            OnPropertyChanged(nameof(HasFile));
+            OnPropertyChanged(nameof(HasOutcomes));
+
+            BrowseCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
-            CancelCommand.NotifyCanExecuteChanged();
+            StopCommand.NotifyCanExecuteChanged();
         }
 
         // ---- Translation -----------------------------------------------------------------
@@ -389,13 +413,26 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public string BrowseText => LocalizationService.Instance["catalog.Browse"];
         public string TemplateText => LocalizationService.Instance["catalog.Template"];
         public string ImportText => LocalizationService.Instance["catalog.Import"];
-        public string CancelText => LocalizationService.Instance["catalog.Cancel"];
+        public string CloseText => LocalizationService.Instance["catalog.Close"];
         public string StopText => LocalizationService.Instance["catalog.Stop"];
-        public string PreviewText => LocalizationService.Instance["catalog.Preview"];
-        public string ProblemsText => LocalizationService.Instance["catalog.Problems"];
+
+        public string FileRowsHeader => LocalizationService.Instance["catalog.FileRowsHeader"];
+        public string FileRowsHint => LocalizationService.Instance["catalog.FileRowsHint"];
+        public string OutcomesHeader => LocalizationService.Instance["catalog.OutcomesHeader"];
+        public string OutcomesHint => LocalizationService.Instance["catalog.OutcomesHint"];
+
+        public string ColumnRow => LocalizationService.Instance["catalog.ColumnRow"];
+        public string ColumnName => LocalizationService.Instance["catalog.ColumnName"];
+        public string ColumnCity => LocalizationService.Instance["catalog.ColumnCity"];
+        public string ColumnCounty => LocalizationService.Instance["catalog.ColumnCounty"];
+        public string ColumnZip => LocalizationService.Instance["catalog.ColumnZip"];
+        public string ColumnPhone => LocalizationService.Instance["catalog.ColumnPhone"];
+        public string ColumnEmail => LocalizationService.Instance["catalog.ColumnEmail"];
+        public string ColumnResult => LocalizationService.Instance["catalog.ColumnResult"];
+        public string ColumnDetail => LocalizationService.Instance["catalog.ColumnDetail"];
     }
 
-    /// <summary>One row as it will be sent, for the preview grid.</summary>
+    /// <summary>One row of the file, as the dialog shows it before sending.</summary>
     public class CatalogPreviewRow
     {
         public int RowNumber { get; set; }
@@ -407,12 +444,50 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public string? Email { get; set; }
     }
 
-    /// <summary>One row the server would not take, and why.</summary>
-    public class CatalogImportProblem
+    /// <summary>What the catalog did with one entity.</summary>
+    public class CatalogImportOutcomeRow
     {
         public int RowNumber { get; set; }
-        public string? Field { get; set; }
-        public string? Reason { get; set; }
+
+        /// <summary>Added, updated or rejected, in the user's language.</summary>
+        public string Result { get; set; } = string.Empty;
+
+        /// <summary>Why it was rejected, or which rows were folded together.</summary>
+        public string? Detail { get; set; }
+
+        /// <summary>Used by the view to colour the rejections.</summary>
+        public bool IsProblem { get; set; }
+
+        public static CatalogImportOutcomeRow From(CatalogImportRowResultDto line)
+        {
+            var row = new CatalogImportOutcomeRow
+            {
+                RowNumber = line.RowNumber,
+                IsProblem = line.Outcome == CatalogImportOutcome.Rejected
+            };
+
+            row.Result = line.Outcome switch
+            {
+                CatalogImportOutcome.Created => LocalizationService.Instance["catalog.outcome.Created"],
+                CatalogImportOutcome.Updated => LocalizationService.Instance["catalog.outcome.Updated"],
+                _ => LocalizationService.Instance["catalog.outcome.Rejected"]
+            };
+
+            if (line.Outcome == CatalogImportOutcome.Rejected)
+            {
+                row.Detail = CatalogProblems.Describe(line.ErrorCode);
+            }
+            else if (line.MergedRowCount > 1 && line.MergedRowNumbers is not null)
+            {
+                // The single most confusing thing these files do, said plainly.
+                row.Detail = string.Format(
+                    LocalizationService.Instance["catalog.outcome.Merged"],
+                    line.MergedRowCount,
+                    string.Join(", ", line.MergedRowNumbers));
+            }
+
+            return row;
+        }
     }
 
     /// <summary>

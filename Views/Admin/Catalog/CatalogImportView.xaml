@@ -4,7 +4,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
         Title="{Binding WindowTitle}"
-        Height="640" Width="900"
+        Height="700" Width="1040"
         WindowStartupLocation="CenterOwner"
         Background="White"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -20,7 +20,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- File and template -->
@@ -29,13 +28,13 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="10" />
-                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="300" />
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="0"
                     Content="{Binding BrowseText}"
                     Command="{Binding BrowseCommand}"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
                     Margin="0,0,10,0" />
 
             <TextBlock Grid.Column="1"
@@ -57,76 +56,142 @@
                    Text="{Binding Summary}"
                    TextWrapping="Wrap"
                    FontSize="12" Opacity="0.8"
-                   Margin="0,0,0,12" />
+                   Margin="0,0,0,12"
+                   Visibility="{Binding HasFile, Converter={StaticResource BoolToVis}}" />
 
-        <!-- Preview and problems, side by side -->
+        <!-- Left: what is in the file. Right: what the catalog did with it.
+             Both carry a line of explanation, because "preview" and "problems" told the user
+             nothing about why there were two grids. -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*" />
-                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="12" />
                 <ColumnDefinition Width="2*" />
             </Grid.ColumnDefinitions>
 
             <DockPanel Grid.Column="0">
-                <TextBlock DockPanel.Dock="Top" Text="{Binding PreviewText}"
-                           FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
-                <DataGrid ItemsSource="{Binding Preview}"
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <TextBlock Text="{Binding FileRowsHeader}" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="{Binding FileRowsHint}" FontSize="11" Opacity="0.7"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <DataGrid ItemsSource="{Binding FileRows}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
-                          RowHeight="26"
+                          SelectionUnit="FullRow"
+                          AlternationCount="2"
+                          GridLinesVisibility="None"
                           EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          ScrollViewer.CanContentScroll="True"
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
-                          Style="{StaticResource CustomDataGridStyles}">
+                          Style="{StaticResource ContentDataGridStyle}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding RowNumber}" Width="Auto" />
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-                        <DataGridTextColumn Header="City" Binding="{Binding City}" Width="*" />
-                        <DataGridTextColumn Header="County" Binding="{Binding County}" Width="*" />
-                        <DataGridTextColumn Header="ZIP" Binding="{Binding Zip}" Width="Auto" />
-                        <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="Auto" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnRow, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding RowNumber}" Width="Auto" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnName, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding Name}" Width="2*" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCity, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding City}" Width="*" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnCounty, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding County}" Width="*" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnZip, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding Zip}" Width="Auto" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnPhone, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding Phone}" Width="Auto" />
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>
 
             <DockPanel Grid.Column="2">
-                <TextBlock DockPanel.Dock="Top" Text="{Binding ProblemsText}"
-                           FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
-                <DataGrid ItemsSource="{Binding Problems}"
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <TextBlock Text="{Binding OutcomesHeader}" FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="{Binding OutcomesHint}" FontSize="11" Opacity="0.7"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <DataGrid ItemsSource="{Binding Outcomes}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
-                          RowHeight="26"
+                          SelectionUnit="FullRow"
+                          AlternationCount="2"
+                          GridLinesVisibility="None"
                           EnableRowVirtualization="True"
+                          ScrollViewer.CanContentScroll="True"
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
-                          Style="{StaticResource CustomDataGridStyles}">
+                          Style="{StaticResource ContentDataGridStyle}">
+                    <DataGrid.RowStyle>
+                        <!-- A rejection in red, on top of the shared row style, so the eye finds
+                             the handful that need attention in a list of hundreds that do not. -->
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource ContentRowStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsProblem}" Value="True">
+                                    <Setter Property="Foreground" Value="#C62828" />
+                                    <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding RowNumber}" Width="Auto" />
-                        <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="Auto" />
-                        <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnRow, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding RowNumber}" Width="Auto" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnResult, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding Result}" Width="Auto" />
+                        <DataGridTextColumn Header="{Binding DataContext.ColumnDetail, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Binding="{Binding Detail}" Width="*" />
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>
         </Grid>
 
-        <!-- Progress -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0"
-                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
-            <ProgressBar Width="120" Height="4" IsIndeterminate="True"
-                         VerticalAlignment="Center" Margin="0,0,10,0" />
-            <TextBlock Text="{Binding Progress}" FontSize="12" VerticalAlignment="Center" />
-        </StackPanel>
+        <!-- Progress while sending, and the tally once it stops. The tally stays on screen:
+             a dialog that says nothing after the work is a dialog somebody runs twice. -->
+        <Border Grid.Row="3" Background="#F5F5F5" Padding="12" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <Border Grid.Row="4" Background="#F5F5F5" Padding="12" Margin="0,12,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{Binding StopText}"
-                        Command="{Binding CancelCommand}"
-                        Style="{StaticResource MaterialDesignFlatButton}"
-                        Margin="0,0,10,0" />
-                <Button Content="{Binding ImportText}"
-                        Command="{Binding ImportCommand}"
-                        Style="{StaticResource MaterialDesignRaisedButton}" />
-            </StackPanel>
+                <ProgressBar Grid.Column="0" Width="110" Height="4"
+                             IsIndeterminate="True"
+                             VerticalAlignment="Center" Margin="0,0,10,0"
+                             Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
+
+                <materialDesign:PackIcon Grid.Column="0" Kind="CheckCircle"
+                                         Foreground="#2E7D32" Width="22" Height="22"
+                                         VerticalAlignment="Center" Margin="0,0,10,0"
+                                         Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}" />
+
+                <TextBlock Grid.Column="1" Text="{Binding Progress}"
+                           FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="{Binding StopText}"
+                            Command="{Binding StopCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Margin="0,0,10,0"
+                            Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
+
+                    <!-- Disabled once the file has been sent. Nothing visibly changes behind
+                         this dialog, so an enabled Import button is an invitation to run the
+                         same file a second time for no reason. -->
+                    <Button Content="{Binding ImportText}"
+                            Command="{Binding ImportCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Margin="0,0,10,0" />
+
+                    <Button Content="{Binding CloseText}"
+                            Command="{Binding CloseCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            IsCancel="True" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

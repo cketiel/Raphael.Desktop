@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,6 +41,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 new AsyncRelayCommand<CatalogProviderListItemDto>(AddToMyCompanyAsync);
             GeocodeCommand = new AsyncRelayCommand(GeocodePageAsync);
             ImportCommand = new AsyncRelayCommand(ImportAsync);
+            ExportCommand = new AsyncRelayCommand(ExportAsync);
         }
 
         public IAsyncRelayCommand AddCommand { get; }
@@ -47,6 +49,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public IAsyncRelayCommand<CatalogProviderListItemDto> AddToMyCompanyCommand { get; }
         public IAsyncRelayCommand GeocodeCommand { get; }
         public IAsyncRelayCommand ImportCommand { get; }
+        public IAsyncRelayCommand ExportCommand { get; }
 
         private CatalogProviderListItemDto? _selectedItem;
         public CatalogProviderListItemDto? SelectedItem
@@ -65,7 +68,11 @@ namespace Raphael.Desktop.ViewModels.Catalog
             try
             {
                 var categories = await _lookups.GetProviderCategoriesAsync();
-                var counties = await _lookups.GetCountiesAsync();
+                // ⚠️ Every county, not only the ones the catalog already uses.
+                // inUseOnly looked tidy and made the list empty on an empty catalog,
+                // so the first thing anybody tried — adding an entity by hand before
+                // importing anything — had no county to pick. Sixty-seven is a short list.
+                var counties = await _lookups.GetCountiesAsync(inUseOnly: false);
 
                 Categories.Clear();
 
@@ -288,6 +295,52 @@ namespace Raphael.Desktop.ViewModels.Catalog
             {
                 await LoadLookupsAsync();
                 await ReloadAsync(resetPage: true);
+            }
+        }
+
+        /// <summary>
+        /// Writes everything the current search matches to a spreadsheet.
+        /// </summary>
+        /// <remarks>
+        /// It walks the pages rather than exporting the one on screen. Fifty rows out of two
+        /// thousand would be a file nobody could check against anything.
+        /// </remarks>
+        private async Task ExportAsync()
+        {
+            const int ExportPageSize = 200;
+
+            // A guard, not a limit anybody should hit: a runaway loop against a paging endpoint
+            // is how a click turns into a thousand requests.
+            const int MaxPages = 200;
+
+            try
+            {
+                var all = new List<CatalogProviderListItemDto>();
+                var request = BuildRequest();
+                request.PageSize = ExportPageSize;
+
+                for (var page = 1; page <= MaxPages; page++)
+                {
+                    request.PageNumber = page;
+
+                    var slice = await _catalog.SearchAsync(request);
+                    all.AddRange(slice.Items);
+
+                    if (all.Count >= slice.TotalCount || slice.Items.Count == 0)
+                    {
+                        break;
+                    }
+                }
+
+                CatalogExcelExportService.ExportProviders(all);
+            }
+            catch (Exception exception)
+            {
+                UiError.Show(
+                    exception.Message,
+                    LocalizationService.Instance["catalog.ExportFailed"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

@@ -74,10 +74,30 @@
                     <materialDesign:PackIcon Kind="FilterRemoveOutline" />
                 </Button>
 
+                <!-- Import and export sit next to each other and do opposite things, so
+                     they are told apart twice over: by the direction of the arrow and by the
+                     colour. Two identical spreadsheet icons side by side is how somebody
+                     overwrites a catalog meaning to take a copy of it. -->
                 <Button Command="{Binding ImportCommand}"
-                        Style="{StaticResource MaterialDesignToolButton}"
-                        ToolTip="{Binding ImportText}" Margin="0,0,4,0">
-                    <materialDesign:PackIcon Kind="FileExcelOutline" />
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        ToolTip="{Binding ImportText}" Margin="0,0,4,0"
+                        Foreground="#2E7D32">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FileImportOutline" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ImportShortText}" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" FontSize="11" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding ExportCommand}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        ToolTip="{Binding ExportText}" Margin="0,0,12,0"
+                        Foreground="#1565C0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FileExportOutline" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ExportShortText}" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" FontSize="11" />
+                    </StackPanel>
                 </Button>
 
                 <Button Command="{Binding GeocodeCommand}"
@@ -112,10 +132,14 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- ⚠️ Virtualisation is not optional here: this grid holds thousands of rows.
-                 RowHeight is fixed because recycling needs it, and the grid must never be
-                 wrapped in a ScrollViewer — that cancels virtualisation outright, which is the
-                 fault RE-008 measured. -->
+            <!-- ⚠️ Virtualisation is not optional here: this grid holds thousands of rows,
+                 and it must never be wrapped in a ScrollViewer — that cancels virtualisation
+                 outright, which is the fault RE-008 measured.
+
+                 ⚠️ RowHeight is deliberately NOT set, and neither does the Home grid set it.
+                 Pinning it looks harmless and is not: the Material cell padding, 8 above and 8
+                 below, stops fitting beside the text and every row renders as a slice through
+                 the middle of its own letters. Rows size to their content instead. -->
             <DataGrid Grid.Row="2"
                       ItemsSource="{Binding Items}"
                       SelectedItem="{Binding SelectedItem}"
@@ -123,15 +147,14 @@
                       IsReadOnly="True"
                       SelectionMode="Single"
                       SelectionUnit="FullRow"
-                      RowHeight="28"
                       EnableRowVirtualization="True"
                       EnableColumnVirtualization="True"
                       ScrollViewer.CanContentScroll="True"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.VirtualizationMode="Recycling"
                       AlternationCount="2"
-                      AlternatingRowBackground="White"
-                      Style="{StaticResource CustomDataGridStyles}">
+                      GridLinesVisibility="None"
+                      Style="{StaticResource ContentDataGridStyle}">
                 <DataGrid.Columns>
 
                     <DataGridTemplateColumn Width="Auto">

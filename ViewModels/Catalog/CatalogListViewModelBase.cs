@@ -391,6 +391,9 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public string AddText => LocalizationService.Instance["catalog.Add"];
         public string EditText => LocalizationService.Instance["catalog.Edit"];
         public string ImportText => LocalizationService.Instance["catalog.Import"];
+        public string ImportShortText => LocalizationService.Instance["catalog.ImportShort"];
+        public string ExportText => LocalizationService.Instance["catalog.Export"];
+        public string ExportShortText => LocalizationService.Instance["catalog.ExportShort"];
         public string GeocodeText => LocalizationService.Instance["catalog.Geocode"];
         public string AddToMyCompanyText => LocalizationService.Instance["catalog.AddToMyCompany"];
         public string AlreadyInMyCompanyText => LocalizationService.Instance["catalog.AlreadyInMyCompany"];

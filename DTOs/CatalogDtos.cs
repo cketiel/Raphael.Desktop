@@ -403,19 +403,38 @@ namespace Raphael.Desktop.DTOs
         public List<T> Rows { get; set; } = new();
     }
 
+    /// <summary>
+    /// What happened to the batch. One entry per distinct entity, not per row of the file:
+    /// a file can name the same institution several times.
+    /// </summary>
     public class CatalogImportResultDto
     {
         public int Created { get; set; }
         public int Updated { get; set; }
         public int Failed { get; set; }
+
+        /// <summary>Rows folded into another row of the same file.</summary>
+        public int Merged { get; set; }
+
+        /// <summary>Rows with no name — the blank lines the source files are full of.</summary>
+        public int Skipped { get; set; }
+
         public List<CatalogImportRowResultDto> Rows { get; set; } = new();
     }
 
     public class CatalogImportRowResultDto
     {
+        /// <summary>The first row of the file that described this entity.</summary>
         public int RowNumber { get; set; }
+
         public int? Id { get; set; }
         public CatalogImportOutcome Outcome { get; set; }
+
+        /// <summary>How many rows of the file described this entity. One, normally.</summary>
+        public int MergedRowCount { get; set; } = 1;
+
+        /// <summary>The row numbers, when there was more than one.</summary>
+        public List<int>? MergedRowNumbers { get; set; }
 
         /// <summary>A code, not a sentence. This app owns the wording — see CatalogProblems.</summary>
         public string? ErrorCode { get; set; }

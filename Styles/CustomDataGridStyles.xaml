@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
@@ -172,6 +172,78 @@
          about the two grids that list trips, not about all of them. -->
     <Style x:Key="CenteredColumnHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource CustomColumnHeaderStyle}">
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ===== Rows that size to their content =====
+
+         Lifted from HomeTripRowStyle, which lives in HomeView.xaml and carries trip-specific
+         triggers on top of this. What is here is the part that is about reading a long list,
+         and it is shared so the catalog grids read exactly like the Home grid.
+
+         ⚠️ The point of these two is what they do NOT set. CustomRowStyle and CustomCellStyle
+         both cap MaxHeight at 30, which is fine while nothing fixes RowHeight: the row simply
+         takes the height it needs up to that. Pin RowHeight as well and the Material cell
+         padding — 8 above and 8 below — no longer fits beside the text, and every row renders
+         as a horizontal slice through the middle of its own letters. That is what the catalog
+         grids looked like on their first outing. -->
+    <Style x:Key="ContentRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+        <Setter Property="Background" Value="{StaticResource EvenRowBackgroundBrush}"/>
+        <Style.Triggers>
+
+            <!-- The plain white every other row is what lets the eye track one entity across
+                 nine columns. It is the only thing painting an unselected row. -->
+            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                <Setter Property="Background" Value="White" />
+            </Trigger>
+
+            <!-- Declared here and not left to the row template, for the same reason HomeView
+                 spells it out: the Background setter above is a style value and beats a
+                 template trigger, so selection would otherwise be invisible. -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource HoverTripRowBrush}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource SelectedTripRowBrush}" />
+                <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+            </Trigger>
+
+        </Style.Triggers>
+    </Style>
+
+    <!-- The cell template of CustomCellStyle without the height cap, and left-aligned: a name,
+         a city and an address read from the left. Numbers that want centring say so per column. -->
+    <Style x:Key="ContentCellStyle" TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource {x:Type DataGridCell}}">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type DataGridCell}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          Margin="0"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- The row paints selection; a cell that painted it too would draw a box inside
+                 the row. Same reasoning as TripSelectionCellStyle. -->
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- What a list of records wears: the base grid, left-aligned headers, rows that size to
+         their content. The counterpart of CustomDataGridStyles, which caps row height. -->
+    <Style x:Key="ContentDataGridStyle" TargetType="{x:Type DataGrid}" BasedOn="{StaticResource CustomDataGridStyle}">
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource CustomColumnHeaderStyle}"/>
+        <Setter Property="RowStyle" Value="{StaticResource ContentRowStyle}"/>
+        <Setter Property="CellStyle" Value="{StaticResource ContentCellStyle}"/>
     </Style>
 
 </ResourceDictionary>
