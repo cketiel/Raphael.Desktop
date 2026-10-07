@@ -196,6 +196,12 @@ namespace Raphael.Desktop.DTOs
 
         public string Zip { get; set; }
 
+        /// <summary>
+        /// The language the map page loaded Google in. Google writes the address in it, and the
+        /// server caches each language apart. Null keeps the legacy, mixed-language entry.
+        /// </summary>
+        public string Language { get; set; }
+
         public string Status { get; set; } = RoutingContract.Statuses.Ok;
 
         public string Source { get; set; } = RoutingContract.Sources.Cache;

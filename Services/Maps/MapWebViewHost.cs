@@ -321,7 +321,13 @@ namespace Raphael.Desktop.Services.Maps
             {
                 var placeId = message.GetProperty("placeId").GetString();
 
-                var answer = await routing.GetPlaceAsync(placeId);
+                // The page's own Maps language, not the application's current one: an open page
+                // keeps the language it loaded with, and that is the language it will store in.
+                var language = message.TryGetProperty("language", out var languageElement)
+                    ? languageElement.GetString()
+                    : null;
+
+                var answer = await routing.GetPlaceAsync(placeId, language);
 
                 await ReplyAsync(webView, id, answer);
             }

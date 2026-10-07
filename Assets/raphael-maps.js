@@ -52,6 +52,18 @@
     }
 
     /**
+     * The language Google Maps is loaded in on this page.
+     *
+     * Google writes every address in it, and the server caches places per language, so it goes
+     * with every place lookup and store: a place bought in Spanish ("EE. UU.") is never handed to
+     * an English page. It is the page's language, not the application's current one, because a
+     * page keeps the language it loaded with until it is navigated again.
+     */
+    function mapsLanguage() {
+        return text('lang', 'en');
+    }
+
+    /**
      * The map type the dispatcher last left this application on.
      *
      * Google's own control writes four values and two of them are the labels switch: `satellite`
@@ -137,7 +149,7 @@
                 + '?key=' + encodeURIComponent(config.apiKey)
                 + '&v=weekly'
                 + '&libraries=places,geometry'
-                + '&language=' + encodeURIComponent(text('lang', 'en'))
+                + '&language=' + encodeURIComponent(mapsLanguage())
                 + '&callback=' + callbackName;
 
             script.async = true;
@@ -454,7 +466,7 @@
                 // in this business the same dialysis clinic is picked hundreds of times a month,
                 // and it should be bought exactly once.
                 var known = placeId
-                    ? await ask({ type: 'placeLookup', placeId: placeId })
+                    ? await ask({ type: 'placeLookup', placeId: placeId, language: mapsLanguage() })
                     : null;
 
                 if (known && known.status === 'Ok') {
@@ -498,7 +510,8 @@
                         street: parsed.address,
                         city: parsed.city,
                         state: parsed.state,
-                        zip: parsed.zip
+                        zip: parsed.zip,
+                        language: mapsLanguage()
                     });
                 }
 

@@ -242,14 +242,20 @@ namespace Raphael.Desktop.Services
             }
         }
 
-        public async Task<PlaceDetailsDto> GetPlaceAsync(string placeId)
+        public async Task<PlaceDetailsDto> GetPlaceAsync(string placeId, string language)
         {
             if (string.IsNullOrWhiteSpace(placeId)) return null;
 
             try
             {
-                var response = await _httpClient.GetAsync(
-                    $"{EndPoint}/place/{Uri.EscapeDataString(placeId)}");
+                var url = $"{EndPoint}/place/{Uri.EscapeDataString(placeId)}";
+
+                if (!string.IsNullOrWhiteSpace(language))
+                {
+                    url += $"?language={Uri.EscapeDataString(language)}";
+                }
+
+                var response = await _httpClient.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode) return null;
 
