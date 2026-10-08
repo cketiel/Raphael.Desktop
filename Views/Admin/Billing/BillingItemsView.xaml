@@ -30,8 +30,9 @@
                 Padding="10,5"/>
 
         <!-- Grid to display data -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding BillingItems}"
+        <DataGrid x:Name="BillingItemsGrid"
+                  Grid.Row="1"
+                  ItemsSource="{Binding GroupedBillingItems}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsReadOnly="True"
@@ -43,6 +44,49 @@
                 RowStyle="{StaticResource CustomRowStyle}"
                 CellStyle="{StaticResource CustomCellStyle}"
                 SelectionUnit="FullRow">
+            <!-- One group per owner: the office first, then each clinic that keeps items from the
+                 Booking Portal (RE-029). A group's items all share an owner, so the first one says
+                 whose group it is. -->
+            <DataGrid.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.ContainerStyle>
+                        <Style TargetType="{x:Type GroupItem}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                        <Expander IsExpanded="True" Margin="0,4,0,0" Background="#F8FAFC">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon VerticalAlignment="Center" Width="20" Height="20" Margin="0,0,8,0">
+                                                        <materialDesign:PackIcon.Style>
+                                                            <Style TargetType="materialDesign:PackIcon">
+                                                                <Setter Property="Kind" Value="HospitalBuilding"/>
+                                                                <Setter Property="Foreground" Value="#7C3AED"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Items[0].IsOfficeOwned}" Value="True">
+                                                                        <Setter Property="Kind" Value="OfficeBuilding"/>
+                                                                        <Setter Property="Foreground" Value="#2563EB"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </materialDesign:PackIcon.Style>
+                                                    </materialDesign:PackIcon>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <Border CornerRadius="9" Background="#E2E8F0" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding ItemCount}" FontSize="11"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsPresenter/>
+                                        </Expander>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </GroupStyle.ContainerStyle>
+                </GroupStyle>
+            </DataGrid.GroupStyle>
+
             <DataGrid.Columns>
                 <!-- Column with edit button -->
                 <DataGridTemplateColumn>
@@ -86,7 +130,7 @@
 
                 <DataGridTextColumn 
                     Binding="{Binding APAccount}"
-                    Header="{Binding Data.ColumnHeaderARCompany, Source={StaticResource vmProxy}}"  Width="*" />
+                    Header="{Binding Data.ColumnHeaderAPAccount, Source={StaticResource vmProxy}}"  Width="*" />
 
                 <DataGridTextColumn 
                     Binding="{Binding APSubAccount}"

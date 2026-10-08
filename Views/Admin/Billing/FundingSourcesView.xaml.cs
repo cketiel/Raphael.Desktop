@@ -30,7 +30,9 @@ namespace Raphael.Desktop.Views.Admin.Billing
             var billingItemService = new BillingItemService();
             var spaceTypeService = new SpaceTypeService();           
 
-            var viewModel = new FundingSourcesViewModel(fsService, fsbiService, billingItemService, spaceTypeService); 
+            var integratorService = new IntegratorService();
+
+            var viewModel = new FundingSourcesViewModel(fsService, fsbiService, billingItemService, spaceTypeService, integratorService); 
             DataContext = viewModel;            
 
             Loaded += async (s, e) => {

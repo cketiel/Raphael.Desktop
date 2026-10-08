@@ -19,5 +19,11 @@ namespace Raphael.Desktop.DTOs
         public string APCompany { get; set; }
         public string UnitAbbreviation { get; set; }
         public int UnitId { get; set; }
+
+        /// <summary>The clinic that keeps this item in the Booking Portal; null for the office's own (RE-029).</summary>
+        public int? OwnerIntegratorId { get; set; }
+
+        /// <summary>That clinic's name, to group the items without another call.</summary>
+        public string? OwnerIntegratorName { get; set; }
     }
 }

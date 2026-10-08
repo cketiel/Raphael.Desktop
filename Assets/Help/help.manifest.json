@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.10.0"
   },
-  "builtUtc": "2026-09-24T07:09:31.431Z",
-  "sourceCommit": "fd0b31a",
+  "builtUtc": "2026-10-08T15:44:56.644Z",
+  "sourceCommit": "1be1379",
   "languages": [
     "es",
     "en"
@@ -526,6 +526,34 @@
       "title": {
         "es": "Admin — Providers",
         "en": "Admin — Providers"
+      }
+    },
+    {
+      "id": "desktop/admin/catalog-integrators",
+      "mode": "how-to",
+      "since": "1.11.0",
+      "lastReviewed": "1.11.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Admin",
+      "title": {
+        "es": "Catálogo — Integrators",
+        "en": "Catalog — Integrators"
+      }
+    },
+    {
+      "id": "desktop/admin/catalog-providers",
+      "mode": "how-to",
+      "since": "1.11.0",
+      "lastReviewed": "1.11.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Admin",
+      "title": {
+        "es": "Catálogo — Providers",
+        "en": "Catalog — Providers"
       }
     },
     {

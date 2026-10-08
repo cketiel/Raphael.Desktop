@@ -22,6 +22,17 @@ namespace Raphael.Desktop.ViewModels
         public IAsyncRelayCommand SaveCommand { get; }
         public bool IsNewItem => CurrentBillingItem.Id == 0;
 
+        /// <summary>The item belongs to a clinic, which keeps it from the Booking Portal (RE-029).</summary>
+        public bool IsClinicOwned => !CurrentBillingItem.IsOfficeOwned;
+
+        /// <summary>
+        /// Said before the office edits a clinic's item: the clinic sees the change, and saving here
+        /// does not take the item away from it.
+        /// </summary>
+        public string ClinicOwnedNotice => IsClinicOwned
+            ? string.Format(LocalizationService.Instance["BillingItemManagedByClinic"], CurrentBillingItem.OwnerGroup)
+            : string.Empty;
+
         public BillingItemPopupViewModel(IBillingItemService billingItemService, IUnitService unitService, BillingItem billingItem)
         {
             _billingItemService = billingItemService;
@@ -40,7 +51,9 @@ namespace Raphael.Desktop.ViewModels
                 ARCompany = billingItem.ARCompany,
                 APAccount = billingItem.APAccount,
                 APSubAccount = billingItem.APSubAccount,
-                APCompany = billingItem.APCompany
+                APCompany = billingItem.APCompany,
+                OwnerIntegratorId = billingItem.OwnerIntegratorId,
+                OwnerIntegratorName = billingItem.OwnerIntegratorName
             };
 
             SaveCommand = new AsyncRelayCommand(SaveAsync);

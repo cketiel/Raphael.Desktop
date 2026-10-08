@@ -55,6 +55,7 @@ namespace Raphael.Desktop.ViewModels
         private readonly IFundingSourceBillingItemService _fsBillingItemService;
         private readonly IBillingItemService _billingItemService;
         private readonly ISpaceTypeService _spaceTypeService;
+        private readonly IIntegratorService _integratorService;
 
         [ObservableProperty]
         private ObservableCollection<FundingSource> _fundingSources;
@@ -90,12 +91,14 @@ namespace Raphael.Desktop.ViewModels
             IFundingSourceService fundingSourceService, 
             IFundingSourceBillingItemService fsBillingItemService,
             IBillingItemService billingItemService,
-            ISpaceTypeService spaceTypeService)
+            ISpaceTypeService spaceTypeService,
+            IIntegratorService integratorService)
         {
             _fundingSourceService = fundingSourceService;
             _fsBillingItemService = fsBillingItemService;
             _billingItemService = billingItemService;
             _spaceTypeService = spaceTypeService;
+            _integratorService = integratorService;
 
             _fundingSources = new ObservableCollection<FundingSource>();
             _billingItemsForSelectedSource = new ObservableCollection<FundingSourceBillingItem>();
@@ -229,7 +232,7 @@ namespace Raphael.Desktop.ViewModels
         private void OpenBillingItemPopup(FundingSourceBillingItem item)
         {
             // Necesitaremos crear este ViewModel y la Vista
-            var popupViewModel = new FundingSourceBillingItemPopupViewModel(_fsBillingItemService, _billingItemService, _spaceTypeService, item);
+            var popupViewModel = new FundingSourceBillingItemPopupViewModel(_fsBillingItemService, _billingItemService, _spaceTypeService, _integratorService, item);
             var popupWindow = new FundingSourceBillingItemPopupWindow(popupViewModel);
 
             if (popupWindow.ShowDialog() == true)

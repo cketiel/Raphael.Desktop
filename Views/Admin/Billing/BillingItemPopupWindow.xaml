@@ -10,8 +10,18 @@
         Width="400"
         WindowStartupLocation="CenterOwner"
         >
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     
     <StackPanel Margin="15">
+        <!-- A clinic's item (RE-029): the office may correct it, and the clinic sees the change. -->
+        <Border Visibility="{Binding IsClinicOwned, Converter={StaticResource BoolToVis}}"
+                Background="#F5F3FF" BorderBrush="#C4B5FD" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+            <TextBlock Text="{Binding ClinicOwnedNotice}" TextWrapping="Wrap" Foreground="#4C1D95"/>
+        </Border>
+
         <Label Content="Description"/>
         <TextBox Text="{Binding CurrentBillingItem.Description, UpdateSourceTrigger=PropertyChanged}"/>
 

@@ -35,7 +35,7 @@
                         <ComboBox Grid.Row="0" Grid.Column="1" Margin="5"
                                   ItemsSource="{Binding AvailableBillingItems}"
                                   SelectedValue="{Binding CurrentItem.BillingItemId}"
-                                  DisplayMemberPath="Description"
+                                  DisplayMemberPath="DisplayName"
                                   SelectedValuePath="Id"/>
 
                         <Label Grid.Row="1" Grid.Column="0" Content="Space Type *:" VerticalAlignment="Center" />
