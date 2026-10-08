@@ -183,13 +183,16 @@ namespace Raphael.Desktop.Services
             public int Changed { get; set; }
         }
 
+        // The production reports leave out the patients' signatures unless asked for them (backend
+        // 0b477fc, B10): the Desktop prints them in the trip PDF (Trip2Document), so every production
+        // call here asks with includeSignatures=true (RE-030). The aviata report never dropped them.
         public async Task<List<ProductionReportRowDto>> GetTrip2ReportDataAsync(DateTime startDate, DateTime endDate, List<int> fundingSourceIds)
         {
             string start = startDate.ToString("yyyy-MM-dd");
             string end = endDate.ToString("yyyy-MM-dd");
 
             // Reusing the logic for range and multi-ID filtering
-            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}";
+            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}&includeSignatures=true";
 
             if (fundingSourceIds != null && fundingSourceIds.Any())
             {
@@ -212,7 +215,7 @@ namespace Raphael.Desktop.Services
             string start = startDate.ToString("yyyy-MM-dd");
             string end = endDate.ToString("yyyy-MM-dd");
 
-            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}";
+            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}&includeSignatures=true";
 
             if (fundingSourceIds != null && fundingSourceIds.Any())
             {
@@ -236,7 +239,7 @@ namespace Raphael.Desktop.Services
             string end = endDate.ToString("yyyy-MM-dd");
 
             // Endpoint: reports/production-range
-            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}";
+            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}&includeSignatures=true";
 
             if (fundingSourceIds != null && fundingSourceIds.Any())
             {
@@ -253,7 +256,7 @@ namespace Raphael.Desktop.Services
         {
             // Format the date correctly for the URL query string.
             string formattedDate = date.ToString("yyyy-MM-dd");
-            var requestUri = $"{_endPoint}/reports/production?date={formattedDate}";
+            var requestUri = $"{_endPoint}/reports/production?date={formattedDate}&includeSignatures=true";
 
             // --- NEW: Append the fundingSourceId if it has a value ---
             if (fundingSourceId.HasValue)
