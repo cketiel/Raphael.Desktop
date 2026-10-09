@@ -3,6 +3,42 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.11.0] - 2026-10-08
+
+⚠️ **Needs Raphael.Backend 2.0.0 in the same environment for the catalogue and for billing items by
+owner.** Against 1.2.0 the catalogue tab answers with an error and every billing item shows as the
+office's; everything else works as in 1.10.0. Install it on the workstations the same night as the
+backend, **before** it: the production reports must already ask for the signatures when 2.0.0
+starts leaving them out by default.
+
+### Added
+- **Entity catalogue** (RE-027): a new Admin tab with the clinics and hospitals and the transport
+  companies we could work with. Server-side search with paging, filters by group, county and
+  whether this company already has the entity, near-name suggestions, spreadsheet import with six
+  mapping templates and an export of what the search matched. "Add to my company" opens the real
+  form already filled in.
+- Providers carry their time zone, website, contact person and comments; integrators carry the
+  contact details clinics fill in from the Booking Portal.
+- **Billing items grouped by owner** (RE-029): the office first, then each clinic. Opening a
+  clinic's item says so and saving keeps its owner; the rate popup offers the office's items and
+  those of the clinics on that funding source.
+- Help topics `desktop/admin/catalog-providers` and `desktop/admin/catalog-integrators`, and 1.11.0
+  in *What's new*.
+
+### Changed
+- The Integrators and Providers tabs are translated.
+- The map sends its language with every place lookup (RE-028), so a place bought by a Spanish
+  session is no longer shown to an English one.
+
+### Fixed
+- Production reports ask for the patients' signatures (RE-030): from backend 2.0.0 they are left out
+  unless asked for, and the trip PDF prints them.
+- The provider form sends coordinates in invariant culture: a Spanish Windows sent "25,7617" and
+  the server got no latitude.
+- The provider's time zone travels in the form; the Providers screen flagged every provider as
+  having none, with no way to answer it.
+- Catalogue grids no longer clip their own rows, and the AP Account column header is fixed.
+
 ## [1.10.0] - 2026-09-24
 
 ⚠️ **Needs Raphael.Backend 1.2.0 (RE-026) in the same environment.** Against an older backend the
