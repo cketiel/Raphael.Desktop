@@ -289,6 +289,8 @@
     "ColumnHeaderActive": "Active",
     "Unit": "Unit",
     "AddBillingItem": "Add Billing Item",
+    "BillingItemOwnerOffice": "Office",
+    "BillingItemManagedByClinic": "This item belongs to {0}, which manages it from the Booking Portal. {0} will see any change you save here, and the item stays theirs.",
     "EditBillingItem": "Edit Billing Item",
     "IsCopay": "Is Copay",
     "ARAccount": "AR Account",

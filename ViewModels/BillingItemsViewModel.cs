@@ -6,6 +6,8 @@ using Raphael.Desktop.Services;
 using Raphael.Desktop.Views;
 using Raphael.Desktop.Views.Admin.Billing;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -19,6 +21,19 @@ namespace Raphael.Desktop.ViewModels
         [ObservableProperty]
         private ObservableCollection<BillingItem> _billingItems;
 
+        /// <summary>
+        /// The list as the grid shows it: grouped by owner, the office first and then each clinic
+        /// (RE-029, BOOKING_ADMIN.md §6).
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The collection's own default view, never a <c>new CollectionViewSource().View</c>: a view
+        /// whose source is a temporary gets collected under the grid, which is what crashed the
+        /// Notification Center (see <see cref="NotificationTabViewModel"/>).
+        /// </remarks>
+        public ICollectionView GroupedBillingItems { get; }
+
+        public LocalizationService L => LocalizationService.Instance;
+
         public IAsyncRelayCommand LoadBillingItemsCommand { get; }
         public IRelayCommand AddBillingItemCommand { get; }
         public IRelayCommand<BillingItem> EditBillingItemCommand { get; }
@@ -29,6 +44,11 @@ namespace Raphael.Desktop.ViewModels
             _unitService = unitService; 
 
             _billingItems = new ObservableCollection<BillingItem>();
+
+            GroupedBillingItems = CollectionViewSource.GetDefaultView(_billingItems);
+            GroupedBillingItems.GroupDescriptions.Add(new PropertyGroupDescription(nameof(BillingItem.OwnerGroup)));
+            GroupedBillingItems.SortDescriptions.Add(new SortDescription(nameof(BillingItem.OwnerSortKey), ListSortDirection.Ascending));
+            GroupedBillingItems.SortDescriptions.Add(new SortDescription(nameof(BillingItem.Description), ListSortDirection.Ascending));
 
             LoadBillingItemsCommand = new AsyncRelayCommand(LoadBillingItemsAsync);
             AddBillingItemCommand = new RelayCommand(ExecuteAddBillingItem);
@@ -57,6 +77,8 @@ namespace Raphael.Desktop.ViewModels
                         APSubAccount = dto.APSubAccount,
                         APCompany = dto.APCompany,
                         UnitId = dto.UnitId,
+                        OwnerIntegratorId = dto.OwnerIntegratorId,
+                        OwnerIntegratorName = dto.OwnerIntegratorName,
                         // We rebuild the Unit object so that the DataGrid binding works
                         Unit = new Unit { Abbreviation = dto.UnitAbbreviation }
                     });

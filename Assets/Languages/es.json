@@ -289,6 +289,8 @@
     "ColumnHeaderActive": "Activo",
     "Unit": "Uniad de medida",
     "AddBillingItem": "Agregar elemento de facturación",
+    "BillingItemOwnerOffice": "Oficina",
+    "BillingItemManagedByClinic": "Este elemento de facturación es de {0}, que lo gestiona desde el Booking Portal. {0} verá cualquier cambio que guardes aquí, y el elemento sigue siendo suyo.",
     "EditBillingItem": "Editar elemento de facturación",
     "IsCopay": "Is Copay",
     "ARAccount": "AR Account",

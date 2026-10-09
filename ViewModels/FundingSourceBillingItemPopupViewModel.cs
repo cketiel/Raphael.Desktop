@@ -6,7 +6,9 @@ using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -18,6 +20,7 @@ namespace Raphael.Desktop.ViewModels
         private readonly IFundingSourceBillingItemService _fsbiService;
         private readonly IBillingItemService _billingItemService;
         private readonly ISpaceTypeService _spaceTypeService;
+        private readonly IIntegratorService _integratorService;
 
         // --- Propiedades para la Vista ---
 
@@ -42,11 +45,13 @@ namespace Raphael.Desktop.ViewModels
             IFundingSourceBillingItemService fsbiService,
             IBillingItemService billingItemService,  // Dependencia para el ComboBox
             ISpaceTypeService spaceTypeService,      // Dependencia para el ComboBox
+            IIntegratorService integratorService,    // Who uses this funding source (RE-029)
             FundingSourceBillingItem itemToEdit)
         {
             _fsbiService = fsbiService;
             _billingItemService = billingItemService;
             _spaceTypeService = spaceTypeService;
+            _integratorService = integratorService;
 
             // 1. Clonar el objeto para una edición segura (evita cambios en el grid antes de guardar)
             _currentItem = new FundingSourceBillingItem
@@ -85,9 +90,19 @@ namespace Raphael.Desktop.ViewModels
                 var billingItemsDto = await _billingItemService.GetBillingItemsAsync();
                 AvailableBillingItems.Clear();
 
-                // --- INICIO DE LA CORRECCIÓN ---
-                // Iteramos sobre la lista de DTOs y los convertimos a Modelos
-                foreach (var dto in billingItemsDto)
+                // The office's items, plus those of the clinics that use this funding source (RE-029):
+                // a clinic's item rated on another clinic's funding source would bill one clinic with
+                // another's prices. The item an existing rate already uses stays, filtered or not, or
+                // the drop-down would open blank and saving would lose it.
+                var clinics = await ClinicsOnThisFundingSourceAsync();
+
+                foreach (var dto in billingItemsDto
+                    .Where(d => d.OwnerIntegratorId == null
+                             || clinics.Contains(d.OwnerIntegratorId.Value)
+                             || d.Id == CurrentItem.BillingItemId)
+                    .OrderBy(d => d.OwnerIntegratorId == null ? 0 : 1)
+                    .ThenBy(d => d.OwnerIntegratorName)
+                    .ThenBy(d => d.Description))
                 {
                     // Creamos una nueva instancia del Modelo 'BillingItem' a partir del DTO
                     var model = new BillingItem
@@ -95,6 +110,8 @@ namespace Raphael.Desktop.ViewModels
                         Id = dto.Id,
                         Description = dto.Description,
                         UnitId = dto.UnitId,
+                        OwnerIntegratorId = dto.OwnerIntegratorId,
+                        OwnerIntegratorName = dto.OwnerIntegratorName,
                         // Reconstruimos la parte mínima del objeto Unit que el DTO nos da, si es necesario.
                         // Para el ComboBox, con Id y Description en el objeto principal es suficiente.
                     };
@@ -113,6 +130,27 @@ namespace Raphael.Desktop.ViewModels
             catch (Exception ex)
             {
                 Helpers.UiError.Show($"Could not load required data for the form: {ex.Message}", "Loading Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>The integrators whose funding source is this rate's.</summary>
+        /// <remarks>
+        /// GET api/Integrators is for administrators (role 1). Anyone else in the office still gets the
+        /// form, with the office's items only: a clinic's item is never offered without knowing it
+        /// belongs on this funding source.
+        /// </remarks>
+        private async Task<HashSet<int>> ClinicsOnThisFundingSourceAsync()
+        {
+            try
+            {
+                return (await _integratorService.GetIntegratorsAsync())
+                    .Where(i => i.FundingSourceId == CurrentItem.FundingSourceId)
+                    .Select(i => i.Id)
+                    .ToHashSet();
+            }
+            catch (Exception)
+            {
+                return new HashSet<int>();
             }
         }
 
