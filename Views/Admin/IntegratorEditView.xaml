@@ -1,10 +1,10 @@
-﻿<Window x:Class="Raphael.Desktop.Views.Admin.IntegratorEditView"
+<Window x:Class="Raphael.Desktop.Views.Admin.IntegratorEditView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        Title="Integrator Details" 
-        Height="450" 
-        Width="600" 
+        Title="{Binding WindowTitle}" 
+        Height="700" 
+        Width="640" 
         WindowStartupLocation="CenterOwner" 
         ResizeMode="NoResize"
         Background="{DynamicResource MaterialDesignPaper}">
@@ -22,18 +22,18 @@
         <!-- Contenido Principal con Scroll por si acaso -->
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="25,20,25,0">
-                <TextBlock Text="Manage Integrator" 
+                <TextBlock Text="{Binding HeadingText}" 
                            Style="{StaticResource MaterialDesignHeadline5TextBlock}" 
                            Margin="0,0,0,25"/>
 
                 <!-- Nombre -->
-                <TextBox materialDesign:HintAssist.Hint="Integrator Name"
+                <TextBox materialDesign:HintAssist.Hint="{Binding NameHint}"
                          Text="{Binding Integrator.Name, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource MaterialDesignFloatingHintTextBox}" 
                          Margin="0,0,0,20"/>
 
                 <!-- NUEVO: Funding Source -->
-                <ComboBox materialDesign:HintAssist.Hint="Funding Source"
+                <ComboBox materialDesign:HintAssist.Hint="{Binding FundingSourceHint}"
                       ItemsSource="{Binding FundingSources}"
                       SelectedValue="{Binding Integrator.FundingSourceId}"
                       SelectedValuePath="Id"
@@ -43,12 +43,60 @@
                       Margin="0,0,0,20"/>
                 
                 <!-- Estado -->
-                <CheckBox Content="Is Active" 
+                <CheckBox Content="{Binding IsActiveText}" 
                           IsChecked="{Binding Integrator.IsActive}" 
                           Margin="0,0,0,20"/>
 
+                <!-- Contact details, added in RE-027. Until now an integrator was a name and a
+                     key: everything the API needs and nothing of what a person needs when they
+                     have to call them. -->
+                <TextBlock Text="{Binding ContactSectionText}"
+                           Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                           Foreground="{DynamicResource PrimaryHueMidBrush}"
+                           Margin="0,0,0,5"/>
+
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0"
+                             materialDesign:HintAssist.Hint="{Binding PhoneHint}"
+                             Text="{Binding Integrator.Phone, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
+
+                    <TextBox Grid.Column="2"
+                             materialDesign:HintAssist.Hint="{Binding EmailHint}"
+                             Text="{Binding Integrator.Email, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
+                </Grid>
+
+                <TextBox materialDesign:HintAssist.Hint="{Binding WebsiteHint}"
+                         Text="{Binding Integrator.Website, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                         Margin="0,0,0,20"/>
+
+                <TextBox materialDesign:HintAssist.Hint="{Binding AddressHint}"
+                         Text="{Binding Integrator.Address, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                         Margin="0,0,0,20"/>
+
+                <TextBox materialDesign:HintAssist.Hint="{Binding ContactNameHint}"
+                         Text="{Binding Integrator.ContactName, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                         Margin="0,0,0,20"/>
+
+                <TextBox materialDesign:HintAssist.Hint="{Binding NotesHint}"
+                         Text="{Binding Integrator.Comments, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="70" VerticalScrollBarVisibility="Auto"
+                         Margin="0,0,0,20"/>
+
                 <!-- API Key -->
-                <TextBlock Text="Security Configuration" 
+                <TextBlock Text="{Binding SecuritySectionText}" 
                            Style="{StaticResource MaterialDesignCaptionTextBlock}" 
                            Foreground="{DynamicResource PrimaryHueMidBrush}"
                            Margin="0,0,0,5"/>
@@ -60,7 +108,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Añadido Padding="5,0,0,0" para que la "A" de API no se corte -->
-                    <TextBox materialDesign:HintAssist.Hint="API Key"
+                    <TextBox materialDesign:HintAssist.Hint="{Binding ApiKeyHint}"
                              Text="{Binding ApiKeyDisplay, Mode=OneWay}"
                              IsReadOnly="True"
                              Padding="5,4,0,4"
@@ -71,7 +119,7 @@
                             Command="{Binding RegenerateKeyCommand}"
                             Visibility="{Binding IsExisting, Converter={StaticResource BooleanToVisibilityConverter}}"
                             Style="{StaticResource MaterialDesignIconButton}" 
-                            ToolTip="Regenerate API Key"
+                            ToolTip="{Binding RegenerateApiKeyText}"
                             Margin="10,0,0,0"
                             VerticalAlignment="Bottom">
                         <materialDesign:PackIcon Kind="Refresh" Foreground="Orange" Width="24" Height="24"/>
@@ -83,12 +131,12 @@
         <!-- Botones de Acción fijos abajo -->
         <Border Grid.Row="1" Background="{DynamicResource MaterialDesignDivider}" Padding="15">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="CANCEL" 
+                <Button Content="{Binding CancelText}" 
                         Command="{Binding CancelCommand}"
                         CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
                         Style="{StaticResource MaterialDesignFlatButton}" 
                         Margin="0,0,10,0"/>
-                <Button Content="SAVE" 
+                <Button Content="{Binding SaveText}" 
                         Command="{Binding SaveCommand}"
                         CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
                         Style="{StaticResource MaterialDesignRaisedButton}"

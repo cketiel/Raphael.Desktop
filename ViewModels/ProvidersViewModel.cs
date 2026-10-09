@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -98,7 +98,11 @@ namespace Raphael.Desktop.ViewModels
         {
             if (item == null) return;
 
-            if (MessageBox.Show($"Are you sure you want to delete provider '{item.Name}'?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            if (MessageBox.Show(
+                string.Format(ConfirmDeleteText, item.Name),
+                ConfirmTitle,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
                 try
                 {
@@ -107,9 +111,30 @@ namespace Raphael.Desktop.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Helpers.UiError.Show($"Error deleting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Helpers.UiError.Show(ex.Message, DeleteFailedTitle, MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
+
+        #region Translation
+
+        public string AddText => LocalizationService.Instance["admin.AddProvider"];
+        public string EditText => LocalizationService.Instance["Edit"];
+        public string DeleteText => LocalizationService.Instance["admin.DeleteProvider"];
+
+        public string ColumnLogo => LocalizationService.Instance["admin.Logo"];
+        public string ColumnCompany => LocalizationService.Instance["Company"];
+        public string ColumnPhone => LocalizationService.Instance["Phone"];
+        public string ColumnEmail => LocalizationService.Instance["Email"];
+        public string ColumnAddress => LocalizationService.Instance["Address"];
+        public string ColumnTimeZone => LocalizationService.Instance["admin.TimeZoneColumn"];
+
+        public string ConfirmDeleteText => LocalizationService.Instance["admin.ConfirmDeleteProvider"];
+        public string ConfirmTitle => LocalizationService.Instance["ConfirmDeleteTitle"];
+        public string ErrorTitle => LocalizationService.Instance["ErrorTitle"];
+        public string DeleteFailedTitle => LocalizationService.Instance["admin.DeleteFailed"];
+
+        #endregion
+
     }
 }

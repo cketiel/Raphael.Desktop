@@ -1,9 +1,10 @@
-﻿<UserControl x:Class="Raphael.Desktop.Views.Admin.ProvidersView" 
+<UserControl x:Class="Raphael.Desktop.Views.Admin.ProvidersView" 
 		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
-        xmlns:converters="clr-namespace:Raphael.Desktop.Converters">
+        xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+        xmlns:services="clr-namespace:Raphael.Desktop.Services">
 
     <UserControl.Resources>
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
@@ -21,9 +22,24 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
             <Button Command="{Binding AddCommand}" HorizontalAlignment="Left" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Margin="0,0,0,10">
-                <materialDesign:PackIcon Kind="Add" />
+                    <materialDesign:PackIcon Kind="Add" />
+                </Button>
+            <!-- RE-027: this tab holds who we work with, the catalog holds who we could. -->
+            <Button Click="OpenCatalog_Click"
+                    Style="{StaticResource MaterialDesignFlatButton}"
+                    Margin="12,0,0,0"
+                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance},
+                                      Path=[catalog.OpenCatalog]}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="BookOpenVariant" VerticalAlignment="Center" />
+                    <TextBlock Margin="6,0,0,0" VerticalAlignment="Center"
+                               Text="{Binding Source={x:Static services:LocalizationService.Instance},
+                                              Path=[catalog.Tab]}" />
+                </StackPanel>
             </Button>
+        </StackPanel>
 
             <DataGrid Grid.Row="1" ItemsSource="{Binding Providers}"
                       SelectedItem="{Binding SelectedProvider}"
@@ -53,7 +69,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Header="Logo" Width="Auto">
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnLogo, Source={StaticResource vmProxy}}" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Ellipse Width="28" Height="28" Margin="0" Stroke="#2196f3" StrokeThickness="1">
@@ -66,15 +82,15 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="Company" Binding="{Binding Name}" Width="*" />
-                    <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="Auto" />
-                    <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*" />
-                    <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="2*" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnCompany, Source={StaticResource vmProxy}}" Binding="{Binding Name}" Width="*" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnPhone, Source={StaticResource vmProxy}}" Binding="{Binding Phone}" Width="Auto" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnEmail, Source={StaticResource vmProxy}}" Binding="{Binding Email}" Width="*" />
+                    <DataGridTextColumn Header="{Binding Data.ColumnAddress, Source={StaticResource vmProxy}}" Binding="{Binding Address}" Width="2*" />
 
                     <!-- A provider without a timezone falls back to the server's configured
                          default. That is a reasonable stopgap and a bad permanent state, so
                          it is visible rather than silent. -->
-                    <DataGridTemplateColumn Header="Time zone" Width="200">
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnTimeZone, Source={StaticResource vmProxy}}" Width="200">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

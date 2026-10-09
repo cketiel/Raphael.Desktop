@@ -1,0 +1,19 @@
+{
+  "Name": "NEMT companies (Florida, NPPES)",
+  "Kind": "Provider",
+  "CategoryCode": "NemtCompany",
+  "HeaderTokens": [ "Empresa", "Ciudad", "NPI", "NEMT principal" ],
+  "ColumnMappings": {
+    "Empresa": "Name",
+    "Ciudad": "City",
+    "ZIP": "Zip",
+    "Teléfono": "Phone",
+    "NPI": "Npi",
+    "NEMT principal": "IsPrimaryNemt",
+    "Actualizado": "SourceUpdatedOn",
+    "Dirección de práctica": "Address",
+    "Website": "Website",
+    "Email": "Email",
+    "Director o administrador": "ContactName"
+  }
+}

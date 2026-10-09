@@ -1,0 +1,159 @@
+<Window x:Class="Raphael.Desktop.Views.Admin.Catalog.CatalogIntegratorEditView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="{Binding WindowTitle}"
+        Height="620" Width="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="White"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="20,20,20,0">
+            <StackPanel>
+
+                <ComboBox ItemsSource="{Binding Categories}"
+                          SelectedItem="{Binding SelectedCategory}"
+                          DisplayMemberPath="NameEn"
+                          materialDesign:HintAssist.Hint="{Binding LabelGroup}"
+                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                          Margin="0,0,0,14" />
+
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="{Binding LabelName}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,14" />
+
+                <TextBox Text="{Binding FacilityType, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="{Binding LabelFacilityType}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,14" />
+
+                <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="{Binding LabelAddress}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,14" />
+
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0"
+                             Text="{Binding City, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="{Binding LabelCity}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+
+                    <ComboBox Grid.Column="2"
+                              ItemsSource="{Binding Counties}"
+                              SelectedItem="{Binding SelectedCounty}"
+                              DisplayMemberPath="Name"
+                              materialDesign:HintAssist.Hint="{Binding LabelCounty}"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+
+                    <TextBox Grid.Column="4"
+                             Text="{Binding State, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="2"
+                             materialDesign:HintAssist.Hint="{Binding LabelState}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+
+                    <TextBox Grid.Column="6"
+                             Text="{Binding Zip, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="{Binding LabelZip}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+                </Grid>
+
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0"
+                             Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="{Binding LabelPhone}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+
+                    <TextBox Grid.Column="2"
+                             Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="{Binding LabelEmail}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+                </Grid>
+
+                <TextBox Text="{Binding Website, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="{Binding LabelWebsite}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,14" />
+
+                <TextBox Text="{Binding ContactName, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="{Binding LabelContact}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Margin="0,0,0,14" />
+
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0"
+                             Text="{Binding Beds, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="{Binding LabelBeds}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+
+                    <TextBox Grid.Column="2"
+                             Text="{Binding ChainName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="{Binding LabelChain}"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" />
+                </Grid>
+
+                <TextBox Text="{Binding Comments, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="{Binding LabelComments}"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="80" VerticalScrollBarVisibility="Auto"
+                         Margin="0,0,0,14" />
+
+                <CheckBox Content="{Binding LabelIsActive}"
+                          IsChecked="{Binding IsActive}"
+                          Margin="0,0,0,10" />
+
+                <!-- Where the row came from and who last touched it. A record, not a field. -->
+                <TextBlock Text="{Binding Provenance}"
+                           TextWrapping="Wrap" FontSize="11" Opacity="0.65"
+                           Margin="0,0,0,10" />
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" Background="#F5F5F5" Padding="20,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{Binding CancelText}"
+                        Command="{Binding CancelCommand}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                        Style="{StaticResource MaterialDesignFlatButton}"
+                        Margin="0,0,10,0" />
+                <Button Content="{Binding SaveText}"
+                        Command="{Binding SaveCommand}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        IsDefault="True" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

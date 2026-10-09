@@ -1,0 +1,21 @@
+{
+  "Name": "NEMT brokers (Florida)",
+  "Kind": "Provider",
+  "CategoryCode": "NemtBroker",
+  "HeaderTokens": [ "Empresa", "Ciudad (sede)", "Cobertura Florida" ],
+  "ColumnMappings": {
+    "Empresa": "Name",
+    "Ciudad (sede)": "City",
+    "ZIP": "Zip",
+    "Teléfono": "Phone",
+    "Plan / segmento en Florida": "PlanSegment",
+    "Cobertura Florida": "CoverageArea",
+    "Fecha de verificación": "SourceUpdatedOn",
+    "Dirección (sede)": "Address",
+    "Website": "Website",
+    "Email": "Email",
+    "Director o administrador": "ContactName",
+    "Contacto para proveedores": "ProviderContact",
+    "Evidencia Florida": "EvidenceNote"
+  }
+}

@@ -1,4 +1,4 @@
-﻿using Raphael.Desktop.Commands;
+using Raphael.Desktop.Commands;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
 using System.Collections.ObjectModel;
@@ -37,7 +37,7 @@ namespace Raphael.Desktop.ViewModels
             Integrator = integrator;
             IsNew = integrator.Id == 0;
 
-            ApiKeyDisplay = IsNew ? "Generated automatically on save" : Integrator.ApiKey;
+            ApiKeyDisplay = IsNew ? ApiKeyGeneratedText : Integrator.ApiKey;
 
             LoadFundingSources();
 
@@ -63,14 +63,14 @@ namespace Raphael.Desktop.ViewModels
         private void Regenerate(object obj)
         {
             Integrator.RegenerateApiKey = true;
-            ApiKeyDisplay = "Will be regenerated on save...";
+            ApiKeyDisplay = ApiKeyWillRegenerateText;
         }
 
         private void Save(object obj)
         {
             if (string.IsNullOrWhiteSpace(Integrator.Name))
             {
-                MessageBox.Show("Name is required.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(NameRequiredText, ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -81,5 +81,35 @@ namespace Raphael.Desktop.ViewModels
         {
             if (obj is Window window) window.DialogResult = false;
         }
+
+        #region Translation
+
+        public string WindowTitle => LocalizationService.Instance["admin.IntegratorDetails"];
+        public string HeadingText => LocalizationService.Instance["admin.ManageIntegrator"];
+        public string NameHint => LocalizationService.Instance["admin.IntegratorName"];
+        public string FundingSourceHint => LocalizationService.Instance["admin.FundingSource"];
+        public string IsActiveText => LocalizationService.Instance["Active"];
+
+        public string ContactSectionText => LocalizationService.Instance["admin.ContactSection"];
+        public string PhoneHint => LocalizationService.Instance["Phone"];
+        public string EmailHint => LocalizationService.Instance["Email"];
+        public string WebsiteHint => LocalizationService.Instance["Website"];
+        public string AddressHint => LocalizationService.Instance["Address"];
+        public string ContactNameHint => LocalizationService.Instance["ContactName"];
+        public string NotesHint => LocalizationService.Instance["Notes"];
+
+        public string SecuritySectionText => LocalizationService.Instance["admin.SecuritySection"];
+        public string ApiKeyHint => LocalizationService.Instance["admin.ApiKey"];
+        public string RegenerateApiKeyText => LocalizationService.Instance["admin.RegenerateApiKey"];
+        public string ApiKeyGeneratedText => LocalizationService.Instance["admin.ApiKeyGenerated"];
+        public string ApiKeyWillRegenerateText => LocalizationService.Instance["admin.ApiKeyWillRegenerate"];
+
+        public string SaveText => LocalizationService.Instance["Save"];
+        public string CancelText => LocalizationService.Instance["Cancel"];
+        public string NameRequiredText => LocalizationService.Instance["admin.NameRequired"];
+        public string ValidationTitle => LocalizationService.Instance["admin.ValidationTitle"];
+
+        #endregion
+
     }
 }

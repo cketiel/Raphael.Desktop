@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -11,10 +11,10 @@
 	<!-- The four move together. AssemblyVersion is the one that reaches the screen:
 	     VersionHelper reads Assembly.GetName().Version and the login and every window
 	     title show it. If it does not match the tag, the tag lies. -->
-	<Version>1.10.0</Version>
-	<AssemblyVersion>1.10.0.0</AssemblyVersion>
-	<FileVersion>1.10.0.0</FileVersion>
-	<InformationalVersion>1.10.0</InformationalVersion>
+	<Version>1.11.0</Version>
+	<AssemblyVersion>1.11.0.0</AssemblyVersion>
+	<FileVersion>1.11.0.0</FileVersion>
+	<InformationalVersion>1.11.0</InformationalVersion>
 
 	<!-- Stamped into the assembly at compile time and read back by VersionHelper.Build.
 	     It used to be the file's last-write timestamp, which copying the folder rewrites:
@@ -69,6 +69,12 @@
     <None Remove="Assets\Languages\es.json" />
     <None Remove="Assets\logo.png" />
     <None Remove="Assets\map.html" />
+    <None Remove="Assets\Mappings\Catalog\AssistedLiving.json" />
+    <None Remove="Assets\Mappings\Catalog\Hospitals.json" />
+    <None Remove="Assets\Mappings\Catalog\NemtBrokers.json" />
+    <None Remove="Assets\Mappings\Catalog\NemtCompanies.json" />
+    <None Remove="Assets\Mappings\Catalog\NursingHomes.json" />
+    <None Remove="Assets\Mappings\Catalog\PrivateAmbulances.json" />
     <None Remove="Assets\Mappings\Ride2md.json" />
     <None Remove="Assets\Mappings\SAFERIDE.json" />
     <None Remove="Assets\Mappings\SAFERIDE2.json" />
@@ -128,6 +134,24 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\map.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Mappings\Catalog\AssistedLiving.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Mappings\Catalog\Hospitals.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Mappings\Catalog\NemtBrokers.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Mappings\Catalog\NemtCompanies.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Mappings\Catalog\NursingHomes.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Mappings\Catalog\PrivateAmbulances.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Mappings\Ride2md.json">

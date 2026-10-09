@@ -1,0 +1,19 @@
+{
+  "Name": "Assisted living / residential care (Florida, AHCA)",
+  "Kind": "Integrator",
+  "CategoryCode": "AssistedLiving",
+  "HeaderTokens": [ "Centro", "Tipo de residencia", "Ciudad", "Condado" ],
+  "ColumnMappings": {
+    "Centro": "Name",
+    "Tipo de residencia": "FacilityType",
+    "Ciudad": "City",
+    "Condado": "County",
+    "ZIP": "Zip",
+    "Teléfono": "Phone",
+    "Camas autorizadas": "Beds",
+    "Dirección": "Address",
+    "Website": "Website",
+    "Email": "Email",
+    "Nombre del administrador": "ContactName"
+  }
+}

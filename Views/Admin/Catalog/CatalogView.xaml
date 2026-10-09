@@ -1,0 +1,32 @@
+<UserControl x:Class="Raphael.Desktop.Views.Admin.Catalog.CatalogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:catalog="clr-namespace:Raphael.Desktop.Views.Admin.Catalog"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             xmlns:services="clr-namespace:Raphael.Desktop.Services">
+
+    <!--
+        ⚠️ No HelpAssist.TopicId on this UserControl, and none on the TabItems either. The
+        resolver walks the subtree breadth-first and takes the shallowest declaration it finds,
+        so a topic here would shadow both tabs and F1 would always open the same page. The
+        topic goes on each view, exactly as GoogleMapsAdminView does it.
+    -->
+    <TabControl HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch">
+
+        <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+                                  Path=[catalog.IntegratorsTab]}">
+            <catalog:CatalogIntegratorsView
+                helpers:HelpAssist.TopicId="desktop/admin/catalog-integrators" />
+        </TabItem>
+
+        <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+                                  Path=[catalog.ProvidersTab]}">
+            <catalog:CatalogProvidersView
+                helpers:HelpAssist.TopicId="desktop/admin/catalog-providers" />
+        </TabItem>
+
+    </TabControl>
+</UserControl>

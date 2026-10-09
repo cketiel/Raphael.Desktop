@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Raphael.Desktop.ViewModels;
 
 namespace Raphael.Desktop.Models
@@ -63,6 +63,28 @@ namespace Raphael.Desktop.Models
         }
 
         public bool HasTimeZone => !string.IsNullOrWhiteSpace(TimeZoneId);
+
+        // ---- Contact details, added in RE-027 --------------------------------------------
+
+        private string? _website;
+        public string? Website { get => _website; set => SetProperty(ref _website, value); }
+
+        private string? _contactName;
+        public string? ContactName { get => _contactName; set => SetProperty(ref _contactName, value); }
+
+        private string? _comments;
+        public string? Comments { get => _comments; set => SetProperty(ref _comments, value); }
+
+        /// <summary>The catalog row this one was added from, when it was added from the catalog.</summary>
+        public int? CatalogProviderId { get; set; }
+
+        /// <summary>
+        /// Which company owns this row; null is the general broker. Read-only here — the server
+        /// takes it from the token.
+        /// </summary>
+        public int? OwnerProviderId { get; set; }
+
+        public string? OwnerProviderName { get; set; }
 
         public string FullLogoUrl
         {
