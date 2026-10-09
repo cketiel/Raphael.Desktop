@@ -79,7 +79,12 @@ namespace Raphael.Desktop.Services
         /// What we already know about a Google place. Status <c>NotFound</c> means nobody has
         /// bought it yet and the caller should fetch it and hand it back.
         /// </summary>
-        Task<PlaceDetailsDto> GetPlaceAsync(string placeId);
+        /// <param name="placeId">The Google place id.</param>
+        /// <param name="language">
+        /// The language the map loaded Google in. A place known only in another language comes
+        /// back <c>NotFound</c>, so its address text never lands on a trip in the wrong language.
+        /// </param>
+        Task<PlaceDetailsDto> GetPlaceAsync(string placeId, string language);
 
         /// <summary>Remembers a place the map had to buy, so nobody buys it twice.</summary>
         Task StorePlaceAsync(PlaceDetailsDto place);
