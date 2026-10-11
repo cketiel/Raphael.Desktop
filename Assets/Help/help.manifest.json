@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.11.0"
   },
-  "builtUtc": "2026-10-09T02:33:09.532Z",
-  "sourceCommit": "c082c0f",
+  "builtUtc": "2026-10-11T03:31:24.802Z",
+  "sourceCommit": "9623f0d",
   "languages": [
     "es",
     "en"
@@ -442,6 +442,22 @@
       "title": {
         "es": "Reports — los informes",
         "en": "Reports — the reports"
+      }
+    },
+    {
+      "id": "desktop/reports/production",
+      "mode": "how-to",
+      "since": "1.3.0",
+      "lastReviewed": "1.11.0",
+      "roles": [
+        "admin",
+        "dispatcher",
+        "driver"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "Production Report — la producción de un periodo",
+        "en": "Production Report — a period's production"
       }
     },
     {
