@@ -961,7 +961,7 @@ namespace Raphael.Desktop.ViewModels
                     {
                         var worksheet = workbook.Worksheets.Add("GPS History");
 
-                        var headers = new List<string> { "Date Time", "Speed", "Address", "Direction", "Latitude", "Longitude" };
+                        var headers = new List<string> { "Date Time", "Speed (mph)", "Address", "Direction", "Latitude", "Longitude" };
                         for (int i = 0; i < headers.Count; i++)
                         {
                             worksheet.Cell(1, i + 1).Value = headers[i];
@@ -972,7 +972,7 @@ namespace Raphael.Desktop.ViewModels
                             var rowData = reportData[i];
                             var row = i + 2;
                             worksheet.Cell(row, 1).Value = rowData.DateTime;
-                            worksheet.Cell(row, 2).Value = rowData.Speed;
+                            worksheet.Cell(row, 2).Value = Math.Round(SpeedUnits.ToMph(rowData.Speed), 1);
                             worksheet.Cell(row, 3).Value = rowData.Address;
                             worksheet.Cell(row, 4).Value = rowData.Direction;
                             worksheet.Cell(row, 5).Value = rowData.Latitude;

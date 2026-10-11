@@ -625,7 +625,7 @@
                                                                     </TextBlock>
                                                                     <TextBlock>
                                                                         <Run Text="Speed:" FontWeight="Bold"/>
-                                                                        <Run Text="{Binding LastKnownLocation.Speed, StringFormat='{}{0:N1} mph}', Mode=OneWay}"/>
+                                                                        <Run Text="{Binding LastKnownLocation.Speed, Converter={x:Static converters:MetersPerSecondToMphConverter.Instance}, StringFormat='{}{0:N1} mph', Mode=OneWay}"/>
                                                                     </TextBlock>
                                                                     <TextBlock>
                                                                         <Run Text="Direction:" FontWeight="Bold"/>
