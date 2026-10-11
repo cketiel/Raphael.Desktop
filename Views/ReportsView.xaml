@@ -86,6 +86,24 @@
                                 materialDesign:HintAssist.Hint="Filter by route..."
                                 SelectedItem="{Binding SelectedVehicleRoute}"/>
 
+                            <TextBlock Text="Drivers" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <CheckBox Content="[ SELECT ALL DRIVERS ]"
+                              IsChecked="{Binding IsAllDriversSelected}"
+                              FontWeight="Bold" Margin="2,0,0,5"/>
+                            <ComboBox ItemsSource="{Binding AllDrivers}"
+                                ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                                materialDesign:HintAssist.Hint="Filter by driver..."
+                                SelectedItem="{Binding SelectedDriver}"/>
+
+                            <TextBlock Text="Vehicles" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <CheckBox Content="[ SELECT ALL VEHICLES ]"
+                              IsChecked="{Binding IsAllVehiclesSelected}"
+                              FontWeight="Bold" Margin="2,0,0,5"/>
+                            <ComboBox ItemsSource="{Binding AllVehicles}"
+                                ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                                materialDesign:HintAssist.Hint="Filter by vehicle..."
+                                SelectedItem="{Binding SelectedVehicle}"/>
+
                             <Separator Margin="0,20"/>
 
                             <Button Command="{Binding PreviewProductionReportCommand}" 
