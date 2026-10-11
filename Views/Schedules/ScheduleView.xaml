@@ -1577,7 +1577,7 @@
                                                         </TextBlock>
                                                         <TextBlock>
                             <Run Text="Speed:"/>
-                            <Run Text="{Binding DriverLastKnownLocation.Speed, StringFormat='{}{0:N1} mph'}"/>
+                            <Run Text="{Binding DriverLastKnownLocation.Speed, Converter={x:Static converters:MetersPerSecondToMphConverter.Instance}, StringFormat='{}{0:N1} mph', Mode=OneWay}"/>
                                                         </TextBlock>
                                                     </StackPanel>
                                                 </ToolTip>

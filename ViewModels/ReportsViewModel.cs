@@ -24,6 +24,8 @@ namespace Raphael.Desktop.ViewModels
         private readonly ScheduleService _scheduleService;
         private readonly GpsService _gpsService;
         private readonly RunService _vehicleRouteService;
+        private readonly UserService _userService;
+        private readonly VehicleService _vehicleService;
 
         private bool _isAllRoutesSelected;
         public bool IsAllRoutesSelected
@@ -44,6 +46,38 @@ namespace Raphael.Desktop.ViewModels
 
         public ObservableCollection<FundingSource> AllFundingSources { get; set; } = new ObservableCollection<FundingSource>();
         public ObservableCollection<VehicleRoute> AllVehicleRoutes { get; set; } = new ObservableCollection<VehicleRoute>();
+        public ObservableCollection<ReportFilterOption> AllDrivers { get; } = new ObservableCollection<ReportFilterOption>();
+        public ObservableCollection<ReportFilterOption> AllVehicles { get; } = new ObservableCollection<ReportFilterOption>();
+        public ReportFilterOption SelectedDriver { get; set; }
+        public ReportFilterOption SelectedVehicle { get; set; }
+
+        private bool _isUpdatingDriversSelection;
+        private bool _isAllDriversSelected;
+        public bool IsAllDriversSelected
+        {
+            get => _isAllDriversSelected;
+            set
+            {
+                if (_isAllDriversSelected == value) return;
+                _isAllDriversSelected = value;
+                OnPropertyChanged();
+                ToggleAll(AllDrivers, value, ref _isUpdatingDriversSelection);
+            }
+        }
+
+        private bool _isUpdatingVehiclesSelection;
+        private bool _isAllVehiclesSelected;
+        public bool IsAllVehiclesSelected
+        {
+            get => _isAllVehiclesSelected;
+            set
+            {
+                if (_isAllVehiclesSelected == value) return;
+                _isAllVehiclesSelected = value;
+                OnPropertyChanged();
+                ToggleAll(AllVehicles, value, ref _isUpdatingVehiclesSelection);
+            }
+        }
         public FundingSource SelectedFundingSource { get; set; }
         public VehicleRoute SelectedVehicleRoute { get; set; }
         public DateTime SelectedDate { get; set; } = DateTime.Today;
@@ -150,6 +184,8 @@ namespace Raphael.Desktop.ViewModels
             _scheduleService = new ScheduleService();
             _gpsService = new GpsService();
             _vehicleRouteService = new RunService();
+            _userService = new UserService();
+            _vehicleService = new VehicleService();
 
             // We pass the async method to the command and manage the execution state.
             GenerateProductionReportCommand = new RelayCommandObject(async (o) => await GenerateProductionReport(o), (o) => !_isGenerating);
@@ -183,7 +219,7 @@ namespace Raphael.Desktop.ViewModels
                 var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
 
                 // 2. Llamar al servicio 
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds);
+                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles));
 
                 if (reportData == null || !reportData.Any())
                 {
@@ -222,6 +258,8 @@ namespace Raphael.Desktop.ViewModels
                 // Limpiamos antes de cargar para evitar duplicados
                 AllFundingSources.Clear();
                 AllVehicleRoutes.Clear();
+                AllDrivers.Clear();
+                AllVehicles.Clear();
 
                 var sources = await _fundingSourceService.GetFundingSourcesAsync(false);
                 foreach (var s in sources)
@@ -238,9 +276,22 @@ namespace Raphael.Desktop.ViewModels
                     string currentUser = SessionManager.UserId;
                     int userId = int.Parse(currentUser);
                     var r = routes.Find(r => r.DriverId == userId);
-                    r.IsSelected = true;
-                    r.PropertyChanged += OnRouteSelectionChanged;
-                    AllVehicleRoutes.Add(r);
+                    if (r != null)
+                    {
+                        r.IsSelected = true;
+                        r.PropertyChanged += OnRouteSelectionChanged;
+                        AllVehicleRoutes.Add(r);
+
+                        // A driver only ever sees their own production: their route, their name
+                        // and their route's vehicle, all ticked. Offering anyone else's would only
+                        // let them build a filter that, ANDed with their route, returns nothing.
+                        AddOption(AllDrivers, r.DriverId, r.Driver?.FullName ?? $"#{r.DriverId}", true, OnDriverSelectionChanged);
+                        if (r.VehicleId > 0)
+                            AddOption(AllVehicles, r.VehicleId, r.Vehicle?.Name ?? $"#{r.VehicleId}", true, OnVehicleSelectionChanged);
+                    }
+                    IsAllRoutesSelected = AllVehicleRoutes.Any();
+                    IsAllDriversSelected = AllDrivers.Any();
+                    IsAllVehiclesSelected = AllVehicles.Any();
                 }
                 else
                 {
@@ -250,7 +301,17 @@ namespace Raphael.Desktop.ViewModels
                         r.PropertyChanged += OnRouteSelectionChanged; // Suscribirse
                         AllVehicleRoutes.Add(r);
                     }
-                }                 
+
+                    // Every driver and every vehicle, active or not: production is wanted for all
+                    // of them, the same as the route list above.
+                    var users = await _userService.GetAllAsync();
+                    foreach (var u in users.Where(u => u.RoleId == 2).OrderBy(u => u.FullName))
+                        AddOption(AllDrivers, u.Id, u.FullName, false, OnDriverSelectionChanged);
+
+                    var vehicles = await _vehicleService.GetVehiclesAsync();
+                    foreach (var v in vehicles.OrderBy(v => v.Name))
+                        AddOption(AllVehicles, v.Id, v.Name, false, OnVehicleSelectionChanged);
+                }
 
                 SelectedVehicleRoute = AllVehicleRoutes.FirstOrDefault();
             }
@@ -264,6 +325,41 @@ namespace Raphael.Desktop.ViewModels
                 IsAllRoutesSelected = AllVehicleRoutes.All(x => x.IsSelected);
                 _isUpdatingRoutesSelection = false;
             }
+        }
+
+        private static List<int> SelectedIds(IEnumerable<ReportFilterOption> options) =>
+            options.Where(x => x.IsSelected).Select(x => x.Id).ToList();
+
+        private static void AddOption(ObservableCollection<ReportFilterOption> list, int id, string name,
+            bool isSelected, PropertyChangedEventHandler onChanged)
+        {
+            var option = new ReportFilterOption(id, name) { IsSelected = isSelected };
+            option.PropertyChanged += onChanged;
+            list.Add(option);
+        }
+
+        private static void ToggleAll(IEnumerable<ReportFilterOption> options, bool selectAll, ref bool isUpdating)
+        {
+            if (isUpdating) return;
+            isUpdating = true;
+            foreach (var option in options) option.IsSelected = selectAll;
+            isUpdating = false;
+        }
+
+        private void OnDriverSelectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(ReportFilterOption.IsSelected) || _isUpdatingDriversSelection) return;
+            _isUpdatingDriversSelection = true;
+            IsAllDriversSelected = AllDrivers.All(x => x.IsSelected);
+            _isUpdatingDriversSelection = false;
+        }
+
+        private void OnVehicleSelectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(ReportFilterOption.IsSelected) || _isUpdatingVehiclesSelection) return;
+            _isUpdatingVehiclesSelection = true;
+            IsAllVehiclesSelected = AllVehicles.All(x => x.IsSelected);
+            _isUpdatingVehiclesSelection = false;
         }
 
         private void ToggleAllRoutes(bool selectAll)
@@ -493,7 +589,7 @@ namespace Raphael.Desktop.ViewModels
                 var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
                 // 3. Obtener datos del servicio usando el rango de fechas (StartDate y EndDate)
                 // Se asume que has añadido 'GetProductionReportDataRangeAsync' a tu ScheduleService
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds);
+                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles));
 
                 if (reportData == null || reportData.Count == 0)
                 {
@@ -865,7 +961,7 @@ namespace Raphael.Desktop.ViewModels
                     {
                         var worksheet = workbook.Worksheets.Add("GPS History");
 
-                        var headers = new List<string> { "Date Time", "Speed", "Address", "Direction", "Latitude", "Longitude" };
+                        var headers = new List<string> { "Date Time", "Speed (mph)", "Address", "Direction", "Latitude", "Longitude" };
                         for (int i = 0; i < headers.Count; i++)
                         {
                             worksheet.Cell(1, i + 1).Value = headers[i];
@@ -876,7 +972,7 @@ namespace Raphael.Desktop.ViewModels
                             var rowData = reportData[i];
                             var row = i + 2;
                             worksheet.Cell(row, 1).Value = rowData.DateTime;
-                            worksheet.Cell(row, 2).Value = rowData.Speed;
+                            worksheet.Cell(row, 2).Value = Math.Round(SpeedUnits.ToMph(rowData.Speed), 1);
                             worksheet.Cell(row, 3).Value = rowData.Address;
                             worksheet.Cell(row, 4).Value = rowData.Direction;
                             worksheet.Cell(row, 5).Value = rowData.Latitude;

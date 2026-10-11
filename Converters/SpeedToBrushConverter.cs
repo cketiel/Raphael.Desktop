@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using Raphael.Desktop.Helpers;
 
 namespace Raphael.Desktop.Converters
 {
@@ -14,8 +15,8 @@ namespace Raphael.Desktop.Converters
     public class SpeedToBrushConverter : Freezable, IValueConverter
     {
         // Properties to configure speed thresholds
-        public double StoppedThreshold { get; set; } = 2.0; // Speed ​​below which it is considered stopped
-        public double SpeedingThreshold { get; set; } = 65.0; // Speed ​​above which is considered speeding
+        public double StoppedThreshold { get; set; } = 2.0; // mph below which it is considered stopped
+        public double SpeedingThreshold { get; set; } = 65.0; // mph above which is considered speeding
 
         // Properties to configure colors (Brushes)
         public Brush StoppedBrush { get; set; } = Brushes.SlateGray;
@@ -24,8 +25,11 @@ namespace Raphael.Desktop.Converters
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is double speed)
+            if (value is double metresPerSecond)
             {
+                // The thresholds are mph; the value is the GPS speed in m/s.
+                double speed = SpeedUnits.ToMph(metresPerSecond);
+
                 if (speed >= SpeedingThreshold)
                 {
                     return SpeedingBrush; // Speeding

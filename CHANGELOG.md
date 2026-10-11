@@ -3,6 +3,25 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [1.12.0] - 2026-10-11
+
+⚠️ **Needs Raphael.Backend 2.1.0 for the Drivers and Vehicles filters.** Against 2.0.0 the backend
+ignores them and the report comes out unfiltered by driver and vehicle, without any error. Install
+it after the backend.
+
+### Added
+- **Production report: Drivers and Vehicles filters** (RE-031), multi-select like Funding Sources and
+  Vehicle Routes, applied to the preview and to the Excel. The lists show every driver and vehicle,
+  active or not. A driver sees only their route, their name and their route's vehicle, ticked.
+- Help topic `desktop/reports/production`, and 1.12.0 in *What's new*.
+
+### Fixed
+- **GPS speed is shown in mph.** The Driver app sends m/s and the Desktop labelled it mph
+  unconverted, so speeds read at less than half and the speeding colour never lit up. Fixed in
+  Schedules, Dispatch, the speed colour and the GPS Report Excel (column "Speed (mph)").
+- The Production Report no longer fails silently for a driver without a route.
+- A stray brace after "mph" in Dispatch.
+
 ## [1.11.0] - 2026-10-08
 
 ⚠️ **Needs Raphael.Backend 2.0.0 in the same environment for the catalogue and for billing items by

@@ -210,7 +210,9 @@ namespace Raphael.Desktop.Services
             DateTime startDate,
             DateTime endDate,
             List<int> fundingSourceIds,
-            List<int> vehicleRouteIds) 
+            List<int> vehicleRouteIds,
+            List<int> driverIds = null,
+            List<int> vehicleIds = null)
         {
             string start = startDate.ToString("yyyy-MM-dd");
             string end = endDate.ToString("yyyy-MM-dd");
@@ -225,6 +227,16 @@ namespace Raphael.Desktop.Services
             if (vehicleRouteIds != null && vehicleRouteIds.Any())
             {
                 requestUri += $"&vehicleRouteIds={string.Join(",", vehicleRouteIds)}";
+            }
+
+            if (driverIds != null && driverIds.Any())
+            {
+                requestUri += $"&driverIds={string.Join(",", driverIds)}";
+            }
+
+            if (vehicleIds != null && vehicleIds.Any())
+            {
+                requestUri += $"&vehicleIds={string.Join(",", vehicleIds)}";
             }
 
             var response = await _httpClient.GetAsync(requestUri);
