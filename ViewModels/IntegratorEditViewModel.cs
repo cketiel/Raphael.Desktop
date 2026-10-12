@@ -50,19 +50,19 @@ namespace Raphael.Desktop.ViewModels
         public string CatalogStatus { get => _catalogStatus; set => SetProperty(ref _catalogStatus, value); }
 
         private bool _isLinked;
-        public bool IsLinked { get => _isLinked; set => SetProperty(ref _isLinked, value); }
+        public bool IsLinked { get => _isLinked; set { SetProperty(ref _isLinked, value); CommandManager.InvalidateRequerySuggested(); } }
 
         private string _providerSearch = string.Empty;
         public string ProviderSearch { get => _providerSearch; set => SetProperty(ref _providerSearch, value); }
         public ObservableCollection<CatalogProviderListItemDto> ProviderCandidates { get; } = new();
         private CatalogProviderListItemDto? _selectedProviderCandidate;
-        public CatalogProviderListItemDto? SelectedProviderCandidate { get => _selectedProviderCandidate; set => SetProperty(ref _selectedProviderCandidate, value); }
+        public CatalogProviderListItemDto? SelectedProviderCandidate { get => _selectedProviderCandidate; set { SetProperty(ref _selectedProviderCandidate, value); CommandManager.InvalidateRequerySuggested(); } }
 
         private string _catalogSearch = string.Empty;
         public string CatalogSearch { get => _catalogSearch; set => SetProperty(ref _catalogSearch, value); }
         public ObservableCollection<CatalogIntegratorListItemDto> CatalogCandidates { get; } = new();
         private CatalogIntegratorListItemDto? _selectedCatalogCandidate;
-        public CatalogIntegratorListItemDto? SelectedCatalogCandidate { get => _selectedCatalogCandidate; set => SetProperty(ref _selectedCatalogCandidate, value); }
+        public CatalogIntegratorListItemDto? SelectedCatalogCandidate { get => _selectedCatalogCandidate; set { SetProperty(ref _selectedCatalogCandidate, value); CommandManager.InvalidateRequerySuggested(); } }
 
         public ICommand SearchProvidersCommand { get; }
         public ICommand AddProviderCommand { get; }

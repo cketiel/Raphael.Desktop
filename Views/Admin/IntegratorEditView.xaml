@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="{Binding WindowTitle}" 
-        Height="820" 
+        Height="700" 
         Width="760" 
         WindowStartupLocation="CenterOwner" 
         ResizeMode="NoResize"
@@ -163,7 +163,8 @@
                             <DataGridTextColumn Binding="{Binding ActiveUsers}" Width="70">
                                 <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.ActiveUsersText, RelativeSource={RelativeSource AncestorType=Window}}"/></DataGridTextColumn.Header>
                             </DataGridTextColumn>
-                            <DataGridTemplateColumn Width="Auto">
+                            <!-- Fixed width: with "Auto" the button fell outside the grid and was never seen. -->
+                            <DataGridTemplateColumn Width="48">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Command="{Binding DataContext.RemoveProviderCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
