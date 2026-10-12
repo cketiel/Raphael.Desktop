@@ -1,4 +1,6 @@
 using Raphael.Desktop.Models;
+using Raphael.Desktop.DTOs;
+using System.Collections.ObjectModel;
 using Raphael.Desktop.Commands;
 using Raphael.Desktop.Services;
 using System.Windows;
@@ -43,6 +45,25 @@ namespace Raphael.Desktop.ViewModels
 
         private readonly DispatcherTimer _clock;
 
+        /// <summary>The clinics that contracted this Provider (PROVIDER_ACCESS_MODEL.md §3.6). Corrected from each clinic's file.</summary>
+        public ObservableCollection<ProviderClinicRowDto> Clinics { get; } = new();
+        public bool IsExisting => Provider.Id > 0 && Helpers.SessionManager.IsMilanesTransport;
+        public string ClinicsSectionText => LocalizationService.Instance["admin.ProviderClinics"];
+        public string ClinicsHelpText => LocalizationService.Instance["admin.ProviderClinicsHelp"];
+        public string NameColumnText => LocalizationService.Instance["admin.Name"];
+
+        private async void LoadClinics()
+        {
+            try
+            {
+                foreach (var clinic in await new OfficeRelationsService().GetProviderClinicsAsync(Provider.Id)) Clinics.Add(clinic);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, ClinicsSectionText, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         public ProviderEditViewModel(Provider provider)
         {
             Provider = provider;
@@ -60,6 +81,8 @@ namespace Raphael.Desktop.ViewModels
             _clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
             _clock.Tick += (_, _) => OnPropertyChanged(nameof(TimeZonePreview));
             _clock.Start();
+
+            if (IsExisting) LoadClinics();
         }
 
         #region Timezone

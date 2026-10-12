@@ -52,5 +52,12 @@ namespace Raphael.Desktop.DTOs
         public string? FundingSourceName { get; set; }
         public string PickupCity { get; set; }
         public string DropoffCity { get; set; }
+
+        // Who carries it out, and what that Provider reported (backend TripReadDto, 2026-10-11).
+        // Null Provider = Raphael's own trip.
+        public int? ProviderId { get; set; }
+        public string? ProviderName { get; set; }
+        public string? IntegratorName { get; set; }
+        public string? ProviderOutcomeReason { get; set; }
     }
 }

@@ -29,6 +29,7 @@
         <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <converters:StatusToVisibilityConverter x:Key="StatusToVisibilityConverter" />
+        <converters:TripCommitVisibilityConverter x:Key="TripCommitVisibilityConverter" />
 
         <!--
             ⚠️ The stripe is a trigger here and NOT the DataGrid's AlternatingRowBackground.
@@ -136,6 +137,14 @@
                      The alternation trigger above is therefore the only thing that paints an
                      unselected row. Hover and selection come after it and win, which is the whole
                      point of the ordering. -->
+
+                <!-- Rejected by the Provider it was given to (PROVIDER_ACCESS_MODEL.md §3.7): magenta, the
+                     same family Booking uses, and the reason on hover. Not red: it is not cancelled,
+                     it is waiting for the clinic to give it to someone else. -->
+                <DataTrigger Binding="{Binding Status}" Value="Rejected">
+                    <Setter Property="Foreground" Value="#B8327A" />
+                    <Setter Property="ToolTip" Value="{Binding ProviderOutcomeReason}" />
+                </DataTrigger>
 
                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
                     <Setter Property="Foreground" Value="Red" />
@@ -2031,6 +2040,24 @@
                                     <StackPanel Orientation="Horizontal">
 
                                         
+
+                                        <!-- Accept and Reject (PROVIDER_ACCESS_MODEL.md §3.7): a Provider's user on its
+                                             own trips, an office admin on Raphael's. TripCommitVisibilityConverter
+                                             decides who and when; the backend checks it again. -->
+                                        <Button Command="{Binding DataContext.AcceptTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TripActionButtonStyle}"
+                                            ToolTip="{Binding Data.AcceptTripLabel, Source={StaticResource vmProxy}}"
+                                            Visibility="{Binding Converter={StaticResource TripCommitVisibilityConverter}, ConverterParameter=Accept}">
+                                            <materialDesign:PackIcon Kind="CheckDecagram" Foreground="#1E7D4F" Width="20" Height="20" />
+                                        </Button>
+                                        <Button Command="{Binding DataContext.RejectTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource TripActionButtonStyle}"
+                                            ToolTip="{Binding Data.RejectTripLabel, Source={StaticResource vmProxy}}"
+                                            Visibility="{Binding Converter={StaticResource TripCommitVisibilityConverter}, ConverterParameter=Reject}">
+                                            <materialDesign:PackIcon Kind="HandBackLeft" Foreground="#B8327A" Width="20" Height="20" />
+                                        </Button>
 
                                         <!-- Cancel Button (Visible if not canceled) -->
                                         <Button Command="{Binding DataContext.CancelTripCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="{Binding WindowTitle}" 
-        Height="700" 
-        Width="640" 
+        Height="820" 
+        Width="760" 
         WindowStartupLocation="CenterOwner" 
         ResizeMode="NoResize"
         Background="{DynamicResource MaterialDesignPaper}">
@@ -125,6 +125,70 @@
                         <materialDesign:PackIcon Kind="Refresh" Foreground="Orange" Width="24" Height="24"/>
                     </Button>
                 </Grid>
+
+                <!-- Who works with whom (PROVIDER_ACCESS_MODEL.md §3.6). Applied at once, not with Save. -->
+                <StackPanel Visibility="{Binding IsExisting, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,20">
+                    <TextBlock Text="{Binding CatalogSectionText}" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                               Foreground="{DynamicResource PrimaryHueMidBrush}" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding CatalogStatus}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="{Binding SearchCatalogIntegratorHint}"
+                                 Text="{Binding CatalogSearch, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
+                        <Button Grid.Column="1" Content="{Binding SearchText}" Command="{Binding SearchCatalogCommand}" Style="{StaticResource MaterialDesignFlatButton}" VerticalAlignment="Bottom"/>
+                        <ComboBox Grid.Column="2" ItemsSource="{Binding CatalogCandidates}" SelectedItem="{Binding SelectedCatalogCandidate}" DisplayMemberPath="Name" Margin="8,0" VerticalAlignment="Bottom"/>
+                        <Button Grid.Column="3" Content="{Binding LinkText}" Command="{Binding LinkCatalogCommand}" Style="{StaticResource MaterialDesignFlatButton}" VerticalAlignment="Bottom"/>
+                        <Button Grid.Column="4" Content="{Binding UnlinkText}" Command="{Binding UnlinkCatalogCommand}" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#C62828" VerticalAlignment="Bottom"/>
+                    </Grid>
+
+                    <TextBlock Text="{Binding RelationsSectionText}" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                               Foreground="{DynamicResource PrimaryHueMidBrush}" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding RelationsHelpText}" TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,8"
+                               Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                    <DataGrid ItemsSource="{Binding ContractedProviders}" AutoGenerateColumns="False" IsReadOnly="True"
+                              HeadersVisibility="Column" CanUserAddRows="False" MaxHeight="220" Margin="0,0,0,8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Name}" Width="*">
+                                <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.NameColumnText, RelativeSource={RelativeSource AncestorType=Window}}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding WorkMode}" Width="90">
+                                <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.WorkModeText, RelativeSource={RelativeSource AncestorType=Window}}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding ActiveUsers}" Width="70">
+                                <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.ActiveUsersText, RelativeSource={RelativeSource AncestorType=Window}}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.RemoveProviderCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                ToolTip="{Binding DataContext.RemoveText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource MaterialDesignToolButton}">
+                                            <materialDesign:PackIcon Kind="LinkOff" Foreground="#C62828"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="{Binding SearchCatalogProviderHint}"
+                                 Text="{Binding ProviderSearch, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
+                        <Button Grid.Column="1" Content="{Binding SearchText}" Command="{Binding SearchProvidersCommand}" Style="{StaticResource MaterialDesignFlatButton}" VerticalAlignment="Bottom"/>
+                        <ComboBox Grid.Column="2" ItemsSource="{Binding ProviderCandidates}" SelectedItem="{Binding SelectedProviderCandidate}" DisplayMemberPath="Name" Margin="8,0" VerticalAlignment="Bottom"/>
+                        <Button Grid.Column="3" Content="{Binding AddText}" Command="{Binding AddProviderCommand}" Style="{StaticResource MaterialDesignRaisedButton}" VerticalAlignment="Bottom"/>
+                    </Grid>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
