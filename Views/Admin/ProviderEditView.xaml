@@ -78,6 +78,23 @@
                     <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="{Binding LatitudeHint}" Text="{Binding Provider.Latitude, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
                     <TextBox Grid.Column="1" materialDesign:HintAssist.Hint="{Binding LongitudeHint}" Text="{Binding Provider.Longitude, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
                 </Grid>-->
+
+                <!-- The clinics that contracted this Provider (PROVIDER_ACCESS_MODEL.md §3.6). -->
+                <StackPanel Visibility="{Binding IsExisting, Converter={StaticResource BoolToVisConverter}}" Margin="0,0,0,20">
+                    <TextBlock Text="{Binding ClinicsSectionText}" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                               Foreground="{DynamicResource PrimaryHueMidBrush}" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding ClinicsHelpText}" TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,8"
+                               Style="{StaticResource MaterialDesignCaptionTextBlock}"/>
+                    <DataGrid ItemsSource="{Binding Clinics}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column"
+                              CanUserAddRows="False" MaxHeight="200">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Name}" Width="*">
+                                <DataGridTextColumn.Header><TextBlock Text="{Binding DataContext.NameColumnText, RelativeSource={RelativeSource AncestorType=Window}}"/></DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridCheckBoxColumn Binding="{Binding IsActive}" Width="60" Header="✓"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 

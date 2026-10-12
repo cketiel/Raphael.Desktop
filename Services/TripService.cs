@@ -243,6 +243,26 @@ namespace Raphael.Desktop.Services
             //await _historyService.SaveHistoryAsync(tripId, "Status", "Active", "Cancelled");
         }
 
+        /// <summary>
+        /// Accepts these Assigned trips (PROVIDER_ACCESS_MODEL.md §3.7): an internal Provider's
+        /// user its own, an office admin Raphael's. Answers how many were accepted.
+        /// </summary>
+        public async Task<int> AcceptTripsAsync(IEnumerable<int> tripIds)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{EndPoint}/accept", tripIds.ToList());
+            if (!response.IsSuccessStatusCode)
+                throw await CreateApiException(response, "Error accepting trips");
+            return await response.Content.ReadFromJsonAsync<int>();
+        }
+
+        /// <summary>Rejects a trip with its reason: the clinic must give it to someone else, and is told.</summary>
+        public async Task RejectTripAsync(int tripId, string reason)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{EndPoint}/{tripId}/reject", new { reason });
+            if (!response.IsSuccessStatusCode)
+                throw await CreateApiException(response, "Error rejecting the trip");
+        }
+
         public async Task UncancelTripAsync(int tripId)
         {
             var response = await _httpClient.PostAsync($"{EndPoint}/{tripId}/uncancel", null);

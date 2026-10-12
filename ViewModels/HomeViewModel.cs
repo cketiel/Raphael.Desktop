@@ -479,6 +479,8 @@ namespace Raphael.Desktop.ViewModels
         public string CountLabel => LocalizationService.Instance["home.Count"];
         public string CancelTripLabel => LocalizationService.Instance["home.CancelTrip"];
         public string UncancelTripLabel => LocalizationService.Instance["home.UncancelTrip"];
+        public string AcceptTripLabel => LocalizationService.Instance["home.AcceptTrip"];
+        public string RejectTripLabel => LocalizationService.Instance["home.RejectTrip"];
         public string EditTripLabel => LocalizationService.Instance["home.EditTrip"];
         public string ChangeHistoryLabel => LocalizationService.Instance["home.ChangeHistory"];
         public string LoadingTripsLabel => LocalizationService.Instance["home.LoadingTrips"];
@@ -1999,6 +2001,8 @@ namespace Raphael.Desktop.ViewModels
         public IAsyncRelayCommand EditTripCommand { get; }
         public IAsyncRelayCommand CancelTripCommand { get; }
         public IAsyncRelayCommand UncancelTripCommand { get; }
+        public IAsyncRelayCommand AcceptTripCommand { get; }
+        public IAsyncRelayCommand RejectTripCommand { get; }
 
         public IAsyncRelayCommand ShowHistoryCommand { get; }
 
@@ -2021,6 +2025,8 @@ namespace Raphael.Desktop.ViewModels
             EditTripCommand = new AsyncRelayCommand<object>(ExecuteEditTripAsync);
             CancelTripCommand = new AsyncRelayCommand<object>(ExecuteCancelTripAsync);
             UncancelTripCommand = new AsyncRelayCommand<object>(ExecuteUncancelTripAsync);
+            AcceptTripCommand = new AsyncRelayCommand<object>(ExecuteAcceptTripAsync);
+            RejectTripCommand = new AsyncRelayCommand<object>(ExecuteRejectTripAsync);
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
 
@@ -2851,6 +2857,51 @@ namespace Raphael.Desktop.ViewModels
                 {
                     Helpers.UiError.Show($"Error canceling trip: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Accept (PROVIDER_ACCESS_MODEL.md §3.7): the Provider, or the office for Raphael, commits to
+        /// an Assigned trip, and the clinic can no longer give it to another.
+        /// </summary>
+        private async Task ExecuteAcceptTripAsync(object parameter)
+        {
+            if (parameter is not TripReadDto trip) return;
+            try
+            {
+                var accepted = await _tripService.AcceptTripsAsync(new[] { trip.Id });
+                if (accepted == 0)
+                    MessageBox.Show(LocalizationService.Instance["home.AcceptNothing"], AcceptTripLabel, MessageBoxButton.OK, MessageBoxImage.Information);
+                await LoadTripsAsync();
+            }
+            catch (Exception ex)
+            {
+                Helpers.UiError.Show(ex.Message, AcceptTripLabel, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Reject: the trip will not be done by whoever it was given to. The reason is required: the
+        /// clinic reads it, and must give the trip to someone else.
+        /// </summary>
+        private async Task ExecuteRejectTripAsync(object parameter)
+        {
+            if (parameter is not TripReadDto trip) return;
+            var dialog = new Views.ReasonDialog(
+                RejectTripLabel,
+                string.Format(LocalizationService.Instance["home.RejectPrompt"], trip.TripId ?? trip.Id.ToString()),
+                RejectTripLabel,
+                LocalizationService.Instance["Cancel"],
+                LocalizationService.Instance["home.RejectReasonRequired"]);
+            if (dialog.ShowDialog() != true) return;
+            try
+            {
+                await _tripService.RejectTripAsync(trip.Id, dialog.Reason);
+                await LoadTripsAsync();
+            }
+            catch (Exception ex)
+            {
+                Helpers.UiError.Show(ex.Message, RejectTripLabel, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
