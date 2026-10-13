@@ -11,6 +11,9 @@ namespace Raphael.Desktop.ViewModels
     {
         #region Translation
 
+        /// <summary>Integrators, Providers, the catalog and Google Maps are the platform's (RE-049).</summary>
+        public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
+
         public string Employees => LocalizationService.Instance["Employees"];
         public string Billing => LocalizationService.Instance["Billing"];
         public string Profile => LocalizationService.Instance["Profile"];

@@ -701,6 +701,8 @@
     "admin.Name": "Name",
     "admin.RemoveProviderConfirm": "Remove {0} from this clinic's providers? Trips already given to it keep it.",
     "admin.ProviderClinics": "Clinics that contracted it",
+    "admin.ProviderIsTenant": "Client company of Raphael (tenant)",
+    "admin.ProviderIsTenantHelp": "Its users only see and change their own company's fleet, routes, payers and people, plus the common catalog. Give it users with this Provider.",
     "admin.ProviderClinicsHelp": "Corrected from each clinic's file (Integrators).",
     "home.CancelTrip": "Cancel trip",
     "home.UncancelTrip": "Uncancel trip",

@@ -80,10 +80,16 @@ namespace Raphael.Desktop.ViewModels
             {
                 try
                 {
+                    var id = vm.Provider.Id;
                     if (isNew)
-                        await _service.AddProviderAsync(vm.Provider, vm.SelectedImagePath);
+                        id = (await _service.AddProviderAsync(vm.Provider, vm.SelectedImagePath))?.Id ?? 0;
                     else
                         await _service.UpdateProviderAsync(vm.Provider.Id, vm.Provider, vm.SelectedImagePath);
+
+                    // Client company of Raphael (RE-049): its own call, only when it changed.
+                    var wasTenant = !isNew && item.IsTenant;
+                    if (id > 0 && vm.Provider.IsTenant != wasTenant)
+                        await _service.SetTenantAsync(id, vm.Provider.IsTenant);
 
                     LoadData();
                 }

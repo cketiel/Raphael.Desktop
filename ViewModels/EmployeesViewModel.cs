@@ -11,6 +11,9 @@ namespace Raphael.Desktop.ViewModels
     {
         #region Translation
 
+        /// <summary>Roles belong to the product, not to each client company (RE-049).</summary>
+        public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
+
         public string Users => LocalizationService.Instance["Users"];
         public string Roles => LocalizationService.Instance["Roles"];
 

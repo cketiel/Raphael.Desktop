@@ -891,7 +891,8 @@ public sealed class NotificationCenterViewModel : BaseViewModel
         public const string Audit = "AUDIT";
     }
 
-    public bool IsAdmin => SessionManager.Role == "1";
+    // The rules and the event catalog are the platform's: not a client company's admin (RE-049).
+    public bool IsAdmin => SessionManager.IsPlatformAdmin;
 
     /// <summary>True while the administration area has the panel, instead of the inbox.</summary>
     public bool IsAdminOpen

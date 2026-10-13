@@ -38,6 +38,13 @@ namespace Raphael.Desktop.Helpers
 
         public static bool IsMilanesTransport => IntegratorId == null && ProviderId == null;
 
+        /// <summary>
+        /// Raphael's own administrator: role 1 with no Provider and no Integrator. A client
+        /// company's admin is role 1 with its Provider, and does not see the platform's tabs
+        /// (RE-049). The server enforces the same rule; this only keeps the screens honest.
+        /// </summary>
+        public static bool IsPlatformAdmin => Role == "1" && IsMilanesTransport;
+
         public static bool IsAuthenticated => !string.IsNullOrEmpty(Token);
 
         public static bool CanRenew => !string.IsNullOrEmpty(RefreshToken);

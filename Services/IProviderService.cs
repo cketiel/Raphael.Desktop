@@ -10,5 +10,7 @@ namespace Raphael.Desktop.Services
         Task<Provider> AddProviderAsync(Provider provider, string localImagePath);
         Task<bool> UpdateProviderAsync(int id, Provider provider, string localPath);
         Task<bool> DeleteProviderAsync(int id);
+        /// <summary>Makes the Provider a client company of the platform, or stops it being one (RE-049).</summary>
+        Task SetTenantAsync(int id, bool isTenant);
     }
 }

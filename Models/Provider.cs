@@ -86,6 +86,18 @@ namespace Raphael.Desktop.Models
 
         public string? OwnerProviderName { get; set; }
 
+        private bool _isTenant;
+        /// <summary>
+        /// A client company that bought Raphael (RE-049). Saved through its own endpoint
+        /// (<c>PUT providers/{id}/tenant</c>), never with the rest of the form.
+        /// </summary>
+        public bool IsTenant { get => _isTenant; set => SetProperty(ref _isTenant, value); }
+
+        /// <summary>0 = works in Raphael, 1 = External (Booking portal only). Read-only.</summary>
+        public int WorkMode { get; set; }
+
+        public bool IsExternal => WorkMode == 1;
+
         public string FullLogoUrl
         {
             get

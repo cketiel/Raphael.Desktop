@@ -212,6 +212,11 @@ namespace Raphael.Desktop.ViewModels
 
         #region Translation
 
+        /// <summary>Only Raphael's admin turns a Provider into a client company, and never an External one.</summary>
+        public bool CanSetTenant => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
+        public string IsTenantText => LocalizationService.Instance["admin.ProviderIsTenant"];
+        public string IsTenantHelpText => LocalizationService.Instance["admin.ProviderIsTenantHelp"];
+
         public string WindowTitle => LocalizationService.Instance["admin.ProviderDetails"];
         public string HeadingText => LocalizationService.Instance["admin.ProviderInformation"];
         public string CompanyNameHint => LocalizationService.Instance["admin.CompanyName"];

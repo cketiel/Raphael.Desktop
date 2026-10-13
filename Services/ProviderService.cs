@@ -101,6 +101,16 @@ namespace Raphael.Desktop.Services
         private static string Number(double? value) =>
             value?.ToString(CultureInfo.InvariantCulture) ?? "";
 
+        public async Task SetTenantAsync(int id, bool isTenant)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/tenant", new { isTenant });
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception(string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body);
+            }
+        }
+
         public async Task<bool> DeleteProviderAsync(int id)
         {
             var response = await _httpClient.DeleteAsync($"{EndPoint}/{id}");
