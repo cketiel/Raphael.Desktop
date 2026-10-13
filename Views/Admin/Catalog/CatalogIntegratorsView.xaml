@@ -241,7 +241,6 @@
                                         <materialDesign:PackIcon Kind="Pencil" Foreground="Orange" />
                                     </Button>
                                     <Button Command="{Binding Data.AddToMyCompanyCommand, Source={StaticResource vmProxy}}"
-                                            Visibility="{Binding Data.IsPlatformAdmin, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource MaterialDesignToolButton}"
                                             IsEnabled="{Binding InMyCompany, Converter={StaticResource InverseBool}}"

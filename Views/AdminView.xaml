@@ -91,15 +91,15 @@
                     <views:ProfileView helpers:HelpAssist.TopicId="desktop/admin/profile" />
                 </TabItem>
 
-                <!-- RE-049: for a client company's admin, AdminView.xaml.cs removes Integrators and
-                     Google Maps before they load; Providers ("my providers") and the Catalog
-                     (Integrators only) stay, read-only where it applies. -->
+                <!-- RE-049: for a client company's admin, AdminView.xaml.cs removes Providers and
+                     Google Maps before they load. Integrators stays as "my integrators", and the
+                     Catalog with its Integrators tab only. -->
                 <TabItem x:Name="IntegratorsTab" Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[admin.IntegratorsTab]}">
                     <views:IntegratorsView helpers:HelpAssist.TopicId="desktop/admin/integrators" />
                 </TabItem>
 
-                <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+                <TabItem x:Name="ProvidersTab" Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[admin.ProvidersTab]}">
                     <views:ProvidersView helpers:HelpAssist.TopicId="desktop/admin/providers" />
                 </TabItem>

@@ -31,7 +31,7 @@ namespace Raphael.Desktop.Views
             // (403) to anyone but Raphael's own admin.
             if (!Helpers.SessionManager.IsPlatformAdmin)
             {
-                foreach (var tab in new[] { IntegratorsTab, GoogleMapsTab })
+                foreach (var tab in new[] { ProvidersTab, GoogleMapsTab })
                     (tab.Parent as System.Windows.Controls.ItemsControl)?.Items.Remove(tab);
             }
         }
