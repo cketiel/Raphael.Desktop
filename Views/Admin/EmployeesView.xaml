@@ -27,7 +27,7 @@
                 </TabItem>
 
 
-                <TabItem Header="{Binding Roles}" Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisConverter}}">
+                <TabItem x:Name="RolesTab" Header="{Binding Roles}">
                     <views:RolesView />
                 </TabItem>
 

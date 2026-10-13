@@ -22,7 +22,7 @@
                 helpers:HelpAssist.TopicId="desktop/admin/catalog-integrators" />
         </TabItem>
 
-        <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
+        <TabItem x:Name="CatalogProvidersTab" Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                   Path=[catalog.ProvidersTab]}">
             <catalog:CatalogProvidersView
                 helpers:HelpAssist.TopicId="desktop/admin/catalog-providers" />

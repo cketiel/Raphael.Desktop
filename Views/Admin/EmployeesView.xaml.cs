@@ -25,6 +25,10 @@ namespace Raphael.Desktop.Views.Admin
         {
             InitializeComponent();
             DataContext = new EmployeesViewModel();
+
+            // RE-049: roles are the product's, not a client company's.
+            if (!Helpers.SessionManager.IsPlatformAdmin)
+                (RolesTab.Parent as System.Windows.Controls.ItemsControl)?.Items.Remove(RolesTab);
         }
     }
 }

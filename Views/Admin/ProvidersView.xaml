@@ -23,11 +23,12 @@
             </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <Button Command="{Binding AddCommand}" HorizontalAlignment="Left" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Margin="0,0,0,10">
+            <Button Command="{Binding AddCommand}" Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisConverter}}" HorizontalAlignment="Left" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Margin="0,0,0,10">
                     <materialDesign:PackIcon Kind="Add" />
                 </Button>
             <!-- RE-027: this tab holds who we work with, the catalog holds who we could. -->
             <Button Click="OpenCatalog_Click"
+                    Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisConverter}}"
                     Style="{StaticResource MaterialDesignFlatButton}"
                     Margin="12,0,0,0"
                     ToolTip="{Binding Source={x:Static services:LocalizationService.Instance},
@@ -57,7 +58,8 @@
                     <DataGridTemplateColumn Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
+                                <StackPanel Orientation="Horizontal"
+                                            Visibility="{Binding Data.IsPlatformAdmin, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVisConverter}}">
                                     <Button Command="{Binding Data.EditCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}">
                                         <materialDesign:PackIcon Kind="Pencil" Foreground="Orange"/>
                                     </Button>

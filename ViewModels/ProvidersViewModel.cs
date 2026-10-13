@@ -39,6 +39,9 @@ namespace Raphael.Desktop.ViewModels
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
 
+        /// <summary>A client company's admin sees its providers read-only (RE-049).</summary>
+        public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
+
         public ProvidersViewModel()
         {
             _service = new ProviderService();

@@ -31,6 +31,9 @@ namespace Raphael.Desktop.ViewModels.Catalog
         private readonly ICatalogLookupService _lookups;
         private readonly IIntegratorService _integrators;
 
+        /// <summary>Create, import, geocode and «add to my company» are the platform's (RE-049).</summary>
+        public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
+
         public CatalogIntegratorsViewModel(
             ICatalogIntegratorService catalog,
             ICatalogLookupService lookups,

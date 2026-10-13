@@ -25,6 +25,15 @@ namespace Raphael.Desktop.Views
         {
             InitializeComponent();
             DataContext = new AdminViewModel();
+
+            // RE-049: the platform's tabs are removed, not hidden, for a client company's admin.
+            // The TabControl style builds every tab, and these load data the server refuses
+            // (403) to anyone but Raphael's own admin.
+            if (!Helpers.SessionManager.IsPlatformAdmin)
+            {
+                foreach (var tab in new[] { IntegratorsTab, GoogleMapsTab })
+                    (tab.Parent as System.Windows.Controls.ItemsControl)?.Items.Remove(tab);
+            }
         }
     }
 }

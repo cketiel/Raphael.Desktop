@@ -31,6 +31,7 @@
             <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
 
                 <Button Command="{Binding AddCommand}"
+                        Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVis}}"
                         Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
                         ToolTip="{Binding AddText}" Margin="0,0,12,0"
                         VerticalAlignment="Center">
@@ -90,6 +91,7 @@
                      are told apart twice over: by the icon and by the colour, the same pair of
                      cues the Home toolbar uses for its own two. -->
                 <Button Command="{Binding ImportCommand}"
+                        Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVis}}"
                         Style="{StaticResource MaterialDesignToolButton}"
                         ToolTip="{Binding ImportText}" Margin="0,0,4,0"
                         VerticalAlignment="Center">
@@ -106,6 +108,7 @@
                 </Button>
 
                 <Button Command="{Binding GeocodeCommand}"
+                        Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVis}}"
                         Style="{StaticResource MaterialDesignToolButton}"
                         ToolTip="{Binding GeocodeHint}"
                         VerticalAlignment="Center">
@@ -238,6 +241,7 @@
                                         <materialDesign:PackIcon Kind="Pencil" Foreground="Orange" />
                                     </Button>
                                     <Button Command="{Binding Data.AddToMyCompanyCommand, Source={StaticResource vmProxy}}"
+                                            Visibility="{Binding Data.IsPlatformAdmin, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource MaterialDesignToolButton}"
                                             IsEnabled="{Binding InMyCompany, Converter={StaticResource InverseBool}}"
