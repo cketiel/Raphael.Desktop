@@ -23,7 +23,16 @@ namespace Raphael.Desktop.Views.Admin.Employees
         public ChangePasswordView(int userId)
         {
             InitializeComponent();
-            DataContext = new ChangePasswordViewModel(userId);
+            var vm = new ChangePasswordViewModel(userId);
+            DataContext = vm;
+
+            // An admin resetting someone else's password does not know the current one.
+            if (vm.IsReset)
+            {
+                Title = "Reset Password";
+                CurrentPasswordLabel.Visibility = Visibility.Collapsed;
+                CurrentPasswordBox.Visibility = Visibility.Collapsed;
+            }
         }
 
         private void CurrentPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)

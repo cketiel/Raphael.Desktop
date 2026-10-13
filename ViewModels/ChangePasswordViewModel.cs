@@ -20,6 +20,12 @@ namespace Raphael.Desktop.ViewModels
         public string NewPassword { get => _newPassword; set => SetProperty(ref _newPassword, value); }
         public string ConfirmPassword { get => _confirmPassword; set => SetProperty(ref _confirmPassword, value); }
 
+        /// <summary>
+        /// An admin setting someone else's password: no current password, its own endpoint, and
+        /// that user's sessions end (decided 2026-10-13). Your own still needs the current one.
+        /// </summary>
+        public bool IsReset => _userId.ToString() != Helpers.SessionManager.UserId && Helpers.SessionManager.Role == "1";
+
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
 
@@ -33,7 +39,7 @@ namespace Raphael.Desktop.ViewModels
 
         private bool CanSave(object parameter)
         {
-            return !string.IsNullOrWhiteSpace(CurrentPassword) &&
+            return (IsReset || !string.IsNullOrWhiteSpace(CurrentPassword)) &&
                    !string.IsNullOrWhiteSpace(NewPassword) &&
                    !string.IsNullOrWhiteSpace(ConfirmPassword);
         }
@@ -43,6 +49,21 @@ namespace Raphael.Desktop.ViewModels
             if (NewPassword != ConfirmPassword)
             {
                 Helpers.UiError.Show("The new password and confirmation password do not match.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (IsReset)
+            {
+                try
+                {
+                    await _userService.ResetPasswordAsync(_userId, NewPassword, ConfirmPassword);
+                    MessageBox.Show("Password reset. The user's open sessions have ended.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    CloseWindow(parameter as Window, true);
+                }
+                catch (System.Exception ex)
+                {
+                    Helpers.UiError.Show($"Error resetting password: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
                 return;
             }
 

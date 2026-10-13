@@ -72,6 +72,15 @@ namespace Raphael.Desktop.Services
             return true;
         }
        
+        public async Task ResetPasswordAsync(int userId, string newPassword, string confirmPassword)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{userId}/reset-password", new { newPassword, confirmPassword });
+            if (!response.IsSuccessStatusCode)
+            {
+                throw await CreateApiException(response, "Error resetting password");
+            }
+        }
+
         private async Task<ApiException> CreateApiException(HttpResponseMessage response, string context)
         {
             try

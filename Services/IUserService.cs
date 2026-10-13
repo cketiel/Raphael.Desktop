@@ -16,5 +16,7 @@ namespace Raphael.Desktop.Services
         Task<bool> UpdateUserAsync(UserUpdateDto userDto);
         Task<bool> DeleteUserAsync(int id);
         Task<bool> ChangePasswordAsync(ChangePasswordDto dto);
+        /// <summary>An admin sets someone else's password without the current one.</summary>
+        Task ResetPasswordAsync(int userId, string newPassword, string confirmPassword);
     }
 }
