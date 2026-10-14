@@ -924,6 +924,18 @@
                                                             Margin="0,0,0,2"
                                                             materialDesign:HintAssist.Hint="{Binding FundingSourceComboBoxHint}" />
 
+                                                    <!-- RE-050: give the trip to a Provider, or back to Raphael. Raphael's admin only. -->
+                                                    <ComboBox x:Name="ProviderComboBox"
+                                                            Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisibility}}"
+                                                            ItemsSource="{Binding ProviderOptions}"
+                                                            SelectedItem="{Binding SelectedProviderOption, Mode=TwoWay}"
+                                                            DisplayMemberPath="Name"
+                                                            Style="{StaticResource MaterialDesignFilledComboBox}"
+                                                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                                            materialDesign:TextFieldAssist.LeadingIcon="DomainSwitch"
+                                                            Margin="0,0,0,2"
+                                                            materialDesign:HintAssist.Hint="{Binding ProviderText}" />
+
                                                 </StackPanel>
 
                                                 <!-- Right Column -->
@@ -2122,6 +2134,12 @@
                         <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[CustomerName], Source={StaticResource vmProxy}}"
                                         Binding="{Binding CustomerName}"
                                         Header="{Binding Data.CustomerNameText, Source={StaticResource vmProxy}}"/>
+
+                        <!-- RE-050: who carries the trip, for Raphael's admin only (empty = Raphael). -->
+                        <DataGridTextColumn Visibility="{Binding Data.ProviderColumnVisibility, Source={StaticResource vmProxy}}"
+                                        Binding="{Binding ProviderName}"
+                                        IsReadOnly="True"
+                                        Header="{Binding Data.ProviderText, Source={StaticResource vmProxy}}"/>
 
                         <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[PickupAddress], Source={StaticResource vmProxy}}"
                                         Binding="{Binding PickupAddress}"

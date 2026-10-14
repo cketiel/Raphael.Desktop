@@ -701,6 +701,7 @@
     "admin.Name": "Nombre",
     "admin.RemoveProviderConfirm": "¿Quitar {0} de los Providers de esta clínica? Los viajes que ya tiene los conserva.",
     "admin.ProviderClinics": "Clínicas que lo contratan",
+    "home.Provider": "Provider",
     "admin.ProviderIsTenant": "Empresa cliente de Raphael (tenant)",
     "admin.ProviderIsTenantHelp": "Sus usuarios solo ven y modifican la flota, las rutas, los pagadores y las personas de su empresa, además del catálogo común. Dale usuarios con este Provider.",
     "admin.ProviderClinicsHelp": "Se corrigen desde la ficha de cada clínica (Integrators).",

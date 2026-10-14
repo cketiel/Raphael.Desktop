@@ -9,6 +9,12 @@ namespace Raphael.Desktop.DTOs
 {
     public class TripReadDto
     {
+        /// <summary>
+        /// Client-only (RE-050): true when this update means to change the Provider. The server
+        /// changes it only then, and only for Raphael's admin. Never read from the server.
+        /// </summary>
+        public bool SetProvider { get; set; }
+
         public int Id { get; set; }
         public string Day { get; set; }
         public DateTime Date { get; set; }

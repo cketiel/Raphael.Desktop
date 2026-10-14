@@ -2162,6 +2162,7 @@ namespace Raphael.Desktop.ViewModels
             // 3. Cargar Datos de Espacio y Funding (Tab 2 y Billing)
             SelectedSpaceType = SpaceTypes.FirstOrDefault(s => s.Id == value.SpaceTypeId);
             SelectedFundingSource = FundingSources.FirstOrDefault(f => f.Id == value.FundingSourceId);
+            SelectedProviderOption = ProviderOptions.FirstOrDefault(p => p.Id == value.ProviderId);
             Authorization = value.Authorization;
             Distance = $"{value.Distance} mi";
 
@@ -2288,6 +2289,46 @@ namespace Raphael.Desktop.ViewModels
             }
                 
         }
+        // ---- RE-050: Provider of a trip, only for Raphael's admin ----------------------------
+
+        /// <summary>One choice of the Provider combo; Id null is Raphael itself.</summary>
+        public sealed class ProviderOption
+        {
+            public int? Id { get; init; }
+            public string Name { get; init; } = string.Empty;
+        }
+
+        /// <summary>Raphael's admin sees every trip's Provider and gives trips to Providers.</summary>
+        public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
+        public Visibility ProviderColumnVisibility => IsPlatformAdmin ? Visibility.Visible : Visibility.Collapsed;
+        public string ProviderText => LocalizationService.Instance["home.Provider"];
+
+        public ObservableCollection<ProviderOption> ProviderOptions { get; } = new();
+
+        private ProviderOption? _selectedProviderOption;
+        public ProviderOption? SelectedProviderOption
+        {
+            get => _selectedProviderOption;
+            set => SetProperty(ref _selectedProviderOption, value);
+        }
+
+        private async Task LoadProviderOptionsAsync()
+        {
+            if (!IsPlatformAdmin) return;
+            try
+            {
+                var providers = await new ProviderService().GetProvidersAsync();
+                ProviderOptions.Clear();
+                ProviderOptions.Add(new ProviderOption { Id = null, Name = "Raphael" });
+                foreach (var p in providers.OrderBy(p => p.Name))
+                    ProviderOptions.Add(new ProviderOption { Id = p.Id, Name = p.Name });
+            }
+            catch (Exception ex)
+            {
+                Helpers.UiError.Show($"Error loading providers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         public async Task LoadFundingSourcesAsync()
         {
             FundingSourceService _fundingSourceService = new FundingSourceService();
@@ -2468,6 +2509,7 @@ namespace Raphael.Desktop.ViewModels
         private void LoadData()
         {
             LoadFundingSourcesAsync();
+            _ = LoadProviderOptionsAsync();
             LoadSpaceTypesAsync();
             LoadCustomersFromApi();
             LoadFundingSourceBillingItemAsync();
@@ -2605,6 +2647,14 @@ namespace Raphael.Desktop.ViewModels
                         Type = IsReturn ? "Return" : "Appointment",
                         Created = SelectedTrip.Created // Mantener fecha de creación
                     };*/
+
+                    // RE-050: the Provider goes back unchanged, unless Raphael's admin changed it.
+                    tripReadDto.ProviderId = TripBeingEdited.ProviderId;
+                    if (IsPlatformAdmin && SelectedProviderOption != null && SelectedProviderOption.Id != TripBeingEdited.ProviderId)
+                    {
+                        tripReadDto.ProviderId = SelectedProviderOption.Id;
+                        tripReadDto.SetProvider = true;
+                    }
 
                     await _tripService.UpdateTripAsync(tripReadDto);
 
