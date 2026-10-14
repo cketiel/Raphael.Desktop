@@ -24,6 +24,12 @@ namespace Raphael.Desktop.ViewModels
 
         public bool IsCreateMode { get; }
 
+        /// <summary>
+        /// Integrator and Provider are chosen only by Raphael's admin. A client company's admin
+        /// creates people of its own company: the server takes the Provider from its token (RE-049).
+        /// </summary>
+        public bool ShowCompanyFields => Helpers.SessionManager.IsPlatformAdmin;
+
         public User User
         {
             get => _user;

@@ -69,8 +69,8 @@
         <CheckBox IsChecked="{Binding User.IsActive}" Grid.Row="7" Grid.Column="1" Margin="5" VerticalAlignment="Center"/>
 
         <!-- Integrator -->
-        <Label Content="Integrator:" Grid.Row="8" Grid.Column="0" VerticalAlignment="Center"/>
-        <ComboBox Grid.Row="8" Grid.Column="1" Margin="5"
+        <Label Content="Integrator:" Visibility="{Binding ShowCompanyFields, Converter={StaticResource BoolToVisConverter}}" Grid.Row="8" Grid.Column="0" VerticalAlignment="Center"/>
+        <ComboBox Visibility="{Binding ShowCompanyFields, Converter={StaticResource BoolToVisConverter}}" Grid.Row="8" Grid.Column="1" Margin="5"
               ItemsSource="{Binding AvailableIntegrators}"
               DisplayMemberPath="Name"
               SelectedValuePath="Id"
@@ -79,8 +79,8 @@
               materialDesign:TextFieldAssist.HasClearButton="True"/>
 
         <!-- Provider -->
-        <Label Content="Provider:" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center"/>
-        <ComboBox Grid.Row="9" Grid.Column="1" Margin="5"
+        <Label Content="Provider:" Visibility="{Binding ShowCompanyFields, Converter={StaticResource BoolToVisConverter}}" Grid.Row="9" Grid.Column="0" VerticalAlignment="Center"/>
+        <ComboBox Visibility="{Binding ShowCompanyFields, Converter={StaticResource BoolToVisConverter}}" Grid.Row="9" Grid.Column="1" Margin="5"
               ItemsSource="{Binding AvailableProviders}"
               DisplayMemberPath="Name"
               SelectedValuePath="Id"
