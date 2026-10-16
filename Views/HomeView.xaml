@@ -912,30 +912,6 @@
                                                                 Margin="0,0,0,2"
                                                                 materialDesign:HintAssist.Hint="{Binding SpaceTypeComboBoxHint}" />
 
-                                                    <ComboBox x:Name="FundingSourceComboBox"
-                                                            ItemsSource="{Binding FundingSources}" 
-                                                            SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}" 
-                                                            DisplayMemberPath="Name" 
-                                                            SelectedValuePath="Id"
-                                                            Style="{StaticResource MaterialDesignFilledComboBox}"
-                                                            materialDesign:TextFieldAssist.HasClearButton="True"
-                                                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                                                            materialDesign:TextFieldAssist.LeadingIcon="Finance"
-                                                            Margin="0,0,0,2"
-                                                            materialDesign:HintAssist.Hint="{Binding FundingSourceComboBoxHint}" />
-
-                                                    <!-- RE-050: give the trip to a Provider, or back to Raphael. Raphael's admin only. -->
-                                                    <ComboBox x:Name="ProviderComboBox"
-                                                            Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisibility}}"
-                                                            ItemsSource="{Binding ProviderOptions}"
-                                                            SelectedItem="{Binding SelectedProviderOption, Mode=TwoWay}"
-                                                            DisplayMemberPath="Name"
-                                                            Style="{StaticResource MaterialDesignFilledComboBox}"
-                                                            materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                                                            materialDesign:TextFieldAssist.LeadingIcon="DomainSwitch"
-                                                            Margin="0,0,0,2"
-                                                            materialDesign:HintAssist.Hint="{Binding ProviderText}" />
-
                                                 </StackPanel>
 
                                                 <!-- Right Column -->
@@ -991,21 +967,90 @@
                                                                 materialDesign:TextFieldAssist.LeadingIcon="CalendarRange"
                                                                 Style="{StaticResource MaterialDesignFilledDatePicker}" Margin="0,0,0,2"/>
 
-                                                    <StackPanel 
-                                                        Orientation="Horizontal" Margin="0,15,0,0"
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center">
+                                                </StackPanel>
 
-                                                        <RadioButton x:Name="MaleRadioButton" Content="{Binding MaleRadioButtonContent}"
-                                                                         GroupName="GenderRadioButtonGroup"
-                                                                         IsChecked="{Binding GenderMale}" 
-                                                                         Style="{StaticResource MaterialDesignRadioButton}" Margin="0,0,10,0"/>
-                                                        <RadioButton x:Name="FemaleRadioButton" Content="{Binding FemaleRadioButtonContent}"
-                                                                         GroupName="GenderRadioButtonGroup"
-                                                                         IsChecked="{Binding GenderFemale}" 
-                                                                         Style="{StaticResource MaterialDesignRadioButton}"/>
-                                                    </StackPanel>
+                                            </Grid>
 
+                                            <!-- Funding Source, Provider and gender share one row, so the Provider combo does
+                                                 not make the form taller and push the filter row under the divider. Everybody
+                                                 else keeps the old halves: Funding Source on the left, gender centred on the
+                                                 right. Raphael's admin gets Funding Source and Provider in equal halves of what
+                                                 the radios, packed to the right, leave free. -->
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition>
+                                                        <ColumnDefinition.Style>
+                                                            <Style TargetType="ColumnDefinition">
+                                                                <Setter Property="Width" Value="0"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
+                                                                        <Setter Property="Width" Value="*"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </ColumnDefinition.Style>
+                                                    </ColumnDefinition>
+                                                    <ColumnDefinition>
+                                                        <ColumnDefinition.Style>
+                                                            <Style TargetType="ColumnDefinition">
+                                                                <Setter Property="Width" Value="*"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
+                                                                        <Setter Property="Width" Value="Auto"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </ColumnDefinition.Style>
+                                                    </ColumnDefinition>
+                                                </Grid.ColumnDefinitions>
+
+                                                <ComboBox x:Name="FundingSourceComboBox" Grid.Column="0"
+                                                        ItemsSource="{Binding FundingSources}" 
+                                                        SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}" 
+                                                        DisplayMemberPath="Name" 
+                                                        SelectedValuePath="Id"
+                                                        Style="{StaticResource MaterialDesignFilledComboBox}"
+                                                        materialDesign:TextFieldAssist.HasClearButton="True"
+                                                        materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                                        materialDesign:TextFieldAssist.LeadingIcon="Finance"
+                                                        Margin="0,0,4,2"
+                                                        materialDesign:HintAssist.Hint="{Binding FundingSourceComboBoxHint}" />
+
+                                                <!-- RE-050: give the trip to a Provider, or back to Raphael. Raphael's admin only. -->
+                                                <ComboBox x:Name="ProviderComboBox" Grid.Column="1"
+                                                        Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisibility}}"
+                                                        ItemsSource="{Binding ProviderOptions}"
+                                                        SelectedItem="{Binding SelectedProviderOption, Mode=TwoWay}"
+                                                        DisplayMemberPath="Name"
+                                                        Style="{StaticResource MaterialDesignFilledComboBox}"
+                                                        materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                                        materialDesign:TextFieldAssist.LeadingIcon="DomainSwitch"
+                                                        Margin="4,0,4,2"
+                                                        materialDesign:HintAssist.Hint="{Binding ProviderText}" />
+
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                            <Setter Property="Margin" Value="4,0,0,0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
+                                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                                    <Setter Property="Margin" Value="4,0,4,0"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
+
+                                                    <RadioButton x:Name="MaleRadioButton" Content="{Binding MaleRadioButtonContent}"
+                                                                     GroupName="GenderRadioButtonGroup"
+                                                                     IsChecked="{Binding GenderMale}" 
+                                                                     Style="{StaticResource MaterialDesignRadioButton}" Margin="0,0,10,0"/>
+                                                    <RadioButton x:Name="FemaleRadioButton" Content="{Binding FemaleRadioButtonContent}"
+                                                                     GroupName="GenderRadioButtonGroup"
+                                                                     IsChecked="{Binding GenderFemale}" 
+                                                                     Style="{StaticResource MaterialDesignRadioButton}"/>
                                                 </StackPanel>
 
                                             </Grid>
