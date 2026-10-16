@@ -238,6 +238,7 @@ namespace Raphael.Desktop.ViewModels
             // the calendar beside the form says otherwise.
             TripBeingEdited = null;
             TripDate = FilterDate.Date;
+            ResetProviderOption();
 
             CurrentMode = HomeMode.CreatingTrip;
 
@@ -2162,7 +2163,7 @@ namespace Raphael.Desktop.ViewModels
             // 3. Cargar Datos de Espacio y Funding (Tab 2 y Billing)
             SelectedSpaceType = SpaceTypes.FirstOrDefault(s => s.Id == value.SpaceTypeId);
             SelectedFundingSource = FundingSources.FirstOrDefault(f => f.Id == value.FundingSourceId);
-            SelectedProviderOption = ProviderOptions.FirstOrDefault(p => p.Id == value.ProviderId);
+            SelectedProviderOption = ProviderOptionFor(value);
             Authorization = value.Authorization;
             Distance = $"{value.Distance} mi";
 
@@ -2312,16 +2313,50 @@ namespace Raphael.Desktop.ViewModels
             set => SetProperty(ref _selectedProviderOption, value);
         }
 
+        // A trip's Provider that lost its last active user is shown, so the combo does not lie about
+        // who has the trip, but it is not offered for other trips. Saving it unchanged changes nothing.
+        private ProviderOption? _unassignableOption;
+
+        private ProviderOption? ProviderOptionFor(TripReadDto trip)
+        {
+            if (_unassignableOption != null)
+            {
+                ProviderOptions.Remove(_unassignableOption);
+                _unassignableOption = null;
+            }
+            var option = ProviderOptions.FirstOrDefault(p => p.Id == trip.ProviderId);
+            if (option == null && trip.ProviderId != null)
+            {
+                option = _unassignableOption = new ProviderOption { Id = trip.ProviderId, Name = trip.ProviderName ?? $"#{trip.ProviderId}" };
+                ProviderOptions.Add(option);
+            }
+            return option;
+        }
+
+        /// <summary>A new trip starts as Raphael's.</summary>
+        private void ResetProviderOption()
+        {
+            if (_unassignableOption != null)
+            {
+                ProviderOptions.Remove(_unassignableOption);
+                _unassignableOption = null;
+            }
+            SelectedProviderOption = ProviderOptions.FirstOrDefault(p => p.Id == null);
+        }
+
+        /// <summary>Only the Providers that can carry a trip: at least one active user (PROVIDER_ACCESS_MODEL.md §3.3).</summary>
         private async Task LoadProviderOptionsAsync()
         {
             if (!IsPlatformAdmin) return;
             try
             {
-                var providers = await new ProviderService().GetProvidersAsync();
+                var providers = await new ProviderService().GetAssignableProvidersAsync();
                 ProviderOptions.Clear();
                 ProviderOptions.Add(new ProviderOption { Id = null, Name = "Raphael" });
                 foreach (var p in providers.OrderBy(p => p.Name))
                     ProviderOptions.Add(new ProviderOption { Id = p.Id, Name = p.Name });
+                _unassignableOption = null;
+                if (TripBeingEdited == null) ResetProviderOption();
             }
             catch (Exception ex)
             {
@@ -2697,6 +2732,9 @@ namespace Raphael.Desktop.ViewModels
                         Status = TripStatus.Accepted,
                         Created = DateTime.Now,
 
+                        // RE-050: Raphael's admin may give it to a Provider from the start.
+                        ProviderId = IsPlatformAdmin ? SelectedProviderOption?.Id : null,
+
                     };
 
                     trip1.WillCall = IsWillCall;
@@ -2742,7 +2780,8 @@ namespace Raphael.Desktop.ViewModels
                             Status = TripStatus.Accepted,
                             Created = DateTime.Now,
                             WillCall = IsWillCall,
-                            Type = "Return"
+                            Type = "Return",
+                            ProviderId = trip1.ProviderId
                         };
 
                         await _tripService.CreateTripAsync(trip2);
@@ -2791,6 +2830,7 @@ namespace Raphael.Desktop.ViewModels
             PickupName = string.Empty;
             PickupPhone = string.Empty;
             IsWillCall = false;
+            ResetProviderOption();
         }
 
         /*private async void SaveTrip()

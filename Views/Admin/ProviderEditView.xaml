@@ -57,6 +57,23 @@
                            Style="{StaticResource MaterialDesignCaptionTextBlock}"
                            TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,15"/>
 
+                <!-- Where the Provider works its trips (PROVIDER_ACCESS_MODEL.md §3.2). Only Raphael's
+                     admin, only on an existing one. External hides the tenant box below. -->
+                <StackPanel Margin="0,4,0,8" Visibility="{Binding CanSetWorkMode, Converter={StaticResource BoolToVisConverter}}">
+                    <TextBlock Text="{Binding WorkModeText}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="ProviderWorkMode" IsChecked="{Binding WorksInRaphael}"
+                                     Content="{Binding WorksInRaphaelText}"
+                                     Style="{StaticResource MaterialDesignRadioButton}" Margin="0,0,16,0"/>
+                        <RadioButton GroupName="ProviderWorkMode" IsChecked="{Binding IsExternal}"
+                                     Content="{Binding WorksExternalText}"
+                                     Style="{StaticResource MaterialDesignRadioButton}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding WorkModeHelpText}"
+                               Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                               TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0"/>
+                </StackPanel>
+
                 <!-- RE-049: a client company of Raphael. Its users only see their company's data. -->
                 <StackPanel Margin="0,4,0,12" Visibility="{Binding CanSetTenant, Converter={StaticResource BoolToVisConverter}}">
                     <CheckBox IsChecked="{Binding Provider.IsTenant}" Content="{Binding IsTenantText}"

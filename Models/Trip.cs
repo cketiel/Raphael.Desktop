@@ -85,6 +85,8 @@ namespace Raphael.Desktop.Models
         [Required]
         public DateTime Created { get; set; }
 
+        /// <summary>Who carries it; null = Raphael. Only Raphael's admin sends it (RE-050).</summary>
+        public int? ProviderId { get; set; }
         public int? FundingSourceId { get; set; } // You have to save the Funding Source for the history. Because the Customer can change the Funding Source and the history is lost. Also to allow the Customer to not be required to have Funding Source and can make payments directly.
         public FundingSource FundingSource { get; set; } = new FundingSource();
 

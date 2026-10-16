@@ -63,6 +63,8 @@ namespace Raphael.Desktop.DTOs
         // Null Provider = Raphael's own trip.
         public int? ProviderId { get; set; }
         public string? ProviderName { get; set; }
+        // Who created it: null = manual or imported from a file, so there is nobody to answer to.
+        public int? IntegratorId { get; set; }
         public string? IntegratorName { get; set; }
         public string? ProviderOutcomeReason { get; set; }
     }

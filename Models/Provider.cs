@@ -93,8 +93,19 @@ namespace Raphael.Desktop.Models
         /// </summary>
         public bool IsTenant { get => _isTenant; set => SetProperty(ref _isTenant, value); }
 
-        /// <summary>0 = works in Raphael, 1 = External (Booking portal only). Read-only.</summary>
-        public int WorkMode { get; set; }
+        private int _workMode;
+        /// <summary>
+        /// 0 = works in Raphael, 1 = External (Booking portal only). Saved through its own endpoint
+        /// (<c>PUT providers/{id}/work-mode</c>), never with the rest of the form.
+        /// </summary>
+        public int WorkMode
+        {
+            get => _workMode;
+            set
+            {
+                if (SetProperty(ref _workMode, value)) OnPropertyChanged(nameof(IsExternal));
+            }
+        }
 
         public bool IsExternal => WorkMode == 1;
 

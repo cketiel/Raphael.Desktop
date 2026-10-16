@@ -81,6 +81,15 @@ namespace Raphael.Desktop.ViewModels
 
             if (view.ShowDialog() == true)
             {
+                // Going External takes the Desktop away from its users: say so before it happens.
+                var workModeChanged = !isNew && vm.Provider.WorkMode != item.WorkMode;
+                if (workModeChanged && vm.Provider.IsExternal &&
+                    MessageBox.Show(
+                        LocalizationService.Instance["admin.ProviderToExternalConfirm"],
+                        LocalizationService.Instance["admin.ProviderWorkMode"],
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                    return;
+
                 try
                 {
                     var id = vm.Provider.Id;
@@ -89,8 +98,13 @@ namespace Raphael.Desktop.ViewModels
                     else
                         await _service.UpdateProviderAsync(vm.Provider.Id, vm.Provider, vm.SelectedImagePath);
 
+                    // Work mode first: a Provider back in Raphael can then be made a tenant in the same save.
+                    if (workModeChanged)
+                        await _service.SetWorkModeAsync(id, vm.Provider.WorkMode);
+
                     // Client company of Raphael (RE-049): its own call, only when it changed.
-                    var wasTenant = !isNew && item.IsTenant;
+                    // Going External the server already cleared it.
+                    var wasTenant = !isNew && item.IsTenant && !(workModeChanged && vm.Provider.IsExternal);
                     if (id > 0 && vm.Provider.IsTenant != wasTenant)
                         await _service.SetTenantAsync(id, vm.Provider.IsTenant);
 

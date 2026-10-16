@@ -25,6 +25,13 @@ namespace Raphael.Desktop.Services
             return result ?? new List<Provider>();
         }
 
+        /// <summary>Only Id and Name are filled: the Providers with at least one active user.</summary>
+        public async Task<List<Provider>> GetAssignableProvidersAsync()
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<Provider>>($"{EndPoint}/assignable");
+            return result ?? new List<Provider>();
+        }
+
         public async Task<Provider> AddProviderAsync(Provider provider, string localImagePath)
         {
             using var content = BuildForm(provider, localImagePath);
@@ -104,6 +111,17 @@ namespace Raphael.Desktop.Services
         public async Task SetTenantAsync(int id, bool isTenant)
         {
             var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/tenant", new { isTenant });
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception(string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body);
+            }
+        }
+
+        /// <summary>Raphael (0) or External (1). Going External also stops it being a tenant.</summary>
+        public async Task SetWorkModeAsync(int id, int workMode)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/work-mode", new { workMode });
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();

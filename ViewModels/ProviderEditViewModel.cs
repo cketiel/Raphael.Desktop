@@ -214,6 +214,38 @@ namespace Raphael.Desktop.ViewModels
 
         /// <summary>Only Raphael's admin turns a Provider into a client company, and never an External one.</summary>
         public bool CanSetTenant => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
+
+        /// <summary>
+        /// Only Raphael's admin moves an existing Provider in or out of Raphael (PROVIDER_ACCESS_MODEL.md
+        /// §3.2). A new one is created working in Raphael.
+        /// </summary>
+        public bool CanSetWorkMode => Helpers.SessionManager.IsPlatformAdmin && Provider.Id > 0;
+
+        public bool WorksInRaphael
+        {
+            get => !Provider.IsExternal;
+            set
+            {
+                if (value == !Provider.IsExternal) return;
+                Provider.WorkMode = value ? 0 : 1;
+                // External cannot be a tenant; the server clears it too.
+                if (!value) Provider.IsTenant = false;
+                OnPropertyChanged(nameof(WorksInRaphael));
+                OnPropertyChanged(nameof(IsExternal));
+                OnPropertyChanged(nameof(CanSetTenant));
+            }
+        }
+
+        public bool IsExternal
+        {
+            get => Provider.IsExternal;
+            set => WorksInRaphael = !value;
+        }
+
+        public string WorkModeText => LocalizationService.Instance["admin.ProviderWorkMode"];
+        public string WorksInRaphaelText => LocalizationService.Instance["admin.ProviderWorksInRaphael"];
+        public string WorksExternalText => LocalizationService.Instance["admin.ProviderWorksExternal"];
+        public string WorkModeHelpText => LocalizationService.Instance["admin.ProviderWorkModeHelp"];
         public string IsTenantText => LocalizationService.Instance["admin.ProviderIsTenant"];
         public string IsTenantHelpText => LocalizationService.Instance["admin.ProviderIsTenantHelp"];
 
