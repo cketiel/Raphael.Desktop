@@ -49,5 +49,9 @@ namespace Raphael.Desktop.Views
         /// <summary>Shows a driver's call on top of this tab, and their route on the day they asked.</summary>
         public Task AttendCallAsync(ViewModels.CallRequests.CallCardViewModel card, DateTime date, int vehicleRouteId) =>
             _viewModel.AttendCallAsync(card, date, vehicleRouteId);
+
+        /// <summary>Opens a route and day with one trip's pickup and dropoff framed (RE-051).</summary>
+        public Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId) =>
+            _viewModel.ShowTripAsync(date, vehicleRouteId, tripId);
     }
 }

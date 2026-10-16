@@ -5,6 +5,22 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+⚠️ **RE-051 needs the Raphael.Backend that answers `trip_read_only` / `trip_routed_locked`.** Against
+an older one the screens still say why, but nothing stops the change server-side.
+
+### Added (RE-051)
+- **Home: a routed trip locks the fields copied onto its stops** — date, hours, addresses, type,
+  patient, space type, funding source, authorization, distance — each with an amber frame and padlock,
+  under a banner that says why and how to fix it (take it back to the open list), with **See its 2
+  stops in Schedule →** and **Hide**. Same in the simplified **Edit** dialog (type and pickup time).
+- **Schedule: the two stops of that trip are framed** on a new Schedule tab, with a guide banner.
+- **Past and closed trips are read-only** on Home, Schedule, Dispatch and Trips: a grey banner, and
+  every action explains instead of acting. A past day in Schedule is not routed, unrouted, reordered,
+  dragged or recalculated.
+- **Admin correction**: **Correct (admin)…** asks for a reason, which travels with the request and is
+  audited on the server.
+- Help: `desktop/home/edit-restrictions`.
+
 ⚠️ **Needs the next Raphael.Backend (after 2.2.0)** for the Provider column, the reassignment, the
 assignable list and the work mode.
 

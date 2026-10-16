@@ -1169,7 +1169,7 @@
                             <!-- ForDateCalendar -->
 
                             <!-- Adjusted calendar -->
-                            <Calendar x:Name="ForDateCalendar"
+                            <Calendar x:Name="ForDateCalendar" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                   Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                   Grid.Column="0"
                                   SelectedDate="{Binding TripDate, Mode=TwoWay}"
@@ -1185,7 +1185,72 @@
 
                             <!-- Trips TabControl -->
                         
-                            <TabControl x:Name="TripTabs" Grid.Column="1"
+                            <!-- RE-051. The trip form says, before Save does, what it will not change and why.
+                                 Grey: the trip is history (a past day, or closed) and is read-only; an
+                                 admin may open a correction, which asks for a reason and audits it.
+                                 Amber: the trip is on a route. The fields copied onto its two stops are
+                                 framed in the same amber as this banner, and the way out is to take the
+                                 trip back to the open list in Schedule. It folds into one line for a
+                                 dispatcher who only came to change a phone number. -->
+                            <DockPanel Grid.Column="1"
+                                       Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
+
+                            <Border DockPanel.Dock="Top" Background="#ECEFF1" BorderBrush="#90A4AE" BorderThickness="1"
+                                    CornerRadius="4" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding IsEditingReadOnlyTrip, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockClockOutline" Foreground="#455A64"
+                                                             Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                    <Button DockPanel.Dock="Right" Content="{Binding StartCorrectionLabel}" Command="{Binding StartCorrectionCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}" Height="24" Padding="10,0" Margin="8,0,0,0"
+                                            VerticalAlignment="Top"
+                                            Visibility="{Binding CanStartCorrection, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBlock Text="{Binding ReadOnlyBannerText}" TextWrapping="Wrap" Foreground="#37474F"/>
+                                </DockPanel>
+                            </Border>
+
+                            <Border DockPanel.Dock="Top" Background="#EDE7F6" BorderBrush="#673AB7" BorderThickness="1"
+                                    CornerRadius="4" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding IsCorrectingTrip, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="ShieldEditOutline" Foreground="#4527A0"
+                                                             Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                    <TextBlock Text="{Binding CorrectionBannerText}" TextWrapping="Wrap" Foreground="#311B92"/>
+                                </DockPanel>
+                            </Border>
+
+                            <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#FFA000" BorderThickness="1"
+                                    CornerRadius="4" Padding="10,6" Margin="0,0,0,6"
+                                    Visibility="{Binding ShowRoutedLockHighlight, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline" Foreground="#E65100"
+                                                                 Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                        <Button DockPanel.Dock="Right" Content="{Binding RoutedLockHide}" Command="{Binding HideRoutedLockCommand}"
+                                                Style="{StaticResource MaterialDesignFlatButton}" Foreground="#E65100"
+                                                Padding="6,0" MinWidth="0" Height="22" VerticalAlignment="Top"/>
+                                        <TextBlock Text="{Binding RoutedLockTitle}" FontWeight="Bold" Foreground="#5D4037" TextWrapping="Wrap"/>
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding RoutedLockWhy}" Foreground="#5D4037" TextWrapping="Wrap" Margin="26,3,0,0"/>
+                                    <TextBlock Text="{Binding RoutedLockHowToFix}" Foreground="#5D4037" TextWrapping="Wrap" Margin="26,3,0,0"/>
+                                    <TextBlock Text="{Binding RoutedLockStillEditable}" Foreground="#5D4037" TextWrapping="Wrap" Margin="26,3,0,0" FontStyle="Italic"/>
+                                    <Button Content="{Binding RoutedLockShowInSchedule}" Command="{Binding ShowEditedTripInScheduleCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#E65100" BorderBrush="#FFA000"
+                                            HorizontalAlignment="Left" Margin="26,6,0,0" Height="26" Padding="10,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border DockPanel.Dock="Top" Background="#FFF8E1" CornerRadius="4" Padding="8,2" Margin="0,0,0,4"
+                                    Visibility="{Binding IsRoutedLockCollapsed, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline" Foreground="#E65100" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <Button DockPanel.Dock="Right" Content="{Binding RoutedLockShow}" Command="{Binding ShowRoutedLockCommand}"
+                                            Style="{StaticResource MaterialDesignFlatButton}" Foreground="#E65100" Padding="6,0" MinWidth="0" Height="22"/>
+                                    <TextBlock Text="{Binding RoutedLockCollapsedText}" Foreground="#5D4037" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                </DockPanel>
+                            </Border>
+
+                            <TabControl x:Name="TripTabs"
                                     Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                     MinHeight="240"
                                     MaxHeight="240"
@@ -1227,7 +1292,7 @@
 
                                     <!-- Left column -->
 
-                                    <Button x:Name="InverterFloatingButton" Width="30" Height="30"
+                                    <Button x:Name="InverterFloatingButton" Width="30" Height="30" IsEnabled="{Binding CanEditRoutedFields}"
                                         Panel.ZIndex="100"
                                         Margin="12,9,16,-17"
                                         HorizontalAlignment="Left"
@@ -1240,7 +1305,7 @@
                                     </Button>
                                         
                                     <TextBox
-                                            x:Name="PickupAddressTextBox" Grid.Row="0" Grid.Column="0" Margin="0,3,0,2"
+                                            x:Name="PickupAddressTextBox" Grid.Row="0" Grid.Column="0" Margin="0,3,0,2" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             Text="{Binding PickupAddress, UpdateSourceTrigger=PropertyChanged}"
                                             IsReadOnly="True" 
                                             Background="#F5F5F5"
@@ -1260,7 +1325,7 @@
                                         </Border>
 
                                         <TextBox
-                                            x:Name="DropoffAddressTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,0,2"
+                                            x:Name="DropoffAddressTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,0,2" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             Text="{Binding DropoffAddress, UpdateSourceTrigger=PropertyChanged}"
                                             IsReadOnly="True" 
                                             Background="#F5F5F5"
@@ -1300,12 +1365,12 @@
                                     </StackPanel>
 
 
-                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="2" Grid.Column="0" Margin="0,10,10,5">
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="2" Grid.Column="0" Margin="0,10,10,5" IsEnabled="{Binding CanEditRoutedFields}">
                                             <RadioButton x:Name="RoundTripRadioButton" Content="{Binding RoundTripRadioButtonContent}" GroupName="TripType" IsChecked="{Binding IsRoundTrip}" Margin="0,0,10,0" Checked="RoundTripRadioButton_Checked"/>
                                             <RadioButton x:Name="OneWayRadioButton" Content="{Binding OneWayRadioButtonContent}" GroupName="TripType" IsChecked="{Binding IsOneWay}" Checked="OneWayRadioButton_Checked"/>
                                         </StackPanel>
 
-                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="0" Margin="0,10,10,5">
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="0" Margin="0,10,10,5" Background="Transparent" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}">
                                             <RadioButton x:Name="AppointmentRadioButton" Content="{Binding AppointmentRadioButtonContent}" GroupName="OneWayKind" IsChecked="{Binding IsAppointment}" Margin="0,0,10,0" Checked="AppointmentRadioButton_Checked"/>
                                             <RadioButton x:Name="ReturnRadioButton" Content="{Binding ReturnRadioButtonContent}" GroupName="OneWayKind" IsChecked="{Binding IsReturn}" Checked="ReturnRadioButton_Checked"/>
                                         </StackPanel>
@@ -1320,7 +1385,7 @@
                                         </Border>
 
                                         <materialDesign:TimePicker Grid.Row="0" Grid.Column="1"
-                                            x:Name="PickupTimePicker"
+                                            x:Name="PickupTimePicker" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             SelectedTime="{Binding PickupTimePicker, Mode=TwoWay}"
                                             VerticalAlignment="Bottom"
                                             Margin="10,0,0,0"
@@ -1332,7 +1397,7 @@
                                             Is24Hours="False"/>
 
                                         <materialDesign:TimePicker Grid.Row="1" Grid.Column="1"
-                                            x:Name="ApptTimePicker"
+                                            x:Name="ApptTimePicker" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             SelectedTime="{Binding ApptTimePicker, Mode=TwoWay}"              
                                             VerticalAlignment="Bottom"
                                             Margin="10,0,0,0"
@@ -1344,7 +1409,7 @@
                                             Is24Hours="False"/>
 
                                         <materialDesign:TimePicker Grid.Row="2" Grid.Column="1"
-                                            x:Name="ReturnTimePicker"
+                                            x:Name="ReturnTimePicker" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             SelectedTime="{Binding ReturnTimePicker, Mode=TwoWay}" 
                                             VerticalAlignment="Bottom"
                                             Margin="10,0,0,0"
@@ -1396,7 +1461,7 @@
                                         <!-- ComboBox Space Type -->
                                         <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,0,00,0">
 
-                                            <ComboBox   x:Name="TripSpaceTypeComboBox"
+                                            <ComboBox   x:Name="TripSpaceTypeComboBox" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                                 ItemsSource="{Binding SpaceTypes}" 
                                                 SelectedItem="{Binding SelectedSpaceType, Mode=TwoWay}" 
                                                 DisplayMemberPath="ShowNameDescription" 
@@ -1425,7 +1490,7 @@
 
                                 <!-- Tab 3: Pickup -->
                                 <TabItem Header="{Binding TripTabsTabItem3Header}">
-                                    <Grid Margin="0">
+                                    <Grid Margin="0" IsEnabled="{Binding CanEditTripFields}">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
@@ -1466,7 +1531,7 @@
 
                                 <!-- Tab 4: Dropoff -->
                                 <TabItem Header="{Binding TripTabsTabItem4Header}">
-                                <Grid Margin="0">
+                                <Grid Margin="0" IsEnabled="{Binding CanEditTripFields}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
@@ -1507,6 +1572,7 @@
                             </TabItem>
 
                             </TabControl>
+                            </DockPanel>
 
                         </Grid>
 
@@ -1660,7 +1726,7 @@
 
                                             <!-- Left Column -->
                                             <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                                <ComboBox x:Name="FundingSourceBillingComboBox"
+                                                <ComboBox x:Name="FundingSourceBillingComboBox" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                                     ItemsSource="{Binding FundingSources}" 
                                                     SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}" 
                                                     DisplayMemberPath="Name" 
@@ -1676,7 +1742,7 @@
 
                                             <!-- Right Column -->
                                             <StackPanel Grid.Column="1">
-                                                <TextBox x:Name="BillingAuthorization" Text="{Binding Authorization}" 
+                                                <TextBox x:Name="BillingAuthorization" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}" Text="{Binding Authorization}" 
                                                      materialDesign:HintAssist.Hint="{Binding AuthorizationText}" 
                                                      materialDesign:TextFieldAssist.HasClearButton="True"
                                                      materialDesign:TextFieldAssist.HasLeadingIcon="True"

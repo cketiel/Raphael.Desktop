@@ -38,7 +38,11 @@ namespace Raphael.Desktop.Services
         private static readonly HttpMessageHandler AuthenticatedPipeline =
             new AuthRefreshHandler
             {
-                InnerHandler = new ClientVersionHandler { InnerHandler = SharedHandler }
+                // RE-051: an admin's correction reason goes out here, and a locked trip's 409 comes back typed.
+                InnerHandler = new TripLocks.TripLockHandler
+                {
+                    InnerHandler = new ClientVersionHandler { InnerHandler = SharedHandler }
+                }
             };
 
         /// <summary>

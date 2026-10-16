@@ -305,6 +305,10 @@ namespace Raphael.Desktop.ViewModels
         {
             if (schedule == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(schedule.Date ?? SelectedDate, schedule.Status, LocalizationService.Instance["lock.OpUnperform"]);
+            if (correction == null) return;
+
             // Show a confirmation dialog
             var result = MessageBox.Show(
                 "Are you sure you want to undo the performed status for this event?",
@@ -496,6 +500,7 @@ namespace Raphael.Desktop.ViewModels
                     //SelectedDate = date.Value;
                     _selectedDate = date.Value;
                     OnPropertyChanged(nameof(SelectedDate));
+                    RaiseDayReadOnly();
                 }
 
                 if (pending.HasValue)
@@ -617,6 +622,9 @@ namespace Raphael.Desktop.ViewModels
 
             // The rows are new objects every time; the bar view lives in the view model.
             RestoreBarFlags();
+
+            // RE-051: and so does the trip Home sent the dispatcher to look at.
+            ApplyGuideHighlight();
             NotifyBarViewChanged();
 
             ComputeBarSegments();
@@ -1148,6 +1156,10 @@ namespace Raphael.Desktop.ViewModels
                 return;
             }
 
+            // RE-051: a past day's route is the record of what was driven.
+            using var correction = Helpers.TripGuard.Enter(tripToSchedule.Date, null, LocalizationService.Instance["lock.OpRoute"]);
+            if (correction == null) return;
+
             if (await IsAlreadyCancelledAsync(tripToSchedule))
                 return;
 
@@ -1528,6 +1540,10 @@ namespace Raphael.Desktop.ViewModels
         {
             if (schedule == null) return;
 
+            // RE-051: taking a trip off a past day's route deletes the stops that say it was driven.
+            using var correction = Helpers.TripGuard.Enter(schedule.Date ?? SelectedDate, schedule.Status, LocalizationService.Instance["lock.OpUnroute"]);
+            if (correction == null) return;
+
             try
             {
                 await _scheduleService.CancelRouteAsync(schedule.Id);
@@ -1610,6 +1626,11 @@ namespace Raphael.Desktop.ViewModels
         // Observe changes to automatically refresh data
         partial void OnSelectedDateChanged(DateTime value)
         {
+            RaiseDayReadOnly();
+
+            // A different day is a different trip: the guide does not follow the dispatcher there.
+            ClearGuideHighlight();
+
             // The board follows the screen: a dispatcher working Tuesday is not sent Wednesday.
             UpdateBoardWatches();
 
@@ -1680,6 +1701,7 @@ namespace Raphael.Desktop.ViewModels
 
             _selectedDate = date.Date;
             OnPropertyChanged(nameof(SelectedDate));
+            RaiseDayReadOnly();
 
             _selectedVehicleRoute = VehicleRoutes.First(r => r.Id == vehicleRouteId);
             OnPropertyChanged(nameof(SelectedVehicleRoute));
@@ -2276,6 +2298,9 @@ namespace Raphael.Desktop.ViewModels
 
         public bool CanStartDrag(IDragInfo dragInfo)
         {
+            // RE-051: a past day is read-only, and reordering it is not offered even as a correction.
+            if (IsDayReadOnly) return false;
+
             // Validation to NOT allow "Pull-out" or "Pull-in" dragging.
             if (dragInfo.SourceItem is ScheduleDto schedule)
             {
@@ -2489,6 +2514,9 @@ namespace Raphael.Desktop.ViewModels
             // Usamos Schedules (la lista visual ordenada) para el cálculo
             if (Schedules.Count <= 2) return;
 
+            // RE-051: a past day's hours are what happened. Only an admin's correction re-chains them.
+            if (IsDayReadOnly && Services.TripLocks.CorrectionScope.CurrentReason == null) return;
+
             if (waitForTurn) await _recalculationGate.WaitAsync();
             else if (!await _recalculationGate.WaitAsync(0)) return;
 
@@ -2534,6 +2562,9 @@ namespace Raphael.Desktop.ViewModels
         private async Task ResequenceEtasFromAsync(int startIndex)
         {
             if (Schedules.Count <= 2) return;
+
+            // RE-051: the refresh timer does not rewrite a past day.
+            if (IsDayReadOnly) return;
 
             // Skips rather than queues: this is the refresh timer, and the next pass is five
             // seconds away.
@@ -3402,6 +3433,10 @@ namespace Raphael.Desktop.ViewModels
             var tripToCancel = parameter as UnscheduledTripDto;
             if (tripToCancel == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToCancel.Date, null, LocalizationService.Instance["lock.OpCancel"]);
+            if (correction == null) return;
+
             var confirmationText = $"Are you sure you want to cancel trip '{tripToCancel.Id}'?";
             var confirmationTitle = "Confirm Cancellation";
 
@@ -3426,6 +3461,10 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToUncancel = parameter as UnscheduledTripDto;
             if (tripToUncancel == null) return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToUncancel.Date, null, LocalizationService.Instance["lock.OpUncancel"]);
+            if (correction == null) return;
 
             var confirmationText = $"Are you sure you want to restore trip '{tripToUncancel.Id}'?";
             var confirmationTitle = "Confirm Restoration";
@@ -3467,6 +3506,10 @@ namespace Raphael.Desktop.ViewModels
 
             if (trip == null)
                 return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(trip.Date, null, LocalizationService.Instance["lock.OpWillCall"]);
+            if (correction == null) return;
 
             if (string.Equals(trip.Status, "Canceled", StringComparison.OrdinalIgnoreCase))
             {
@@ -3514,6 +3557,10 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToEdit = parameter as UnscheduledTripDto;
             if (tripToEdit == null) return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToEdit.Date, null, LocalizationService.Instance["lock.OpEdit"]);
+            if (correction == null) return;
            
             var dialogViewModel = new EditTripDialogViewModel(tripToEdit);
             var dialog = new EditTripDialog { DataContext = dialogViewModel };

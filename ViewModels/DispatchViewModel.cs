@@ -539,6 +539,10 @@ namespace Raphael.Desktop.ViewModels
             var tripToUncancel = parameter as TripItemViewModel;
             if (tripToUncancel == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToUncancel.TripDto.Date, null, LocalizationService.Instance["lock.OpUncancel"]);
+            if (correction == null) return;
+
             // Confirmación del usuario
             var confirmationText = $"Are you sure you want to restore trip '{tripToUncancel.Id}'?";
             var confirmationTitle = "Confirm Restoration";
@@ -573,6 +577,10 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToCancel = parameter as TripItemViewModel;
             if (tripToCancel == null) return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToCancel.TripDto.Date, null, LocalizationService.Instance["lock.OpCancel"]);
+            if (correction == null) return;
 
             var confirmationText = string.Format(LocalizationService.Instance["ConfirmCancelTripText"], tripToCancel.Id); // ej: "¿Está seguro de que desea cancelar el viaje '{0}'?"
             var confirmationTitle = LocalizationService.Instance["ConfirmCancelTitle"]; // ej: "Confirmar cancelación"
@@ -613,6 +621,10 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToEdit = parameter as TripItemViewModel;
             if (tripToEdit == null) return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToEdit.TripDto.Date, null, LocalizationService.Instance["lock.OpEdit"]);
+            if (correction == null) return;
 
             var dialogViewModel = new EditTripDialogViewModel(tripToEdit.TripDto);
             var dialog = new EditTripDialog { DataContext = dialogViewModel };

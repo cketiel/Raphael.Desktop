@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -56,6 +56,10 @@ namespace Raphael.Desktop.ViewModels
 
             await ScheduleContentViewModel.ShowRouteAsync(date, vehicleRouteId);
         }
+
+        /// <summary>Opens a route and day with one trip's two stops framed (RE-051).</summary>
+        public Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId) =>
+            ScheduleContentViewModel.ShowTripAsync(date, vehicleRouteId, tripId);
 
         /// <summary>Takes the card down and lets go of the queue it listens to.</summary>
         public void CloseCall()

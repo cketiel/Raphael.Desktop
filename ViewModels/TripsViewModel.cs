@@ -161,6 +161,10 @@ namespace Raphael.Desktop.ViewModels
         {
             if (trip == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(trip.Date, trip.Status, LocalizationService.Instance["lock.OpRoute"]);
+            if (correction == null) return;
+
             IsBusy = true;
             try
             {
@@ -346,6 +350,10 @@ namespace Raphael.Desktop.ViewModels
         {
             if (trip == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(trip.Date, trip.Status, LocalizationService.Instance["lock.OpUnroute"]);
+            if (correction == null) return;
+
             // Si no tiene Run, no hay nada que desprogramar
             if (trip.VehicleRouteId == null || trip.VehicleRouteId == 0) return;
 
@@ -436,6 +444,10 @@ namespace Raphael.Desktop.ViewModels
             var tripToCancel = parameter as TripReadDto;
             if (tripToCancel == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToCancel.Date, tripToCancel.Status, LocalizationService.Instance["lock.OpCancel"]);
+            if (correction == null) return;
+
             var confirmationText = $"Are you sure you want to cancel trip '{tripToCancel.Id}'?";
             var confirmationTitle = "Confirm Cancellation";
 
@@ -461,6 +473,10 @@ namespace Raphael.Desktop.ViewModels
             var tripToUncancel = parameter as TripReadDto;
             if (tripToUncancel == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToUncancel.Date, tripToUncancel.Status, LocalizationService.Instance["lock.OpUncancel"]);
+            if (correction == null) return;
+
             var confirmationText = $"Are you sure you want to restore trip '{tripToUncancel.Id}'?";
             var confirmationTitle = "Confirm Restoration";
 
@@ -484,6 +500,10 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToEdit = parameter as TripReadDto;
             if (tripToEdit == null) return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToEdit.Date, tripToEdit.Status, LocalizationService.Instance["lock.OpEdit"]);
+            if (correction == null) return;
 
             var dialogViewModel = new EditTripDialogViewModel(tripToEdit);
             var dialog = new EditTripDialog { DataContext = dialogViewModel };
