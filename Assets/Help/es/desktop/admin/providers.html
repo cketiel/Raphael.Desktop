@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin — Providers · Ayuda de Raphael</title>
 <meta name="description" content="Los providers de la operación y el huso horario en el que operan sus viajes.">
-<meta name="help-covers" content="Raphael.Desktop 1.12.0">
-<meta name="help-built" content="2026-10-11">
+<meta name="help-covers" content="Raphael.Desktop 1.13.0">
+<meta name="help-built" content="2026-10-16">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
     <a class="rf-brand" href="../../../es/desktop/getting-started/overview.html">
       <span class="rf-brand-mark" aria-hidden="true">R</span>
       <span>Ayuda de Raphael</span>
-      <span class="rf-brand-sub">1.12.0</span>
+      <span class="rf-brand-sub">1.13.0</span>
     </a>
 
     <div class="rf-search">
@@ -57,14 +57,29 @@
       <p class="rf-summary">Los providers de la operación y el huso horario en el que operan sus viajes.</p>
       <div class="rf-meta"><span class="rf-chip rf-chip-mode">referencia</span></div>
 
-      <blockquote><p><strong>Pendiente de redactar.</strong> Esta página existe para que F1 tenga dónde aterrizar desde la pestaña <strong>Providers</strong> de Admin, y para que el índice de la ayuda muestre ya la estructura completa. El texto se escribirá cuando se documente esa pestaña.</p></blockquote>
-<p>Los providers de la operación y el huso horario en el que operan sus viajes.</p>
+      <aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">Esta página todavía no está completa</p><p>Lo que hay aquí está verificado contra el producto. El resto de la ficha —nombre, contacto, logo— se documentará más adelante.</p></aside>
+<p>Los providers de la operación y el huso horario en el que operan sus viajes. Para editar uno, ábrelo desde la pestaña <strong>Providers</strong> de Admin.</p>
+<h2 id="modo-de-trabajo">Modo de trabajo<a class="help-anchor" href="#modo-de-trabajo" aria-label="Enlace a esta sección">#</a></h2>
+<p>Solo el <strong>administrador de Raphael</strong> lo ve, y solo en un Provider que ya existe. Hay dos modos:</p>
+<ul><li><strong>Trabaja en Raphael</strong>: sus usuarios entran en el Desktop y llevan allí sus viajes. Puede ser empresa cliente de Raphael.</li><li><strong>External (solo portal Booking)</strong>: lleva sus viajes en otro sistema. Sus usuarios solo entran en el portal Booking, para ver y exportar los viajes que le dan las clínicas.</li></ul>
+<p>Un Provider que una clínica contrata desde Booking nace <strong>External</strong> y sin usuarios. Para que trabaje dentro de Raphael, cámbialo a <strong>Trabaja en Raphael</strong> y dale usuarios del Desktop.</p>
+<p>Al pasar uno a <strong>External</strong>, te pide confirmación: desde su próximo inicio de sesión, sus usuarios dejan de entrar en el Desktop, y si era empresa cliente deja de serlo.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">Por qué importa</p><p>Al pasar un Provider a <strong>Trabaja en Raphael</strong>, sus usuarios siguen activos con la contraseña que tienen, y los de un Provider External los puede haber creado una clínica. Si una clínica conoce esa contraseña, podría entrar en el Desktop y ver viajes de pacientes de otras clínicas. Antes de cambiar el modo, revisa sus usuarios en Admin → Usuarios y desactiva o cambia la contraseña de los que no deban entrar.</p></aside>
+<h2 id="empresa-cliente-de-raphael-tenant">Empresa cliente de Raphael (tenant)<a class="help-anchor" href="#empresa-cliente-de-raphael-tenant" aria-label="Enlace a esta sección">#</a></h2>
+<p>La casilla <strong>Empresa cliente de Raphael (tenant)</strong> convierte el Provider en una empresa que ha comprado Raphael. Sus usuarios solo ven y modifican la flota, las <a class="help-term" href="../../../es/_shared/glossary/run.html" data-term-title="Ruta" data-term-summary="Un vehículo, un conductor y una franja de fechas y horas. Es la unidad a la que se asignan los viajes.">rutas</a>, los pagadores y las personas de su empresa, además del catálogo común. Dale usuarios con ese Provider.</p>
+<p>Solo la ve el <strong>administrador de Raphael</strong>, y solo cuando el Provider <strong>trabaja en Raphael</strong>. En uno External no aparece: no tiene flota aquí que aislar. Si necesitas que lo sea, cambia antes su modo de trabajo; puedes hacer las dos cosas en el mismo guardado.</p>
+<h2 id="un-provider-sin-usuarios-no-puede-recibir-viajes">Un Provider sin usuarios no puede recibir viajes<a class="help-anchor" href="#un-provider-sin-usuarios-no-puede-recibir-viajes" aria-label="Enlace a esta sección">#</a></h2>
+<p>Para darle un viaje a un Provider, tiene que tener <strong>al menos un usuario activo</strong>. Mientras no lo tenga, no aparece en el selector <strong>Provider</strong> de Home y el servidor rechaza dárselo.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">Por qué importa</p><p>Sin usuarios no hay nadie que vea el viaje, así que nadie lo hace. El paciente se quedaría sin transporte sin que nadie se diera cuenta.</p></aside>
+<p>Un Provider que una clínica contrata desde Booking nace sin usuarios. Para poder darle viajes, crea uno en <strong>Admin → Usuarios</strong> con ese Provider. Más detalle en las <a href="../../../es/desktop/home/overview.html">preguntas frecuentes de Home</a>.</p>
+<h2 id="clinicas-que-lo-contratan">Clínicas que lo contratan<a class="help-anchor" href="#clinicas-que-lo-contratan" aria-label="Enlace a esta sección">#</a></h2>
+<p>En un Provider que ya existe, la ficha lista las clínicas que lo tienen contratado. No se cambian aquí: se corrigen desde la ficha de cada clínica, en <strong>Integrators</strong>.</p>
 
       <section class="rf-related"><h2>Ver también</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../es/desktop/admin/overview.html"><strong>Admin — empleados, facturación e integradores</strong><span>La pestaña que solo ve un administrador: quién trabaja aquí, cómo se factura, y quién nos manda viajes desde fuera.</span></a></div></section>
 
       <footer class="rf-foot">
-        <span data-covers>Cubre Raphael.Desktop 1.12.0</span>
-        <span>Actualizado el 11/10/2026</span>
+        <span data-covers>Cubre Raphael.Desktop 1.13.0</span>
+        <span>Actualizado el 16/10/2026</span>
         <button class="rf-btn" type="button" data-diagnostics>Copiar informe para soporte</button>
       </footer>
 
@@ -73,12 +88,12 @@
 
   <aside class="rf-aside" aria-label="En esta página">
     <p class="rf-aside-title">En esta página</p>
-    
+    <ul><li class="rf-lvl-2"><a href="#modo-de-trabajo">Modo de trabajo</a></li><li class="rf-lvl-2"><a href="#empresa-cliente-de-raphael-tenant">Empresa cliente de Raphael (tenant)</a></li><li class="rf-lvl-2"><a href="#un-provider-sin-usuarios-no-puede-recibir-viajes">Un Provider sin usuarios no puede recibir viajes</a></li><li class="rf-lvl-2"><a href="#clinicas-que-lo-contratan">Clínicas que lo contratan</a></li></ul>
   </aside>
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/admin/providers","lang":"es","app":"Raphael.Desktop","appVersion":"1.12.0","built":"2026-10-11","sourceCommit":"e67e9e8","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/admin/providers","lang":"es","app":"Raphael.Desktop","appVersion":"1.13.0","built":"2026-10-16","sourceCommit":"2756cfe","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
 <script src="../../../assets/search-index.es.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

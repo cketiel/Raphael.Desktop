@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Home — booking a trip · Raphael Help</title>
 <meta name="description" content="The booking screen: patient, pickup, dropoff, space type and who pays.">
-<meta name="help-covers" content="Raphael.Desktop 1.12.0">
-<meta name="help-built" content="2026-10-11">
+<meta name="help-covers" content="Raphael.Desktop 1.13.0">
+<meta name="help-built" content="2026-10-16">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
     <a class="rf-brand" href="../../../en/desktop/getting-started/overview.html">
       <span class="rf-brand-mark" aria-hidden="true">R</span>
       <span>Raphael Help</span>
-      <span class="rf-brand-sub">1.12.0</span>
+      <span class="rf-brand-sub">1.13.0</span>
     </a>
 
     <div class="rf-search">
@@ -95,18 +95,49 @@
 <p>The plan you see meanwhile is not decoration: it carries the same symbols as the real map, so you learn them before you need them. <strong>Red pin</strong> where the patient is waiting, <strong>blue pin</strong> where they are going, and the route between them with an arrow showing which way. Point at the pins and they say so. The message card can be <strong>dragged</strong> by its head if it covers something.</p>
 <p>With a trip selected, the map shows its pickup, its dropoff and the route, with the estimated time and the distance on a card in the bottom left.</p>
 <p>Whichever map type you choose - roadmap, satellite, with or without labels - <strong>is remembered</strong>: the next trip you open opens the way you left it. And the map speaks whatever language you have set.</p>
+<h2 id="who-carries-the-trip-the-provider">Who carries the trip: the Provider<a class="help-anchor" href="#who-carries-the-trip-the-provider" aria-label="Enlace a esta sección">#</a></h2>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">Only Raphael's administrator sees this</p><p>The column, the selector and what this section explains only appear if you sign in as <strong>Raphael's Admin</strong>. A dispatcher, a driver or a client company's administrator see the form and the list as before.</p></aside>
+<p>A trip is carried by <strong>Raphael</strong> or by a <strong>Provider</strong>, the transport company you give it to.</p>
+<ul><li><strong>In the list</strong>, the <strong>Provider</strong> column says who carries it. Empty means Raphael.</li><li><strong>When you create or edit a trip</strong>, the <strong>Provider</strong> selector sits on the same row as <strong>Funding Source</strong> and the patient's gender. A new trip starts as <strong>Raphael</strong>'s; pick another Provider if you want, and save. On a round trip, both legs go to the same Provider.</li></ul>
+<p>A Provider's users see neither the column nor the selector: they only see their own Provider's trips, so there is nothing to choose.</p>
+<h3 id="which-providers-the-selector-shows">Which Providers the selector shows<a class="help-anchor" href="#which-providers-the-selector-shows" aria-label="Enlace a esta sección">#</a></h3>
+<p>Only the ones with <strong>at least one active user</strong>. A Provider with no users is not in the list, even if it exists and is set up correctly.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">Why it matters</p><p>A Provider with no users has nobody to see the trip: nobody plans it, nobody accepts it, nobody sends a vehicle. If it could be given one, the trip would sit assigned and the patient would be left without a ride, with nobody noticing. That is why the selector does not offer it and the server refuses the change even if it is tried another way.</p></aside>
+<p>If the trip already belonged to a Provider that later lost its last active user, the selector still shows it so you can see whose it is, but you cannot give it other trips.</p>
+<p>Cannot find a Provider? See <a href="#frequently-asked-questions">Frequently asked questions</a>, below.</p>
+<h3 id="what-happens-when-you-save">What happens when you save<a class="help-anchor" href="#what-happens-when-you-save" aria-label="Enlace a esta sección">#</a></h3>
+<ul><li><strong>A trip that came from an integration</strong> (Booking or a clinic's API): given to a Provider, it is <strong>Assigned</strong> until the Provider accepts it. The clinic hears what happens.</li><li><strong>A trip created by hand or imported from a file</strong>: it is <strong>Accepted</strong> straight away. The office decided, and there is nobody on the other side to ask.</li><li><strong>Given back to Raphael</strong>: it is <strong>Accepted</strong>.</li><li>The change goes into the trip's history, with who made it.</li></ul>
+<p>It can only change while the trip <strong>has no route</strong> and is Assigned, Accepted or Rejected. Once it is routed or under way, the server does not allow it.</p>
+<h2 id="accepting-or-rejecting-a-trip">Accepting or rejecting a trip<a class="help-anchor" href="#accepting-or-rejecting-a-trip" aria-label="Enlace a esta sección">#</a></h2>
+<p>Two buttons appear in the actions column of the list: <strong>Accept trip</strong> (the green seal) and <strong>Reject trip</strong> (the hand). <strong>They only appear on trips that came from an integration</strong>, that is, the ones a clinic created from Booking or through the API. And only whoever may press them sees them:</p>
+<ul><li><strong>A Provider's user</strong>, on that Provider's trips.</li><li><strong>Raphael's administrator</strong>, on Raphael's own trips.</li></ul>
+<p><strong>Accept</strong> only appears while the trip is <strong>Assigned</strong>. <strong>Reject</strong> appears while it is Assigned or Accepted, and asks for a reason: it is what the clinic reads. A rejected trip is painted magenta in the list and alerts the clinic and the office, so somebody gives it to someone else.</p>
+<p>Cancelled trips show neither.</p>
+<aside class="help-callout help-callout-why" data-kind="why"><p class="help-callout-title">Why they do not appear on trips created by hand or imported</p><p>Accepting and rejecting are how you <strong>answer whoever asked for the trip</strong>. A trip you created here, or imported from a file, has nobody on the other side: there is no connected clinic to tell. That is why those trips are born accepted and show no buttons.</p></aside>
 <h2 id="taking-the-list-to-excel">Taking the list to Excel<a class="help-anchor" href="#taking-the-list-to-excel" aria-label="Enlace a esta sección">#</a></h2>
 <p>The green button exports <strong>what you are looking at</strong>: the rows the filters let through, in the order on screen. Before writing the file it tells you that patient names, addresses and phone numbers are leaving the system, and records who asked for it.</p>
 <aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">The two calendars are not the same one</p><p>The <strong>date picker</strong> above the list filters: it chooses which day you are looking at. The <strong>calendar beside the form</strong> filters nothing — it is the day the trip will happen. With the form open you are not filtering, you are booking or editing a trip.</p>
 <p>Changing that date on a trip you are editing <strong>moves the trip</strong> to that day. It does not duplicate it: on saving, the list jumps to the new day so you can see it there.</p></aside>
+<h2 id="frequently-asked-questions">Frequently asked questions<a class="help-anchor" href="#frequently-asked-questions" aria-label="Enlace a esta sección">#</a></h2>
+<h3 id="why-does-a-provider-not-appear-in-the-provider-selector">Why does a Provider not appear in the Provider selector?<a class="help-anchor" href="#why-does-a-provider-not-appear-in-the-provider-selector" aria-label="Enlace a esta sección">#</a></h3>
+<p>Because <strong>it has no active user</strong>. The selector only offers Providers with at least one, so a trip never ends up with a company that cannot see it.</p>
+<p>It mostly happens with Providers a clinic contracts from Booking: they are created <strong>without users</strong>. It also happens if its last user was deactivated.</p>
+<p><strong>How to fix it:</strong></p>
+<ol><li>Go to <strong>Admin → Users</strong>.</li><li>Create a user with that Provider, or reactivate one of its deactivated users.</li><li>Go back to Home and open the trip again: the Provider now appears.</li></ol>
+<p>If that Provider is going to work inside Raphael, with Desktop users, also check its <strong>work mode</strong> on its form. See <a href="../../../en/desktop/admin/providers.html">Admin — Providers</a>.</p>
+<h3 id="why-does-a-trip-not-have-the-accept-and-reject-buttons">Why does a trip not have the Accept and Reject buttons?<a class="help-anchor" href="#why-does-a-trip-not-have-the-accept-and-reject-buttons" aria-label="Enlace a esta sección">#</a></h3>
+<p>For one of these reasons:</p>
+<ul><li><strong>You created it by hand or imported it from a file.</strong> It did not come from a connected clinic, so there is nobody to answer. It is born accepted.</li><li><strong>It is not in a state that allows it.</strong> Accept only while the trip is Assigned; Reject, Assigned or Accepted. A routed, started, closed or cancelled trip shows neither.</li><li><strong>It is not yours to answer.</strong> A Provider's user only sees them on that Provider's trips, and Raphael's administrator on Raphael's.</li></ul>
+<h3 id="why-did-a-trip-i-gave-to-a-provider-end-up-accepted-and-not-assigned">Why did a trip I gave to a Provider end up Accepted and not Assigned?<a class="help-anchor" href="#why-did-a-trip-i-gave-to-a-provider-end-up-accepted-and-not-assigned" aria-label="Enlace a esta sección">#</a></h3>
+<p>Because it was created by hand or imported from a file. With no connected clinic to tell, the office's decision is enough and the trip is accepted. Only trips that come from an integration stay Assigned until the Provider accepts them.</p>
 <aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">The detail for this tab is not written yet</p><p>What is above is true and verified. What is missing is the field-by-field walkthrough, which will come in a future version of this help.</p>
 <p>In the meantime: the <a href="../../../en/desktop/notifications/overview.html">Notifications</a> help is complete.</p></aside>
 
       <section class="rf-related"><h2>See also</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../en/_shared/glossary/space-type.html"><strong>Space type</strong><span>The space the patient occupies in the vehicle. It carries load and unload times, so it is not a label: it is planning data.</span></a><a class="rf-related-card" href="../../../en/_shared/glossary/funding-source.html"><strong>Funding source</strong><span>Who pays for the trip. Beyond billing, it decides what is required of the driver: signatures, odometer or barcode.</span></a><a class="rf-related-card" href="../../../en/_shared/glossary/leg.html"><strong>Leg — outbound and return</strong><span>A round journey is not one trip, it is two: Appointment and Return, each with its own number and status.</span></a></div></section>
 
       <footer class="rf-foot">
-        <span data-covers>Covers Raphael.Desktop 1.12.0</span>
-        <span>Updated 2026-10-11</span>
+        <span data-covers>Covers Raphael.Desktop 1.13.0</span>
+        <span>Updated 2026-10-16</span>
         <button class="rf-btn" type="button" data-diagnostics>Copy report for support</button>
       </footer>
 
@@ -115,12 +146,12 @@
 
   <aside class="rf-aside" aria-label="On this page">
     <p class="rf-aside-title">On this page</p>
-    <ul><li class="rf-lvl-2"><a href="#opening-and-closing-the-trip-form">Opening and closing the trip form</a></li><li class="rf-lvl-2"><a href="#the-four-steps-of-a-trip">The four steps of a trip</a></li><li class="rf-lvl-2"><a href="#searching-and-filtering">Searching and filtering</a></li><li class="rf-lvl-2"><a href="#looking-at-more-than-one-day">Looking at more than one day</a></li><li class="rf-lvl-2"><a href="#the-list">The list</a></li><li class="rf-lvl-3"><a href="#where-the-figures-are">Where the figures are</a></li><li class="rf-lvl-2"><a href="#the-map">The map</a></li><li class="rf-lvl-2"><a href="#taking-the-list-to-excel">Taking the list to Excel</a></li></ul>
+    <ul><li class="rf-lvl-2"><a href="#opening-and-closing-the-trip-form">Opening and closing the trip form</a></li><li class="rf-lvl-2"><a href="#the-four-steps-of-a-trip">The four steps of a trip</a></li><li class="rf-lvl-2"><a href="#searching-and-filtering">Searching and filtering</a></li><li class="rf-lvl-2"><a href="#looking-at-more-than-one-day">Looking at more than one day</a></li><li class="rf-lvl-2"><a href="#the-list">The list</a></li><li class="rf-lvl-3"><a href="#where-the-figures-are">Where the figures are</a></li><li class="rf-lvl-2"><a href="#the-map">The map</a></li><li class="rf-lvl-2"><a href="#who-carries-the-trip-the-provider">Who carries the trip: the Provider</a></li><li class="rf-lvl-3"><a href="#which-providers-the-selector-shows">Which Providers the selector shows</a></li><li class="rf-lvl-3"><a href="#what-happens-when-you-save">What happens when you save</a></li><li class="rf-lvl-2"><a href="#accepting-or-rejecting-a-trip">Accepting or rejecting a trip</a></li><li class="rf-lvl-2"><a href="#taking-the-list-to-excel">Taking the list to Excel</a></li><li class="rf-lvl-2"><a href="#frequently-asked-questions">Frequently asked questions</a></li><li class="rf-lvl-3"><a href="#why-does-a-provider-not-appear-in-the-provider-selector">Why does a Provider not appear in the Provider selector?</a></li><li class="rf-lvl-3"><a href="#why-does-a-trip-not-have-the-accept-and-reject-buttons">Why does a trip not have the Accept and Reject buttons?</a></li><li class="rf-lvl-3"><a href="#why-did-a-trip-i-gave-to-a-provider-end-up-accepted-and-not-assigned">Why did a trip I gave to a Provider end up Accepted and not Assigned?</a></li></ul>
   </aside>
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/home/overview","lang":"en","app":"Raphael.Desktop","appVersion":"1.12.0","built":"2026-10-11","sourceCommit":"e67e9e8","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/home/overview","lang":"en","app":"Raphael.Desktop","appVersion":"1.13.0","built":"2026-10-16","sourceCommit":"2756cfe","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
 <script src="../../../assets/search-index.en.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

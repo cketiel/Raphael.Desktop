@@ -3,6 +3,43 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
+## [Unreleased]
+
+⚠️ **Needs the next Raphael.Backend (after 2.2.0)** for the Provider column, the reassignment, the
+assignable list and the work mode.
+
+### Added
+- **Home: Provider column and Provider selector** (RE-050), Raphael's admin only, when creating and
+  when editing a trip (a round trip's two legs go to the same Provider). The selector shares
+  the row with Funding Source and gender, so the form keeps its height; everybody else sees the old
+  two-column row.
+- **Home: the selector only offers Providers with at least one active user**; a trip's Provider that
+  lost its users is still shown for that trip.
+- **Provider form: work mode** (Works in Raphael / External), Raphael's admin only, with a
+  confirmation when going External. The tenant box shows once it works in Raphael.
+- **Accept and Reject trips on Home** (RE-047): a Provider's user on its Provider's trips, Raphael's
+  admin on Raphael's; rejecting asks for a reason. New **Rejected** status, shown in magenta with the
+  Provider's reason.
+- **Who works with whom** (RE-047): the Integrator file links to its catalog entry (link, unlink) and
+  lists its contracted Providers (contract, remove); the Provider file lists the clinics that
+  contracted it.
+- **Client companies of Raphael** (RE-049): a "Client company of Raphael (tenant)" box on the Provider
+  form. A client company's admin only sees its own Admin tabs: Integrators becomes *My Integrators*,
+  Providers is read-only, and Catalog, Google Maps, Roles and notification rules are Raphael's admin
+  only. A client company's admin does not choose integrator or provider when creating users.
+- **Reset another user's password without knowing the current one** (RE-049), for admins.
+- Help: `desktop/home/overview` (Provider, Accept/Reject, frequently asked questions),
+  `desktop/admin/providers` (work mode, tenant, Providers without users) and 1.13.0 in *What's new*.
+
+### Changed
+- **Accept and Reject only show on trips that came from an integration** (Booking or the API), not
+  on manual or imported ones.
+
+### Fixed
+- Integrator file: it fits the screen, the remove button is visible, and the link enables at once.
+- Admin views: the visibility converter is declared, so the screens no longer fail to open (RE-049).
+- Platform tabs are removed for a client company's admin before they load, not after (RE-049).
+
 ## [1.12.0] - 2026-10-11
 
 ⚠️ **Needs Raphael.Backend 2.1.0 for the Drivers and Vehicles filters.** Against 2.0.0 the backend
