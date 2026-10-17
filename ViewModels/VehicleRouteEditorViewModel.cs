@@ -192,7 +192,19 @@ namespace Raphael.Desktop.ViewModels
                 }
                 else // It's an update
                 {
-                    await _runService.UpdateAsync(Route.Id, routeDto);
+                    // RE-052: a new garage reaches every day already planned on the route. The
+                    // server works out what that does before anything is saved, and the dispatcher
+                    // reads it and decides. Saying no, or stopping, leaves them in the editor with
+                    // their changes intact.
+                    if (GarageDiffers(_originalRoute, routeDto))
+                    {
+                        if (!await SaveWithNewGarageAsync(routeDto)) return;
+                    }
+                    else
+                    {
+                        await _runService.UpdateAsync(Route.Id, routeDto);
+                    }
+
                     // Update the original model with saved local data
                     UpdateOriginalRoute(this.Route);
                 }
@@ -207,6 +219,137 @@ namespace Raphael.Desktop.ViewModels
             }
             
         }
+
+        /// <summary>
+        /// Analyse, confirm, apply and report a change of garage (RE-052). True once it is saved.
+        /// </summary>
+        /// <remarks>
+        /// Both server calls run behind <see cref="Views.BusyDialog"/>: they re-chain every planned day
+        /// and can take a while. The save carries the fingerprint of the preview the dispatcher read;
+        /// if the route moved meanwhile the server refuses it untouched and this goes round again, with
+        /// the new figures and a notice saying why. Three rounds and it stops asking.
+        /// </remarks>
+        private async Task<bool> SaveWithNewGarageAsync(DTOs.VehicleRouteDto routeDto)
+        {
+            var l = LocalizationService.Instance;
+            var request = new DTOs.GarageChangeRequestDto
+            {
+                Garage = routeDto.Garage,
+                GarageLatitude = routeDto.GarageLatitude,
+                GarageLongitude = routeDto.GarageLongitude
+            };
+
+            string notice = null;
+
+            for (int round = 0; round < 3; round++)
+            {
+                var analysis = await Views.BusyDialog.RunAsync(ActiveWindow(),
+                    l["garage.AnalyzingTitle"],
+                    string.Format(l["garage.AnalyzingMessage"], Route.Name),
+                    null, canStop: true,
+                    ct => _runService.PreviewGarageChangeAsync(Route.Id, request, ct));
+
+                if (analysis.Stopped)
+                {
+                    MessageBox.Show(l["garage.AnalysisStopped"], l["garage.Title"], MessageBoxButton.OK, MessageBoxImage.Information);
+                    return false;
+                }
+                if (analysis.Error != null) { ShowGarageError(analysis.Error); return false; }
+
+                var preview = analysis.Result;
+                var planned = preview?.Days.Count(d => !d.DayFinished) ?? 0;
+
+                if (preview?.GarageChanged == true && preview.Days.Count > 0)
+                {
+                    var confirm = new Views.GarageChangeDialog(Route.Name, preview, applied: false, notice) { Owner = ActiveWindow() };
+                    if (confirm.ShowDialog() != true) return false;
+                }
+
+                var apply = await Views.BusyDialog.RunAsync(ActiveWindow(),
+                    l["garage.ApplyingTitle"],
+                    string.Format(l["garage.ApplyingMessage"], planned),
+                    l["garage.ApplyingWarning"], canStop: true,
+                    ct => _runService.UpdateAsync(Route.Id, routeDto, preview?.Fingerprint, ct));
+
+                if (apply.Stopped) return await ReportStopAsync(routeDto);
+
+                if (apply.Error is Services.TripLocks.TripLockedApiException { Code: Services.TripLocks.TripLockCodes.RouteChangedSincePreview })
+                {
+                    notice = l["garage.ChangedWhileReviewing"];
+                    continue;
+                }
+                if (apply.Error != null) { ShowGarageError(apply.Error); return false; }
+
+                MessageBox.Show(string.Format(l["garage.AppliedOk"], planned), l["garage.Title"],
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // The traffic answer can still differ from the preview's: say what really happened.
+                var applied = apply.Result;
+                if (preview != null && applied != null && !SameOutcome(preview, applied))
+                    new Views.GarageChangeDialog(Route.Name, applied, applied: true) { Owner = ActiveWindow() }.ShowDialog();
+
+                return true;
+            }
+
+            MessageBox.Show(l["garage.KeepsChanging"], l["garage.Title"], MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        /// <summary>
+        /// After a stop during the save, asks the server what really happened. A stop that arrives
+        /// after the commit cannot undo it, and the dispatcher must not be told it did.
+        /// </summary>
+        private async Task<bool> ReportStopAsync(DTOs.VehicleRouteDto routeDto)
+        {
+            var l = LocalizationService.Instance;
+            try
+            {
+                var stored = await _runService.GetByIdAsync(Route.Id);
+                if (stored != null && !GarageDiffers(stored, routeDto))
+                {
+                    MessageBox.Show(l["garage.StoppedTooLate"], l["garage.Title"], MessageBoxButton.OK, MessageBoxImage.Information);
+                    return true;
+                }
+
+                MessageBox.Show(l["garage.StoppedNothingSaved"], l["garage.Title"], MessageBoxButton.OK, MessageBoxImage.Information);
+                return false;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(l["garage.StoppedUnknown"], l["garage.Title"], MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+        }
+
+        private static void ShowGarageError(Exception error)
+        {
+            var l = LocalizationService.Instance;
+            var text = error is Services.TripLocks.TripLockedApiException { Code: Services.TripLocks.TripLockCodes.GarageLegUnavailable }
+                ? l["garage.LegUnavailable"]
+                : string.Format(l["garage.Failed"], error.Message);
+            MessageBox.Show(text, l["garage.Title"], MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private static bool GarageDiffers(VehicleRoute original, DTOs.VehicleRouteDto edited) =>
+            !string.Equals((original.Garage ?? "").Trim(), (edited.Garage ?? "").Trim(), StringComparison.Ordinal)
+            || Math.Abs(original.GarageLatitude - edited.GarageLatitude) >= 0.000001
+            || Math.Abs(original.GarageLongitude - edited.GarageLongitude) >= 0.000001;
+
+        /// <summary>Whether the save did what the preview said, hour for hour, in whole minutes.</summary>
+        private static bool SameOutcome(DTOs.GarageChangePreviewDto a, DTOs.GarageChangePreviewDto b)
+        {
+            static string Key(DTOs.GarageChangePreviewDto p) => string.Join("|", p.Days.Select(d =>
+                $"{d.Date:yyyyMMdd}:{Min(d.PullOutEtaAfter)}:{Min(d.PullInEtaAfter)}:" +
+                string.Join(",", d.ChangedStops.OrderBy(c => c.ScheduleId)
+                    .Select(c => $"{c.ScheduleId}={Min(c.EtaAfter)}/{Min(c.WaitAfter)}"))));
+
+            static string Min(TimeSpan? t) => t.HasValue ? ((long)Math.Floor(t.Value.TotalMinutes)).ToString() : "-";
+
+            return Key(a) == Key(b);
+        }
+
+        private static Window ActiveWindow() =>
+            Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? Application.Current?.MainWindow;
 
         private void Cancel()
         {

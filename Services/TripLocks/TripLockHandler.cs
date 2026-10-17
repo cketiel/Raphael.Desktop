@@ -18,6 +18,12 @@ namespace Raphael.Desktop.Services.TripLocks
         public const string ReadOnly = "trip_read_only";
         public const string CorrectionReasonRequired = "correction_reason_required";
         public const string RoutedFieldsLocked = "trip_routed_locked";
+
+        /// <summary>RE-052: a drive between a route's new garage and its stops could not be measured.</summary>
+        public const string GarageLegUnavailable = "garage_leg_unavailable";
+
+        /// <summary>RE-052: the route moved since the garage-change preview the user confirmed.</summary>
+        public const string RouteChangedSincePreview = "route_changed_since_preview";
     }
 
     /// <summary>A change the server refused because the trip is past, closed or routed.</summary>
@@ -119,7 +125,8 @@ namespace Raphael.Desktop.Services.TripLocks
                 if (!root.TryGetProperty("code", out var c) || c.ValueKind != JsonValueKind.String) return false;
 
                 code = c.GetString();
-                if (code != TripLockCodes.ReadOnly && code != TripLockCodes.CorrectionReasonRequired && code != TripLockCodes.RoutedFieldsLocked)
+                if (code != TripLockCodes.ReadOnly && code != TripLockCodes.CorrectionReasonRequired && code != TripLockCodes.RoutedFieldsLocked
+                    && code != TripLockCodes.GarageLegUnavailable && code != TripLockCodes.RouteChangedSincePreview)
                     return false;
 
                 title = root.TryGetProperty("title", out var t) ? t.GetString() : code;

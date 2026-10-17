@@ -5,6 +5,20 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+⚠️ **RE-052 needs the Raphael.Backend with `garage-change/preview`.**
+
+### Added (RE-052)
+- **Route editor: changing the garage asks first.** A dialog shows, day by day, what the new garage
+  does to the days already planned — Pull-out and Pull-in hours and drives, every stop whose ETA or
+  wait moves, what is not changed and why — and only **Save and recalculate** applies it. If what was
+  applied differs from the preview, a second dialog says what really happened.
+- **Progress while it works**: "Analysing the garage change" and "Applying changes" run behind a
+  window with a progress bar that cannot be closed halfway, with **Stop**. A stop during the save is
+  checked against the server afterwards and reported truthfully (nothing saved, or already complete),
+  and a success message closes it. If the route moved while it was being reviewed, the analysis runs
+  again and the dialog says why.
+- Help: `desktop/data/route-garage`.
+
 ⚠️ **RE-051 needs the Raphael.Backend that answers `trip_read_only` / `trip_routed_locked`.** Against
 an older one the screens still say why, but nothing stops the change server-side.
 
