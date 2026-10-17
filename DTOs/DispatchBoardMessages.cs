@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Raphael.Desktop.DTOs
 {
@@ -42,6 +42,24 @@ namespace Raphael.Desktop.DTOs
         public int VehicleRouteId { get; set; }
 
         public DateTime Date { get; set; }
+    }
+
+    /// <summary>
+    /// Routes went out of service or came back (RE-053). Copy of the server's
+    /// <c>RouteServiceChangedMessage</c>. One message for the whole operation: the trips it sent
+    /// back to the unscheduled list travel here, not as one TripUnrouted each.
+    /// </summary>
+    public class RouteServiceChangedMessage
+    {
+        public Guid OperationId { get; set; }
+
+        public List<int> VehicleRouteIds { get; set; } = new();
+
+        public bool OutOfService { get; set; }
+
+        public List<int> UnroutedTripIds { get; set; } = new();
+
+        public List<DateTime> UnroutedDates { get; set; } = new();
     }
 
     /// <summary>Where a vehicle is, as its driver last reported.</summary>

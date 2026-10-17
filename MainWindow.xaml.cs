@@ -152,6 +152,8 @@ namespace Raphael.Desktop
             // RE-051: Home's "show in Schedule" on a routed trip it will not let the dispatcher edit.
             AppNavigation.ShowTripInScheduleRequested += OpenTripInSchedule;
             this.Closed += (_, _) => AppNavigation.ShowTripInScheduleRequested -= OpenTripInSchedule;
+            AppNavigation.ShowUnscheduledRequested += OpenUnscheduledInSchedule;
+            this.Closed += (_, _) => AppNavigation.ShowUnscheduledRequested -= OpenUnscheduledInSchedule;
 
             /*UpdateTheme();
 
@@ -391,6 +393,26 @@ namespace Raphael.Desktop
             catch (Exception ex)
             {
                 FileLogger.Log($"Schedule: could not open trip {tripId} on route {vehicleRouteId}. {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// A Schedule tab of its own on a day's unscheduled trips, with the ones an Out of Service
+        /// sent back picked out (RE-053). A new tab, as for a trip, so nobody loses their place.
+        /// </summary>
+        private async void OpenUnscheduledInSchedule(DateTime date, IReadOnlyCollection<int> tripIds)
+        {
+            var view = new SchedulesView(_notificationService);
+            OpenTab(LocalizationService.Instance["Schedules"], view, PackIconKind.TableClock);
+            CurrentMenu = MENU.Schedules;
+
+            try
+            {
+                await view.ShowUnscheduledAsync(date, tripIds);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Schedule: could not open the unscheduled trips of {date:yyyy-MM-dd}. {ex.Message}");
             }
         }
 

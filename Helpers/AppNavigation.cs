@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Raphael.Desktop.Helpers
 {
@@ -18,6 +18,16 @@ namespace Raphael.Desktop.Helpers
         {
             if (vehicleRouteId <= 0) return;
             ShowTripInScheduleRequested?.Invoke(date.Date, vehicleRouteId, tripId);
+        }
+
+        /// <summary>
+        /// Raised to open Schedule on a day's unscheduled trips, with some picked out: the trips an
+        /// Out of Service sent back (RE-053).
+        /// </summary>
+        public static event Action<DateTime, IReadOnlyCollection<int>> ShowUnscheduledRequested;
+        public static void ShowUnscheduled(DateTime date, IReadOnlyCollection<int> tripIds)
+        {
+            ShowUnscheduledRequested?.Invoke(date.Date, tripIds ?? Array.Empty<int>());
         }
     }
 }

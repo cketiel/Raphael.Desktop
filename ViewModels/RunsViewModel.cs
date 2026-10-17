@@ -48,6 +48,18 @@ namespace Raphael.Desktop.ViewModels
         public ICommand DeleteCommand { get; }
         public ICommand LoadDataCommand { get; }
 
+        /// <summary>RE-053: take the route's vehicle, driver or both out of service.</summary>
+        public ICommand OutOfServiceCommand { get; }
+
+        public ICommand ReturnToServiceCommand { get; }
+
+        private bool _showOnlyOutOfService;
+        public bool ShowOnlyOutOfService
+        {
+            get => _showOnlyOutOfService;
+            set { _showOnlyOutOfService = value; OnPropertyChanged(); FilteredRoutes.Refresh(); }
+        }
+
 
         public RunsViewModel( IRunService runService)
         {
@@ -62,6 +74,10 @@ namespace Raphael.Desktop.ViewModels
             EditCommand = new RelayCommandObject(param => EditRoute(), param => SelectedRoute != null);
             DeleteCommand = new RelayCommandObject(param => DeleteRoute(), param => SelectedRoute != null);
             LoadDataCommand = new RelayCommandObject(async param => await LoadData());
+            OutOfServiceCommand = new RelayCommandObject(async param => await TakeOutOfServiceAsync(param as VehicleRouteViewModel),
+                param => param is VehicleRouteViewModel r && !r.IsOutOfService);
+            ReturnToServiceCommand = new RelayCommandObject(async param => await ReturnToServiceAsync(param as VehicleRouteViewModel),
+                param => param is VehicleRouteViewModel r && r.IsOutOfService);
 
             LoadDataCommand.Execute(null);
         }
@@ -86,6 +102,48 @@ namespace Raphael.Desktop.ViewModels
             {
                 AllRoutes.Add(new VehicleRouteViewModel(route));
             }
+
+            await LoadOutOfServiceAsync();
+        }
+
+        /// <summary>RE-053: one read of the open records, spread over the routes they affect.</summary>
+        private async Task LoadOutOfServiceAsync()
+        {
+            List<DTOs.OutOfServiceRecordDto> open;
+            try
+            {
+                open = await new OutOfServiceService().GetActiveAsync();
+            }
+            catch (System.Exception ex)
+            {
+                Helpers.FileLogger.Log($"Runs: could not read the routes out of service. {ex.Message}");
+                return;
+            }
+
+            foreach (var route in AllRoutes)
+            {
+                route.OutOfService = open.Where(r =>
+                        (r.Subject == Views.OutOfServiceDialog.Vehicle && r.SubjectId == route.Model.VehicleId)
+                        || (r.Subject == Views.OutOfServiceDialog.Driver && r.SubjectId == route.Model.DriverId))
+                    .ToList();
+            }
+
+            FilteredRoutes.Refresh();
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        private async Task TakeOutOfServiceAsync(VehicleRouteViewModel route)
+        {
+            if (route == null) return;
+            if (Helpers.OutOfServiceUi.Show(Views.OutOfServiceDialog.ForRoute(route.Model)))
+                await LoadData();
+        }
+
+        private async Task ReturnToServiceAsync(VehicleRouteViewModel route)
+        {
+            if (route == null) return;
+            if (await Helpers.OutOfServiceUi.ReturnToServiceAsync(route.OutOfService, route.Name))
+                await LoadOutOfServiceAsync();
         }
 
         private void AddRoute()
@@ -173,7 +231,8 @@ namespace Raphael.Desktop.ViewModels
             {
                 bool isActiveMatch = ShowOnlyActive || route.IsActive;
                 bool groupMatch = SelectedVehicleGroup == null || SelectedVehicleGroup.Id == 0 || route.VehicleGroupId == SelectedVehicleGroup.Id;
-                return isActiveMatch && groupMatch;
+                bool outOfServiceMatch = !ShowOnlyOutOfService || route.IsOutOfService;
+                return isActiveMatch && groupMatch && outOfServiceMatch;
             }
             return false;
         }
@@ -185,7 +244,13 @@ namespace Raphael.Desktop.ViewModels
         public string AddRunToolTip => LocalizationService.Instance["AddRunToolTip"]; // Add new Run
 
         public string EditRunToolTip => LocalizationService.Instance["EditRunToolTip"]; // Edit
-        public string DeleteRunToolTip => LocalizationService.Instance["DeleteRunToolTip"]; // Cancel run by changing 'To Date' to today
+        public string DeleteRunToolTip => LocalizationService.Instance["DeleteRunToolTip"];
+
+        public string OutOfServiceToolTip => LocalizationService.Instance["oos.ActionRoute"];
+        public string ReturnToServiceToolTip => LocalizationService.Instance["oos.ActionReturn"];
+        public string ShowOnlyOutOfServiceText => LocalizationService.Instance["oos.FilterOnly"];
+        public string ColumnHeaderOutOfService => LocalizationService.Instance["oos.Column"];
+        public string OutOfServiceBadge => LocalizationService.Instance["oos.Badge"]; // Cancel run by changing 'To Date' to today
 
         // Column headers
         public string ColumnHeaderName => LocalizationService.Instance["Name"];

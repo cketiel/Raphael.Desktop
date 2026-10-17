@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using Raphael.Desktop.DTOs;
 using System;
 using System.Threading.Tasks;
@@ -20,6 +20,9 @@ namespace Raphael.Desktop.Services
 
         event EventHandler<CallRequestChangedMessage>? CallRequestChanged;
 
+        /// <summary>Routes went out of service or came back (RE-053).</summary>
+        event EventHandler<RouteServiceChangedMessage>? RouteServiceChanged;
+
         /// <summary>
         /// The connection came back. Anything missed while it was down is lost, so a screen that
         /// keeps state reloads it here.
@@ -38,6 +41,9 @@ namespace Raphael.Desktop.Services
 
         /// <summary>Listen to the drivers' call-back queue. The server only allows office staff.</summary>
         Task WatchCallRequestsAsync();
+
+        /// <summary>Listen to the fleet's state: routes out of service and back (RE-053). Office staff only.</summary>
+        Task WatchFleetAsync();
 
         Task StopAsync();
     }

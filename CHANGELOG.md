@@ -5,6 +5,34 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+⚠️ **RE-053 needs the Raphael.Backend with `api/out-of-service`** and the `AddOutOfService` migration.
+
+### Added (RE-053)
+- **Out of Service** for a vehicle, a driver or both, from **Runs** (the route's vehicle, driver or
+  both), **Vehicles** and **Users** (drivers). A reason from a list and a note; a preview of every route
+  and every trip still pending, today and later days, with its two events and their hours; trips with
+  the patient on board in red; the option to give each route **another vehicle or driver** instead of
+  sending its trips back; a confirmation; and the result with a link to each day's unscheduled list
+  with those trips picked out.
+- **Back in service** from the same screens. The trips do not come back by themselves.
+- A red **Out of Service** badge, with since when and why, in Runs, Vehicles and Users, and **Only out of
+  service** in Runs.
+- **Schedule:** a route out of service, or suspended on the selected day, is no longer offered for
+  routing; the one on screen shows a red banner and cannot be routed. Every open Schedule tab reloads
+  its backlog once and picks out the trips that came back.
+- **Dispatch map:** the vehicle of a route out of service is grey with a red ring, and its tooltip says why.
+- **Notifications:** Route Out of Service and Back in Service, worded in the reader's language.
+- Help: `desktop/data/out-of-service`.
+
+### Fixed (RE-053)
+- Suspensions were checked against today, not against the day on screen.
+- **The main window did not open after signing in** (RE-051): Home and Schedule used an icon
+  (`LockClockOutline`) that MaterialDesign 5.2.1 does not have, and the login reported it as "An error
+  occurred during login". The icon is `LockOutline` now, and a window that fails to open is written to
+  the log instead of being swallowed.
+- Notifications **Trip Assigned** and **Trip Rejected** are worded in the reader's language; they showed
+  the server's English.
+
 ⚠️ **RE-052 needs the Raphael.Backend with `garage-change/preview`.**
 
 ### Added (RE-052)

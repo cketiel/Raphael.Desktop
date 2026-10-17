@@ -66,6 +66,7 @@ namespace Raphael.Desktop.ViewModels
             EditUserCommand = new RelayCommandObject(EditUser, CanEditOrDeleteUser);
             DeleteUserCommand = new RelayCommandObject(DeleteUser, CanEditOrDeleteUser);
             ChangePasswordCommand = new RelayCommandObject(OpenChangePasswordDialog, CanEditOrDeleteUser);
+            InitOutOfService();
 
             LoadUsers();
         }
@@ -75,6 +76,7 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 var users = await _userService.GetUsersAsync();
+                await MarkOutOfServiceAsync(users);
                 Users = new ObservableCollection<User>(users);
             }
             catch (Exception ex)
@@ -82,6 +84,58 @@ namespace Raphael.Desktop.ViewModels
                 Helpers.UiError.Show($"Error loading users: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+
+        // ---- RE-053: Out of Service ----
+
+        public ICommand OutOfServiceCommand { get; private set; }
+        public ICommand ReturnToServiceCommand { get; private set; }
+
+        public string OutOfServiceToolTip => LocalizationService.Instance["oos.ActionDriver"];
+        public string ReturnToServiceToolTip => LocalizationService.Instance["oos.ActionReturn"];
+        public string ColumnHeaderOutOfService => LocalizationService.Instance["oos.Column"];
+        public string OutOfServiceBadge => LocalizationService.Instance["oos.Badge"];
+
+        private void InitOutOfService()
+        {
+            OutOfServiceCommand = new RelayCommandObject(async p => await TakeOutOfServiceAsync(p as User),
+                p => p is User x && CanBeOutOfService(x) && !x.IsOutOfService);
+            ReturnToServiceCommand = new RelayCommandObject(async p => await ReturnToServiceAsync(p as User),
+                p => p is User x && x.IsOutOfService);
+        }
+
+        /// <summary>One read of the open records, put on the rows they belong to.</summary>
+        private async System.Threading.Tasks.Task MarkOutOfServiceAsync(System.Collections.Generic.IEnumerable<User> items)
+        {
+            try
+            {
+                var open = await new OutOfServiceService().GetActiveAsync();
+                foreach (var x in items)
+                    x.OutOfServiceRecord = open.FirstOrDefault(r => r.Subject == Views.OutOfServiceDialog.Driver && r.SubjectId == x.Id);
+            }
+            catch (Exception ex)
+            {
+                Helpers.FileLogger.Log($"Drivers: could not read what is out of service. {ex.Message}");
+            }
+        }
+
+        private async System.Threading.Tasks.Task TakeOutOfServiceAsync(User x)
+        {
+            if (x == null) return;
+            if (Helpers.OutOfServiceUi.Show(Views.OutOfServiceDialog.ForDriver(x)))
+                { await MarkOutOfServiceAsync(Users); Users = new ObservableCollection<User>(Users); }
+        }
+
+        private async System.Threading.Tasks.Task ReturnToServiceAsync(User x)
+        {
+            if (x?.OutOfServiceRecord == null) return;
+            if (await Helpers.OutOfServiceUi.ReturnToServiceAsync(new[] { x.OutOfServiceRecord }, x.FullName))
+                { await MarkOutOfServiceAsync(Users); Users = new ObservableCollection<User>(Users); }
+        }
+
+        /// <summary>Only a driver works a route, and only an active one can be taken out of service.</summary>
+        private static bool CanBeOutOfService(User u) =>
+            u.IsActive && (u.RoleName ?? string.Empty).Contains("Driver", StringComparison.OrdinalIgnoreCase);
 
         private async void AddUser(object parameter)
         {

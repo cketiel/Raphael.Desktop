@@ -99,6 +99,15 @@
                     <Setter Property="Background" Value="White"/>
                 </Trigger>
 
+                <!-- RE-053: a trip an Out of Service just sent back. Before hover and selection, so the
+                     dispatcher still sees which row they picked; the amber is the dialog's. -->
+                <DataTrigger Binding="{Binding IsOutOfServiceHighlighted}" Value="True">
+                    <Setter Property="Background" Value="#FFF8E1" />
+                    <Setter Property="BorderBrush" Value="#FFA000" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    <Setter Property="ToolTip" Value="{Binding Data.OutOfServiceRowTooltip, Source={StaticResource vmProxy}}" />
+                </DataTrigger>
+
                 <!-- ⚠️ Hover and selection have to be declared here. The Background setter above
                      is a style value, and the row template paints selection from a template
                      trigger, which loses to it — which is why the dispatcher could not tell
@@ -402,10 +411,24 @@
                                     BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
                                     Visibility="{Binding IsDayReadOnly, Converter={StaticResource BoolToVis}}">
                                 <DockPanel>
-                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockClockOutline"
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline"
                                                              Width="20" Height="20" Foreground="#455A64"
                                                              VerticalAlignment="Top" Margin="0,1,8,0"/>
                                     <TextBlock Text="{Binding DayReadOnlyText}" TextWrapping="Wrap" Foreground="#37474F"/>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- RE-053: the route on screen is out of service (its vehicle, its driver or
+                                 both). Nothing can be routed on it; the trips it had pending went to
+                                 the unscheduled list, except one with the patient on board. -->
+                            <Border DockPanel.Dock="Top" Background="#FFEBEE" BorderBrush="#C62828"
+                                    BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding IsSelectedRouteOutOfService, Converter={StaticResource BoolToVis}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="CarOff"
+                                                             Width="20" Height="20" Foreground="#C62828"
+                                                             VerticalAlignment="Top" Margin="0,1,8,0"/>
+                                    <TextBlock Text="{Binding SelectedRouteOutOfServiceText}" TextWrapping="Wrap" Foreground="#B71C1C"/>
                                 </DockPanel>
                             </Border>
 

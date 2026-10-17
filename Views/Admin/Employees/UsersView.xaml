@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
 
     <Border BorderThickness="1" BorderBrush="#2196f3" Background="White">
@@ -62,6 +63,19 @@
                                             ToolTip="{Binding Data.DeleteUserToolTip, Source={StaticResource vmProxy}}">
                                         <materialDesign:PackIcon Kind="DeleteForever" Foreground="Red"/>
                                     </Button>
+                                    <!-- RE-053: Out of Service, or back in service when it already is. -->
+                                    <Button Command="{Binding Data.OutOfServiceCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            ToolTip="{Binding Data.OutOfServiceToolTip, Source={StaticResource vmProxy}}">
+                                        <materialDesign:PackIcon Kind="CarOff" Foreground="#C62828"/>
+                                    </Button>
+                                    <Button Command="{Binding Data.ReturnToServiceCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            ToolTip="{Binding Data.ReturnToServiceToolTip, Source={StaticResource vmProxy}}">
+                                        <materialDesign:PackIcon Kind="Restore" Foreground="#2E7D32"/>
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -70,6 +84,18 @@
                     <DataGridTextColumn
                         Header="{Binding Data.ColumnHeaderFullName, Source={StaticResource vmProxy}}" 
                         Binding="{Binding FullName}" Width="2*"/>
+                    <!-- RE-053: a red badge, with since when and why in its tooltip. Empty while in service. -->
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnHeaderOutOfService, Source={StaticResource vmProxy}}" SortMemberPath="IsOutOfService">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="#FFEBEE" BorderBrush="#C62828" BorderThickness="1" CornerRadius="3"
+                                        Padding="6,1" ToolTip="{Binding OutOfServiceText}"
+                                        Visibility="{Binding IsOutOfService, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding Data.OutOfServiceBadge, Source={StaticResource vmProxy}}" Foreground="#B71C1C" FontWeight="SemiBold"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn 
                         Header="{Binding Data.ColumnHeaderUserName, Source={StaticResource vmProxy}}" 
                         Binding="{Binding Username}" Width="*"/>

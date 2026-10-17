@@ -664,6 +664,21 @@ namespace Raphael.Desktop.ViewModels
                     _allVehicleRoutes.Add(new VehicleRouteViewModel(route));
                 }
 
+                // RE-053: one read of what is out of service, so the map can tell those vehicles apart.
+                try
+                {
+                    var open = await new OutOfServiceService().GetActiveAsync();
+                    foreach (var route in _allVehicleRoutes)
+                        route.OutOfService = open.Where(r =>
+                                (r.Subject == Views.OutOfServiceDialog.Vehicle && r.SubjectId == route.Model.VehicleId)
+                                || (r.Subject == Views.OutOfServiceDialog.Driver && r.SubjectId == route.Model.DriverId))
+                            .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Helpers.FileLogger.Log($"Dispatch: could not read the routes out of service. {ex.Message}");
+                }
+
                 // We use Task.WhenAll to run both loads in parallel and improve performance
                 await Task.WhenAll(
                     LoadRunsAndEventsAsync(),

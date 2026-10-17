@@ -605,6 +605,10 @@
                                                                         <Run Text="Run:" FontWeight="Bold"/>
                                                                         <Run Text="{Binding Name, Mode=OneWay}"/>
                                                                     </TextBlock>
+                                                                    <!-- RE-053: why this vehicle is grey with a red ring. -->
+                                                                    <TextBlock Text="{Binding VehicleRoute.OutOfServiceText, Mode=OneWay}"
+                                                                               Foreground="#C62828" FontWeight="SemiBold" TextWrapping="Wrap" MaxWidth="260"
+                                                                               Visibility="{Binding VehicleRoute.IsOutOfService, Converter={StaticResource BoolToVis}}"/>
                                                                     <Separator Margin="0,4"/>
                                                                     <TextBlock>
                                                                         <Run Text="Last Event:" FontWeight="Bold"/>
@@ -641,17 +645,26 @@
                                                         </Grid.ToolTip>
 
                                                         <!-- ELIPSE (Círculo de fondo) -->
-                                                        <Ellipse Stroke="White" StrokeThickness="2">
+                                                        <Ellipse>
                                                             <Ellipse.Effect>
                                                                 <DropShadowEffect ShadowDepth="2" BlurRadius="4" Opacity="0.5"/>
                                                             </Ellipse.Effect>
                                                             <Ellipse.Style>
                                                                 <Style TargetType="Ellipse">
                                                                     <Setter Property="Fill" Value="DodgerBlue"/>
+                                                                    <!-- In the style, not on the element, so the trigger below can change them. -->
+                                                                    <Setter Property="Stroke" Value="White"/>
+                                                                    <Setter Property="StrokeThickness" Value="2"/>
                                                                     <Style.Triggers>
                                                                         <!-- Cambio de color a Naranja si está parado (N/A) -->
                                                                         <DataTrigger Binding="{Binding LastKnownLocation.Direction}" Value="N/A">
                                                                             <Setter Property="Fill" Value="#FF5722"/>
+                                                                        </DataTrigger>
+                                                                        <!-- RE-053: out of service wins over moving or stopped: grey with a red ring. -->
+                                                                        <DataTrigger Binding="{Binding VehicleRoute.IsOutOfService}" Value="True">
+                                                                            <Setter Property="Fill" Value="#78909C"/>
+                                                                            <Setter Property="Stroke" Value="#C62828"/>
+                                                                            <Setter Property="StrokeThickness" Value="3"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
@@ -670,6 +683,9 @@
                                                                         <!-- Cambio de icono a Stop si está parado (N/A) -->
                                                                         <DataTrigger Binding="{Binding LastKnownLocation.Direction}" Value="N/A">
                                                                             <Setter Property="Kind" Value="Stop"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding VehicleRoute.IsOutOfService}" Value="True">
+                                                                            <Setter Property="Kind" Value="CarOff"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>

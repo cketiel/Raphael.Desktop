@@ -254,6 +254,9 @@ namespace Raphael.Desktop.ViewModels
             // leave from a reload, from a routing, and from a cancellation arriving over the hub.
             UnscheduledTrips.CollectionChanged += (_, __) => UpdateUnscheduledSummary();
 
+            // RE-053: the trips an Out of Service sent back stay picked out through every reload.
+            UnscheduledTrips.CollectionChanged += (_, __) => ApplyOutOfServiceHighlight();
+
             InitializeColumns();
             //_ = InitializeAsync();
 
@@ -827,12 +830,14 @@ namespace Raphael.Desktop.ViewModels
             var routes = await _runService.GetAllAsync();
 
             // Guardamos en la lista maestra
+            // RE-053: suspensions are no longer cut here, against today. They are of the selected
+            // day, and ApplyVehicleRouteFilter asks with it, together with Out of Service.
             _allVehicleRoutesMaster = routes.Where(r => {
                 var now = DateTime.UtcNow;
-                bool inDateRange = now >= r.FromDate && (r.ToDate == null || now <= r.ToDate);
-                bool isSuspended = r.Suspensions.Any(s => now >= s.SuspensionStart && now <= s.SuspensionEnd);
-                return inDateRange && !isSuspended;
+                return now >= r.FromDate && (r.ToDate == null || now <= r.ToDate);
             }).ToList();
+
+            await LoadOutOfServiceAsync();
 
             // Llenamos la colección observable que ve la UI por primera vez
             //ApplyVehicleRouteFilter();
@@ -875,6 +880,11 @@ namespace Raphael.Desktop.ViewModels
             {
                 filtered = filtered.Where(r => r.Vehicle?.VehicleGroup?.Id == SelectedVehicleGroup.Id);
             }
+
+            // RE-053: a route out of service, or suspended on the day, cannot be routed, so it is
+            // not offered. The one on screen stays, with its banner, so whoever was looking at it
+            // sees what happened to it instead of being moved to another route.
+            filtered = filtered.Where(r => r.Id == previousSelected?.Id || IsRoutable(r));
 
             VehicleRoutes.ReplaceAll(filtered);
 
@@ -1153,6 +1163,13 @@ namespace Raphael.Desktop.ViewModels
             if (tripToSchedule == null || vehicleRoute == null)
             {
                 Helpers.UiError.Show("Please select a trip and a vehicle route before routing.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // RE-053: the server refuses it too; this says why before asking.
+            if (IsSelectedRouteOutOfService)
+            {
+                Helpers.UiError.Show(SelectedRouteOutOfServiceText, LocalizationService.Instance["oos.Title"], MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1533,7 +1550,7 @@ namespace Raphael.Desktop.ViewModels
             return true;
         }
 
-        private bool CanRouteSelectedTrip() => SelectedVehicleRoute != null && SelectedUnscheduledTrip != null;
+        private bool CanRouteSelectedTrip() => SelectedVehicleRoute != null && SelectedUnscheduledTrip != null && !IsSelectedRouteOutOfService;
 
         // Logic to cancel
         private async Task CancelSelectedRouteAsync(ScheduleDto schedule)
@@ -1634,6 +1651,9 @@ namespace Raphael.Desktop.ViewModels
             // The board follows the screen: a dispatcher working Tuesday is not sent Wednesday.
             UpdateBoardWatches();
 
+            // RE-053: a suspension is of some days; the route list is the selected day's.
+            if (IsInitialized) ApplyVehicleRouteFilter();
+
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
                 _ = LoadSchedulesAndTripsAsync();
@@ -1651,6 +1671,9 @@ namespace Raphael.Desktop.ViewModels
             _lastVehicleReportUtc = null;
 
             UpdateBoardWatches();
+
+            // RE-053: the banner and the routing button follow the route on screen.
+            RaiseOutOfService();
 
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
@@ -3636,8 +3659,10 @@ namespace Raphael.Desktop.ViewModels
             _board.TripUnrouted += OnBoardTripUnrouted;
             _board.RouteChanged += OnBoardRouteChanged;
             _board.VehiclePosition += OnBoardVehiclePosition;
+            _board.RouteServiceChanged += OnBoardRouteServiceChanged;
 
             _ = _board.StartAsync();
+            _ = _board.WatchFleetAsync();
         }
 
         /// <summary>
@@ -3676,6 +3701,7 @@ namespace Raphael.Desktop.ViewModels
             _board.TripUnrouted -= OnBoardTripUnrouted;
             _board.RouteChanged -= OnBoardRouteChanged;
             _board.VehiclePosition -= OnBoardVehiclePosition;
+            _board.RouteServiceChanged -= OnBoardRouteServiceChanged;
 
             _ = _board.StopAsync();
             _board = null;

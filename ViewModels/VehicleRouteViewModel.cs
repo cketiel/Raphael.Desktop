@@ -28,6 +28,25 @@ namespace Raphael.Desktop.ViewModels
         public TimeSpan ToTime => _route.ToTime;
         public int VehicleGroupId => _route.Vehicle?.GroupId ?? 0;
 
+        private System.Collections.Generic.List<DTOs.OutOfServiceRecordDto> _outOfService = new();
+
+        /// <summary>RE-053: the open records of this route's vehicle and driver. Set by the screen.</summary>
+        public System.Collections.Generic.List<DTOs.OutOfServiceRecordDto> OutOfService
+        {
+            get => _outOfService;
+            set
+            {
+                _outOfService = value ?? new();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsOutOfService));
+                OnPropertyChanged(nameof(OutOfServiceText));
+            }
+        }
+
+        public bool IsOutOfService => _outOfService.Count > 0;
+
+        public string OutOfServiceText => Helpers.OutOfServiceUi.Describe(_outOfService);
+
         public double GarageLatitude => _route.GarageLatitude;
         public double GarageLongitude => _route.GarageLongitude;
 

@@ -25,6 +25,16 @@ namespace Raphael.Desktop.Helpers
             public const string EtaMinutes = "EtaMinutes";
             public const string WillCallActivatedAtUtc = "WillCallActivatedAtUtc";
             public const string WillCallDeadlineUtc = "WillCallDeadlineUtc";
+
+            // RE-053, Out of Service. Reasons travel as codes and are worded here.
+            public const string OutOfServiceCause = "OutOfServiceCause";
+            public const string VehicleName = "VehicleName";
+            public const string DriverName = "DriverName";
+            public const string VehicleReasonCode = "VehicleReasonCode";
+            public const string DriverReasonCode = "DriverReasonCode";
+
+            /// <summary>Not sent by the server: composed here from the four above, for the templates.</summary>
+            public const string OutOfServiceSubjects = "OutOfServiceSubjects";
         }
 
         /// <summary>Business events that reach the dispatch office today.</summary>
@@ -47,6 +57,12 @@ namespace Raphael.Desktop.Helpers
             public const string DriverCompletedTrip = "DRIVER_COMPLETED_TRIP";
             public const string WillCallActivated = "WILL_CALL_ACTIVATED";
             public const string WillCallAcknowledged = "WILL_CALL_ACKNOWLEDGED";
+
+            /// <summary>A vehicle, a driver or both were taken out of service (RE-053).</summary>
+            public const string RouteOutOfService = "ROUTE_OUT_OF_SERVICE";
+
+            /// <summary>A vehicle or driver out of service was put back (RE-053).</summary>
+            public const string RouteReturnedToService = "ROUTE_RETURNED_TO_SERVICE";
         }
 
         /// <summary>

@@ -53,5 +53,9 @@ namespace Raphael.Desktop.Views
         /// <summary>Opens a route and day with one trip's pickup and dropoff framed (RE-051).</summary>
         public Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId) =>
             _viewModel.ShowTripAsync(date, vehicleRouteId, tripId);
+
+        /// <summary>RE-053: the day's unscheduled trips, with these picked out.</summary>
+        public Task ShowUnscheduledAsync(DateTime date, IReadOnlyCollection<int> tripIds) =>
+            _viewModel.ShowUnscheduledAsync(date, tripIds);
     }
 }

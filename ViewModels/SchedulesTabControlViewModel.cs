@@ -61,6 +61,10 @@ namespace Raphael.Desktop.ViewModels
         public Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId) =>
             ScheduleContentViewModel.ShowTripAsync(date, vehicleRouteId, tripId);
 
+        /// <summary>Opens a day's unscheduled trips with some picked out (RE-053).</summary>
+        public Task ShowUnscheduledAsync(DateTime date, System.Collections.Generic.IReadOnlyCollection<int> tripIds) =>
+            ScheduleContentViewModel.ShowUnscheduledAsync(date, tripIds);
+
         /// <summary>Takes the card down and lets go of the queue it listens to.</summary>
         public void CloseCall()
         {
