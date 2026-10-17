@@ -103,6 +103,9 @@ namespace Raphael.Desktop.Views
             {
                 ShowError("An error occurred during login. Please try again.");
                 System.Diagnostics.Debug.WriteLine($"Login error: {ex}");
+                // Signed in, but the main window could not open: without this line a broken view
+                // reads as a failed login and leaves no trace.
+                Helpers.FileLogger.Log($"Login: the main window could not open. {ex}");
             }
             finally
             {

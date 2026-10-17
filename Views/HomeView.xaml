@@ -1199,7 +1199,7 @@
                                     CornerRadius="4" Padding="10,6" Margin="0,0,0,4"
                                     Visibility="{Binding IsEditingReadOnlyTrip, Converter={StaticResource BoolToVisibility}}">
                                 <DockPanel>
-                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockClockOutline" Foreground="#455A64"
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline" Foreground="#455A64"
                                                              Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
                                     <Button DockPanel.Dock="Right" Content="{Binding StartCorrectionLabel}" Command="{Binding StartCorrectionCommand}"
                                             Style="{StaticResource MaterialDesignOutlinedButton}" Height="24" Padding="10,0" Margin="8,0,0,0"
