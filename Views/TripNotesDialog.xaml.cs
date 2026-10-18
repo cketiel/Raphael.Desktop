@@ -26,6 +26,7 @@ namespace Raphael.Desktop.Views
     {
         public const string Pickup = "Pickup";
         public const string Dropoff = "Dropoff";
+        private const string TopicId = "desktop/home/trip-notes";
 
         private static readonly Brush Ink = Freeze(new SolidColorBrush(Color.FromRgb(0x37, 0x47, 0x4F)));
         private static readonly Brush Quiet = Freeze(new SolidColorBrush(Color.FromRgb(0x78, 0x90, 0x9C)));
@@ -58,10 +59,11 @@ namespace Raphael.Desktop.Views
             DropoffTab.Header = L["notes.TabDropoff"];
             PatientTab.Header = L["notes.TabPatient"];
             CloseButton.Content = L["notes.Close"];
+            HelpButton.ToolTip = L["notes.Help"];
             Tabs.SelectedItem = side == Pickup ? PickupTab : side == Dropoff ? DropoffTab : PatientTab;
 
             // F1 opens the topic about this window.
-            HelpAssist.SetTopicId(this, "desktop/home/trip-notes");
+            HelpAssist.SetTopicId(this, TopicId);
 
             Loaded += async (_, _) => await RunAsync(() => _service.GetAsync(_tripId));
         }
@@ -73,6 +75,10 @@ namespace Raphael.Desktop.Views
         public bool Changed { get; private set; }
 
         private void OnClose(object sender, RoutedEventArgs e) => Close();
+
+        /// <summary>The same topic as F1, opened in front of this window.</summary>
+        private void OnHelp(object sender, RoutedEventArgs e) =>
+            Raphael.Desktop.Services.Help.HelpService.Instance.Open(TopicId);
 
         // =========================================================================================
         // Server round trips

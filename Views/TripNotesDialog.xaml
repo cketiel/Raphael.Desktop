@@ -1,4 +1,4 @@
-<Window x:Class="Raphael.Desktop.Views.TripNotesDialog"
+﻿<Window x:Class="Raphael.Desktop.Views.TripNotesDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
@@ -12,6 +12,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock x:Name="HeaderText" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -24,6 +25,11 @@
                     <TextBlock x:Name="ReviewBadgeText" Margin="6,0,0,0" Foreground="#E65100" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
             </Border>
+            <!-- A new feature: its help is one click away, not only behind F1. -->
+            <Button x:Name="HelpButton" Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}"
+                    Width="36" Height="36" Padding="0" Margin="8,-4,0,0" VerticalAlignment="Top" Click="OnHelp">
+                <materialDesign:PackIcon Kind="HelpCircleOutline" Width="24" Height="24" Foreground="#673AB7" />
+            </Button>
         </Grid>
 
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">

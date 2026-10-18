@@ -1407,5 +1407,6 @@
     "notes.SourceDispatcher": "Oficina",
     "notes.Open": "Notas para el conductor",
     "notes.OpenNeedsSave": "Guarda el viaje primero: las notas se guardan en los lugares de un viaje guardado.",
-    "notes.GridToReview": "Notas: {0} por revisar"
+    "notes.GridToReview": "Notas: {0} por revisar",
+    "notes.Help": "Ayuda: notas para el conductor (F1)"
 }

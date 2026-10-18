@@ -1407,5 +1407,6 @@
     "notes.SourceDispatcher": "Office",
     "notes.Open": "Notes for the driver",
     "notes.OpenNeedsSave": "Save the trip first: the notes are kept on the places of a saved trip.",
-    "notes.GridToReview": "Notes: {0} to review"
+    "notes.GridToReview": "Notes: {0} to review",
+    "notes.Help": "Help: notes for the driver (F1)"
 }
