@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.13.0"
+    "Raphael.Desktop": "1.14.2"
   },
-  "builtUtc": "2026-10-18T02:07:32.005Z",
-  "sourceCommit": "e9a0186",
+  "builtUtc": "2026-10-18T19:51:46.359Z",
+  "sourceCommit": "e91611f",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin",
         "dispatcher",
@@ -312,7 +312,7 @@
       "id": "desktop/home/edit-restrictions",
       "mode": "how-to",
       "since": "1.13.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.14.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -321,6 +321,21 @@
       "title": {
         "es": "Viajes que no se pueden editar",
         "en": "Trips you cannot edit"
+      }
+    },
+    {
+      "id": "desktop/home/trip-notes",
+      "mode": "how-to",
+      "since": "1.14.0",
+      "lastReviewed": "1.14.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Home",
+      "title": {
+        "es": "Notas para el conductor",
+        "en": "Notes for the driver"
       }
     },
     {
@@ -565,7 +580,7 @@
       "id": "desktop/admin/integrators",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.5.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
@@ -579,7 +594,7 @@
       "id": "desktop/admin/providers",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
@@ -593,7 +608,7 @@
       "id": "desktop/admin/catalog-integrators",
       "mode": "how-to",
       "since": "1.11.0",
-      "lastReviewed": "1.11.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
@@ -607,7 +622,7 @@
       "id": "desktop/admin/catalog-providers",
       "mode": "how-to",
       "since": "1.11.0",
-      "lastReviewed": "1.11.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],

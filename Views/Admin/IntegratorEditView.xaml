@@ -42,10 +42,7 @@
                       materialDesign:TextFieldAssist.HasClearButton="True"
                       Margin="0,0,0,20"/>
                 
-                <!-- Estado -->
-                <CheckBox Content="{Binding IsActiveText}" 
-                          IsChecked="{Binding Integrator.IsActive}" 
-                          Margin="0,0,0,20"/>
+                <!-- RE-056: IsActive is changed only from the list (Uncontract / Contract again). -->
 
                 <!-- Contact details, added in RE-027. Until now an integrator was a name and a
                      key: everything the API needs and nothing of what a person needs when they

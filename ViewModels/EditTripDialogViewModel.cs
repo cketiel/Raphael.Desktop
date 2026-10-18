@@ -17,9 +17,39 @@ namespace Raphael.Desktop.ViewModels
         public bool IsReturnType { get; set; }
         public DateTime? FromTime { get; set; }
         public string PickupPhone { get; set; }
-        public string PickupComment { get; set; }
         public string DropoffPhone { get; set; }
-        public string DropoffComment { get; set; }
+
+        // Notifying: the notes window (RE-054) writes back what the driver now reads.
+        private string _pickupComment;
+        public string PickupComment
+        {
+            get => _pickupComment;
+            set { _pickupComment = value; OnPropertyChanged(); }
+        }
+
+        private string _dropoffComment;
+        public string DropoffComment
+        {
+            get => _dropoffComment;
+            set { _dropoffComment = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>The trip being edited, for the notes window.</summary>
+        public int TripId { get; }
+
+        /// <summary>Opens the notes for the driver at one end ("Pickup" or "Dropoff"). Saved there, at once.</summary>
+        public ICommand OpenNotesCommand { get; }
+        public string NotesOpenText => LocalizationService.Instance["notes.Open"];
+
+        private void OpenNotes(object side)
+        {
+            if (TripId == 0) return;
+            var dialog = new Views.TripNotesDialog(TripId, side as string);
+            dialog.ShowDialog();
+            if (!dialog.Changed || dialog.Result is not { } notes) return;
+            PickupComment = notes.Pickup.Composed;
+            DropoffComment = notes.Dropoff.Composed;
+        }
 
         public bool WasSaved => true;
         public bool WasCancelled => false;
@@ -67,6 +97,8 @@ namespace Raphael.Desktop.ViewModels
         public ICommand ShowRoutedLockCommand { get; }
 
         public EditTripDialogViewModel(TripReadDto trip) {
+            TripId = trip.Id;
+            OpenNotesCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<object>(OpenNotes);
             Title = "Trip Edit - " + trip.CustomerName;
             IsAppointmentType = trip.Type == TripType.Appointment;
             IsReturnType = trip.Type == TripType.Return;
@@ -96,6 +128,8 @@ namespace Raphael.Desktop.ViewModels
         }
         public EditTripDialogViewModel(UnscheduledTripDto trip)
         {
+            TripId = trip.Id;
+            OpenNotesCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<object>(OpenNotes);
             Title = "Trip Edit - " + trip.CustomerName;
             IsAppointmentType = trip.Type == TripType.Appointment;
             IsReturnType = trip.Type == TripType.Return;

@@ -67,5 +67,8 @@ namespace Raphael.Desktop.DTOs
         public int? IntegratorId { get; set; }
         public string? IntegratorName { get; set; }
         public string? ProviderOutcomeReason { get; set; }
+
+        /// <summary>RE-054: notes of this trip's places and patient a file added and nobody has reviewed yet.</summary>
+        public int NotesToReview { get; set; }
     }
 }

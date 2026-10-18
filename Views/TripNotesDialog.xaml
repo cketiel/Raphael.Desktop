@@ -1,0 +1,61 @@
+﻿<Window x:Class="Raphael.Desktop.Views.TripNotesDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Width="860" Height="760" MinWidth="640" MinHeight="480" ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <!-- RE-054. The notes of one trip: for each end, what the driver reads, this trip's own note, the
+         entrance's and the place's notes; and the patient's. Built from code, from the server's answer:
+         nothing here works out what the driver will read. -->
+    <DockPanel Margin="18">
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock x:Name="HeaderText" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock x:Name="SubHeaderText" Foreground="#78909C" TextWrapping="Wrap" Margin="0,2,0,0" />
+            </StackPanel>
+            <Border x:Name="ReviewBadge" Grid.Column="1" Background="#FFF8E1" BorderBrush="#FFA000" BorderThickness="1"
+                    CornerRadius="12" Padding="10,3" VerticalAlignment="Top" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="AlertCircleOutline" Foreground="#E65100" VerticalAlignment="Center" />
+                    <TextBlock x:Name="ReviewBadgeText" Margin="6,0,0,0" Foreground="#E65100" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+            <!-- A new feature: its help is one click away, not only behind F1. -->
+            <Button x:Name="HelpButton" Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}"
+                    Width="36" Height="36" Padding="0" Margin="8,-4,0,0" VerticalAlignment="Top" Click="OnHelp">
+                <materialDesign:PackIcon Kind="HelpCircleOutline" Width="24" Height="24" Foreground="#673AB7" />
+            </Button>
+        </Grid>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <TextBlock x:Name="BusyText" Foreground="#78909C" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <Button x:Name="CloseButton" IsCancel="True" Style="{StaticResource MaterialDesignRaisedButton}" Click="OnClose" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText" DockPanel.Dock="Bottom" Foreground="#C62828" TextWrapping="Wrap"
+                   Margin="0,8,0,0" Visibility="Collapsed" />
+
+        <TabControl x:Name="Tabs">
+            <TabItem x:Name="PickupTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="PickupPanel" Margin="4,12,12,4" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem x:Name="DropoffTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DropoffPanel" Margin="4,12,12,4" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem x:Name="PatientTab">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="PatientPanel" Margin="4,12,12,4" />
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

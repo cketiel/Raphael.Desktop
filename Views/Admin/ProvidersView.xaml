@@ -66,6 +66,22 @@
                                     <Button Command="{Binding Data.DeleteCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}">
                                         <materialDesign:PackIcon Kind="Delete" Foreground="Red"/>
                                     </Button>
+                                    <!-- RE-055: switch off a Provider that stopped paying, or back on.
+                                         Never shown for Raphael's own company. -->
+                                    <Grid Visibility="{Binding CanToggleActive, Converter={StaticResource BoolToVisConverter}}">
+                                        <Button Command="{Binding Data.ToggleActiveCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                                Style="{StaticResource MaterialDesignToolButton}"
+                                                ToolTip="{Binding Data.DeactivateText, Source={StaticResource vmProxy}}"
+                                                Visibility="{Binding IsActive, Converter={StaticResource BoolToVisConverter}}">
+                                            <materialDesign:PackIcon Kind="AccountCancel" Foreground="#B06000"/>
+                                        </Button>
+                                        <Button Command="{Binding Data.ToggleActiveCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                                Style="{StaticResource MaterialDesignToolButton}"
+                                                ToolTip="{Binding Data.ReactivateText, Source={StaticResource vmProxy}}"
+                                                Visibility="{Binding IsActive, Converter={StaticResource InverseBoolToVisConverter}}">
+                                            <materialDesign:PackIcon Kind="AccountCheck" Foreground="Green"/>
+                                        </Button>
+                                    </Grid>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -85,6 +101,18 @@
                     </DataGridTemplateColumn>
 
                     <DataGridTextColumn Header="{Binding Data.ColumnCompany, Source={StaticResource vmProxy}}" Binding="{Binding Name}" Width="*" />
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnStatus, Source={StaticResource vmProxy}}" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Data.ActiveText, Source={StaticResource providerProxy}}" Foreground="Green"
+                                               Visibility="{Binding IsActive, Converter={StaticResource BoolToVisConverter}}" />
+                                    <TextBlock Text="{Binding Data.InactiveText, Source={StaticResource providerProxy}}" Foreground="Red" FontWeight="SemiBold"
+                                               Visibility="{Binding IsActive, Converter={StaticResource InverseBoolToVisConverter}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="{Binding Data.ColumnPhone, Source={StaticResource vmProxy}}" Binding="{Binding Phone}" Width="Auto" />
                     <DataGridTextColumn Header="{Binding Data.ColumnEmail, Source={StaticResource vmProxy}}" Binding="{Binding Email}" Width="*" />
                     <DataGridTextColumn Header="{Binding Data.ColumnAddress, Source={StaticResource vmProxy}}" Binding="{Binding Address}" Width="2*" />

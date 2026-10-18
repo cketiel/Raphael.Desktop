@@ -3,10 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              xmlns:services="clr-namespace:Raphael.Desktop.Services">
 
     <UserControl.Resources>
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisConverter" />
     </UserControl.Resources>
 
     <Border BorderThickness="1" BorderBrush="#2196f3" Background="White">
@@ -60,6 +63,19 @@
                                 </Button>
                                 <Button Command="{Binding Data.DeleteCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" Style="{StaticResource MaterialDesignToolButton}" ToolTip="{Binding Data.DeleteText, Source={StaticResource vmProxy}}">
                                     <materialDesign:PackIcon Kind="Delete" Foreground="Red"/>
+                                </Button>
+                                <!-- RE-056: uncontract or contract again; the form no longer does it. -->
+                                <Button Command="{Binding Data.ToggleActiveCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignToolButton}"
+                                        ToolTip="{Binding Data.UncontractText, Source={StaticResource vmProxy}}"
+                                        Visibility="{Binding IsActive, Converter={StaticResource BoolToVisConverter}}">
+                                    <materialDesign:PackIcon Kind="DomainRemove" Foreground="#B06000"/>
+                                </Button>
+                                <Button Command="{Binding Data.ToggleActiveCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignToolButton}"
+                                        ToolTip="{Binding Data.RecontractText, Source={StaticResource vmProxy}}"
+                                        Visibility="{Binding IsActive, Converter={StaticResource InverseBoolToVisConverter}}">
+                                    <materialDesign:PackIcon Kind="DomainPlus" Foreground="Green"/>
                                 </Button>
                             </StackPanel>
                         </DataTemplate>

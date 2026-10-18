@@ -109,6 +109,18 @@ namespace Raphael.Desktop.Models
 
         public bool IsExternal => WorkMode == 1;
 
+        private bool _isActive = true;
+        /// <summary>
+        /// False when the platform switched it off (RE-055): its users cannot sign in. Saved through
+        /// its own endpoint (<c>PUT providers/{id}/active</c>), never with the rest of the form.
+        /// </summary>
+        public bool IsActive { get => _isActive; set => SetProperty(ref _isActive, value); }
+
+        public DateTime? DeactivatedAtUtc { get; set; }
+
+        /// <summary>Raphael's own company (id 1) can never be switched off.</summary>
+        public bool CanToggleActive => Id != 1;
+
         public string FullLogoUrl
         {
             get

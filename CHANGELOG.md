@@ -5,6 +5,56 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.14.2] - 2026-10-18
+
+**Slices:** RE-054, RE-055, RE-056 (three, so the patch is .2). **Needs Raphael.Backend 2.4.3**: against
+an older backend the notes window and the uncontract buttons answer with an error; everything else
+works as before. Help: what's new 1.14.2, and the Providers, Integrators and catalog topics.
+
+
+⚠️ **RE-055 needs Raphael.Backend 2.4.3** (Provider deactivation); against an older
+backend the Deactivate button answers with an error and everything else works as before.
+
+⚠️ **RE-056 needs Raphael.Backend 2.4.3** (uncontracting catalog entities).
+
+### Added (RE-056 — uncontracting catalog entities)
+- **Uncontract** an entity of your company from its catalog row (Providers and Integrators), and from
+  the Integrators list. Nothing is deleted; the catalog shows it as **Uncontracted**.
+- **Add to my company** on an uncontracted entity contracts the record it had again, after a
+  confirmation, instead of opening the form for a new one.
+
+### Changed (RE-056)
+- The Providers list button from RE-055 is now **Uncontract / Contract again**, the same act.
+- **The Integrator form no longer has the Active box**: the list's button is the only way to do it.
+
+### Added (RE-055 — Provider deactivation)
+- **Deactivate / Reactivate a Provider** from Admin → Providers (platform admins only). Before switching
+  it off it shows how many trips the Provider still has from today on; they are left as they are.
+  Raphael's own company has no such button.
+- **Status column** in the Providers list: Active / Deactivated.
+
+⚠️ **Needs Raphael.Backend 2.4.3** (places and notes); against an older backend the
+notes window answers "not found" and everything else works as before.
+
+### Added (RE-054 — notes for the driver)
+- **Trip notes window.** The ⤢ button in the corner of the Pickup and Dropoff comments (Home form and
+  Dispatch's edit dialog) and the notes icon on every grid row open it: for each stop, what the driver
+  reads there, this trip's own note, the entrance's and the place's notes, and the patient's notes.
+  Notes are added, edited, confirmed and removed there and saved at once; a note of the place or the
+  patient reaches every trip still to come. The place can be renamed, an entrance named, or another
+  facility chosen. The comment fields keep their size: the form's layout and the divider do not move.
+- **Notes to review**: the grid's notes icon turns orange when a file added notes nobody has reviewed.
+- **New trips fill their comments** with the notes the patient and the places already have as soon as
+  the patient and the addresses are picked, never over what the dispatcher typed. Read from the
+  server's database: no call to Google.
+- Help topic `desktop/home/trip-notes` (F1 in the window).
+- Help button in the trip notes window header.
+
+### Fixed
+- **F1 opened the wrong help page.** After following links inside the help, F1 on the same screen left
+  the reader where they had wandered off to; it now brings the screen's topic back. From a modal dialog
+  the help opened behind it (or disabled); it now opens in its own window in front of the dialog.
+
 ## [1.13.0] - 2026-10-17
 
 ⚠️ **Needs Raphael.Backend 2.3.0** (in production since 2026-10-17): Out of Service, the garage

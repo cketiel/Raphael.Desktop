@@ -683,6 +683,24 @@ namespace Raphael.Desktop
         /// </remarks>
         private void ShowHelp()
         {
+            // Asked from a modal dialog: the help opens in a window of its own, owned by that dialog,
+            // so it comes up in front of it and can be used. A tab sits behind the dialog, and a help
+            // window opened before the dialog is disabled by Windows for as long as the dialog lasts.
+            var dialog = Application.Current?.Windows.OfType<Window>()
+                .FirstOrDefault(w => w.IsActive && w is not MainWindow && w is not Views.Help.HelpWindow);
+            if (dialog is not null && !ReferenceEquals(_helpWindow?.Owner, dialog))
+            {
+                _helpWindow?.Close();
+                var tab = FindHelpTab();
+                if (tab is not null)
+                {
+                    if (tab.Content is Grid host) host.Children.Remove(HelpService.Instance.View);
+                    MainTabControl.Items.Remove(tab);
+                }
+                OpenHelpWindow(dialog, rememberPlacement: false);
+                return;
+            }
+
             if (_helpWindow is not null)
             {
                 if (_helpWindow.WindowState == WindowState.Minimized)
@@ -763,17 +781,24 @@ namespace Raphael.Desktop
             OpenHelpWindow();
         }
 
-        private void OpenHelpWindow()
+        /// <param name="owner">The window it opens over: this one, or the dialog F1 was pressed in.</param>
+        /// <param name="rememberPlacement">
+        /// False for a dialog's help: it is a passing window, and must not turn "docked" into the reader's preference.
+        /// </param>
+        private void OpenHelpWindow(Window owner = null, bool rememberPlacement = true)
         {
             var panel = HelpService.Instance.View;
 
             DetachFromParent(panel);
 
-            _helpWindow = new Views.Help.HelpWindow(panel, this);
+            _helpWindow = new Views.Help.HelpWindow(panel, owner ?? this);
             panel.IsInOwnWindow = true;
 
-            Properties.Settings.Default.HelpDocked = false;
-            Properties.Settings.Default.Save();
+            if (rememberPlacement)
+            {
+                Properties.Settings.Default.HelpDocked = false;
+                Properties.Settings.Default.Save();
+            }
 
             // Docking: the reader asked for the panel to live in a tab from now on.
             _helpWindow.DockRequested += (_, _) =>

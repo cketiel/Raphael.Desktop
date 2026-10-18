@@ -39,6 +39,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
             EditCommand = new AsyncRelayCommand<CatalogProviderListItemDto>(EditAsync);
             AddToMyCompanyCommand =
                 new AsyncRelayCommand<CatalogProviderListItemDto>(AddToMyCompanyAsync);
+            UncontractCommand = new AsyncRelayCommand<CatalogProviderListItemDto>(UncontractAsync);
             GeocodeCommand = new AsyncRelayCommand(GeocodePageAsync);
             ImportCommand = new AsyncRelayCommand(ImportAsync);
             ExportCommand = new AsyncRelayCommand(ExportAsync);
@@ -47,6 +48,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public IAsyncRelayCommand AddCommand { get; }
         public IAsyncRelayCommand<CatalogProviderListItemDto> EditCommand { get; }
         public IAsyncRelayCommand<CatalogProviderListItemDto> AddToMyCompanyCommand { get; }
+        public IAsyncRelayCommand<CatalogProviderListItemDto> UncontractCommand { get; }
         public IAsyncRelayCommand GeocodeCommand { get; }
         public IAsyncRelayCommand ImportCommand { get; }
         public IAsyncRelayCommand ExportCommand { get; }
@@ -169,6 +171,13 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 return;
             }
 
+            // RE-056: one the company uncontracted is contracted again as it was, never added twice.
+            if (item.IsUncontracted && item.MyProviderId is int previousId)
+            {
+                await RecontractAsync(item.Name, previousId);
+                return;
+            }
+
             if (item.InMyCompany)
             {
                 MessageBox.Show(
@@ -215,6 +224,74 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 UiError.Show(
                     exception.Message,
                     LocalizationService.Instance["catalog.AddToMyCompanyFailed"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Uncontracts an entity of this company (RE-056): its row goes inactive, nothing is deleted,
+        /// and it can be contracted again from here or from its list.
+        /// </summary>
+        private async Task UncontractAsync(CatalogProviderListItemDto? item)
+        {
+            if (item is null || !item.InMyCompany || item.MyProviderId is not int myId)
+            {
+                return;
+            }
+
+            try
+            {
+                var message = string.Format(
+                    LocalizationService.Instance["catalog.ConfirmUncontractProvider"], item.Name);
+                var pending = await _providers.GetPendingTripsAsync(myId);
+                if (pending > 0)
+                    message += Environment.NewLine + Environment.NewLine + string.Format(
+                        LocalizationService.Instance["admin.ProviderPendingTripsWarning"], pending);
+
+                if (MessageBox.Show(
+                        message,
+                        LocalizationService.Instance["catalog.Uncontract"],
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                await _providers.SetActiveAsync(myId, false);
+                await ReloadAsync(resetPage: false);
+            }
+            catch (Exception exception)
+            {
+                UiError.Show(
+                    exception.Message,
+                    LocalizationService.Instance["catalog.Uncontract"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async Task RecontractAsync(string name, int previousId)
+        {
+            if (MessageBox.Show(
+                    string.Format(LocalizationService.Instance["catalog.ConfirmRecontract"], name),
+                    LocalizationService.Instance["catalog.Recontract"],
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                await _providers.SetActiveAsync(previousId, true);
+                await ReloadAsync(resetPage: false);
+            }
+            catch (Exception exception)
+            {
+                UiError.Show(
+                    exception.Message,
+                    LocalizationService.Instance["catalog.Recontract"],
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }

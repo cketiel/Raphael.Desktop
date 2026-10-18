@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -71,12 +71,13 @@ public partial class HelpView : UserControl, INotifyPropertyChanged
     /// <summary>Shows a topic, navigating only when something actually changed.</summary>
     public void Navigate(string topicId, string language)
     {
-        var sameAsBefore = topicId == _topic && language == _language;
-
         _topic = topicId;
         _language = language;
 
-        if (_ready && !sameAsBefore)
+        // Compared with the page on screen, not with the last topic asked for: after a few clicks
+        // through the help, F1 on the same screen has to bring its page back. Comparing with the
+        // last request left the reader wherever they had wandered off to.
+        if (_ready && !IsShowing(topicId, language))
             NavigateNow();
     }
 
@@ -100,6 +101,16 @@ public partial class HelpView : UserControl, INotifyPropertyChanged
 
         if (_ready)
             NavigateNow();
+    }
+
+    /// <summary>Whether the browser already shows this topic (anchors aside), so its scroll position is kept.</summary>
+    private bool IsShowing(string topicId, string language)
+    {
+        var current = Browser.CoreWebView2?.Source;
+        if (string.IsNullOrEmpty(current)) return false;
+        var hash = current.IndexOf('#');
+        if (hash >= 0) current = current[..hash];
+        return string.Equals(current, HelpService.BuildUrl(topicId, language), StringComparison.OrdinalIgnoreCase);
     }
 
     private void NavigateNow()
