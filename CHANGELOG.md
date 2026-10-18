@@ -20,6 +20,12 @@ notes window answers "not found" and everything else works as before.
   the patient and the addresses are picked, never over what the dispatcher typed. Read from the
   server's database: no call to Google.
 - Help topic `desktop/home/trip-notes` (F1 in the window).
+- Help button in the trip notes window header.
+
+### Fixed
+- **F1 opened the wrong help page.** After following links inside the help, F1 on the same screen left
+  the reader where they had wandered off to; it now brings the screen's topic back. From a modal dialog
+  the help opened behind it (or disabled); it now opens in its own window in front of the dialog.
 
 ## [1.13.0] - 2026-10-17
 
