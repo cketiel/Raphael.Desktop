@@ -47,6 +47,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
             EditCommand = new AsyncRelayCommand<CatalogIntegratorListItemDto>(EditAsync);
             AddToMyCompanyCommand =
                 new AsyncRelayCommand<CatalogIntegratorListItemDto>(AddToMyCompanyAsync);
+            UncontractCommand = new AsyncRelayCommand<CatalogIntegratorListItemDto>(UncontractAsync);
             GeocodeCommand = new AsyncRelayCommand(GeocodePageAsync);
             ImportCommand = new AsyncRelayCommand(ImportAsync);
             ExportCommand = new AsyncRelayCommand(ExportAsync);
@@ -55,6 +56,7 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public IAsyncRelayCommand AddCommand { get; }
         public IAsyncRelayCommand<CatalogIntegratorListItemDto> EditCommand { get; }
         public IAsyncRelayCommand<CatalogIntegratorListItemDto> AddToMyCompanyCommand { get; }
+        public IAsyncRelayCommand<CatalogIntegratorListItemDto> UncontractCommand { get; }
         public IAsyncRelayCommand GeocodeCommand { get; }
         public IAsyncRelayCommand ImportCommand { get; }
         public IAsyncRelayCommand ExportCommand { get; }
@@ -178,6 +180,13 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 return;
             }
 
+            // RE-056: one the company uncontracted is contracted again as it was, never added twice.
+            if (item.IsUncontracted && item.MyIntegratorId is int previousId)
+            {
+                await RecontractAsync(item.Name, previousId);
+                return;
+            }
+
             if (item.InMyCompany)
             {
                 MessageBox.Show(
@@ -224,6 +233,70 @@ namespace Raphael.Desktop.ViewModels.Catalog
                 UiError.Show(
                     exception.Message,
                     LocalizationService.Instance["catalog.AddToMyCompanyFailed"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Uncontracts an entity of this company (RE-056): its row goes inactive, nothing is deleted,
+        /// and it can be contracted again from here or from its list.
+        /// </summary>
+        private async Task UncontractAsync(CatalogIntegratorListItemDto? item)
+        {
+            if (item is null || !item.InMyCompany || item.MyIntegratorId is not int myId)
+            {
+                return;
+            }
+
+            try
+            {
+                var message = string.Format(
+                    LocalizationService.Instance["catalog.ConfirmUncontractIntegrator"], item.Name);
+
+                if (MessageBox.Show(
+                        message,
+                        LocalizationService.Instance["catalog.Uncontract"],
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                await _integrators.SetActiveAsync(myId, false);
+                await ReloadAsync(resetPage: false);
+            }
+            catch (Exception exception)
+            {
+                UiError.Show(
+                    exception.Message,
+                    LocalizationService.Instance["catalog.Uncontract"],
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async Task RecontractAsync(string name, int previousId)
+        {
+            if (MessageBox.Show(
+                    string.Format(LocalizationService.Instance["catalog.ConfirmRecontract"], name),
+                    LocalizationService.Instance["catalog.Recontract"],
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                await _integrators.SetActiveAsync(previousId, true);
+                await ReloadAsync(resetPage: false);
+            }
+            catch (Exception exception)
+            {
+                UiError.Show(
+                    exception.Message,
+                    LocalizationService.Instance["catalog.Recontract"],
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }

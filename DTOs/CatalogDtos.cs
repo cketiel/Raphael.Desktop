@@ -174,6 +174,8 @@ namespace Raphael.Desktop.DTOs
         public bool InMyCompany { get; set; }
 
         public int? MyIntegratorId { get; set; }
+        /// <summary>The company had it and uncontracted it (RE-056); MyIntegratorId still points to that row.</summary>
+        public bool IsUncontracted { get; set; }
 
         /// <summary>Total companies that added it. Null unless the caller is the general broker.</summary>
         public int? AddedByCompanyCount { get; set; }
@@ -247,6 +249,8 @@ namespace Raphael.Desktop.DTOs
 
         public bool InMyCompany { get; set; }
         public int? MyIntegratorId { get; set; }
+        /// <summary>The company had it and uncontracted it (RE-056); MyIntegratorId still points to that row.</summary>
+        public bool IsUncontracted { get; set; }
         public int? AddedByCompanyCount { get; set; }
     }
 
@@ -320,6 +324,8 @@ namespace Raphael.Desktop.DTOs
 
         public bool InMyCompany { get; set; }
         public int? MyProviderId { get; set; }
+        /// <summary>The company had it and uncontracted it (RE-056); MyProviderId still points to that row.</summary>
+        public bool IsUncontracted { get; set; }
         public int? AddedByCompanyCount { get; set; }
 
         // ---- The rest of the row, so the grid can show every column ------------------
@@ -397,6 +403,8 @@ namespace Raphael.Desktop.DTOs
 
         public bool InMyCompany { get; set; }
         public int? MyProviderId { get; set; }
+        /// <summary>The company had it and uncontracted it (RE-056); MyProviderId still points to that row.</summary>
+        public bool IsUncontracted { get; set; }
         public int? AddedByCompanyCount { get; set; }
     }
 

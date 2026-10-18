@@ -29,6 +29,7 @@ namespace Raphael.Desktop.ViewModels
         public ICommand AddCommand { get; }
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
+        public ICommand ToggleActiveCommand { get; }
 
         public IntegratorsViewModel()
         {
@@ -38,6 +39,7 @@ namespace Raphael.Desktop.ViewModels
             AddCommand = new RelayCommandObject(_ => OpenEditPopup(null));
             EditCommand = new RelayCommandObject(p => OpenEditPopup(p as Integrator));
             DeleteCommand = new RelayCommandObject(p => DeleteAsync(p as Integrator));
+            ToggleActiveCommand = new RelayCommandObject(p => ToggleActiveAsync(p as Integrator));
 
             LoadData();
         }
@@ -56,6 +58,38 @@ namespace Raphael.Desktop.ViewModels
             }
             finally { IsLoading = false; }
         }
+
+        /// <summary>
+        /// Uncontracts an Integrator or contracts it again (RE-056), the only way to change IsActive.
+        /// Off, its API key stops working and its users cannot sign in. Nothing is deleted.
+        /// </summary>
+        private async void ToggleActiveAsync(Integrator item)
+        {
+            if (item == null) return;
+
+            var activate = !item.IsActive;
+            var title = LocalizationService.Instance[activate ? "catalog.Recontract" : "catalog.Uncontract"];
+            var message = string.Format(
+                LocalizationService.Instance[activate ? "catalog.ConfirmRecontract" : "catalog.ConfirmUncontractIntegrator"],
+                item.Name);
+
+            if (MessageBox.Show(message, title, MessageBoxButton.YesNo,
+                    activate ? MessageBoxImage.Question : MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                await _service.SetActiveAsync(item.Id, activate);
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                Helpers.UiError.Show(ex.Message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public string UncontractText => LocalizationService.Instance["catalog.Uncontract"];
+        public string RecontractText => LocalizationService.Instance["catalog.Recontract"];
 
         private async void OpenEditPopup(Integrator item)
         {

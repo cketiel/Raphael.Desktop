@@ -8,6 +8,18 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 ⚠️ **RE-055 needs the Raphael.Backend release with RE-055** (Provider deactivation); against an older
 backend the Deactivate button answers with an error and everything else works as before.
 
+⚠️ **RE-056 needs the Raphael.Backend release with RE-056** (uncontracting catalog entities).
+
+### Added (RE-056 — uncontracting catalog entities)
+- **Uncontract** an entity of your company from its catalog row (Providers and Integrators), and from
+  the Integrators list. Nothing is deleted; the catalog shows it as **Uncontracted**.
+- **Add to my company** on an uncontracted entity contracts the record it had again, after a
+  confirmation, instead of opening the form for a new one.
+
+### Changed (RE-056)
+- The Providers list button from RE-055 is now **Uncontract / Contract again**, the same act.
+- **The Integrator form no longer has the Active box**: the list's button is the only way to do it.
+
 ### Added (RE-055 — Provider deactivation)
 - **Deactivate / Reactivate a Provider** from Admin → Providers (platform admins only). Before switching
   it off it shows how many trips the Provider still has from today on; they are left as they are.

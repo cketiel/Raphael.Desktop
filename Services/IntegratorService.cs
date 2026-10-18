@@ -45,6 +45,15 @@ namespace Raphael.Desktop.Services
             }
             return true;
         }
+        public async Task SetActiveAsync(int id, bool isActive)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/active", new { isActive });
+            if (!response.IsSuccessStatusCode)
+            {
+                throw await CreateApiException(response, $"Error changing integrator {id}");
+            }
+        }
+
         public async Task<bool> DeleteIntegratorAsync(int id)
         {
             try

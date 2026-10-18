@@ -443,6 +443,8 @@ namespace Raphael.Desktop.ViewModels.Catalog
         public string GeocodeText => LocalizationService.Instance["catalog.Geocode"];
         public string AddToMyCompanyText => LocalizationService.Instance["catalog.AddToMyCompany"];
         public string AlreadyInMyCompanyText => LocalizationService.Instance["catalog.AlreadyInMyCompany"];
+        public string UncontractText => LocalizationService.Instance["catalog.Uncontract"];
+        public string UncontractedText => LocalizationService.Instance["catalog.Uncontracted"];
         public string PreviousText => LocalizationService.Instance["catalog.Previous"];
         public string NextText => LocalizationService.Instance["catalog.Next"];
         public string DidYouMeanText => LocalizationService.Instance["catalog.DidYouMean"];

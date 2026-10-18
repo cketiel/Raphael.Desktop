@@ -244,6 +244,16 @@
                                             ToolTip="{Binding Data.AddToMyCompanyText, Source={StaticResource vmProxy}}">
                                         <materialDesign:PackIcon Kind="DomainPlus" Foreground="#2196f3" />
                                     </Button>
+                                    <!-- RE-056: uncontract one of this company's. Platform admins only. -->
+                                    <StackPanel Visibility="{Binding Data.IsPlatformAdmin, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}">
+                                    <Button Command="{Binding Data.UncontractCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            Visibility="{Binding InMyCompany, Converter={StaticResource BoolToVis}}"
+                                            ToolTip="{Binding Data.UncontractText, Source={StaticResource vmProxy}}">
+                                        <materialDesign:PackIcon Kind="DomainRemove" Foreground="#B06000" />
+                                    </Button>
+                                    </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -252,10 +262,16 @@
                     <DataGridTemplateColumn Header="" Width="40">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
+                                <Grid>
                                 <materialDesign:PackIcon Kind="CheckDecagram" Foreground="#4caf50"
                                                          VerticalAlignment="Center"
                                                          ToolTip="{Binding Data.AlreadyInMyCompanyText, Source={StaticResource vmProxy}}"
                                                          Visibility="{Binding InMyCompany, Converter={StaticResource BoolToVis}}" />
+                                <materialDesign:PackIcon Kind="DomainOff" Foreground="#9e9e9e"
+                                                         VerticalAlignment="Center"
+                                                         ToolTip="{Binding Data.UncontractedText, Source={StaticResource vmProxy}}"
+                                                         Visibility="{Binding IsUncontracted, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
