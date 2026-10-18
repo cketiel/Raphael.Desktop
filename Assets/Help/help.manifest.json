@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.13.0"
   },
-  "builtUtc": "2026-10-16T21:24:35.115Z",
-  "sourceCommit": "2756cfe",
+  "builtUtc": "2026-10-18T02:07:32.005Z",
+  "sourceCommit": "e9a0186",
   "languages": [
     "es",
     "en"
@@ -309,6 +309,21 @@
       }
     },
     {
+      "id": "desktop/home/edit-restrictions",
+      "mode": "how-to",
+      "since": "1.13.0",
+      "lastReviewed": "1.13.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Home",
+      "title": {
+        "es": "Viajes que no se pueden editar",
+        "en": "Trips you cannot edit"
+      }
+    },
+    {
       "id": "desktop/data/overview",
       "mode": "reference",
       "since": "1.3.0",
@@ -321,6 +336,36 @@
       "title": {
         "es": "Data — los datos maestros",
         "en": "Data — the master data"
+      }
+    },
+    {
+      "id": "desktop/data/route-garage",
+      "mode": "how-to",
+      "since": "1.13.0",
+      "lastReviewed": "1.13.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Cambiar el garaje de una ruta",
+        "en": "Changing a route's garage"
+      }
+    },
+    {
+      "id": "desktop/data/out-of-service",
+      "mode": "how-to",
+      "since": "1.13.0",
+      "lastReviewed": "1.13.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Poner fuera de servicio un vehículo o un driver",
+        "en": "Take a vehicle or a driver out of service"
       }
     },
     {
@@ -342,7 +387,7 @@
       "id": "desktop/schedules/routing",
       "mode": "how-to",
       "since": "1.6.0",
-      "lastReviewed": "1.8.0",
+      "lastReviewed": "1.13.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -387,7 +432,7 @@
       "id": "desktop/schedules/unrouting",
       "mode": "how-to",
       "since": "1.6.0",
-      "lastReviewed": "1.8.0",
+      "lastReviewed": "1.13.0",
       "roles": [
         "admin",
         "dispatcher"

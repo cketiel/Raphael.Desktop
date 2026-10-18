@@ -99,6 +99,15 @@
                     <Setter Property="Background" Value="White"/>
                 </Trigger>
 
+                <!-- RE-053: a trip an Out of Service just sent back. Before hover and selection, so the
+                     dispatcher still sees which row they picked; the amber is the dialog's. -->
+                <DataTrigger Binding="{Binding IsOutOfServiceHighlighted}" Value="True">
+                    <Setter Property="Background" Value="#FFF8E1" />
+                    <Setter Property="BorderBrush" Value="#FFA000" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    <Setter Property="ToolTip" Value="{Binding Data.OutOfServiceRowTooltip, Source={StaticResource vmProxy}}" />
+                </DataTrigger>
+
                 <!-- ⚠️ Hover and selection have to be declared here. The Background setter above
                      is a style value, and the row template paints selection from a template
                      trigger, which loses to it — which is why the dispatcher could not tell
@@ -396,6 +405,51 @@
                         </Grid.ColumnDefinitions>
 
                         <DockPanel Grid.Column="0">
+                            <!-- RE-051: a past day. Nothing on it is routed, reordered or recalculated:
+                                 it is the record of what was driven, and reports are built on it. -->
+                            <Border DockPanel.Dock="Top" Background="#ECEFF1" BorderBrush="#90A4AE"
+                                    BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding IsDayReadOnly, Converter={StaticResource BoolToVis}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline"
+                                                             Width="20" Height="20" Foreground="#455A64"
+                                                             VerticalAlignment="Top" Margin="0,1,8,0"/>
+                                    <TextBlock Text="{Binding DayReadOnlyText}" TextWrapping="Wrap" Foreground="#37474F"/>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- RE-053: the route on screen is out of service (its vehicle, its driver or
+                                 both). Nothing can be routed on it; the trips it had pending went to
+                                 the unscheduled list, except one with the patient on board. -->
+                            <Border DockPanel.Dock="Top" Background="#FFEBEE" BorderBrush="#C62828"
+                                    BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding IsSelectedRouteOutOfService, Converter={StaticResource BoolToVis}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="CarOff"
+                                                             Width="20" Height="20" Foreground="#C62828"
+                                                             VerticalAlignment="Top" Margin="0,1,8,0"/>
+                                    <TextBlock Text="{Binding SelectedRouteOutOfServiceText}" TextWrapping="Wrap" Foreground="#B71C1C"/>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- RE-051: the trip Home could not edit because it is on this route. Its
+                                 two stops are framed below; the way to unlock its fields is to take it
+                                 back to the open list from here. -->
+                            <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#FFA000"
+                                    BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding HasGuide, Converter={StaticResource BoolToVis}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOpenVariantOutline"
+                                                             Width="20" Height="20" Foreground="#E65100"
+                                                             VerticalAlignment="Top" Margin="0,1,8,0"/>
+                                    <Button DockPanel.Dock="Right" Command="{Binding ClearGuideHighlightCommand}"
+                                            Content="{Binding GuideDismissText}"
+                                            Style="{StaticResource MaterialDesignFlatButton}" Foreground="#E65100"
+                                            Padding="8,0" MinWidth="0" VerticalAlignment="Top" Cursor="Hand"/>
+                                    <TextBlock Text="{Binding GuideText}" TextWrapping="Wrap" Foreground="#5D4037"/>
+                                </DockPanel>
+                            </Border>
+
                             <!-- The order the dispatcher chose, and what it costs. Advice only:
                                  the move is on the route and saved by the time this appears, and
                                  the button dismisses the notice, never the change. -->
@@ -433,7 +487,7 @@
                                  infinite height to measure against, so every row is realised and
                                  virtualisation is silently off no matter what the grid declares.
                                  The DataGrid scrolls itself. -->
-                                <DataGrid ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource ScheduleEventCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DragHandler="{Binding}" gong:DragDrop.DropHandler="{Binding}">
+                                <DataGrid x:Name="SchedulesGrid" ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" FrozenColumnCount="2" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource ScheduleEventCellStyle}" SelectionUnit="FullRow" gong:DragDrop.IsDragSource="True" gong:DragDrop.IsDropTarget="True" gong:DragDrop.DragHandler="{Binding}" gong:DragDrop.DropHandler="{Binding}">
                                     <DataGrid.RowStyle>
                                         <!-- ⚠️ Trigger order in THIS list is what decides the row's
                                              background, and the late-ETA ones are last on purpose.
@@ -467,6 +521,14 @@
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
                                                 </Trigger>
+
+                                                <!-- RE-051: the two stops of the trip Home sent the dispatcher
+                                                     to. A frame, not a fill: the background on this grid is
+                                                     already saying late or waiting, and must keep saying it. -->
+                                                <DataTrigger Binding="{Binding IsGuideHighlighted}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="#FFA000"/>
+                                                    <Setter Property="BorderThickness" Value="3"/>
+                                                </DataTrigger>
 
                                                 <!-- Waiting: the driver could have been there earlier,
                                                      and the early-arrival rule holds the vehicle at the

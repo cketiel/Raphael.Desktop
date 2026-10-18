@@ -97,6 +97,11 @@ namespace Raphael.Desktop.ViewModels
                 _tripBeingEdited = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanEditWillCall));
+
+                // RE-051: a correction is for one trip, and a new one starts with its notice open.
+                CorrectionReason = null;
+                IsTripNoticeOpen = true;
+                RaiseTripLockState();
             }
         }
 
@@ -192,6 +197,7 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(IsMapVisible));
             OnPropertyChanged(nameof(CanStartNewPatient));
             RefreshHelperCards();
+            RaiseTripLockState();
 
             _tripFormOnEntry = IsTripFormOpen ? CaptureTripForm() : null;
         }
@@ -908,6 +914,9 @@ namespace Raphael.Desktop.ViewModels
         {
             get
             {
+                // RE-051: before any field. A past or closed trip is not saved at all.
+                if (IsEditingReadOnlyTrip) return LocalizationService.Instance["lock.SaveBlockedReadOnly"];
+
                 if (IdCustomer <= 0) return Missing("home.StepPatient");
                 if (string.IsNullOrWhiteSpace(DropoffAddress)) return Missing("home.StepDropoff");
                 if (SelectedSpaceType == null) return Missing("home.StepSpaceType");
@@ -2114,8 +2123,14 @@ namespace Raphael.Desktop.ViewModels
             // Selecting a row shows the trip on the map. Editing it is a double click, and the
             // form is only filled from there — see BeginEditSelectedTrip.
             if (CurrentMode != HomeMode.EditingTrip) return;
+            if (TripBeingEdited != null && newValue.Id == TripBeingEdited.Id) return;
 
-            LoadTripIntoForm(newValue);
+            // One click on another trip while editing leaves the form: it does not edit the new
+            // trip. Only a double click edits, from anywhere (BeginEditSelectedTrip), so a
+            // dispatcher who clicks a row to look at it on the map is never dropped into editing.
+            TripBeingEdited = null;
+            ClearTripForm();
+            CurrentMode = HomeMode.Browsing;
         }
 
         /// <summary>
@@ -2683,6 +2698,11 @@ namespace Raphael.Desktop.ViewModels
                         Created = SelectedTrip.Created // Mantener fecha de creación
                     };*/
 
+                    // RE-051: on a routed trip the locked fields go back as they were, whatever the
+                    // map or the patient search did to the form meanwhile. The server would refuse
+                    // them; sending the originals is what lets a phone or a comment still be saved.
+                    if (IsEditingRoutedTrip) KeepRoutedFields(tripReadDto, TripBeingEdited);
+
                     // RE-050: the Provider goes back unchanged, unless Raphael's admin changed it.
                     tripReadDto.ProviderId = TripBeingEdited.ProviderId;
                     if (IsPlatformAdmin && SelectedProviderOption != null && SelectedProviderOption.Id != TripBeingEdited.ProviderId)
@@ -2691,7 +2711,10 @@ namespace Raphael.Desktop.ViewModels
                         tripReadDto.SetProvider = true;
                     }
 
-                    await _tripService.UpdateTripAsync(tripReadDto);
+                    using (CorrectionReason == null ? null : Services.TripLocks.CorrectionScope.Begin(CorrectionReason))
+                    {
+                        await _tripService.UpdateTripAsync(tripReadDto);
+                    }
 
                     MessageBox.Show("Trip updated successfully!");
                 }
@@ -2803,6 +2826,10 @@ namespace Raphael.Desktop.ViewModels
                 ClearTripForm();
                 SearchText = string.Empty;
             }
+            catch (Services.TripLocks.TripLockedApiException ex)
+            {
+                TripGuard.ExplainRefusal(ex);
+            }
             catch (ApiException ex)
             {
                 // Esto es vital: La API suele enviar un JSON explicando EXACTAMENTE qué campo falló
@@ -2904,7 +2931,16 @@ namespace Raphael.Desktop.ViewModels
             var tripToEdit = parameter as TripReadDto;
             if (tripToEdit == null) return;
            
+            // RE-051: a past or closed trip is not edited; an admin may correct it, saying why.
+            using var correction = TripGuard.Enter(tripToEdit.Date, tripToEdit.Status, LocalizationService.Instance["lock.OpEdit"]);
+            if (correction == null) return;
+
             var dialogViewModel = new EditTripDialogViewModel(tripToEdit);
+            dialogViewModel.ShowInScheduleRequested += () =>
+            {
+                MaterialDesignThemes.Wpf.DialogHost.Close("RootDialogHost", false);
+                AppNavigation.ShowTripInSchedule(tripToEdit.Date, tripToEdit.VehicleRouteId, tripToEdit.Id);
+            };
             var dialog = new EditTripDialog { DataContext = dialogViewModel };
 
             var result = await MaterialDesignThemes.Wpf.DialogHost.Show(dialog, "RootDialogHost");
@@ -2930,6 +2966,9 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToCancel = parameter as TripReadDto;
             if (tripToCancel == null) return;
+
+            using var correction = TripGuard.Enter(tripToCancel.Date, tripToCancel.Status, LocalizationService.Instance["lock.OpCancel"]);
+            if (correction == null) return;
 
             var confirmationText = $"Are you sure you want to cancel trip '{tripToCancel.Id}'?";
             var confirmationTitle = "Confirm Cancellation";
@@ -2957,6 +2996,14 @@ namespace Raphael.Desktop.ViewModels
         private async Task ExecuteAcceptTripAsync(object parameter)
         {
             if (parameter is not TripReadDto trip) return;
+
+            // Not offered as a correction: the server leaves past trips out of an Accept.
+            if (TripGuard.IsReadOnly(trip.Date, trip.Status))
+            {
+                TripGuard.AskForCorrection(TripGuard.ReadOnlyReason(trip.Date, trip.Status), AcceptTripLabel);
+                return;
+            }
+
             try
             {
                 var accepted = await _tripService.AcceptTripsAsync(new[] { trip.Id });
@@ -2977,6 +3024,10 @@ namespace Raphael.Desktop.ViewModels
         private async Task ExecuteRejectTripAsync(object parameter)
         {
             if (parameter is not TripReadDto trip) return;
+
+            using var correction = TripGuard.Enter(trip.Date, trip.Status, RejectTripLabel);
+            if (correction == null) return;
+
             var dialog = new Views.ReasonDialog(
                 RejectTripLabel,
                 string.Format(LocalizationService.Instance["home.RejectPrompt"], trip.TripId ?? trip.Id.ToString()),
@@ -2999,6 +3050,9 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToUncancel = parameter as TripReadDto;
             if (tripToUncancel == null) return;
+
+            using var correction = TripGuard.Enter(tripToUncancel.Date, tripToUncancel.Status, LocalizationService.Instance["lock.OpUncancel"]);
+            if (correction == null) return;
 
             var confirmationText = $"Are you sure you want to restore trip '{tripToUncancel.Id}'?";
             var confirmationTitle = "Confirm Restoration";

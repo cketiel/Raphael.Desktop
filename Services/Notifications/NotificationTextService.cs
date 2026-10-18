@@ -130,6 +130,26 @@ public sealed class NotificationTextService
         if (parameters.TryGetValue(NotificationKeys.Metadata.CancelledBy, out var cancelledBy))
             parameters[NotificationKeys.Metadata.CancelledBy] = ResolveCancelledBy(cancelledBy);
 
+        // RE-053: "Vehicle Van 12 (Mechanical failure) and driver John Doe (Medical or personal
+        // leave)", whichever of the two is there, in the reader's language. Composed here so a
+        // template never shows the placeholder of a subject that was not taken out.
+        var vehicle = parameters.GetValueOrDefault(NotificationKeys.Metadata.VehicleName);
+        var driver = parameters.GetValueOrDefault(NotificationKeys.Metadata.DriverName);
+        if (vehicle is not null || driver is not null)
+        {
+            string Reason(string key) =>
+                parameters.TryGetValue(key, out var code) && _localization.TryGetValue("oos.reason." + code, out var text)
+                    ? $" ({text})" : string.Empty;
+
+            var parts = new List<string>();
+            if (vehicle is not null)
+                parts.Add(string.Format(_localization["oos.SubjectVehicle"], vehicle) + Reason(NotificationKeys.Metadata.VehicleReasonCode));
+            if (driver is not null)
+                parts.Add(string.Format(_localization["oos.SubjectDriver"], driver) + Reason(NotificationKeys.Metadata.DriverReasonCode));
+
+            parameters[NotificationKeys.Metadata.OutOfServiceSubjects] = string.Join(_localization["oos.And"], parts);
+        }
+
         // The Will Call deadline travels in UTC. Showing it as such would tell a dispatcher
         // in Miami that the vehicle is due four hours after it really is.
         if (parameters.TryGetValue(

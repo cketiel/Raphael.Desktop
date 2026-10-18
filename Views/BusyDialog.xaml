@@ -1,0 +1,25 @@
+﻿<Window x:Class="Raphael.Desktop.Views.BusyDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" WindowStyle="ToolWindow">
+    <!-- RE-052. A long operation on the server, said while it runs. The bar is indeterminate on
+         purpose: the server answers once, at the end, and a bar that "advanced" would be invented. -->
+    <StackPanel Margin="20">
+        <TextBlock x:Name="MessageText" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Style="{StaticResource MaterialDesignBody1TextBlock}" />
+        <ProgressBar x:Name="Bar" IsIndeterminate="True" Height="6" Margin="0,0,0,12" />
+        <Border x:Name="WarningBox" Background="#FFF8E1" BorderBrush="#FFA000" BorderThickness="1"
+                CornerRadius="4" Padding="10,6" Visibility="Collapsed">
+            <DockPanel>
+                <materialDesign:PackIcon DockPanel.Dock="Left" Kind="AlertOutline" Foreground="#E65100"
+                                         Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                <TextBlock x:Name="WarningText" TextWrapping="Wrap" Foreground="#5D4037" />
+            </DockPanel>
+        </Border>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="StopButton" Style="{StaticResource MaterialDesignOutlinedButton}" Click="OnStop" />
+        </StackPanel>
+    </StackPanel>
+</Window>

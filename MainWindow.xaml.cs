@@ -149,6 +149,12 @@ namespace Raphael.Desktop
             this.Closing += (_, _) => _isClosing = true;
             this.Closed += MainWindow_Closed;
 
+            // RE-051: Home's "show in Schedule" on a routed trip it will not let the dispatcher edit.
+            AppNavigation.ShowTripInScheduleRequested += OpenTripInSchedule;
+            this.Closed += (_, _) => AppNavigation.ShowTripInScheduleRequested -= OpenTripInSchedule;
+            AppNavigation.ShowUnscheduledRequested += OpenUnscheduledInSchedule;
+            this.Closed += (_, _) => AppNavigation.ShowUnscheduledRequested -= OpenUnscheduledInSchedule;
+
             /*UpdateTheme();
 
             themeTimer = new DispatcherTimer
@@ -206,6 +212,8 @@ namespace Raphael.Desktop
 
                 if (_callBoard is not null)
                     await _callBoard.StopAsync();
+
+                await FleetBoard.Instance.StopAsync();
             }
             catch
             {
@@ -369,6 +377,47 @@ namespace Raphael.Desktop
         /// A tab of its own, reused from one call to the next: the Schedule tab a dispatcher was
         /// planning tomorrow in is never taken over by a call.
         /// </remarks>
+        /// <summary>
+        /// A Schedule tab of its own on the trip's route and day, with its pickup and dropoff
+        /// framed. A new tab rather than the one already open: that one holds the day somebody
+        /// else is planning, and taking it over would lose their place (RE-051).
+        /// </summary>
+        private async void OpenTripInSchedule(DateTime date, int vehicleRouteId, int tripId)
+        {
+            var view = new SchedulesView(_notificationService);
+            OpenTab(LocalizationService.Instance["Schedules"], view, PackIconKind.TableClock);
+            CurrentMenu = MENU.Schedules;
+
+            try
+            {
+                await view.ShowTripAsync(date, vehicleRouteId, tripId);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Schedule: could not open trip {tripId} on route {vehicleRouteId}. {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// A Schedule tab of its own on a day's unscheduled trips, with the ones an Out of Service
+        /// sent back picked out (RE-053). A new tab, as for a trip, so nobody loses their place.
+        /// </summary>
+        private async void OpenUnscheduledInSchedule(DateTime date, IReadOnlyCollection<int> tripIds)
+        {
+            var view = new SchedulesView(_notificationService);
+            OpenTab(LocalizationService.Instance["Schedules"], view, PackIconKind.TableClock);
+            CurrentMenu = MENU.Schedules;
+
+            try
+            {
+                await view.ShowUnscheduledAsync(date, tripIds);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Schedule: could not open the unscheduled trips of {date:yyyy-MM-dd}. {ex.Message}");
+            }
+        }
+
         private async void OpenCallWorkbench(CallRequestSummaryDto request)
         {
             if (request.VehicleRouteId is not int routeId || _callActions is null)

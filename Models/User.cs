@@ -10,6 +10,16 @@ namespace Raphael.Desktop.Models
 {
     public class User
     {
+        /// <summary>RE-053: the open Out of Service record, set by the screen. Never sent to the server.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public DTOs.OutOfServiceRecordDto? OutOfServiceRecord { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsOutOfService => OutOfServiceRecord is not null;
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? OutOfServiceText => OutOfServiceRecord is null ? null : Helpers.OutOfServiceUi.Describe(new[] { OutOfServiceRecord });
+
         public int Id { get; set; }
         [Required]
         public string FullName { get; set; }

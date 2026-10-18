@@ -539,6 +539,10 @@ namespace Raphael.Desktop.ViewModels
             var tripToUncancel = parameter as TripItemViewModel;
             if (tripToUncancel == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToUncancel.TripDto.Date, null, LocalizationService.Instance["lock.OpUncancel"]);
+            if (correction == null) return;
+
             // Confirmación del usuario
             var confirmationText = $"Are you sure you want to restore trip '{tripToUncancel.Id}'?";
             var confirmationTitle = "Confirm Restoration";
@@ -573,6 +577,10 @@ namespace Raphael.Desktop.ViewModels
         {
             var tripToCancel = parameter as TripItemViewModel;
             if (tripToCancel == null) return;
+
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToCancel.TripDto.Date, null, LocalizationService.Instance["lock.OpCancel"]);
+            if (correction == null) return;
 
             var confirmationText = string.Format(LocalizationService.Instance["ConfirmCancelTripText"], tripToCancel.Id); // ej: "¿Está seguro de que desea cancelar el viaje '{0}'?"
             var confirmationTitle = LocalizationService.Instance["ConfirmCancelTitle"]; // ej: "Confirmar cancelación"
@@ -614,6 +622,10 @@ namespace Raphael.Desktop.ViewModels
             var tripToEdit = parameter as TripItemViewModel;
             if (tripToEdit == null) return;
 
+            // RE-051: a past or closed trip is read-only; an admin may correct it, saying why.
+            using var correction = Helpers.TripGuard.Enter(tripToEdit.TripDto.Date, null, LocalizationService.Instance["lock.OpEdit"]);
+            if (correction == null) return;
+
             var dialogViewModel = new EditTripDialogViewModel(tripToEdit.TripDto);
             var dialog = new EditTripDialog { DataContext = dialogViewModel };
 
@@ -650,6 +662,21 @@ namespace Raphael.Desktop.ViewModels
                 foreach (var route in routes)
                 {
                     _allVehicleRoutes.Add(new VehicleRouteViewModel(route));
+                }
+
+                // RE-053: one read of what is out of service, so the map can tell those vehicles apart.
+                try
+                {
+                    var open = await new OutOfServiceService().GetActiveAsync();
+                    foreach (var route in _allVehicleRoutes)
+                        route.OutOfService = open.Where(r =>
+                                (r.Subject == Views.OutOfServiceDialog.Vehicle && r.SubjectId == route.Model.VehicleId)
+                                || (r.Subject == Views.OutOfServiceDialog.Driver && r.SubjectId == route.Model.DriverId))
+                            .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Helpers.FileLogger.Log($"Dispatch: could not read the routes out of service. {ex.Message}");
                 }
 
                 // We use Task.WhenAll to run both loads in parallel and improve performance

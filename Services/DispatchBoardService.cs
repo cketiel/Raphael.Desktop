@@ -35,6 +35,7 @@ namespace Raphael.Desktop.Services
         public event EventHandler<RouteChangedMessage>? RouteChanged;
         public event EventHandler<VehiclePositionMessage>? VehiclePosition;
         public event EventHandler<CallRequestChangedMessage>? CallRequestChanged;
+        public event EventHandler<RouteServiceChangedMessage>? RouteServiceChanged;
         public event EventHandler? Reconnected;
 
         public HubConnectionState State => _connection.State;
@@ -157,12 +158,30 @@ namespace Raphael.Desktop.Services
             await SafeInvokeAsync("WatchCallRequests");
         }
 
+        private bool _watchingFleet;
+
+        public async Task WatchFleetAsync()
+        {
+            if (_watchingFleet) return;
+
+            _watchingFleet = true;
+
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"fleet queued, connection is {_connection.State}");
+                return;
+            }
+
+            await SafeInvokeAsync("WatchFleet");
+        }
+
         public async Task StopAsync()
         {
             _watchedDay = null;
             _watchedRouteId = null;
             _watchedRouteDay = null;
             _watchingCallRequests = false;
+            _watchingFleet = false;
 
             try
             {
@@ -204,6 +223,13 @@ namespace Raphael.Desktop.Services
                     VehiclePosition?.Invoke(this, m);
                 });
 
+            _connection.On<RouteServiceChangedMessage>(
+                "RouteServiceChanged", m =>
+                {
+                    Trace($"<- RouteServiceChanged out={m?.OutOfService} routes {string.Join(",", m?.VehicleRouteIds ?? new())}");
+                    RouteServiceChanged?.Invoke(this, m);
+                });
+
             _connection.On<CallRequestChangedMessage>(
                 "CallRequestChanged", m =>
                 {
@@ -224,6 +250,9 @@ namespace Raphael.Desktop.Services
 
             if (_watchingCallRequests)
                 await SafeInvokeAsync("WatchCallRequests");
+
+            if (_watchingFleet)
+                await SafeInvokeAsync("WatchFleet");
         }
 
         private async Task SafeInvokeAsync(string method, params object?[] args)

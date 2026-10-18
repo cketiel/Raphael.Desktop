@@ -78,6 +78,8 @@ namespace Raphael.Desktop.Views.Schedules
                 // Idempotent, so returning to the tab repeatedly cannot stack handlers.
                 viewModel.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
                 viewModel.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
+                viewModel.ScrollScheduleIntoViewRequest -= OnScrollScheduleIntoView;
+                viewModel.ScrollScheduleIntoViewRequest += OnScrollScheduleIntoView;
 
                 if (!viewModel.IsInitialized)
                 {
@@ -95,6 +97,7 @@ namespace Raphael.Desktop.Views.Schedules
             {
                 oldVm.ZoomAndCenterRequest -= OnZoomAndCenterRequest;
                 oldVm.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
+                oldVm.ScrollScheduleIntoViewRequest -= OnScrollScheduleIntoView;
             }
 
             // Subscribe to the new ViewModel
@@ -102,6 +105,7 @@ namespace Raphael.Desktop.Views.Schedules
             {
                 newVm.ZoomAndCenterRequest += OnZoomAndCenterRequest;
                 newVm.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
+                newVm.ScrollScheduleIntoViewRequest += OnScrollScheduleIntoView;
             }
         }
 
@@ -131,6 +135,17 @@ namespace Raphael.Desktop.Views.Schedules
                 return;
 
             UnscheduledTripsGrid?.ScrollIntoView(e.Trip);
+        }
+
+        /// <summary>
+        /// Brings the stop Home sent the dispatcher to into sight (RE-051). The grid is
+        /// virtualised, so a row far down the route is not even built until it is scrolled to.
+        /// </summary>
+        private void OnScrollScheduleIntoView(object sender, DTOs.ScheduleDto schedule)
+        {
+            if (schedule is null) return;
+            Dispatcher.BeginInvoke(() => SchedulesGrid?.ScrollIntoView(schedule),
+                System.Windows.Threading.DispatcherPriority.Background);
         }
 
         /// <summary>
@@ -190,6 +205,7 @@ namespace Raphael.Desktop.Views.Schedules
             {
                 vm.ZoomAndCenterRequest -= OnZoomAndCenterRequest;
                 vm.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
+                vm.ScrollScheduleIntoViewRequest -= OnScrollScheduleIntoView;
 
                 // ⚠️ The inbox subscription is NOT released here. This fires on a tab
                 // switch as well as on a close, and a panel that stopped hearing about

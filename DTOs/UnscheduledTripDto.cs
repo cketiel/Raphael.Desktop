@@ -103,6 +103,13 @@ namespace Raphael.Desktop.DTOs
         [ObservableProperty]
         private bool _isDeparting;
 
+        /// <summary>
+        /// The trip came back to the unscheduled list from an Out of Service (RE-053). Purely
+        /// visual, never sent to the server.
+        /// </summary>
+        [ObservableProperty]
+        private bool _isOutOfServiceHighlighted;
+
         /// <summary>Provider operating the trip. Null means the broker runs it itself.</summary>
         public int? ProviderId { get; set; }
 

@@ -708,6 +708,7 @@
                                                             <!-- AutoSuggestBox -->
                                                             <materialDesign:AutoSuggestBox
                                                                 x:Name="CustomersAutoSuggestBox"
+                                                                IsEnabled="{Binding CanEditTripFields}"
                                                                 Grid.Column="1"
                                                                 MinWidth="150"            
                                                                 VerticalAlignment="Center"
@@ -770,7 +771,8 @@
                                                 
                                                     ToolTip="{Binding SaveCustomerToolTip}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                                    Command="{Binding SaveCustomerCommand}" Click="OnSaveCustomerClick">
+                                                    Command="{Binding SaveCustomerCommand}" Click="OnSaveCustomerClick"
+                                                    IsEnabled="{Binding CanEditTripFields}">
 
                                                     <materialDesign:PackIcon Kind="ContentSave" Width="21" Height="21" />
                                                 </Button>
@@ -781,7 +783,8 @@
                                                     ToolTip="{Binding NewCustomerToolTip}"
                                                     Visibility="{Binding CanStartNewPatient, Converter={StaticResource BoolToVisibility}}"
                                                     Style="{StaticResource MaterialDesignToolForegroundButton}"
-                                                    Command="{Binding NewCustomerCommand}" Click="OnNewCustomerClick">
+                                                    Command="{Binding NewCustomerCommand}" Click="OnNewCustomerClick"
+                                                    IsEnabled="{Binding CanEditTripFields}">
 
                                                 <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="21" Height="21"/>
                                             </Button>
@@ -846,7 +849,10 @@
                                          grey halo round the corners, which is the other half of
                                          the same complaint the Transparent column caused: on a
                                          white screen, every soft shadow reads as dirt. -->
+                                    <!-- RE-051: on a read-only trip the patient is locked with the rest of
+                                         the form, and opens with it when an admin starts a correction. -->
                                     <materialDesign:Card Padding="0" UniformCornerRadius="4"
+                                                         IsEnabled="{Binding CanEditTripFields}"
                                                          Background="{DynamicResource MaterialDesignPaper}">
                                       <Border BorderThickness="1" CornerRadius="4" Padding="4"
                                               BorderBrush="{StaticResource MainBorderBrush}">
@@ -1169,22 +1175,36 @@
                             <!-- ForDateCalendar -->
 
                             <!-- Adjusted calendar -->
-                            <Calendar x:Name="ForDateCalendar"
-                                  Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
-                                  Grid.Column="0"
+                            <!-- ⚠️ Locked without IsEnabled. A disabled Calendar lays a white veil over
+                                 the whole control, and on a past or routed trip the calendar was a
+                                 blank white box. It stays visible and dimmed instead, takes no mouse
+                                 (IsHitTestVisible) and no keys (ForDateCalendar_PreviewKeyDown), and
+                                 the Border round it answers the mouse with the tooltip. -->
+                            <Border Grid.Column="0" Background="Transparent"
+                                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="{Binding CalendarLockedToolTip}"
+                                    ToolTipService.IsEnabled="{Binding IsCalendarLocked}">
+                            <Calendar x:Name="ForDateCalendar" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}"
+                                  IsHitTestVisible="{Binding CanEditRoutedFields}"
+                                  Opacity="{Binding CalendarOpacity}"
+                                  PreviewKeyDown="ForDateCalendar_PreviewKeyDown"
                                   SelectedDate="{Binding TripDate, Mode=TwoWay}"
-                                  VerticalAlignment="Center"
-                                  HorizontalAlignment="Center"
                                   Margin="0"
                                   materialDesign:ElevationAssist.Elevation="Dp2"
-                                  >     
+                                  >
                                 <Calendar.LayoutTransform>
                                     <ScaleTransform ScaleX="0.75" ScaleY="0.685"/>
                                 </Calendar.LayoutTransform>
                             </Calendar>
+                            </Border>
 
                             <!-- Trips TabControl -->
                         
+                            <!-- ⚠️ No banner in here. The RE-051 notices float over the form (see
+                                 TripNoticeLayer at the end of HomeRoot): in this column they took
+                                 room, and a form sized to what the divider leaves had its tabs and
+                                 the calendar pushed out of sight. -->
                             <TabControl x:Name="TripTabs" Grid.Column="1"
                                     Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}"
                                     MinHeight="240"
@@ -1227,7 +1247,7 @@
 
                                     <!-- Left column -->
 
-                                    <Button x:Name="InverterFloatingButton" Width="30" Height="30"
+                                    <Button x:Name="InverterFloatingButton" Width="30" Height="30" IsEnabled="{Binding CanEditRoutedFields}"
                                         Panel.ZIndex="100"
                                         Margin="12,9,16,-17"
                                         HorizontalAlignment="Left"
@@ -1240,7 +1260,7 @@
                                     </Button>
                                         
                                     <TextBox
-                                            x:Name="PickupAddressTextBox" Grid.Row="0" Grid.Column="0" Margin="0,3,0,2"
+                                            x:Name="PickupAddressTextBox" Grid.Row="0" Grid.Column="0" Margin="0,3,0,2" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             Text="{Binding PickupAddress, UpdateSourceTrigger=PropertyChanged}"
                                             IsReadOnly="True" 
                                             Background="#F5F5F5"
@@ -1260,7 +1280,7 @@
                                         </Border>
 
                                         <TextBox
-                                            x:Name="DropoffAddressTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,0,2"
+                                            x:Name="DropoffAddressTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,0,2" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             Text="{Binding DropoffAddress, UpdateSourceTrigger=PropertyChanged}"
                                             IsReadOnly="True" 
                                             Background="#F5F5F5"
@@ -1300,12 +1320,12 @@
                                     </StackPanel>
 
 
-                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="2" Grid.Column="0" Margin="0,10,10,5">
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="2" Grid.Column="0" Margin="0,10,10,5" IsEnabled="{Binding CanEditRoutedFields}">
                                             <RadioButton x:Name="RoundTripRadioButton" Content="{Binding RoundTripRadioButtonContent}" GroupName="TripType" IsChecked="{Binding IsRoundTrip}" Margin="0,0,10,0" Checked="RoundTripRadioButton_Checked"/>
                                             <RadioButton x:Name="OneWayRadioButton" Content="{Binding OneWayRadioButtonContent}" GroupName="TripType" IsChecked="{Binding IsOneWay}" Checked="OneWayRadioButton_Checked"/>
                                         </StackPanel>
 
-                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="0" Margin="0,10,10,5">
+                                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="0" Margin="0,10,10,5" Background="Transparent" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}">
                                             <RadioButton x:Name="AppointmentRadioButton" Content="{Binding AppointmentRadioButtonContent}" GroupName="OneWayKind" IsChecked="{Binding IsAppointment}" Margin="0,0,10,0" Checked="AppointmentRadioButton_Checked"/>
                                             <RadioButton x:Name="ReturnRadioButton" Content="{Binding ReturnRadioButtonContent}" GroupName="OneWayKind" IsChecked="{Binding IsReturn}" Checked="ReturnRadioButton_Checked"/>
                                         </StackPanel>
@@ -1320,7 +1340,7 @@
                                         </Border>
 
                                         <materialDesign:TimePicker Grid.Row="0" Grid.Column="1"
-                                            x:Name="PickupTimePicker"
+                                            x:Name="PickupTimePicker" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             SelectedTime="{Binding PickupTimePicker, Mode=TwoWay}"
                                             VerticalAlignment="Bottom"
                                             Margin="10,0,0,0"
@@ -1332,7 +1352,7 @@
                                             Is24Hours="False"/>
 
                                         <materialDesign:TimePicker Grid.Row="1" Grid.Column="1"
-                                            x:Name="ApptTimePicker"
+                                            x:Name="ApptTimePicker" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             SelectedTime="{Binding ApptTimePicker, Mode=TwoWay}"              
                                             VerticalAlignment="Bottom"
                                             Margin="10,0,0,0"
@@ -1344,7 +1364,7 @@
                                             Is24Hours="False"/>
 
                                         <materialDesign:TimePicker Grid.Row="2" Grid.Column="1"
-                                            x:Name="ReturnTimePicker"
+                                            x:Name="ReturnTimePicker" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                             SelectedTime="{Binding ReturnTimePicker, Mode=TwoWay}" 
                                             VerticalAlignment="Bottom"
                                             Margin="10,0,0,0"
@@ -1396,7 +1416,7 @@
                                         <!-- ComboBox Space Type -->
                                         <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,0,00,0">
 
-                                            <ComboBox   x:Name="TripSpaceTypeComboBox"
+                                            <ComboBox   x:Name="TripSpaceTypeComboBox" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                                 ItemsSource="{Binding SpaceTypes}" 
                                                 SelectedItem="{Binding SelectedSpaceType, Mode=TwoWay}" 
                                                 DisplayMemberPath="ShowNameDescription" 
@@ -1412,7 +1432,7 @@
                                         <!-- DataGrid Additional Passengers -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top">
                                             <TextBlock Text="{Binding AdditionalPassengersLabel}" Margin="0,0,0,5"/>
-                                            <DataGrid x:Name="AdditionalPassengersDataGrid" AutoGenerateColumns="False" Height="200">
+                                            <DataGrid x:Name="AdditionalPassengersDataGrid" AutoGenerateColumns="False" Height="200" IsEnabled="{Binding CanEditTripFields}">
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}" Binding="{Binding Space}" Width="*"/>
                                                     <DataGridTextColumn Header="{Binding Data.ChargesDescriptionText, Source={StaticResource vmProxy}}" Binding="{Binding Description}" Width="2*"/>
@@ -1425,7 +1445,7 @@
 
                                 <!-- Tab 3: Pickup -->
                                 <TabItem Header="{Binding TripTabsTabItem3Header}">
-                                    <Grid Margin="0">
+                                    <Grid Margin="0" IsEnabled="{Binding CanEditTripFields}">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
@@ -1466,7 +1486,7 @@
 
                                 <!-- Tab 4: Dropoff -->
                                 <TabItem Header="{Binding TripTabsTabItem4Header}">
-                                <Grid Margin="0">
+                                <Grid Margin="0" IsEnabled="{Binding CanEditTripFields}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
@@ -1660,7 +1680,7 @@
 
                                             <!-- Left Column -->
                                             <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                                <ComboBox x:Name="FundingSourceBillingComboBox"
+                                                <ComboBox x:Name="FundingSourceBillingComboBox" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
                                                     ItemsSource="{Binding FundingSources}" 
                                                     SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}" 
                                                     DisplayMemberPath="Name" 
@@ -1676,7 +1696,7 @@
 
                                             <!-- Right Column -->
                                             <StackPanel Grid.Column="1">
-                                                <TextBox x:Name="BillingAuthorization" Text="{Binding Authorization}" 
+                                                <TextBox x:Name="BillingAuthorization" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}" Text="{Binding Authorization}" 
                                                      materialDesign:HintAssist.Hint="{Binding AuthorizationText}" 
                                                      materialDesign:TextFieldAssist.HasClearButton="True"
                                                      materialDesign:TextFieldAssist.HasLeadingIcon="True"
@@ -2921,6 +2941,121 @@
                         </DockPanel>
                     </Border>
                 </Popup>
+
+
+                <!-- RE-051. What the trip form will not change and why, floating over the form and
+                     never inside it (see HomeView.TripNotice.cs for why, and for the map).
+                     Grey: the trip is history (a past day, or closed) and is read-only; an admin may
+                     open a correction, which asks for a reason and audits it. Purple: that
+                     correction is open. Amber: the trip is on a route; the fields copied onto its
+                     two stops are framed in the same amber, and the way out is to take the trip back
+                     to the open list in Schedule.
+                     The card is dragged by its top strip, and closes down to a lock chip on the tab
+                     strip that opens it again. The Canvas has no background, so everywhere the card
+                     is not, clicks go through to the form. -->
+                <Canvas x:Name="TripNoticeLayer" Grid.RowSpan="3" Panel.ZIndex="20" ClipToBounds="True"
+                        Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
+
+                    <!-- ⚠️ The shadow is a Border of its own, BEHIND the card, never an Effect on the
+                         card: an Effect renders everything inside it to a bitmap without ClearType,
+                         and the notice's text came out faint and blurred. -->
+                    <Grid x:Name="TripNoticeCard" Width="420"
+                          TextOptions.TextFormattingMode="Display"
+                          Visibility="{Binding ShowTripNotice, Converter={StaticResource BoolToVisibility}}">
+                        <Border CornerRadius="6" Background="{DynamicResource MaterialDesignPaper}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.4" />
+                            </Border.Effect>
+                        </Border>
+                    <Border CornerRadius="6" BorderThickness="1"
+                            BorderBrush="#78909C" Background="{DynamicResource MaterialDesignPaper}">
+                        <DockPanel>
+                            <Grid DockPanel.Dock="Top" Height="24">
+                                <Thumb x:Name="TripNoticeThumb" Cursor="SizeAll" DragDelta="TripNoticeThumb_DragDelta"
+                                       ToolTip="{Binding TripNoticeDragToolTip}">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border Background="#1F90A4AE" CornerRadius="5,5,0,0">
+                                                <materialDesign:PackIcon Kind="DragHorizontalVariant" Foreground="#78909C"
+                                                                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                                <Button HorizontalAlignment="Right" Command="{Binding CloseTripNoticeCommand}"
+                                        ToolTip="{Binding TripNoticeCloseToolTip}"
+                                        Style="{StaticResource MaterialDesignToolButton}" Padding="4,0" Height="24" Width="28">
+                                    <materialDesign:PackIcon Kind="Close" Width="16" Height="16" />
+                                </Button>
+                            </Grid>
+
+                            <StackPanel Margin="8,6,8,8">
+                                <!-- Grey, but legible: near-white paper, a slate stripe on the left for
+                                     the colour, and near-black text. The reason goes first and in bold;
+                                     the why underneath. -->
+                                <Border Background="#F7F9FA" BorderBrush="#546E7A" BorderThickness="4,1,1,1"
+                                        CornerRadius="4" Padding="10,8" Margin="0,0,0,4"
+                                        Visibility="{Binding IsEditingReadOnlyTrip, Converter={StaticResource BoolToVisibility}}">
+                                    <DockPanel>
+                                        <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline" Foreground="#37474F"
+                                                                 Width="20" Height="20" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding ReadOnlyReasonText}" TextWrapping="Wrap"
+                                                       FontSize="13" FontWeight="SemiBold" Foreground="#212121"/>
+                                            <TextBlock Text="{Binding ReadOnlyExplanationText}" TextWrapping="Wrap"
+                                                       FontSize="12.5" Foreground="#37474F" Margin="0,4,0,0" LineHeight="17"/>
+                                            <Button Content="{Binding StartCorrectionLabel}" Command="{Binding StartCorrectionCommand}"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}" Height="26" Padding="10,0"
+                                                    HorizontalAlignment="Left" Margin="0,8,0,0"
+                                                    Visibility="{Binding CanStartCorrection, Converter={StaticResource BoolToVisibility}}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+
+                                <Border Background="#EDE7F6" BorderBrush="#673AB7" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6" Margin="0,0,0,4"
+                                        Visibility="{Binding IsCorrectingTrip, Converter={StaticResource BoolToVisibility}}">
+                                    <DockPanel>
+                                        <materialDesign:PackIcon DockPanel.Dock="Left" Kind="ShieldEditOutline" Foreground="#4527A0"
+                                                                 Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                        <TextBlock Text="{Binding CorrectionBannerText}" TextWrapping="Wrap" Foreground="#311B92"/>
+                                    </DockPanel>
+                                </Border>
+
+                                <Border Background="#FFF8E1" BorderBrush="#FFA000" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6"
+                                        Visibility="{Binding IsEditingRoutedTrip, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <materialDesign:PackIcon DockPanel.Dock="Left" Kind="LockOutline" Foreground="#E65100"
+                                                                     Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                            <TextBlock Text="{Binding RoutedLockTitle}" FontWeight="Bold" Foreground="#5D4037" TextWrapping="Wrap"/>
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding RoutedLockWhy}" Foreground="#5D4037" TextWrapping="Wrap" Margin="26,3,0,0"/>
+                                        <TextBlock Text="{Binding RoutedLockHowToFix}" Foreground="#5D4037" TextWrapping="Wrap" Margin="26,3,0,0"/>
+                                        <TextBlock Text="{Binding RoutedLockStillEditable}" Foreground="#5D4037" TextWrapping="Wrap" Margin="26,3,0,0" FontStyle="Italic"/>
+                                        <Button Content="{Binding RoutedLockShowInSchedule}" Command="{Binding ShowEditedTripInScheduleCommand}"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#E65100" BorderBrush="#FFA000"
+                                                HorizontalAlignment="Left" Margin="26,6,0,0" Height="26" Padding="10,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    </Grid>
+
+                    <!-- What is left of the card once closed: it says the state and opens it again. -->
+                    <Button x:Name="TripNoticeChip" Command="{Binding OpenTripNoticeCommand}"
+                            ToolTip="{Binding TripNoticeChipToolTip}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}" Height="24" Padding="8,0"
+                            Background="#FFF8E1" BorderBrush="#FFA000" Foreground="#5D4037"
+                            Visibility="{Binding ShowTripNoticeChip, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="LockOutline" Width="14" Height="14" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding TripNoticeChipText}" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Canvas>
 
             </Grid>
 

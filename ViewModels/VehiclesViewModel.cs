@@ -150,6 +150,8 @@ namespace Raphael.Desktop.ViewModels
             EditVehicleCommand = new RelayCommandObject(param => OpenVehiclePopup(param as Vehicle), param => !IsLoading && param is Vehicle);
             DeleteVehicleCommand = new RelayCommandObject(param => DeleteVehicleAsync(param as Vehicle), param => !IsLoading && param is Vehicle);
             ExportToExcelCommand = new RelayCommandObject(async param => await ExportToExcelAsync(), param => !IsExporting && !IsLoading);
+            InitOutOfService();
+            WatchFleet();
 
             // 2. Launch asynchronous initialization
             Initialization = InitializeAsync();
@@ -193,6 +195,7 @@ namespace Raphael.Desktop.ViewModels
                 foreach (var type in vehicleTypesResult) AllVehicleTypes.Add(type);
                 
                 var vehiclesList = await _vehicleService.GetVehiclesAsync();
+                await MarkOutOfServiceAsync(vehiclesList);
                 _allVehicles = new ObservableCollection<Vehicle>(vehiclesList);
 
                 FilterVehicles();
@@ -206,6 +209,75 @@ namespace Raphael.Desktop.ViewModels
                 IsLoading = false;
             }
         }
+
+
+        // ---- RE-053: Out of Service ----
+
+        public ICommand OutOfServiceCommand { get; private set; }
+        public ICommand ReturnToServiceCommand { get; private set; }
+
+        public string OutOfServiceToolTip => LocalizationService.Instance["oos.ActionVehicle"];
+        public string ReturnToServiceToolTip => LocalizationService.Instance["oos.ActionReturn"];
+        public string ColumnHeaderOutOfService => LocalizationService.Instance["oos.Column"];
+        public string OutOfServiceBadge => LocalizationService.Instance["oos.Badge"];
+
+        private void InitOutOfService()
+        {
+            OutOfServiceCommand = new RelayCommandObject(async p => await TakeOutOfServiceAsync(p as Vehicle),
+                p => p is Vehicle x && CanBeOutOfService(x) && !x.IsOutOfService);
+            ReturnToServiceCommand = new RelayCommandObject(async p => await ReturnToServiceAsync(p as Vehicle),
+                p => p is Vehicle x && x.IsOutOfService);
+        }
+
+        /// <summary>One read of the open records, put on the rows they belong to.</summary>
+        private async System.Threading.Tasks.Task MarkOutOfServiceAsync(System.Collections.Generic.IEnumerable<Vehicle> items)
+        {
+            try
+            {
+                var open = await new OutOfServiceService().GetActiveAsync();
+                foreach (var x in items)
+                    x.OutOfServiceRecord = open.FirstOrDefault(r => r.Subject == Views.OutOfServiceDialog.Vehicle && r.SubjectId == x.Id);
+            }
+            catch (Exception ex)
+            {
+                Helpers.FileLogger.Log($"Vehicles: could not read what is out of service. {ex.Message}");
+            }
+        }
+
+        private async System.Threading.Tasks.Task TakeOutOfServiceAsync(Vehicle x)
+        {
+            if (x == null) return;
+            if (Helpers.OutOfServiceUi.Show(Views.OutOfServiceDialog.ForVehicle(x)))
+                { await MarkOutOfServiceAsync(_allVehicles); FilterVehicles(); }
+        }
+
+        private async System.Threading.Tasks.Task ReturnToServiceAsync(Vehicle x)
+        {
+            if (x?.OutOfServiceRecord == null) return;
+            if (await Helpers.OutOfServiceUi.ReturnToServiceAsync(new[] { x.OutOfServiceRecord }, x.Name))
+                { await MarkOutOfServiceAsync(_allVehicles); FilterVehicles(); }
+        }
+
+        /// <summary>
+        /// Live: whoever takes a vehicle out of service or puts it back, from whichever screen or
+        /// computer, this list says so without being reloaded by hand.
+        /// </summary>
+        private void WatchFleet()
+        {
+            System.Windows.WeakEventManager<FleetBoard, FleetChangedEventArgs>.AddHandler(FleetBoard.Instance, nameof(FleetBoard.Changed), OnFleetChanged);
+            FleetBoard.Instance.EnsureStarted();
+        }
+
+        /// <summary>One read of the open records; the vehicles themselves did not change.</summary>
+        private async void OnFleetChanged(object? sender, FleetChangedEventArgs e)
+        {
+            await MarkOutOfServiceAsync(_allVehicles);
+            FilterVehicles();
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        /// <summary>An inactive vehicle is out of the fleet already: there is nothing to take out of service.</summary>
+        private static bool CanBeOutOfService(Vehicle v) => !v.IsInactive;
 
         private void FilterVehicles()
         {

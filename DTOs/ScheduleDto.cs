@@ -45,6 +45,14 @@ namespace Raphael.Desktop.DTOs
         // --- Properties that DO change and need to notify the UI ---
         // They are converted to private fields with the attribute [ObservableProperty]
 
+        /// <summary>
+        /// Screen state, not contract (RE-051): this stop belongs to the trip Home sent the
+        /// dispatcher to, and the grid frames it. Never sent: the server ignores unknown fields.
+        /// </summary>
+        [ObservableProperty]
+        [property: System.Text.Json.Serialization.JsonIgnore]
+        private bool _isGuideHighlighted;
+
         [ObservableProperty]
         private ScheduleEventType? _eventType;
 

@@ -74,17 +74,50 @@ namespace Raphael.Desktop.Services
             }
         }
 
-        public async Task UpdateAsync(int id, VehicleRouteDto dto)
+        public async Task<GarageChangePreviewDto> UpdateAsync(int id, VehicleRouteDto dto,
+            string confirmedFingerprint = null, System.Threading.CancellationToken ct = default)
         {
             try
             {
-                var response = await _httpClient.PutAsJsonAsync($"{_endPoint}/{id}", dto);
+                // RE-052: the preview the user confirmed travels with the save, and a stop cancels the
+                // request — which the server turns into a rollback, as long as it has not committed.
+                using var request = new HttpRequestMessage(HttpMethod.Put, $"{_endPoint}/{id}")
+                {
+                    Content = JsonContent.Create(dto)
+                };
+                if (!string.IsNullOrWhiteSpace(confirmedFingerprint))
+                    request.Headers.TryAddWithoutValidation("X-Garage-Preview", confirmedFingerprint);
 
-                // We do not expect content, just a success code (204 No Content)
+                var response = await _httpClient.SendAsync(request, ct);
+
                 if (!response.IsSuccessStatusCode)
                 {
                     throw await CreateApiException(response, "Error updating route");
                 }
+
+                // RE-052: 200 with what a new garage did to the planned days; 204 for anything else.
+                if (response.StatusCode == System.Net.HttpStatusCode.NoContent) return null;
+                return await response.Content.ReadFromJsonAsync<GarageChangePreviewDto>(cancellationToken: ct);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ApiException("Connection error with the server.", ex);
+            }
+        }
+
+        public async Task<GarageChangePreviewDto> PreviewGarageChangeAsync(int id, GarageChangeRequestDto request,
+            System.Threading.CancellationToken ct = default)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{_endPoint}/{id}/garage-change/preview", request, ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw await CreateApiException(response, "Error working out the garage change");
+                }
+
+                return await response.Content.ReadFromJsonAsync<GarageChangePreviewDto>();
             }
             catch (HttpRequestException ex)
             {
