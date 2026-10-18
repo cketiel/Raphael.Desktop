@@ -5,6 +5,15 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+⚠️ **RE-055 needs the Raphael.Backend release with RE-055** (Provider deactivation); against an older
+backend the Deactivate button answers with an error and everything else works as before.
+
+### Added (RE-055 — Provider deactivation)
+- **Deactivate / Reactivate a Provider** from Admin → Providers (platform admins only). Before switching
+  it off it shows how many trips the Provider still has from today on; they are left as they are.
+  Raphael's own company has no such button.
+- **Status column** in the Providers list: Active / Deactivated.
+
 ⚠️ **Needs the Raphael.Backend release with RE-054** (places and notes); against an older backend the
 notes window answers "not found" and everything else works as before.
 

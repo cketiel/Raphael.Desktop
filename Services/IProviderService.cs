@@ -16,5 +16,9 @@ namespace Raphael.Desktop.Services
         Task SetTenantAsync(int id, bool isTenant);
         /// <summary>Raphael (0) or External (1); going External also stops it being a tenant.</summary>
         Task SetWorkModeAsync(int id, int workMode);
+        /// <summary>Trips the Provider still has from today on, to warn before switching it off (RE-055).</summary>
+        Task<int> GetPendingTripsAsync(int id);
+        /// <summary>Switches the Provider off or back on (RE-055). Its users stop at their next sign-in or renewal.</summary>
+        Task SetActiveAsync(int id, bool isActive);
     }
 }

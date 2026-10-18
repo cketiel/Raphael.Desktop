@@ -118,6 +118,30 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        public async Task<int> GetPendingTripsAsync(int id)
+        {
+            var response = await _httpClient.GetAsync($"{EndPoint}/{id}/pending-trips");
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception(string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body);
+            }
+            var result = await response.Content.ReadFromJsonAsync<PendingTripsResponse>();
+            return result?.PendingTrips ?? 0;
+        }
+
+        private sealed record PendingTripsResponse(int ProviderId, int PendingTrips);
+
+        public async Task SetActiveAsync(int id, bool isActive)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/active", new { isActive });
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception(string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body);
+            }
+        }
+
         /// <summary>Raphael (0) or External (1). Going External also stops it being a tenant.</summary>
         public async Task SetWorkModeAsync(int id, int workMode)
         {

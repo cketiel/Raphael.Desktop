@@ -38,6 +38,7 @@ namespace Raphael.Desktop.ViewModels
         public ICommand AddCommand { get; }
         public ICommand EditCommand { get; }
         public ICommand DeleteCommand { get; }
+        public ICommand ToggleActiveCommand { get; }
 
         /// <summary>A client company's admin sees its providers read-only (RE-049).</summary>
         public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
@@ -50,6 +51,7 @@ namespace Raphael.Desktop.ViewModels
             AddCommand = new RelayCommandObject(_ => OpenEditPopup(null));
             EditCommand = new RelayCommandObject(p => OpenEditPopup(p as Provider));
             DeleteCommand = new RelayCommandObject(p => DeleteAsync(p as Provider));
+            ToggleActiveCommand = new RelayCommandObject(p => ToggleActiveAsync(p as Provider));
 
             LoadData();
         }
@@ -139,6 +141,47 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// Switches a Provider off or back on (RE-055). Before switching it off, the office is told how
+        /// many trips it still has from today on: only a warning, those trips are left as they are.
+        /// </summary>
+        private async void ToggleActiveAsync(Provider item)
+        {
+            if (item == null || !item.CanToggleActive) return;
+
+            try
+            {
+                var activate = !item.IsActive;
+                string message;
+                if (activate)
+                {
+                    message = string.Format(LocalizationService.Instance["admin.ConfirmReactivateProvider"], item.Name);
+                }
+                else
+                {
+                    var pending = await _service.GetPendingTripsAsync(item.Id);
+                    message = string.Format(LocalizationService.Instance["admin.ConfirmDeactivateProvider"], item.Name);
+                    if (pending > 0)
+                        message += Environment.NewLine + Environment.NewLine + string.Format(LocalizationService.Instance["admin.ProviderPendingTripsWarning"], pending);
+                }
+
+                if (MessageBox.Show(
+                        message,
+                        LocalizationService.Instance[activate ? "admin.ReactivateProvider" : "admin.DeactivateProvider"],
+                        MessageBoxButton.YesNo,
+                        activate ? MessageBoxImage.Question : MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                    return;
+
+                await _service.SetActiveAsync(item.Id, activate);
+                item.IsActive = activate;
+                item.DeactivatedAtUtc = activate ? null : DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                Helpers.UiError.Show(ex.Message, ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #region Translation
 
         public string AddText => LocalizationService.Instance["admin.AddProvider"];
@@ -151,6 +194,11 @@ namespace Raphael.Desktop.ViewModels
         public string ColumnEmail => LocalizationService.Instance["Email"];
         public string ColumnAddress => LocalizationService.Instance["Address"];
         public string ColumnTimeZone => LocalizationService.Instance["admin.TimeZoneColumn"];
+        public string ColumnStatus => LocalizationService.Instance["admin.ProviderStatusColumn"];
+        public string ActiveText => LocalizationService.Instance["admin.ProviderActive"];
+        public string InactiveText => LocalizationService.Instance["admin.ProviderInactive"];
+        public string DeactivateText => LocalizationService.Instance["admin.DeactivateProvider"];
+        public string ReactivateText => LocalizationService.Instance["admin.ReactivateProvider"];
 
         public string ConfirmDeleteText => LocalizationService.Instance["admin.ConfirmDeleteProvider"];
         public string ConfirmTitle => LocalizationService.Instance["ConfirmDeleteTitle"];
