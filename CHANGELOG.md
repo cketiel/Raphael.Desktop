@@ -5,10 +5,17 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-⚠️ **RE-055 needs the Raphael.Backend release with RE-055** (Provider deactivation); against an older
+## [1.14.2] - 2026-10-18
+
+**Slices:** RE-054, RE-055, RE-056 (three, so the patch is .2). **Needs Raphael.Backend 2.4.3**: against
+an older backend the notes window and the uncontract buttons answer with an error; everything else
+works as before. Help: what's new 1.14.2, and the Providers, Integrators and catalog topics.
+
+
+⚠️ **RE-055 needs Raphael.Backend 2.4.3** (Provider deactivation); against an older
 backend the Deactivate button answers with an error and everything else works as before.
 
-⚠️ **RE-056 needs the Raphael.Backend release with RE-056** (uncontracting catalog entities).
+⚠️ **RE-056 needs Raphael.Backend 2.4.3** (uncontracting catalog entities).
 
 ### Added (RE-056 — uncontracting catalog entities)
 - **Uncontract** an entity of your company from its catalog row (Providers and Integrators), and from
@@ -26,7 +33,7 @@ backend the Deactivate button answers with an error and everything else works as
   Raphael's own company has no such button.
 - **Status column** in the Providers list: Active / Deactivated.
 
-⚠️ **Needs the Raphael.Backend release with RE-054** (places and notes); against an older backend the
+⚠️ **Needs Raphael.Backend 2.4.3** (places and notes); against an older backend the
 notes window answers "not found" and everything else works as before.
 
 ### Added (RE-054 — notes for the driver)

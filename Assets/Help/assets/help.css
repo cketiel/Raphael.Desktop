@@ -385,6 +385,7 @@ h2:hover .help-anchor, h3:hover .help-anchor, h4:hover .help-anchor, .help-ancho
   display: flex; flex-wrap: wrap; gap: .35rem 1rem; align-items: center;
 }
 .rf-foot button { font-size: .8rem; }
+.rf-slogan { flex-basis: 100%; font-weight: 600; color: var(--rf-text-soft); }
 
 /* ---------------------------------------------------------------- on this page */
 

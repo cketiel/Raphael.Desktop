@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What's new · Raphael Help</title>
 <meta name="description" content="What changed in your work with each version, in order, and where it is explained.">
-<meta name="help-covers" content="Raphael.Desktop 1.14.0">
+<meta name="help-covers" content="Raphael.Desktop 1.14.2">
 <meta name="help-built" content="2026-10-18">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
@@ -20,7 +20,7 @@
     <a class="rf-brand" href="../../../en/desktop/getting-started/overview.html">
       <span class="rf-brand-mark" aria-hidden="true">R</span>
       <span>Raphael Help</span>
-      <span class="rf-brand-sub">1.14.0</span>
+      <span class="rf-brand-sub">1.14.2</span>
     </a>
 
     <div class="rf-search">
@@ -59,6 +59,10 @@
 
       <p>This is not the technical change log: it is what changes <strong>in your shift</strong>. New topics also carry a <strong>&quot;New in X.Y.Z&quot;</strong> badge in the contents for the two versions following their arrival.</p>
 <p>To find out which version you have, use the gear → <strong>&quot;About Raphael&quot;</strong>.</p>
+<h2 id="1-14-2">1.14.2<a class="help-anchor" href="#1-14-2" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>Notes for the driver.</strong> Next to the Pickup and Dropoff comments of the Home form, the ⤢ button opens the trip's notes window: what the driver will read at each stop, the notes of the place (the patient's home or the facility they go to), of each entrance and of the patient. A place's notes serve every trip that stops there. All of it in <a href="../../../en/desktop/home/trip-notes.html">Trip notes</a>.</p>
+<p><strong>Uncontracting a Provider or an Integrator.</strong> When a company stops paying or you stop working with it, the administrator <strong>uncontracts</strong> it from its list (Admin → Providers or Integrators) or from its catalog row. Its users can no longer sign in, and an Integrator also loses its API key. Before uncontracting a Provider it tells you how many trips it has left from today: they are not cancelled by themselves, reassign them. Nothing is deleted: <strong>Contract again</strong> brings back the same record, with its trips and history. All of it in <a href="../../../en/desktop/admin/providers.html">Providers</a> and <a href="../../../en/desktop/admin/integrators.html">Integrators</a>.</p>
+<p><strong>The Integrator form no longer has the &quot;Active&quot; box.</strong> It is done with the button on its row.</p>
 <h2 id="1-13-0">1.13.0<a class="help-anchor" href="#1-13-0" aria-label="Enlace a esta sección">#</a></h2>
 <p><strong>Out of Service.</strong> When a vehicle breaks down or a driver cannot work, you take it out of service from <a class="help-term" href="../../../en/_shared/glossary/run.html" data-term-title="Route" data-term-summary="A vehicle, a driver and a span of dates and hours. It is the unit trips are assigned to.">Runs</a>, Vehicles or Employees, with a reason. Before confirming you see every pending trip, today and on later days, with its hours. You can give the route another vehicle or driver instead of sending its trips back. When it is done, a link opens the unscheduled list with those trips picked out. The route is no longer offered for routing, the Dispatch map shows it grey and the office is notified. A trip with the patient on board is not touched. <strong>Suspended</strong> routes cannot be routed on those days either any more. All of it in <a href="../../../en/desktop/data/out-of-service.html">Take a vehicle or a driver out of service</a>.</p>
 <p><strong>Raphael's administrator sees and changes who carries each trip.</strong> In Home, the list has a <strong>Provider</strong> column and the form a <strong>Provider</strong> selector, on the same row as <a class="help-term" href="../../../en/_shared/glossary/funding-source.html" data-term-title="Funding source" data-term-summary="Who pays for the trip. Beyond billing, it decides what is required of the driver: signatures, odometer or barcode.">Funding Source</a>. Only Providers with at least one active user are offered: one with no users has nobody to do the trip. A trip that came from Booking or the API stays Assigned until the Provider accepts it; one created by hand or imported is Accepted. Every other user sees Home as before. All of it, with frequently asked questions, in <a href="../../../en/desktop/home/overview.html">Home</a>.</p>
@@ -147,7 +151,8 @@
       <section class="rf-related"><h2>See also</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../en/desktop/getting-started/overview.html"><strong>Raphael Desktop in five minutes</strong><span>What each tab does, what each role sees, and where to start a shift.</span></a><a class="rf-related-card" href="../../../en/desktop/notifications/overview.html"><strong>What the system tells you, and why</strong><span>The three ways something that happened on the road reaches your screen, and the rule that governs all of them.</span></a></div></section>
 
       <footer class="rf-foot">
-        <span data-covers>Covers Raphael.Desktop 1.14.0</span>
+        <span class="rf-slogan">Raphael Driving Health · The Rider’s Angel</span>
+        <span data-covers>Covers Raphael.Desktop 1.14.2</span>
         <span>Updated 2026-10-18</span>
         <button class="rf-btn" type="button" data-diagnostics>Copy report for support</button>
       </footer>
@@ -157,12 +162,12 @@
 
   <aside class="rf-aside" aria-label="On this page">
     <p class="rf-aside-title">On this page</p>
-    <ul><li class="rf-lvl-2"><a href="#1-13-0">1.13.0</a></li><li class="rf-lvl-2"><a href="#1-12-0">1.12.0</a></li><li class="rf-lvl-2"><a href="#1-11-0">1.11.0</a></li><li class="rf-lvl-2"><a href="#1-10-0">1.10.0</a></li><li class="rf-lvl-2"><a href="#1-9-0">1.9.0</a></li><li class="rf-lvl-2"><a href="#1-8-1">1.8.1</a></li><li class="rf-lvl-2"><a href="#1-8-0">1.8.0</a></li><li class="rf-lvl-2"><a href="#1-7-0">1.7.0</a></li><li class="rf-lvl-2"><a href="#1-6-1">1.6.1</a></li><li class="rf-lvl-2"><a href="#1-6-0">1.6.0</a></li><li class="rf-lvl-2"><a href="#1-5-1">1.5.1</a></li><li class="rf-lvl-2"><a href="#1-5-0">1.5.0</a></li><li class="rf-lvl-2"><a href="#1-4-0">1.4.0</a></li><li class="rf-lvl-2"><a href="#1-3-0">1.3.0</a></li></ul>
+    <ul><li class="rf-lvl-2"><a href="#1-14-2">1.14.2</a></li><li class="rf-lvl-2"><a href="#1-13-0">1.13.0</a></li><li class="rf-lvl-2"><a href="#1-12-0">1.12.0</a></li><li class="rf-lvl-2"><a href="#1-11-0">1.11.0</a></li><li class="rf-lvl-2"><a href="#1-10-0">1.10.0</a></li><li class="rf-lvl-2"><a href="#1-9-0">1.9.0</a></li><li class="rf-lvl-2"><a href="#1-8-1">1.8.1</a></li><li class="rf-lvl-2"><a href="#1-8-0">1.8.0</a></li><li class="rf-lvl-2"><a href="#1-7-0">1.7.0</a></li><li class="rf-lvl-2"><a href="#1-6-1">1.6.1</a></li><li class="rf-lvl-2"><a href="#1-6-0">1.6.0</a></li><li class="rf-lvl-2"><a href="#1-5-1">1.5.1</a></li><li class="rf-lvl-2"><a href="#1-5-0">1.5.0</a></li><li class="rf-lvl-2"><a href="#1-4-0">1.4.0</a></li><li class="rf-lvl-2"><a href="#1-3-0">1.3.0</a></li></ul>
   </aside>
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/whats-new/overview","lang":"en","app":"Raphael.Desktop","appVersion":"1.14.0","built":"2026-10-18","sourceCommit":"f9e3896","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/whats-new/overview","lang":"en","app":"Raphael.Desktop","appVersion":"1.14.2","built":"2026-10-18","sourceCommit":"e91611f","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","slogan":"Raphael Driving Health · The Rider’s Angel","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
 <script src="../../../assets/search-index.en.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

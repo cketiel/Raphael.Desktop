@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.14.0"
+    "Raphael.Desktop": "1.14.2"
   },
-  "builtUtc": "2026-10-18T08:25:03.398Z",
-  "sourceCommit": "f9e3896",
+  "builtUtc": "2026-10-18T19:51:46.359Z",
+  "sourceCommit": "e91611f",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin",
         "dispatcher",
@@ -580,7 +580,7 @@
       "id": "desktop/admin/integrators",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.5.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
@@ -594,7 +594,7 @@
       "id": "desktop/admin/providers",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
@@ -608,7 +608,7 @@
       "id": "desktop/admin/catalog-integrators",
       "mode": "how-to",
       "since": "1.11.0",
-      "lastReviewed": "1.11.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
@@ -622,7 +622,7 @@
       "id": "desktop/admin/catalog-providers",
       "mode": "how-to",
       "since": "1.11.0",
-      "lastReviewed": "1.11.0",
+      "lastReviewed": "1.14.2",
       "roles": [
         "admin"
       ],
