@@ -12,8 +12,9 @@ namespace Raphael.Desktop.ViewModels
     /// <remarks>
     /// Two banners, never confused: grey for a trip that is history (past day or closed), amber for
     /// a trip on a route. The amber one names the fields, frames each of them in the same amber, and
-    /// takes the dispatcher to the trip's two stops in Schedule, which is where the fix is. It can be
-    /// folded away for someone who came to change a phone number and already knows all this.
+    /// takes the dispatcher to the trip's two stops in Schedule, which is where the fix is. They float
+    /// over the form, can be dragged off whatever they cover, and close down to a lock chip for
+    /// someone who came to change a phone number and already knows all this.
     /// </remarks>
     public partial class HomeViewModel
     {
@@ -33,23 +34,43 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
-        private bool _isRoutedLockExpanded = true;
+        private bool _isTripNoticeOpen = true;
 
-        /// <summary>Whether the routed banner shows its explanation, or folds into one line.</summary>
-        public bool IsRoutedLockExpanded
+        /// <summary>
+        /// Whether the floating notice over the trip form is open, or closed down to its lock chip.
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ The notice floats over the form and never takes room in it: the form is sized to what
+        /// the divider leaves, and a banner inside it pushed the tabs and the calendar out of sight.
+        /// Closing it leaves a chip, so nobody forgets why the fields do not answer.
+        /// </remarks>
+        public bool IsTripNoticeOpen
         {
-            get => _isRoutedLockExpanded;
+            get => _isTripNoticeOpen;
             set
             {
-                if (_isRoutedLockExpanded == value) return;
-                _isRoutedLockExpanded = value;
+                if (_isTripNoticeOpen == value) return;
+                _isTripNoticeOpen = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ShowRoutedLockHighlight));
-                OnPropertyChanged(nameof(IsRoutedLockCollapsed));
+                OnPropertyChanged(nameof(ShowTripNotice));
+                OnPropertyChanged(nameof(ShowTripNoticeChip));
             }
         }
 
-        public bool IsRoutedLockCollapsed => IsEditingRoutedTrip && !IsRoutedLockExpanded;
+        /// <summary>The trip on the form has something to say: read-only, under correction, or on a route.</summary>
+        public bool HasTripNotice => IsEditingReadOnlyTrip || IsCorrectingTrip || IsEditingRoutedTrip;
+
+        public bool ShowTripNotice => HasTripNotice && IsTripNoticeOpen;
+
+        public bool ShowTripNoticeChip => HasTripNotice && !IsTripNoticeOpen;
+
+        /// <summary>What the chip says, the most binding state first.</summary>
+        public string TripNoticeChipText =>
+            IsEditingReadOnlyTrip ? LocalizationService.Instance["lock.ChipReadOnly"]
+            : IsCorrectingTrip ? LocalizationService.Instance["lock.ChipCorrection"]
+            : IsEditingRoutedTrip ? LocalizationService.Instance["lock.ChipRouted"]
+            : null;
 
         private bool IsEditingExistingTrip =>
             CurrentMode == HomeMode.EditingTrip && TripBeingEdited != null && TripBeingEdited.Id > 0;
@@ -69,15 +90,26 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>Date, hours, addresses, type, patient, space type, funding source, authorization.</summary>
         public bool CanEditRoutedFields => CanEditTripFields && !IsEditingRoutedTrip;
 
-        /// <summary>Frames are drawn while the explanation is open, and go with it.</summary>
-        public bool ShowRoutedLockHighlight => IsEditingRoutedTrip && IsRoutedLockExpanded;
+        /// <summary>Frames are drawn while the notice is open, and go with it.</summary>
+        public bool ShowRoutedLockHighlight => IsEditingRoutedTrip && IsTripNoticeOpen;
 
         public bool CanStartCorrection => IsEditingReadOnlyTrip && TripGuard.IsAdmin;
 
-        public string ReadOnlyBannerText => IsEditingExistingTrip
-            ? TripGuard.ReadOnlyReason(TripBeingEdited.Date, TripBeingEdited.Status) + " " +
-              LocalizationService.Instance["lock.ReadOnlyExplanation"]
+        /// <summary>What makes it read-only, in bold on the notice: a past day, or a closed trip.</summary>
+        public string ReadOnlyReasonText => IsEditingExistingTrip
+            ? TripGuard.ReadOnlyReason(TripBeingEdited.Date, TripBeingEdited.Status)
             : null;
+
+        public string ReadOnlyExplanationText => LocalizationService.Instance["lock.ReadOnlyExplanation"];
+
+        /// <summary>The calendar cannot move the trip's day: it is history, or on a route.</summary>
+        public bool IsCalendarLocked => IsTripFormOpen && !CanEditRoutedFields;
+
+        public double CalendarOpacity => IsCalendarLocked ? 0.6 : 1.0;
+
+        public string CalendarLockedToolTip => IsEditingReadOnlyTrip
+            ? LocalizationService.Instance["lock.SaveBlockedReadOnly"]
+            : RoutedLockFieldToolTip;
 
         public string CorrectionBannerText => CorrectionReason == null
             ? null
@@ -93,9 +125,9 @@ namespace Raphael.Desktop.ViewModels
         public string RoutedLockHowToFix => LocalizationService.Instance["lock.RoutedHowToFix"];
         public string RoutedLockStillEditable => LocalizationService.Instance["lock.RoutedStillEditable"];
         public string RoutedLockShowInSchedule => LocalizationService.Instance["lock.ShowInSchedule"];
-        public string RoutedLockHide => LocalizationService.Instance["lock.Hide"];
-        public string RoutedLockShow => LocalizationService.Instance["lock.Show"];
-        public string RoutedLockCollapsedText => LocalizationService.Instance["lock.RoutedCollapsed"];
+        public string TripNoticeCloseToolTip => LocalizationService.Instance["lock.NoticeClose"];
+        public string TripNoticeDragToolTip => LocalizationService.Instance["lock.NoticeDrag"];
+        public string TripNoticeChipToolTip => LocalizationService.Instance["lock.ChipToolTip"];
         public string RoutedLockFieldToolTip => LocalizationService.Instance["lock.RoutedFieldToolTip"];
         public string StartCorrectionLabel => LocalizationService.Instance["lock.StartCorrection"];
 
@@ -108,9 +140,15 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(CanEditTripFields));
             OnPropertyChanged(nameof(CanEditRoutedFields));
             OnPropertyChanged(nameof(ShowRoutedLockHighlight));
-            OnPropertyChanged(nameof(IsRoutedLockCollapsed));
+            OnPropertyChanged(nameof(HasTripNotice));
+            OnPropertyChanged(nameof(ShowTripNotice));
+            OnPropertyChanged(nameof(ShowTripNoticeChip));
+            OnPropertyChanged(nameof(TripNoticeChipText));
             OnPropertyChanged(nameof(CanStartCorrection));
-            OnPropertyChanged(nameof(ReadOnlyBannerText));
+            OnPropertyChanged(nameof(ReadOnlyReasonText));
+            OnPropertyChanged(nameof(IsCalendarLocked));
+            OnPropertyChanged(nameof(CalendarOpacity));
+            OnPropertyChanged(nameof(CalendarLockedToolTip));
             OnPropertyChanged(nameof(CorrectionBannerText));
             OnPropertyChanged(nameof(RoutedLockTitle));
             OnPropertyChanged(nameof(CreateTripBlockedReason));
@@ -118,9 +156,9 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(CreateTripHint));
         }
 
-        [RelayCommand] private void HideRoutedLock() => IsRoutedLockExpanded = false;
+        [RelayCommand] private void CloseTripNotice() => IsTripNoticeOpen = false;
 
-        [RelayCommand] private void ShowRoutedLock() => IsRoutedLockExpanded = true;
+        [RelayCommand] private void OpenTripNotice() => IsTripNoticeOpen = true;
 
         /// <summary>Opens Schedule on the trip's route and day, with its two stops picked out.</summary>
         [RelayCommand]
@@ -140,7 +178,11 @@ namespace Raphael.Desktop.ViewModels
                 TripGuard.ReadOnlyReason(TripBeingEdited.Date, TripBeingEdited.Status),
                 LocalizationService.Instance["lock.OpEdit"]);
 
-            if (reason != null) CorrectionReason = reason;
+            if (reason == null) return;
+
+            CorrectionReason = reason;
+            // The notice turns purple: show it, even if the grey one had been closed.
+            IsTripNoticeOpen = true;
         }
 
         /// <summary>

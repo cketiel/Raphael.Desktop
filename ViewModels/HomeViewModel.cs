@@ -98,9 +98,9 @@ namespace Raphael.Desktop.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanEditWillCall));
 
-                // RE-051: a correction is for one trip, and a new one starts with the banner open.
+                // RE-051: a correction is for one trip, and a new one starts with its notice open.
                 CorrectionReason = null;
-                IsRoutedLockExpanded = true;
+                IsTripNoticeOpen = true;
                 RaiseTripLockState();
             }
         }
@@ -2123,8 +2123,14 @@ namespace Raphael.Desktop.ViewModels
             // Selecting a row shows the trip on the map. Editing it is a double click, and the
             // form is only filled from there — see BeginEditSelectedTrip.
             if (CurrentMode != HomeMode.EditingTrip) return;
+            if (TripBeingEdited != null && newValue.Id == TripBeingEdited.Id) return;
 
-            LoadTripIntoForm(newValue);
+            // One click on another trip while editing leaves the form: it does not edit the new
+            // trip. Only a double click edits, from anywhere (BeginEditSelectedTrip), so a
+            // dispatcher who clicks a row to look at it on the map is never dropped into editing.
+            TripBeingEdited = null;
+            ClearTripForm();
+            CurrentMode = HomeMode.Browsing;
         }
 
         /// <summary>
