@@ -67,6 +67,7 @@ namespace Raphael.Desktop.ViewModels
             DeleteUserCommand = new RelayCommandObject(DeleteUser, CanEditOrDeleteUser);
             ChangePasswordCommand = new RelayCommandObject(OpenChangePasswordDialog, CanEditOrDeleteUser);
             InitOutOfService();
+            WatchFleet();
 
             LoadUsers();
         }
@@ -102,6 +103,25 @@ namespace Raphael.Desktop.ViewModels
                 p => p is User x && CanBeOutOfService(x) && !x.IsOutOfService);
             ReturnToServiceCommand = new RelayCommandObject(async p => await ReturnToServiceAsync(p as User),
                 p => p is User x && x.IsOutOfService);
+        }
+
+        /// <summary>
+        /// Live: whoever takes a driver out of service or puts them back, from whichever screen or
+        /// computer, this list says so without being reloaded by hand.
+        /// </summary>
+        private void WatchFleet()
+        {
+            WeakEventManager<FleetBoard, FleetChangedEventArgs>.AddHandler(FleetBoard.Instance, nameof(FleetBoard.Changed), OnFleetChanged);
+            FleetBoard.Instance.EnsureStarted();
+        }
+
+        /// <summary>One read of the open records; the users themselves did not change.</summary>
+        private async void OnFleetChanged(object? sender, FleetChangedEventArgs e)
+        {
+            if (Users == null) return;
+            await MarkOutOfServiceAsync(Users);
+            Users = new ObservableCollection<User>(Users);
+            CommandManager.InvalidateRequerySuggested();
         }
 
         /// <summary>One read of the open records, put on the rows they belong to.</summary>

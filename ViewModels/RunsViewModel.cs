@@ -73,13 +73,63 @@ namespace Raphael.Desktop.ViewModels
             AddCommand = new RelayCommandObject(param => AddRoute());
             EditCommand = new RelayCommandObject(param => EditRoute(), param => SelectedRoute != null);
             DeleteCommand = new RelayCommandObject(param => DeleteRoute(), param => SelectedRoute != null);
-            LoadDataCommand = new RelayCommandObject(async param => await LoadData());
+            LoadDataCommand = new RelayCommandObject(async param => await ReloadAsync());
             OutOfServiceCommand = new RelayCommandObject(async param => await TakeOutOfServiceAsync(param as VehicleRouteViewModel),
                 param => param is VehicleRouteViewModel r && !r.IsOutOfService);
             ReturnToServiceCommand = new RelayCommandObject(async param => await ReturnToServiceAsync(param as VehicleRouteViewModel),
                 param => param is VehicleRouteViewModel r && r.IsOutOfService);
 
             LoadDataCommand.Execute(null);
+
+            WeakEventManager<FleetBoard, FleetChangedEventArgs>.AddHandler(FleetBoard.Instance, nameof(FleetBoard.Changed), OnFleetChanged);
+            FleetBoard.Instance.EnsureStarted();
+        }
+
+        private bool _isLoading;
+        private bool _reloadPending;
+
+        /// <summary>The operation this screen ran and has already reloaded for; its echo is not reloaded twice.</summary>
+        private System.Guid? _ownOperationId;
+
+        /// <summary>
+        /// Live (RE-053): whoever takes a vehicle or a driver out of service or puts it back, from
+        /// whichever screen or computer, this list follows.
+        /// </summary>
+        /// <remarks>
+        /// Taking out of service can hand a route another vehicle or driver, so the routes are read
+        /// again. Putting back in service changes no route: only the open records are.
+        /// </remarks>
+        private async void OnFleetChanged(object sender, FleetChangedEventArgs e)
+        {
+            var message = e.Message;
+            if (message != null && message.OperationId == _ownOperationId && message.OutOfService) return;
+
+            if (message != null && !message.OutOfService) await LoadOutOfServiceAsync();
+            else await ReloadAsync();
+        }
+
+        /// <summary>One load at a time: AllRoutes is cleared and refilled, and two at once would fill it twice.</summary>
+        private async Task ReloadAsync()
+        {
+            if (_isLoading) { _reloadPending = true; return; }
+
+            _isLoading = true;
+            try
+            {
+                do
+                {
+                    _reloadPending = false;
+                    await LoadData();
+                } while (_reloadPending);
+            }
+            catch (System.Exception ex)
+            {
+                Helpers.FileLogger.Log($"Runs: could not reload after a fleet change. {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+            }
         }
 
         private async Task LoadData()
@@ -135,8 +185,12 @@ namespace Raphael.Desktop.ViewModels
         private async Task TakeOutOfServiceAsync(VehicleRouteViewModel route)
         {
             if (route == null) return;
-            if (Helpers.OutOfServiceUi.Show(Views.OutOfServiceDialog.ForRoute(route.Model)))
-                await LoadData();
+            var dialog = Views.OutOfServiceDialog.ForRoute(route.Model);
+            if (Helpers.OutOfServiceUi.Show(dialog))
+            {
+                _ownOperationId = dialog.Result?.OperationId;
+                await ReloadAsync();
+            }
         }
 
         private async Task ReturnToServiceAsync(VehicleRouteViewModel route)

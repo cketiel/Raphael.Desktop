@@ -41,6 +41,9 @@ namespace Raphael.Desktop.Views
         private static readonly Brush KeptInk = Freeze(new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)));
         private static readonly Brush Ink = Freeze(new SolidColorBrush(Color.FromRgb(0x37, 0x47, 0x4F)));
         private static readonly Brush Quiet = Freeze(new SolidColorBrush(Color.FromRgb(0x78, 0x90, 0x9C)));
+        private static readonly Brush Primary = Freeze(new SolidColorBrush(Color.FromRgb(0x67, 0x3A, 0xB7)));
+        private static readonly Brush Pending = Freeze(new SolidColorBrush(Color.FromRgb(0xB0, 0xBE, 0xC5)));
+        private static readonly Brush DoneBackground = Freeze(new SolidColorBrush(Color.FromRgb(0xE8, 0xF5, 0xE9)));
 
         private static LocalizationService L => LocalizationService.Instance;
 
@@ -58,6 +61,12 @@ namespace Raphael.Desktop.Views
         private OutOfServicePreviewDto? _preview;
         private OutOfServiceRequestDto? _previewedRequest;
         private bool _busy;
+
+        /// <summary>Something changed after the preview: it no longer describes what would be done.</summary>
+        private bool _previewStale;
+
+        /// <summary>Why the form cannot be previewed yet, as BuildRequest last found it.</summary>
+        private string? _problem;
 
         /// <summary>From Runs: the route's vehicle, its driver or both.</summary>
         public static OutOfServiceDialog ForRoute(VehicleRoute route) => new(route, route.Vehicle, route.Driver);
@@ -81,6 +90,13 @@ namespace Raphael.Desktop.Views
             CancelButton.Content = L["Cancel"];
             PreviewButton.Content = L["oos.Preview"];
             ExecuteButton.Content = L["oos.Execute"];
+            Step1Text.Text = "1  " + L["oos.Step1"];
+            Step2Text.Text = "2  " + L["oos.Step2"];
+            Step3Text.Text = "3  " + L["oos.Step3"];
+
+            // Whoever turns the red button on or off, the cursor and the tooltip follow.
+            ExecuteButton.IsEnabledChanged += (_, _) => UpdateExecuteHost();
+            UpdateGuide();
 
             // F1 opens the topic about this window.
             HelpAssist.SetTopicId(this, "desktop/data/out-of-service");
@@ -117,6 +133,8 @@ namespace Raphael.Desktop.Views
             {
                 ShowNotice(ex.Message);
             }
+
+            UpdateGuide();
         }
 
         private void AddSubject(string subject, string label, List<string> reasons, int noteMax)
@@ -129,8 +147,8 @@ namespace Raphael.Desktop.Views
                 // From a route the dispatcher says which of the two is out: the vehicle, the driver or both.
                 pick = new CheckBox { Content = label, FontWeight = FontWeights.Bold, IsChecked = subject == Vehicle };
                 // A substitute chosen for what is no longer out would replace something that works.
-                pick.Checked += (_, _) => { _chosen.Clear(); InvalidatePreview(); UpdateSubjectState(); };
-                pick.Unchecked += (_, _) => { _chosen.Clear(); InvalidatePreview(); UpdateSubjectState(); };
+                pick.Checked += (_, _) => { _chosen.Clear(); InvalidatePreview(); UpdateSubjectState(); UpdateGuide(); };
+                pick.Unchecked += (_, _) => { _chosen.Clear(); InvalidatePreview(); UpdateSubjectState(); UpdateGuide(); };
                 panel.Children.Add(pick);
             }
             else
@@ -141,14 +159,14 @@ namespace Raphael.Desktop.Views
             var row = new DockPanel { Margin = new Thickness(0, 6, 0, 0) };
             var reason = new ComboBox { Width = 260, Margin = new Thickness(0, 0, 10, 0), DisplayMemberPath = "Text", SelectedValuePath = "Code" };
             reason.ItemsSource = reasons.Select(code => new { Code = code, Text = L["oos.reason." + code] }).ToList();
-            reason.SelectionChanged += (_, _) => InvalidatePreview();
+            reason.SelectionChanged += (_, _) => { InvalidatePreview(); UpdateGuide(); };
             materialDesignHint(reason, L["oos.Reason"]);
             DockPanel.SetDock(reason, Dock.Left);
             row.Children.Add(reason);
 
             var note = new TextBox { MaxLength = noteMax, TextWrapping = TextWrapping.Wrap };
             materialDesignHint(note, L["oos.Note"]);
-            note.TextChanged += (_, _) => InvalidatePreview();
+            note.TextChanged += (_, _) => { InvalidatePreview(); UpdateGuide(); };
             row.Children.Add(note);
             panel.Children.Add(row);
 
@@ -187,17 +205,9 @@ namespace Raphael.Desktop.Views
                 var id = subject == Vehicle ? _vehicle!.Id : _driver!.Id;
                 var code = reason.SelectedValue as string;
 
-                if (code is null)
-                {
-                    if (showErrors) ShowNotice(L["oos.ChooseReason"]);
-                    return null;
-                }
+                if (code is null) return Fail(L["oos.ChooseReason"], showErrors);
 
-                if (code == Other && string.IsNullOrWhiteSpace(note.Text))
-                {
-                    if (showErrors) ShowNotice(L["oos.OtherNeedsNote"]);
-                    return null;
-                }
+                if (code == Other && string.IsNullOrWhiteSpace(note.Text)) return Fail(L["oos.OtherNeedsNote"], showErrors);
 
                 request.Subjects.Add(new OutOfServiceSubjectDto
                 {
@@ -208,11 +218,7 @@ namespace Raphael.Desktop.Views
                 });
             }
 
-            if (request.Subjects.Count == 0)
-            {
-                if (showErrors) ShowNotice(L["oos.ChooseSubject"]);
-                return null;
-            }
+            if (request.Subjects.Count == 0) return Fail(L["oos.ChooseSubject"], showErrors);
 
             foreach (var (routeId, (vehicle, driver)) in _chosen)
             {
@@ -220,7 +226,15 @@ namespace Raphael.Desktop.Views
                 request.Substitutions.Add(new OutOfServiceSubstitutionDto { VehicleRouteId = routeId, NewVehicleId = vehicle, NewDriverId = driver });
             }
 
+            _problem = null;
             return request;
+        }
+
+        private OutOfServiceRequestDto? Fail(string problem, bool showErrors)
+        {
+            _problem = problem;
+            if (showErrors) ShowNotice(problem);
+            return null;
         }
 
         private async void OnPreview(object sender, RoutedEventArgs e) => await PreviewAsync(notice: null);
@@ -237,6 +251,7 @@ namespace Raphael.Desktop.Views
                 _preview = preview;
                 _previewedRequest = request;
                 RenderPreview(preview);
+                _previewStale = false;
                 ExecuteButton.IsEnabled = true;
                 PreviewButton.Content = L["oos.RefreshPreview"];
                 if (notice is not null) ShowNotice(notice); else HideNotice();
@@ -247,8 +262,81 @@ namespace Raphael.Desktop.Views
         private void InvalidatePreview()
         {
             if (_preview is null) return;
+            _previewStale = true;
             ExecuteButton.IsEnabled = false;
             SummaryText.Text = L["oos.PreviewOutdated"];
+        }
+
+        // ---- Guide ----
+
+        /// <summary>
+        /// Which of the three steps the dispatcher is on, and what is missing, in words.
+        /// </summary>
+        /// <remarks>
+        /// The red button only wakes up after the preview. Without saying so, a disabled red
+        /// button reads as a field left empty somewhere, and nothing on the form is.
+        /// </remarks>
+        private void UpdateGuide()
+        {
+            if (Result is not null)
+            {
+                StepsPanel.Visibility = Visibility.Collapsed;
+                GuideBox.Visibility = Visibility.Collapsed;
+                UpdateExecuteHost();
+                return;
+            }
+
+            var formReady = BuildRequest(showErrors: false) is not null;
+            var step = !formReady ? 1 : _preview is null || _previewStale ? 2 : 3;
+
+            GuideText.Text = step switch
+            {
+                1 => (_problem ?? L["oos.ChooseSubject"]) + " " + L["oos.GuideThenPreview"],
+                2 when _previewStale => L["oos.GuideRefresh"],
+                2 => L["oos.GuidePreview"],
+                _ => L["oos.GuideReady"]
+            };
+
+            PaintStep(Step1, Step1Text, 1, step);
+            PaintStep(Step2, Step2Text, 2, step);
+            PaintStep(Step3, Step3Text, 3, step);
+
+            // The preview is the next thing to press: it looks like it.
+            PreviewButton.Style = (Style)FindResource(step == 2 ? "MaterialDesignRaisedButton" : "MaterialDesignOutlinedButton");
+
+            UpdateExecuteHost();
+        }
+
+        private static void PaintStep(Border chip, TextBlock text, int which, int current)
+        {
+            if (which < current)
+            {
+                chip.Background = DoneBackground;
+                chip.BorderBrush = KeptInk;
+                text.Foreground = KeptInk;
+            }
+            else if (which == current)
+            {
+                chip.Background = Primary;
+                chip.BorderBrush = Primary;
+                text.Foreground = Brushes.White;
+            }
+            else
+            {
+                chip.Background = Brushes.Transparent;
+                chip.BorderBrush = Pending;
+                text.Foreground = Quiet;
+            }
+        }
+
+        /// <summary>A "no" cursor and a tooltip that says why, while the red button is off.</summary>
+        private void UpdateExecuteHost()
+        {
+            var off = !ExecuteButton.IsEnabled && Result is null;
+            ExecuteHost.Cursor = off ? System.Windows.Input.Cursors.No : null;
+            ExecuteHost.ToolTip = !off ? null
+                : _busy ? L["oos.ExecuteBusy"]
+                : L["oos.ExecuteLocked"] + Environment.NewLine + GuideText.Text;
         }
 
         private void RenderPreview(OutOfServicePreviewDto preview)
@@ -422,6 +510,7 @@ namespace Raphael.Desktop.Views
         private void ShowResult(OutOfServicePreviewDto result)
         {
             Result = result;
+            UpdateGuide();
             Title = L["oos.DoneTitle"];
             SubjectsPanel.Visibility = Visibility.Collapsed;
             PreviewButton.Visibility = Visibility.Collapsed;
@@ -478,7 +567,8 @@ namespace Raphael.Desktop.Views
                 _busy = false;
                 Cursor = null;
                 PreviewButton.IsEnabled = true;
-                ExecuteButton.IsEnabled = _preview is not null && Result is null && SummaryText.Text != L["oos.PreviewOutdated"];
+                ExecuteButton.IsEnabled = _preview is not null && Result is null && !_previewStale;
+                UpdateGuide();
             }
         }
 

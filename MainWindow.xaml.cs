@@ -212,6 +212,8 @@ namespace Raphael.Desktop
 
                 if (_callBoard is not null)
                     await _callBoard.StopAsync();
+
+                await FleetBoard.Instance.StopAsync();
             }
             catch
             {

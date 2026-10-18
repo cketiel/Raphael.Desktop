@@ -8,7 +8,41 @@
     <!-- RE-053. Taking a vehicle, a driver or both out of service: why, what it does to every route
          and trip still pending (worked out by the server, nothing saved), another vehicle or driver
          instead, and what was done. -->
+    <Window.Resources>
+        <!-- One step of the guide. Its colours are set from code: current, done or still ahead. -->
+        <Style x:Key="StepChip" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#B0BEC5" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style x:Key="StepArrow" TargetType="materialDesign:PackIcon">
+            <Setter Property="Kind" Value="ArrowRightBoldCircleOutline" />
+            <Setter Property="Foreground" Value="#B0BEC5" />
+            <Setter Property="Margin" Value="6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
     <DockPanel Margin="20">
+        <!-- The order is the whole point: nothing can be confirmed before the preview, and the
+             red button only wakes up after it. Without this, a disabled red button reads as a
+             field left empty somewhere. -->
+        <StackPanel x:Name="StepsPanel" DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+            <Border x:Name="Step1" Style="{StaticResource StepChip}">
+                <TextBlock x:Name="Step1Text" FontWeight="SemiBold" />
+            </Border>
+            <materialDesign:PackIcon Style="{StaticResource StepArrow}" />
+            <Border x:Name="Step2" Style="{StaticResource StepChip}">
+                <TextBlock x:Name="Step2Text" FontWeight="SemiBold" />
+            </Border>
+            <materialDesign:PackIcon Style="{StaticResource StepArrow}" />
+            <Border x:Name="Step3" Style="{StaticResource StepChip}">
+                <TextBlock x:Name="Step3Text" FontWeight="SemiBold" />
+            </Border>
+        </StackPanel>
+
         <Border x:Name="NoticeBox" DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#FFA000" BorderThickness="1"
                 CornerRadius="4" Padding="10,6" Margin="0,0,0,10" Visibility="Collapsed">
             <DockPanel>
@@ -26,9 +60,24 @@
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button x:Name="CancelButton" IsCancel="True" Style="{StaticResource MaterialDesignFlatButton}" Margin="0,0,8,0" Click="OnCancel" />
             <Button x:Name="PreviewButton" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,8,0" Click="OnPreview" />
-            <Button x:Name="ExecuteButton" Style="{StaticResource MaterialDesignRaisedButton}" Background="#C62828"
-                    BorderBrush="#C62828" IsEnabled="False" Click="OnExecute" />
+            <!-- ⚠️ The tooltip and the 🚫 cursor are on this Border, not on the button. WPF sends no
+                 mouse input to a disabled control: it goes to the first enabled parent, so a
+                 cursor or tooltip set on the button itself would never show while it is off. -->
+            <Border x:Name="ExecuteHost" Background="Transparent" ToolTipService.InitialShowDelay="150">
+                <Button x:Name="ExecuteButton" Style="{StaticResource MaterialDesignRaisedButton}" Background="#C62828"
+                        BorderBrush="#C62828" IsEnabled="False" Click="OnExecute" />
+            </Border>
         </StackPanel>
+
+        <!-- What to do next, in words, right above the buttons it is about. -->
+        <Border x:Name="GuideBox" DockPanel.Dock="Bottom" Background="#EDE7F6" BorderBrush="#673AB7" BorderThickness="1"
+                CornerRadius="4" Padding="10,6" Margin="0,12,0,0">
+            <DockPanel>
+                <materialDesign:PackIcon DockPanel.Dock="Left" Kind="InformationOutline" Foreground="#4527A0"
+                                         Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                <TextBlock x:Name="GuideText" TextWrapping="Wrap" Foreground="#311B92" />
+            </DockPanel>
+        </Border>
 
         <TextBlock x:Name="SummaryText" DockPanel.Dock="Bottom" TextWrapping="Wrap" Margin="0,12,0,0"
                    FontWeight="SemiBold" Foreground="#5D4037" />

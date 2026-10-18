@@ -151,6 +151,7 @@ namespace Raphael.Desktop.ViewModels
             DeleteVehicleCommand = new RelayCommandObject(param => DeleteVehicleAsync(param as Vehicle), param => !IsLoading && param is Vehicle);
             ExportToExcelCommand = new RelayCommandObject(async param => await ExportToExcelAsync(), param => !IsExporting && !IsLoading);
             InitOutOfService();
+            WatchFleet();
 
             // 2. Launch asynchronous initialization
             Initialization = InitializeAsync();
@@ -255,6 +256,24 @@ namespace Raphael.Desktop.ViewModels
             if (x?.OutOfServiceRecord == null) return;
             if (await Helpers.OutOfServiceUi.ReturnToServiceAsync(new[] { x.OutOfServiceRecord }, x.Name))
                 { await MarkOutOfServiceAsync(_allVehicles); FilterVehicles(); }
+        }
+
+        /// <summary>
+        /// Live: whoever takes a vehicle out of service or puts it back, from whichever screen or
+        /// computer, this list says so without being reloaded by hand.
+        /// </summary>
+        private void WatchFleet()
+        {
+            System.Windows.WeakEventManager<FleetBoard, FleetChangedEventArgs>.AddHandler(FleetBoard.Instance, nameof(FleetBoard.Changed), OnFleetChanged);
+            FleetBoard.Instance.EnsureStarted();
+        }
+
+        /// <summary>One read of the open records; the vehicles themselves did not change.</summary>
+        private async void OnFleetChanged(object? sender, FleetChangedEventArgs e)
+        {
+            await MarkOutOfServiceAsync(_allVehicles);
+            FilterVehicles();
+            CommandManager.InvalidateRequerySuggested();
         }
 
         /// <summary>An inactive vehicle is out of the fleet already: there is nothing to take out of service.</summary>
