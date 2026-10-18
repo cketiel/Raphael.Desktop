@@ -73,13 +73,29 @@
              from four screens flipped it with nobody the wiser. The server ignores the
              field on this route as well. -->
 
-        <!-- Phones and comments stay editable on a routed trip: the server copies them onto
-             its two stops, which is the copy the driver reads. -->
+        <!-- Phones and comments stay editable on a routed trip. The server copies the phones onto
+             its two stops; the stops read the comments from the trip (RE-054). -->
         <TextBox materialDesign:HintAssist.Hint="Pickup Phone" Text="{Binding PickupPhone}" Margin="0,8"/>
-        <TextBox materialDesign:HintAssist.Hint="Pickup Comment" Text="{Binding PickupComment}" Margin="0,8" TextWrapping="Wrap" VerticalAlignment="Top" Height="60"/>
+        <Grid Margin="0,8">
+            <TextBox materialDesign:HintAssist.Hint="Pickup Comment" Text="{Binding PickupComment}" TextWrapping="Wrap" VerticalAlignment="Top" Height="60" Padding="0,0,30,0"/>
+            <!-- RE-054: the notes window, in the field's corner so the dialog keeps its size. -->
+            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Width="26" Height="26" Padding="0"
+                    Style="{StaticResource MaterialDesignIconButton}"
+                    Command="{Binding OpenNotesCommand}" CommandParameter="Pickup" ToolTip="{Binding NotesOpenText}">
+                <materialDesign:PackIcon Kind="ArrowExpand" Width="16" Height="16" />
+            </Button>
+        </Grid>
 
         <TextBox materialDesign:HintAssist.Hint="Dropoff Phone" Text="{Binding DropoffPhone}" Margin="0,8"/>
-        <TextBox materialDesign:HintAssist.Hint="Dropoff Comment" Text="{Binding DropoffComment}" Margin="0,8" TextWrapping="Wrap" VerticalAlignment="Top" Height="60"/>
+        <Grid Margin="0,8">
+            <TextBox materialDesign:HintAssist.Hint="Dropoff Comment" Text="{Binding DropoffComment}" TextWrapping="Wrap" VerticalAlignment="Top" Height="60" Padding="0,0,30,0"/>
+            <!-- RE-054: the notes window, in the field's corner so the dialog keeps its size. -->
+            <Button HorizontalAlignment="Right" VerticalAlignment="Top" Width="26" Height="26" Padding="0"
+                    Style="{StaticResource MaterialDesignIconButton}"
+                    Command="{Binding OpenNotesCommand}" CommandParameter="Dropoff" ToolTip="{Binding NotesOpenText}">
+                <materialDesign:PackIcon Kind="ArrowExpand" Width="16" Height="16" />
+            </Button>
+        </Grid>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="CANCEL" Style="{StaticResource MaterialDesignFlatButton}"

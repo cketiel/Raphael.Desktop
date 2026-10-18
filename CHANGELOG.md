@@ -5,6 +5,22 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+⚠️ **Needs the Raphael.Backend release with RE-054** (places and notes); against an older backend the
+notes window answers "not found" and everything else works as before.
+
+### Added (RE-054 — notes for the driver)
+- **Trip notes window.** The ⤢ button in the corner of the Pickup and Dropoff comments (Home form and
+  Dispatch's edit dialog) and the notes icon on every grid row open it: for each stop, what the driver
+  reads there, this trip's own note, the entrance's and the place's notes, and the patient's notes.
+  Notes are added, edited, confirmed and removed there and saved at once; a note of the place or the
+  patient reaches every trip still to come. The place can be renamed, an entrance named, or another
+  facility chosen. The comment fields keep their size: the form's layout and the divider do not move.
+- **Notes to review**: the grid's notes icon turns orange when a file added notes nobody has reviewed.
+- **New trips fill their comments** with the notes the patient and the places already have as soon as
+  the patient and the addresses are picked, never over what the dispatcher typed. Read from the
+  server's database: no call to Google.
+- Help topic `desktop/home/trip-notes` (F1 in the window).
+
 ## [1.13.0] - 2026-10-17
 
 ⚠️ **Needs Raphael.Backend 2.3.0** (in production since 2026-10-17): Out of Service, the garage

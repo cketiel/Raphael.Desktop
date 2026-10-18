@@ -561,6 +561,7 @@ namespace Raphael.Desktop.ViewModels
         public string AuthorizationText => LocalizationService.Instance["Authorization"];
 
         public string DropoffCommentText => LocalizationService.Instance["DropoffComment"];
+        public string NotesOpenText => LocalizationService.Instance["notes.Open"];
         public string TypeText => LocalizationService.Instance["Type"];
         public string PickupText => LocalizationService.Instance["Pickup"]; 
         public string DropoffText => LocalizationService.Instance["Dropoff"];
@@ -953,8 +954,8 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(CreateTripHint));
         }
 
-        partial void OnPickupAddressChanged(string value) => RefreshGuidance();
-        partial void OnDropoffAddressChanged(string value) => RefreshGuidance();
+        partial void OnPickupAddressChanged(string value) { RefreshGuidance(); QueueNotesPreview(); }
+        partial void OnDropoffAddressChanged(string value) { RefreshGuidance(); QueueNotesPreview(); }
         partial void OnPickupTimePickerChanged(DateTime? value) => RefreshGuidance();
         partial void OnApptTimePickerChanged(DateTime? value) => RefreshGuidance();
         partial void OnReturnTimePickerChanged(DateTime? value) => RefreshGuidance();
@@ -1509,6 +1510,99 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(GridSummary));
             RaiseFooterFigures();
             OnPropertyChanged(nameof(DividerSummary));
+        }
+
+        // ---- RE-054: notes for the driver --------------------------------------------------------
+
+        private readonly Services.ITripNotesService _tripNotes = new Services.TripNotesService();
+
+        /// <summary>What the last preview wrote into each comment field, to tell it from what the dispatcher typed.</summary>
+        private string _previewedPickupComment;
+        private string _previewedDropoffComment;
+        private int _notesPreviewVersion;
+
+        /// <summary>
+        /// Opens the notes window of the trip on the form, at one end ("Pickup" or "Dropoff").
+        /// </summary>
+        [RelayCommand]
+        private void OpenTripNotes(string side)
+        {
+            if (TripBeingEdited == null || TripBeingEdited.Id == 0)
+            {
+                MessageBox.Show(LocalizationService.Instance["notes.OpenNeedsSave"], LocalizationService.Instance["notes.Title"],
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            ShowTripNotes(TripBeingEdited, side);
+        }
+
+        /// <summary>Opens the notes window from a row of the grid, on the patient's tab.</summary>
+        [RelayCommand]
+        private void OpenTripNotesFromGrid(TripReadDto trip)
+        {
+            if (trip == null || trip.Id == 0) return;
+            ShowTripNotes(trip, null);
+        }
+
+        private void ShowTripNotes(TripReadDto trip, string side)
+        {
+            var dialog = new Views.TripNotesDialog(trip.Id, side);
+            dialog.ShowDialog();
+            if (!dialog.Changed || dialog.Result is not { } notes) return;
+
+            // The server saved it already: the row and the form show what the driver now reads.
+            // Other trips at the same place or of the same patient change too; they show it on the
+            // next load of the day, not by reloading it now (never refetch a whole day for this).
+            trip.PickupComment = notes.Pickup.Composed;
+            trip.DropoffComment = notes.Dropoff.Composed;
+            trip.NotesToReview = notes.NotesToReview;
+
+            if (TripBeingEdited != null && TripBeingEdited.Id == trip.Id)
+            {
+                TripBeingEdited.PickupComment = notes.Pickup.Composed;
+                TripBeingEdited.DropoffComment = notes.Dropoff.Composed;
+                PickupComment = notes.Pickup.Composed;
+                DropoffComment = notes.Dropoff.Composed;
+                // Saved on the server: not a change the form has to ask about on leaving.
+                if (_tripFormOnEntry != null)
+                    _tripFormOnEntry = _tripFormOnEntry with { PickupComment = PickupComment, DropoffComment = DropoffComment };
+            }
+            RefreshTripsView();
+        }
+
+        /// <summary>
+        /// While a new trip is being booked, fills the comment fields with the notes the places and
+        /// the patient already have, so the dispatcher reviews instead of retyping. Never over what
+        /// the dispatcher typed. The server reads its own database; it does not call Google.
+        /// </summary>
+        private async void QueueNotesPreview()
+        {
+            if (CurrentMode != HomeMode.CreatingTrip || IdCustomer <= 0) return;
+            if (string.IsNullOrWhiteSpace(PickupAddress) && string.IsNullOrWhiteSpace(DropoffAddress)) return;
+
+            var version = ++_notesPreviewVersion;
+            await Task.Delay(600); // the address box writes on every keystroke
+            if (version != _notesPreviewVersion || CurrentMode != HomeMode.CreatingTrip) return;
+
+            try
+            {
+                var preview = await _tripNotes.PreviewAsync(new DTOs.Places.NotesPreviewRequestDto
+                {
+                    CustomerId = IdCustomer,
+                    PickupAddress = PickupAddress, PickupLatitude = PickupLatitude, PickupLongitude = PickupLongitude,
+                    DropoffAddress = DropoffAddress, DropoffLatitude = DropoffLatitude, DropoffLongitude = DropoffLongitude,
+                });
+                if (version != _notesPreviewVersion || CurrentMode != HomeMode.CreatingTrip) return;
+
+                if (string.IsNullOrWhiteSpace(PickupComment) || PickupComment == _previewedPickupComment)
+                    PickupComment = _previewedPickupComment = preview.PickupComment;
+                if (string.IsNullOrWhiteSpace(DropoffComment) || DropoffComment == _previewedDropoffComment)
+                    DropoffComment = _previewedDropoffComment = preview.DropoffComment;
+            }
+            catch (Exceptions.ApiException)
+            {
+                // A preview is a convenience: without it the trip is booked exactly as before.
+            }
         }
 
         private void RefreshTripsView()
