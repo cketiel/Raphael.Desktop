@@ -6,7 +6,7 @@
 <title>Home — dar de alta un viaje · Ayuda de Raphael</title>
 <meta name="description" content="La pantalla de reserva: paciente, recogida, entrega, tipo de espacio y quién paga.">
 <meta name="help-covers" content="Raphael.Desktop 1.13.0">
-<meta name="help-built" content="2026-10-17">
+<meta name="help-built" content="2026-10-18">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
 <body>
@@ -64,10 +64,10 @@
 <h2 id="abrir-y-cerrar-el-formulario-de-viaje">Abrir y cerrar el formulario de viaje<a class="help-anchor" href="#abrir-y-cerrar-el-formulario-de-viaje" aria-label="Enlace a esta sección">#</a></h2>
 <p>La pantalla tiene dos caras. Mientras <strong>navegas</strong>, abajo está la lista de viajes del día y arriba el mapa. En cuanto empiezas un viaje, el formulario se abre y ocupa el sitio de los filtros.</p>
 <p><strong>Se abre de tres maneras:</strong></p>
-<ul><li>Eliges un paciente en el buscador de arriba.</li><li>Guardas un paciente nuevo.</li><li>Haces clic en un viaje de la lista, para editarlo.</li></ul>
+<ul><li>Eliges un paciente en el buscador de arriba.</li><li>Guardas un paciente nuevo.</li><li>Haces <strong>doble clic</strong> en un viaje de la lista, para editarlo.</li></ul>
 <p>Desde 1.7.0 elegir un paciente que ya existe abre el formulario directamente. Antes había que pulsar <strong>Guardar paciente</strong> aunque no hubieras cambiado nada suyo, y eso volvía a guardar su ficha sin motivo.</p>
-<p><strong>Se cierra de tres maneras:</strong></p>
-<ul><li>La <strong>✕</strong> de la cabecera, junto al buscador de pacientes.</li><li>La tecla <strong>Esc</strong>.</li><li>Quitando la selección del viaje en la lista.</li></ul>
+<p><strong>Se cierra de cuatro maneras:</strong></p>
+<ul><li>La <strong>✕</strong> de la cabecera, junto al buscador de pacientes.</li><li>La tecla <strong>Esc</strong>.</li><li>Quitando la selección del viaje en la lista.</li><li>Con <strong>un clic en otro viaje</strong> de la lista: sales de la edición y ese viaje se pinta en el mapa. Para editarlo, doble clic.</li></ul>
 <p>Si has escrito algo que no está guardado, te pregunta antes de descartarlo. Si no has tocado nada —porque solo querías ver un viaje en el mapa— se cierra sin preguntar.</p>
 <h2 id="los-cuatro-pasos-de-un-viaje">Los cuatro pasos de un viaje<a class="help-anchor" href="#los-cuatro-pasos-de-un-viaje" aria-label="Enlace a esta sección">#</a></h2>
 <p>Con el formulario abierto verás arriba una fila con cuatro números. Es el orden en que se da de alta un viaje, y te dice dónde estás:</p>
@@ -84,7 +84,7 @@
 <h2 id="ver-varios-dias">Ver varios días<a class="help-anchor" href="#ver-varios-dias" aria-label="Enlace a esta sección">#</a></h2>
 <p>El botón de la fecha abre un calendario que empieza en <strong>Un día</strong>. Si eliges <strong>Rango</strong>, te pide dos clics —<em>«Elige el primer día»</em>, <em>«Elige el último día»</em>— y pinta el intervalo. Tienes también Hoy, Mañana, Esta semana y Próximos 7 días. Con un rango puesto aparece una etiqueta con una <strong>✕</strong> para volver a un solo día.</p>
 <h2 id="la-lista">La lista<a class="help-anchor" href="#la-lista" aria-label="Enlace a esta sección">#</a></h2>
-<ul><li><strong>Un clic</strong> selecciona el viaje y lo pinta en el mapa. <strong>Doble clic</strong> lo abre para editarlo.</li><li>El botón de columnas elige cuáles se ven, y el interruptor de al lado aprieta las filas. La columna por la que ordenes se recuerda para la próxima vez.</li></ul>
+<ul><li><strong>Un clic</strong> selecciona el viaje y lo pinta en el mapa. <strong>Doble clic</strong> lo abre para editarlo. Solo el doble clic edita: un clic en otro viaje mientras editas uno cierra la edición.</li><li>El botón de columnas elige cuáles se ven, y el interruptor de al lado aprieta las filas. La columna por la que ordenes se recuerda para la próxima vez.</li></ul>
 <h3 id="donde-estan-las-cifras">Dónde están las cifras<a class="help-anchor" href="#donde-estan-las-cifras" aria-label="Enlace a esta sección">#</a></h3>
 <p>Hay dos sitios, y dicen cosas distintas a propósito:</p>
 <ul><li><strong>En la banda morada</strong> que separa el formulario de la lista: el <strong>dinero</strong> del día que estás viendo — cuántos viajes, cuánto suman los cargos y cuánto está pagado. Se calcula sobre <strong>lo que dejan pasar los filtros</strong>, no sobre lo que se cargó.</li><li><strong>En la barra de abajo</strong>, sobre tres placas de matrícula: cuántos viajes, cuántos <strong>cancelados</strong> y cuántos <strong>sin ruta asignada</strong>. Misma regla: cuenta lo que se está viendo.</li></ul>
@@ -137,7 +137,7 @@
 
       <footer class="rf-foot">
         <span data-covers>Cubre Raphael.Desktop 1.13.0</span>
-        <span>Actualizado el 17/10/2026</span>
+        <span>Actualizado el 18/10/2026</span>
         <button class="rf-btn" type="button" data-diagnostics>Copiar informe para soporte</button>
       </footer>
 
@@ -151,7 +151,7 @@
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/home/overview","lang":"es","app":"Raphael.Desktop","appVersion":"1.13.0","built":"2026-10-17","sourceCommit":"c794dad","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/home/overview","lang":"es","app":"Raphael.Desktop","appVersion":"1.13.0","built":"2026-10-18","sourceCommit":"e9a0186","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
 <script src="../../../assets/search-index.es.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>

@@ -5,79 +5,66 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-⚠️ **RE-053 needs the Raphael.Backend with `api/out-of-service`** and the `AddOutOfService` migration.
+## [1.13.0] - 2026-10-17
 
-### Added (RE-053)
-- **Out of Service** for a vehicle, a driver or both, from **Runs** (the route's vehicle, driver or
-  both), **Vehicles** and **Users** (drivers). A reason from a list and a note; a preview of every route
-  and every trip still pending, today and later days, with its two events and their hours; trips with
-  the patient on board in red; the option to give each route **another vehicle or driver** instead of
-  sending its trips back; a confirmation; and the result with a link to each day's unscheduled list
-  with those trips picked out.
+⚠️ **Needs Raphael.Backend 2.3.0** (in production since 2026-10-17): Out of Service, the garage
+preview, the Provider column and reassignment, the work mode and the server-side locks of RE-051 all
+live there.
+
+### Added
+- **Out of Service** (RE-053) for a vehicle, a driver or both, from **Runs** (the route's vehicle,
+  driver or both), **Vehicles** and **Users** (drivers). A reason from a list and a note; a preview of
+  every route and every trip still pending, today and later days, with its two events and their hours;
+  trips with the patient on board in red; the option to give each route **another vehicle or driver**
+  instead of sending its trips back; a confirmation; and the result with a link to each day's
+  unscheduled list with those trips picked out.
+- **The Out of Service dialog shows the order to follow**: three steps (Reason → See what it does →
+  Confirm) with the current one highlighted, a line above the buttons that says what is missing, the
+  preview button raised while it is the next step, and a "no" cursor with a tooltip over the red
+  button while it is off.
 - **Back in service** from the same screens. The trips do not come back by themselves.
 - A red **Out of Service** badge, with since when and why, in Runs, Vehicles and Users, and **Only out of
-  service** in Runs.
+  service** in Runs. **Runs, Vehicles and Users update live** when anyone takes a vehicle or driver out
+  of service or puts it back, from any screen or computer, over one shared connection to the fleet
+  channel.
 - **Schedule:** a route out of service, or suspended on the selected day, is no longer offered for
   routing; the one on screen shows a red banner and cannot be routed. Every open Schedule tab reloads
   its backlog once and picks out the trips that came back.
 - **Dispatch map:** the vehicle of a route out of service is grey with a red ring, and its tooltip says why.
 - **Notifications:** Route Out of Service and Back in Service, worded in the reader's language.
-- Help: `desktop/data/out-of-service`.
-
-### Fixed (RE-053)
-- Suspensions were checked against today, not against the day on screen.
-- **The main window did not open after signing in** (RE-051): Home and Schedule used an icon
-  (`LockClockOutline`) that MaterialDesign 5.2.1 does not have, and the login reported it as "An error
-  occurred during login". The icon is `LockOutline` now, and a window that fails to open is written to
-  the log instead of being swallowed.
-- Notifications **Trip Assigned** and **Trip Rejected** are worded in the reader's language; they showed
-  the server's English.
-
-⚠️ **RE-052 needs the Raphael.Backend with `garage-change/preview`.**
-
-### Added (RE-052)
-- **Route editor: changing the garage asks first.** A dialog shows, day by day, what the new garage
-  does to the days already planned — Pull-out and Pull-in hours and drives, every stop whose ETA or
-  wait moves, what is not changed and why — and only **Save and recalculate** applies it. If what was
-  applied differs from the preview, a second dialog says what really happened.
+- **Home: a routed trip locks the fields copied onto its stops** (RE-051) — date, hours, addresses,
+  type, patient, space type, funding source, authorization, distance — each with an amber frame and
+  padlock, with **See its 2 stops in Schedule →** to take it back to the open list. Same in the
+  simplified **Edit** dialog (type and pickup time).
+- **Schedule: the two stops of that trip are framed** on a new Schedule tab, with a guide banner.
+- **Past and closed trips are read-only** on Home, Schedule, Dispatch and Trips, and every action
+  explains instead of acting. A past day in Schedule is not routed, unrouted, reordered, dragged or
+  recalculated. On Home the whole form is locked, the patient card, the patient search and the
+  additional passengers included.
+- **Admin correction**: **Correct (admin)…** asks for a reason, which travels with the request and is
+  audited on the server; the form unlocks and the notice turns purple.
+- **Home: the trip notices float over the form.** The grey (read-only), purple (correction) and amber
+  (routed) notices are one card that can be dragged anywhere in Home (never onto the map) and closed
+  down to a lock chip on the trip tabs that opens it again. The form keeps the size the divider gives it.
+- **Route editor: changing the garage asks first** (RE-052). A dialog shows, day by day, what the new
+  garage does to the days already planned — Pull-out and Pull-in hours and drives, every stop whose ETA
+  or wait moves, what is not changed and why — and only **Save and recalculate** applies it. If what
+  was applied differs from the preview, a second dialog says what really happened.
 - **Progress while it works**: "Analysing the garage change" and "Applying changes" run behind a
   window with a progress bar that cannot be closed halfway, with **Stop**. A stop during the save is
   checked against the server afterwards and reported truthfully (nothing saved, or already complete),
   and a success message closes it. If the route moved while it was being reviewed, the analysis runs
   again and the dialog says why.
-- Help: `desktop/data/route-garage`.
-
-⚠️ **RE-051 needs the Raphael.Backend that answers `trip_read_only` / `trip_routed_locked`.** Against
-an older one the screens still say why, but nothing stops the change server-side.
-
-### Added (RE-051)
-- **Home: a routed trip locks the fields copied onto its stops** — date, hours, addresses, type,
-  patient, space type, funding source, authorization, distance — each with an amber frame and padlock,
-  under a banner that says why and how to fix it (take it back to the open list), with **See its 2
-  stops in Schedule →** and **Hide**. Same in the simplified **Edit** dialog (type and pickup time).
-- **Schedule: the two stops of that trip are framed** on a new Schedule tab, with a guide banner.
-- **Past and closed trips are read-only** on Home, Schedule, Dispatch and Trips: a grey banner, and
-  every action explains instead of acting. A past day in Schedule is not routed, unrouted, reordered,
-  dragged or recalculated.
-- **Admin correction**: **Correct (admin)…** asks for a reason, which travels with the request and is
-  audited on the server.
-- Help: `desktop/home/edit-restrictions`.
-
-⚠️ **Needs the next Raphael.Backend (after 2.2.0)** for the Provider column, the reassignment, the
-assignable list and the work mode.
-
-### Added
 - **Home: Provider column and Provider selector** (RE-050), Raphael's admin only, when creating and
-  when editing a trip (a round trip's two legs go to the same Provider). The selector shares
-  the row with Funding Source and gender, so the form keeps its height; everybody else sees the old
-  two-column row.
-- **Home: the selector only offers Providers with at least one active user**; a trip's Provider that
-  lost its users is still shown for that trip.
+  when editing a trip (a round trip's two legs go to the same Provider). The selector shares the row
+  with Funding Source and gender, so the form keeps its height; everybody else sees the old two-column
+  row. It only offers Providers with at least one active user; a trip's Provider that lost its users is
+  still shown for that trip.
 - **Provider form: work mode** (Works in Raphael / External), Raphael's admin only, with a
   confirmation when going External. The tenant box shows once it works in Raphael.
 - **Accept and Reject trips on Home** (RE-047): a Provider's user on its Provider's trips, Raphael's
   admin on Raphael's; rejecting asks for a reason. New **Rejected** status, shown in magenta with the
-  Provider's reason.
+  Provider's reason. They only show on trips that came from an integration (Booking or the API).
 - **Who works with whom** (RE-047): the Integrator file links to its catalog entry (link, unlink) and
   lists its contracted Providers (contract, remove); the Provider file lists the clinics that
   contracted it.
@@ -86,14 +73,24 @@ assignable list and the work mode.
   Providers is read-only, and Catalog, Google Maps, Roles and notification rules are Raphael's admin
   only. A client company's admin does not choose integrator or provider when creating users.
 - **Reset another user's password without knowing the current one** (RE-049), for admins.
-- Help: `desktop/home/overview` (Provider, Accept/Reject, frequently asked questions),
-  `desktop/admin/providers` (work mode, tenant, Providers without users) and 1.13.0 in *What's new*.
+- Help: `desktop/data/out-of-service`, `desktop/data/route-garage`, `desktop/home/edit-restrictions`,
+  `desktop/home/overview` (Provider, Accept/Reject, FAQ, double click), `desktop/admin/providers` and
+  1.13.0 in *What's new*.
 
 ### Changed
-- **Accept and Reject only show on trips that came from an integration** (Booking or the API), not
-  on manual or imported ones.
+- **Home: only a double click edits.** One click on another trip while editing leaves the form (asking
+  first if something is unsaved) instead of loading the new trip into it.
 
 ### Fixed
+- **The main window did not open after signing in**: Home and Schedule used an icon
+  (`LockClockOutline`) that MaterialDesign 5.2.1 does not have, and the login reported it as "An error
+  occurred during login". The icon is `LockOutline` now, and a window that fails to open is written to
+  the log instead of being swallowed.
+- Home: the calendar beside the trip form was a blank white box when locked; it is dimmed now, ignores
+  clicks and keys, and says why on hover. The read-only notice is easier to read.
+- Suspensions were checked against today, not against the day on screen.
+- Notifications **Trip Assigned** and **Trip Rejected** are worded in the reader's language; they showed
+  the server's English.
 - Integrator file: it fits the screen, the remove button is visible, and the link enables at once.
 - Admin views: the visibility converter is declared, so the screens no longer fail to open (RE-049).
 - Platform tabs are removed for a client company's admin before they load, not after (RE-049).
