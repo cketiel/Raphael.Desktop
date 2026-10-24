@@ -93,8 +93,9 @@ public sealed class NotificationToastItemViewModel : BaseViewModel
     public string Body => _text.Resolve(Dto).Body;
 
     /// <summary>
-    /// "Viaje 418", or nothing. ⚠️ Never the patient: this card stays on a screen the
-    /// whole office can see, and the notification deliberately carries no patient data.
+    /// "Viaje A-99213", "Viaje —", or nothing. The broker's number, never the internal one
+    /// (RE-060). ⚠️ Never the patient: this card stays on a screen the whole office can see,
+    /// and the notification deliberately carries no patient data.
     /// </summary>
     public string TripLabel
     {
@@ -106,7 +107,7 @@ public sealed class NotificationToastItemViewModel : BaseViewModel
                 return string.Empty;
             }
 
-            return $"{LocalizationService.Instance["NotificationTrip"]} {tripId}";
+            return $"{LocalizationService.Instance["NotificationTrip"]} {NotificationKeys.ExternalTripLabel(Dto)}";
         }
     }
 

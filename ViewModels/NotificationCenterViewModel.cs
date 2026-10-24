@@ -1474,7 +1474,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
     private void CopyTripNumber()
     {
         var text = string.IsNullOrWhiteSpace(Detail.Trip?.TripId)
-            ? SelectedNotification?.BrokerTripNumber
+            ? SelectedNotification?.ExternalTripId
             : Detail.Trip.TripId;
 
         if (string.IsNullOrWhiteSpace(text))

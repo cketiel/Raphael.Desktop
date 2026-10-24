@@ -16,7 +16,11 @@ namespace Raphael.Desktop.Helpers
         public static class Metadata
         {
             public const string MessageKey = "MessageKey";
+            /// <summary>⚠️ The internal identifier (<c>Trip.Id</c>): for opening and grouping, never shown.</summary>
             public const string TripId = "TripId";
+
+            /// <summary>The broker's trip number (<c>Trip.TripId</c>), the one people see (RE-060).</summary>
+            public const string ExternalTripId = "ExternalTripId";
             public const string RiderId = "RiderId";
             public const string TripDate = "TripDate";
             public const string TripTime = "TripTime";
@@ -145,6 +149,24 @@ namespace Raphael.Desktop.Helpers
                    && notification.Metadata.TryGetValue(Metadata.TripId, out var raw)
                    && int.TryParse(raw, out tripId);
         }
+
+        /// <summary>What stands in for a trip number the notification does not have.</summary>
+        public const string NoTripNumber = "—";
+
+        /// <summary>
+        /// The broker's trip number a notification carries, or null. Older notifications and
+        /// trips without a number have none.
+        /// </summary>
+        public static string TryGetExternalTripId(Models.NotificationDto notification) =>
+            notification is not null
+            && notification.Metadata.TryGetValue(Metadata.ExternalTripId, out var raw)
+            && !string.IsNullOrWhiteSpace(raw)
+                ? raw.Trim()
+                : null;
+
+        /// <summary>The trip number to show: the broker's, or "—". Never the internal identifier.</summary>
+        public static string ExternalTripLabel(Models.NotificationDto notification) =>
+            TryGetExternalTripId(notification) ?? NoTripNumber;
 
         /// <summary>Who cancelled a trip, as carried in the metadata.</summary>
         public static class CancelledBy

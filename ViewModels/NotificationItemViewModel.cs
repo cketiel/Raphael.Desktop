@@ -233,9 +233,8 @@ public sealed class NotificationItemViewModel : BaseViewModel
     #region Trip
 
     /// <summary>
-    /// The trip this notification is about, as the server's own message cites it. This is
-    /// the internal identifier; the broker's trip number lives on the trip itself and only
-    /// appears once the detail pane has loaded it.
+    /// The trip this notification is about, by its internal identifier. Used to open the trip
+    /// and to group a trip's notices; ⚠️ never shown (RE-060).
     /// </summary>
     public int? TripId =>
         Dto.Metadata.TryGetValue(NotificationKeys.Metadata.TripId, out var raw) &&
@@ -243,8 +242,17 @@ public sealed class NotificationItemViewModel : BaseViewModel
             ? id
             : null;
 
+    /// <summary>
+    /// The broker's trip number: from the notification itself, or for one older than
+    /// <c>ExternalTripId</c>, from the trip once it has been loaded.
+    /// </summary>
+    public string ExternalTripId =>
+        NotificationKeys.TryGetExternalTripId(Dto)
+        ?? (string.IsNullOrWhiteSpace(BrokerTripNumber) ? null : BrokerTripNumber);
+
+    /// <summary>The trip number shown, "—" when there is none, empty when not about a trip.</summary>
     public string TripLabel =>
-        TripId?.ToString() ?? string.Empty;
+        TripId is null ? string.Empty : ExternalTripId ?? NotificationKeys.NoTripNumber;
 
     public int? RiderId =>
         Dto.Metadata.TryGetValue(NotificationKeys.Metadata.RiderId, out var raw) &&
@@ -259,9 +267,9 @@ public sealed class NotificationItemViewModel : BaseViewModel
     /// in once the trip has been loaded.
     /// </summary>
     /// <remarks>
-    /// It does not travel with the notification — only the internal identifier does — but
-    /// it is what a dispatcher has in hand when a broker calls about a trip, so the search
-    /// box has to find it. Populated from the trip cache as the detail pane loads trips.
+    /// Since RE-060 it travels with the notification as <c>ExternalTripId</c>. This is the
+    /// fallback for the ones written before, populated from the trip cache as the detail
+    /// pane loads trips.
     /// </remarks>
     public string BrokerTripNumber
     {
@@ -269,14 +277,15 @@ public sealed class NotificationItemViewModel : BaseViewModel
         set
         {
             if (SetProperty(ref _brokerTripNumber, value))
+            {
+                OnPropertyChanged(nameof(ExternalTripId));
+                OnPropertyChanged(nameof(TripLabel));
                 OnPropertyChanged(nameof(TripDisplay));
+            }
         }
     }
 
-    public string TripDisplay =>
-        string.IsNullOrWhiteSpace(BrokerTripNumber)
-            ? TripLabel
-            : $"{TripLabel} · {BrokerTripNumber}";
+    public string TripDisplay => TripLabel;
 
     #endregion
 
@@ -467,9 +476,9 @@ public sealed class NotificationItemViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// True when the row matches what the dispatcher typed. Matches the internal trip
-    /// identifier as well as the notification text, so pasting a trip number from another
-    /// system finds it.
+    /// True when the row matches what the dispatcher typed: the broker's trip number, so
+    /// pasting one from another system finds it, or the notification text. Not the internal
+    /// identifier, which nobody outside the database knows (RE-060).
     /// </summary>
     public bool Matches(string search)
     {
@@ -478,8 +487,7 @@ public sealed class NotificationItemViewModel : BaseViewModel
 
         var term = search.Trim();
 
-        return Contains(TripLabel, term)
-               || Contains(BrokerTripNumber, term)
+        return Contains(ExternalTripId, term)
                || Contains(Title, term)
                || Contains(Body, term)
                || Contains(EventName, term);

@@ -5,6 +5,17 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+⚠️ **RE-060 needs the Raphael.Backend release after 2.4.3** to show the number on new notifications.
+Against 2.4.3 the rows read "—" until the trip is loaded; nothing breaks.
+
+### Changed (RE-060 — external trip number in notifications)
+- The Notifications tab shows the broker's trip number (`TripId`) instead of the internal identifier:
+  in the row, the toast, the message text, the detail pane and the Excel export. "—" when there is none.
+- The search box finds notifications by that number, no longer by the internal identifier.
+
+### Removed (RE-060)
+- The "Internal no." field of the notification detail pane.
+
 ## [1.14.2] - 2026-10-18
 
 **Slices:** RE-054, RE-055, RE-056 (three, so the patch is .2). **Needs Raphael.Backend 2.4.3**: against

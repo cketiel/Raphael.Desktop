@@ -127,6 +127,12 @@ public sealed class NotificationTextService
                 DateTime.Today.Add(time).ToString("t", culture);
         }
 
+        // RE-060: the text cites the broker's trip number, never the internal identifier. A
+        // notification older than the key, or a trip without a number, reads "—".
+        if (parameters.ContainsKey(NotificationKeys.Metadata.TripId))
+            parameters[NotificationKeys.Metadata.ExternalTripId] =
+                NotificationKeys.ExternalTripLabel(notification);
+
         if (parameters.TryGetValue(NotificationKeys.Metadata.CancelledBy, out var cancelledBy))
             parameters[NotificationKeys.Metadata.CancelledBy] = ResolveCancelledBy(cancelledBy);
 

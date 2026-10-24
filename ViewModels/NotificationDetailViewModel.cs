@@ -208,9 +208,8 @@ public sealed class NotificationDetailViewModel : BaseViewModel
     public bool HasRoute => Route is not null;
 
     /// <summary>
-    /// Both numbers, because they are not the same thing and both get used. The internal
-    /// identifier is what the notification text cites; <c>TripId</c> is the number a broker
-    /// or a funding source quotes on the phone.
+    /// The number a broker or a funding source quotes on the phone (<c>Trip.TripId</c>), or
+    /// "—". Never the internal identifier (RE-060).
     /// </summary>
     public string TripNumberDisplay
     {
@@ -220,8 +219,8 @@ public sealed class NotificationDetailViewModel : BaseViewModel
                 return string.Empty;
 
             return string.IsNullOrWhiteSpace(Trip.TripId)
-                ? Trip.Id.ToString()
-                : $"{Trip.Id} · {Trip.TripId}";
+                ? Helpers.NotificationKeys.NoTripNumber
+                : Trip.TripId;
         }
     }
 
@@ -579,10 +578,8 @@ public sealed class NotificationDetailViewModel : BaseViewModel
 
         if (trip is not null)
         {
-            Add(TripFields, "NotificationFieldInternalId", trip.Id.ToString());
-
             // ⚠️ The number the business calls "trip number" is Trip.TripId — the one a
-            // broker or a funding source quotes. The internal identifier above is not it.
+            // broker or a funding source quotes. The internal identifier is not shown (RE-060).
             Add(TripFields, "NotificationFieldTripNumber", trip.TripId);
             Add(TripFields, "Type", trip.Type);
             Add(TripFields, "NotificationStateColumn", trip.Status);
