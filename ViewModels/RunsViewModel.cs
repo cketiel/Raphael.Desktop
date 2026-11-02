@@ -218,6 +218,23 @@ namespace Raphael.Desktop.ViewModels
                 AllRoutes.Add(savedRouteVM);
                 SelectedRoute = savedRouteVM;                          
             }
+            AfterEditor(editorViewModel);
+        }
+
+        /// <summary>
+        /// RE-063: what the conflict dialog left to do once the editor closed — the list reloads the
+        /// routes it ended, and opens the route the dispatcher chose to use instead.
+        /// </summary>
+        private async void AfterEditor(VehicleRouteEditorViewModel editor)
+        {
+            if (editor.EndedOtherRoutes || editor.OpenInsteadRouteId.HasValue)
+                await ReloadAsync();
+
+            if (editor.OpenInsteadRouteId is { } id && AllRoutes.FirstOrDefault(r => r.Model.Id == id) is { } other)
+            {
+                SelectedRoute = other;
+                EditRoute();
+            }
         }
 
         private void EditRoute()
@@ -240,6 +257,7 @@ namespace Raphael.Desktop.ViewModels
                 SelectedRoute.Refresh();
                 FilteredRoutes.Refresh();
             }
+            AfterEditor(editorViewModel);
         }
         private async void DeleteRoute()
         {

@@ -275,18 +275,22 @@ namespace Raphael.Desktop.ViewModels
                 {
                     string currentUser = SessionManager.UserId;
                     int userId = int.Parse(currentUser);
-                    var r = routes.Find(r => r.DriverId == userId);
-                    if (r != null)
+                    // RE-063: every route assigned to the driver, not the first one found — a driver
+                    // with an old route and a current one got whichever came first, often the old one.
+                    // The server narrows the report to these routes anyway, whatever is ticked here.
+                    var own = routes.Where(r => r.DriverId == userId).OrderByDescending(r => r.FromDate).ToList();
+                    foreach (var r in own)
                     {
                         r.IsSelected = true;
                         r.PropertyChanged += OnRouteSelectionChanged;
                         AllVehicleRoutes.Add(r);
 
-                        // A driver only ever sees their own production: their route, their name
-                        // and their route's vehicle, all ticked. Offering anyone else's would only
-                        // let them build a filter that, ANDed with their route, returns nothing.
-                        AddOption(AllDrivers, r.DriverId, r.Driver?.FullName ?? $"#{r.DriverId}", true, OnDriverSelectionChanged);
-                        if (r.VehicleId > 0)
+                        // A driver only ever sees their own production: their routes, their name
+                        // and their routes' vehicles, all ticked. Offering anyone else's would only
+                        // let them build a filter that, ANDed with their routes, returns nothing.
+                        if (!AllDrivers.Any(d => d.Id == r.DriverId))
+                            AddOption(AllDrivers, r.DriverId, r.Driver?.FullName ?? $"#{r.DriverId}", true, OnDriverSelectionChanged);
+                        if (r.VehicleId > 0 && !AllVehicles.Any(v => v.Id == r.VehicleId))
                             AddOption(AllVehicles, r.VehicleId, r.Vehicle?.Name ?? $"#{r.VehicleId}", true, OnVehicleSelectionChanged);
                     }
                     IsAllRoutesSelected = AllVehicleRoutes.Any();
