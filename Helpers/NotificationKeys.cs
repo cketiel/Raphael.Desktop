@@ -17,6 +17,7 @@ namespace Raphael.Desktop.Helpers
         {
             public const string MessageKey = "MessageKey";
             public const string TripId = "TripId";
+            public const string ExternalTripId = "ExternalTripId";
             public const string RiderId = "RiderId";
             public const string TripDate = "TripDate";
             public const string TripTime = "TripTime";
