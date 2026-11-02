@@ -28,7 +28,7 @@
                     <views:ManageVehiclesView />
                 </TabItem>
 
-                <TabItem Header="{Binding ViolationSets}">
+                <TabItem Header="{Binding ViolationSets}" Visibility="Collapsed">
                     <views:ViolationSetsView />
                 </TabItem>
 

@@ -7,6 +7,13 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ⚠️ **RE-062 needs the Raphael.Backend release with RE-062.**
 
+### Changed (general)
+- Notifications show and search the broker's trip number (`ExternalTripId`), never the internal trip id —
+  in the list, the toasts and the detail pane.
+- Home: the trip search box also finds trips by patient name.
+- Hidden the empty tabs: Schedules › Revenue and Graphs; Data › Location and Other; Data › Scheduling ›
+  Violation Sets; Manage Vehicles › Capacities and Speeds.
+
 ### Added (RE-063 — one route per driver a day)
 - Saving a route whose driver already has a route in service, or whose smartphone login is taken, opens
   **Route conflict**: use that route instead, or end it the day before yours starts (only when it has no

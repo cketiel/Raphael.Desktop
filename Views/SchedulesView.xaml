@@ -82,11 +82,11 @@
                     <views:TripsView />
                 </TabItem>-->
 
-                <TabItem Header="{Binding Revenue}">
+                <TabItem Header="{Binding Revenue}" Visibility="Collapsed">
                     <views:RevenueView />
                 </TabItem>
 
-                <TabItem Header="{Binding Graphs}">
+                <TabItem Header="{Binding Graphs}" Visibility="Collapsed">
                     <views:GraphsView />
                 </TabItem>
 
