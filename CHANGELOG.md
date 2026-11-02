@@ -5,7 +5,11 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-⚠️ **RE-062 needs the Raphael.Backend release with RE-062.**
+## [1.15.2] - 2026-11-02
+
+**Slices:** RE-062, RE-063, plus the general changes below (counted as a third, so the patch is .2).
+**Needs Raphael.Backend 2.5.2** (vehicle inspection, route conflict). Help: what's new 1.15.2, and the
+Home, Notification Center, Data and Schedules overviews.
 
 ### Changed (general)
 - Notifications show and search the broker's trip number (`ExternalTripId`), never the internal trip id —
