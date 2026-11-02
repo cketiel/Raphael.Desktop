@@ -600,7 +600,7 @@
     "home.DiscardChangesTitle": "Viaje sin guardar",
     "home.DiscardChangesMessage": "Este viaje tiene cambios sin guardar. ¿Salir de todos modos y perderlos?",
     "home.GridSummary": "{0} de {1} viajes",
-    "home.TripSearchHint": "Trip Id",
+    "home.TripSearchHint": "Trip Id o paciente",
     "home.ExportTitle": "Exportar viajes",
     "home.ExportNoRows": "No hay nada que exportar: con los filtros actuales no se muestra ningún viaje.",
     "home.ExportPhiTitle": "Van a salir datos de pacientes del sistema",

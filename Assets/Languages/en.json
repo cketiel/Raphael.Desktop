@@ -600,7 +600,7 @@
     "home.DiscardChangesTitle": "Unsaved trip",
     "home.DiscardChangesMessage": "This trip has changes that have not been saved. Leave anyway and lose them?",
     "home.GridSummary": "{0} of {1} trips",
-    "home.TripSearchHint": "Trip Id",
+    "home.TripSearchHint": "Trip Id or patient",
     "home.ExportTitle": "Export trips",
     "home.ExportNoRows": "There is nothing to export: no trip is showing with the current filters.",
     "home.ExportPhiTitle": "Patient data is about to leave the system",
