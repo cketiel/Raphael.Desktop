@@ -233,6 +233,7 @@ namespace Raphael.Desktop.ViewModels
                 OnPropertyChanged(nameof(WorksInRaphael));
                 OnPropertyChanged(nameof(IsExternal));
                 OnPropertyChanged(nameof(CanSetTenant));
+                OnPropertyChanged(nameof(CanSetVehicleInspection));
             }
         }
 
@@ -246,6 +247,11 @@ namespace Raphael.Desktop.ViewModels
         public string WorksInRaphaelText => LocalizationService.Instance["admin.ProviderWorksInRaphael"];
         public string WorksExternalText => LocalizationService.Instance["admin.ProviderWorksExternal"];
         public string WorkModeHelpText => LocalizationService.Instance["admin.ProviderWorkModeHelp"];
+        /// <summary>RE-062: only Raphael's admin switches the vehicle inspection, and only for a Provider with a fleet here.</summary>
+        public bool CanSetVehicleInspection => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
+        public string VehicleInspectionText => LocalizationService.Instance["admin.ProviderVehicleInspection"];
+        public string VehicleInspectionHelpText => LocalizationService.Instance["admin.ProviderVehicleInspectionHelp"];
+
         public string IsTenantText => LocalizationService.Instance["admin.ProviderIsTenant"];
         public string IsTenantHelpText => LocalizationService.Instance["admin.ProviderIsTenantHelp"];
 

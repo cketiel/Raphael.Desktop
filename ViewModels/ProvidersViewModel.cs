@@ -110,6 +110,11 @@ namespace Raphael.Desktop.ViewModels
                     if (id > 0 && vm.Provider.IsTenant != wasTenant)
                         await _service.SetTenantAsync(id, vm.Provider.IsTenant);
 
+                    // RE-062: the vehicle inspection, its own call too, only when it changed.
+                    var hadInspection = !isNew && item.VehicleInspectionEnabled;
+                    if (id > 0 && vm.Provider.VehicleInspectionEnabled != hadInspection)
+                        await _service.SetVehicleInspectionAsync(id, vm.Provider.VehicleInspectionEnabled);
+
                     LoadData();
                 }
                 catch (Exception ex)

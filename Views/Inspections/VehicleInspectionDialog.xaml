@@ -1,0 +1,126 @@
+<UserControl x:Class="Raphael.Desktop.Views.Inspections.VehicleInspectionDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
+             Width="980" Height="640">
+
+    <!-- RE-062. The vehicle inspections of a route-day: answers, VIN, comment, signature, and the
+         photo of each problem on demand. Nothing of it is saved on this computer. -->
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="28" Height="28" VerticalAlignment="Center"
+                                     Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+            <TextBlock Text="{Binding TitleText}" Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                       Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+            <ListBox ItemsSource="{Binding Inspections}" SelectedItem="{Binding Selected}" Margin="20,0,0,0"
+                     Style="{StaticResource MaterialDesignChoiceChipPrimaryListBox}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Pull-out"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Kind}" Value="PullIn">
+                                            <Setter Property="Text" Value="Pull-in"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <TextBlock Text="{Binding Header}" FontSize="16" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding TimesText}" Opacity="0.7"/>
+            <TextBlock Text="{Binding Message}" Foreground="OrangeRed" FontWeight="SemiBold" Margin="0,6,0,0"/>
+            <ProgressBar IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                         Style="{StaticResource MaterialDesignLinearProgressBar}" Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,6">
+                        <Run Text="{Binding OdometerText, Mode=OneWay}" FontWeight="Bold"/>
+                        <Run Text=": "/>
+                        <Run Text="{Binding Selected.Odometer, Mode=OneWay}"/>
+                    </TextBlock>
+                    <DockPanel Margin="0,0,0,10">
+                        <Button DockPanel.Dock="Right" Content="{Binding ViewPhotoText}" Command="{Binding ShowVinPhotoCommand}"
+                                Style="{StaticResource MaterialDesignFlatButton}" Padding="6,0" Height="26"/>
+                        <TextBlock Text="{Binding VinLine}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <ItemsControl ItemsSource="{Binding Lines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:InspectionLineView}">
+                                <Border BorderBrush="#22000000" BorderThickness="0,0,0,1" Padding="0,5">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="{Binding DataContext.ViewPhotoText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.ShowPhotoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" Visibility="{Binding HasPhoto, Converter={StaticResource BoolToVis}}"
+                                                Style="{StaticResource MaterialDesignFlatButton}" Padding="6,0" Height="26"/>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding ResultText}" Width="90" FontWeight="Bold" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="SeaGreen"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsProblem}" Value="True">
+                                                            <Setter Property="Foreground" Value="OrangeRed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{Binding CommentText}" FontWeight="Bold" Margin="0,12,0,4"/>
+                    <TextBlock Text="{Binding Selected.Comment}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Column="2">
+                <Border BorderBrush="#33000000" BorderThickness="1" Height="320" Background="#FFF5F5F5">
+                    <Image Source="{Binding Photo}" Stretch="Uniform"/>
+                </Border>
+                <TextBlock Text="{Binding PhotoCaption}" Opacity="0.7" Margin="0,4,0,12" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding SignatureText}" FontWeight="Bold" Margin="0,0,0,4"/>
+                <Border BorderBrush="#33000000" BorderThickness="1" Height="110" Background="White">
+                    <Image Source="{Binding Signature}" Stretch="Uniform"/>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <Button Grid.Row="3" HorizontalAlignment="Right" Margin="0,12,0,0" Content="{Binding CloseText}"
+                Style="{StaticResource MaterialDesignRaisedButton}"
+                Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"/>
+    </Grid>
+</UserControl>

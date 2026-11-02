@@ -181,6 +181,36 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        public async Task<List<RunConflictDto>> FindConflictsAsync(RunConflictQueryDto query)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{_endPoint}/conflicts", query);
+                if (!response.IsSuccessStatusCode)
+                    throw await CreateApiException(response, "Error checking the route");
+                return await response.Content.ReadFromJsonAsync<List<RunConflictDto>>() ?? new List<RunConflictDto>();
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ApiException("Connection error with the server.", ex);
+            }
+        }
+
+        public async Task<VehicleRoute> EndAsync(int id, DateTime endDate)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{_endPoint}/{id}/end", new RunEndRequestDto { EndDate = endDate.Date });
+                if (!response.IsSuccessStatusCode)
+                    throw await CreateApiException(response, "Error ending the route");
+                return await response.Content.ReadFromJsonAsync<VehicleRoute>();
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ApiException("Connection error with the server.", ex);
+            }
+        }
+
         // Helper to create custom and detailed exceptions from HTTP response
         private async Task<ApiException> CreateApiException(HttpResponseMessage response, string context)
         {

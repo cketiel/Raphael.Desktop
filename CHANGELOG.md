@@ -5,6 +5,38 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.15.2] - 2026-11-02
+
+**Slices:** RE-062, RE-063, plus the general changes below (counted as a third, so the patch is .2).
+**Needs Raphael.Backend 2.5.2** (vehicle inspection, route conflict). Help: what's new 1.15.2, and the
+Home, Notification Center, Data and Schedules overviews.
+
+### Changed (general)
+- Notifications show and search the broker's trip number (`ExternalTripId`), never the internal trip id —
+  in the list, the toasts and the detail pane.
+- Home: the trip search box also finds trips by patient name.
+- Hidden the empty tabs: Schedules › Revenue and Graphs; Data › Location and Other; Data › Scheduling ›
+  Violation Sets; Manage Vehicles › Capacities and Speeds.
+
+### Added (RE-063 — one route per driver a day)
+- Saving a route whose driver already has a route in service, or whose smartphone login is taken, opens
+  **Route conflict**: use that route instead, or end it the day before yours starts (only when it has no
+  trips routed after that day; otherwise it says how many and from when). An end before the start is
+  said before saving.
+- Vehicle broken down mid-day: the dialog also offers ending the old route today, or saving the new one
+  for today only, and says how many of today's stops are pending on the old one.
+- Reports, driver role: every route assigned to the driver, not the first one found.
+- Help: new topic `desktop/data/route-driver`.
+
+### Added (RE-062 — vehicle inspection)
+- Admin → Providers: **Vehicle inspection at Pull-out and Pull-in**, platform admin only, saved through
+  its own call. The help warns to switch it on only once the Provider's drivers have updated.
+- Schedule: the Pull-out and Pull-in rows open the route-day's vehicle inspections: answers in the
+  office's language, VIN, comment, signature, and each problem's photo on demand. Nothing is saved on
+  the computer.
+- The `VEHICLE_INSPECTION_PROBLEM` notification in Spanish and English.
+- Help: new topic `desktop/schedules/vehicle-inspection`; section in `desktop/admin/providers`.
+
 ## [1.14.2] - 2026-10-18
 
 **Slices:** RE-054, RE-055, RE-056 (three, so the patch is .2). **Needs Raphael.Backend 2.4.3**: against

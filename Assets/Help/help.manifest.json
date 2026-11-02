@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.14.2"
+    "Raphael.Desktop": "1.15.2"
   },
-  "builtUtc": "2026-10-18T19:51:46.359Z",
-  "sourceCommit": "e91611f",
+  "builtUtc": "2026-11-02T07:32:47.519Z",
+  "sourceCommit": "f42e5c3",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.14.2",
+      "lastReviewed": "1.15.2",
       "roles": [
         "admin",
         "dispatcher",
@@ -369,6 +369,21 @@
       }
     },
     {
+      "id": "desktop/data/route-driver",
+      "mode": "how-to",
+      "since": "1.15.0",
+      "lastReviewed": "1.15.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Un chofer, una ruta por día",
+        "en": "One driver, one route a day"
+      }
+    },
+    {
       "id": "desktop/data/out-of-service",
       "mode": "how-to",
       "since": "1.13.0",
@@ -471,6 +486,21 @@
       "title": {
         "es": "Por qué la pantalla cambia sola",
         "en": "Why the screen changes on its own"
+      }
+    },
+    {
+      "id": "desktop/schedules/vehicle-inspection",
+      "mode": "reference",
+      "since": "1.15.0",
+      "lastReviewed": "1.15.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Schedules",
+      "title": {
+        "es": "Inspección del vehículo",
+        "en": "Vehicle inspection"
       }
     },
     {
@@ -594,7 +624,7 @@
       "id": "desktop/admin/providers",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.14.2",
+      "lastReviewed": "1.15.0",
       "roles": [
         "admin"
       ],

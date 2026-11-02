@@ -1647,7 +1647,9 @@ namespace Raphael.Desktop.ViewModels
         {
             var query = TripSearchText?.Trim();
 
-            return string.IsNullOrEmpty(query) || Holds(trip.TripId, query);
+            return string.IsNullOrEmpty(query)
+                   || Holds(trip.TripId, query)
+                   || Holds(trip.CustomerName, query);
         }
 
         private static bool Holds(string text, string part) =>

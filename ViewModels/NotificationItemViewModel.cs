@@ -243,8 +243,15 @@ public sealed class NotificationItemViewModel : BaseViewModel
             ? id
             : null;
 
+    /// <summary>
+    /// The broker's trip number (<c>Trip.TripId</c>). It travels in the notification's
+    /// metadata; older notices without it fall back to what the trip cache filled in.
+    /// </summary>
     public string TripLabel =>
-        TripId?.ToString() ?? string.Empty;
+        Dto.Metadata.TryGetValue(NotificationKeys.Metadata.ExternalTripId, out var external) &&
+        !string.IsNullOrWhiteSpace(external)
+            ? external
+            : BrokerTripNumber ?? string.Empty;
 
     public int? RiderId =>
         Dto.Metadata.TryGetValue(NotificationKeys.Metadata.RiderId, out var raw) &&
@@ -269,14 +276,14 @@ public sealed class NotificationItemViewModel : BaseViewModel
         set
         {
             if (SetProperty(ref _brokerTripNumber, value))
+            {
+                OnPropertyChanged(nameof(TripLabel));
                 OnPropertyChanged(nameof(TripDisplay));
+            }
         }
     }
 
-    public string TripDisplay =>
-        string.IsNullOrWhiteSpace(BrokerTripNumber)
-            ? TripLabel
-            : $"{TripLabel} · {BrokerTripNumber}";
+    public string TripDisplay => TripLabel;
 
     #endregion
 
@@ -467,9 +474,8 @@ public sealed class NotificationItemViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// True when the row matches what the dispatcher typed. Matches the internal trip
-    /// identifier as well as the notification text, so pasting a trip number from another
-    /// system finds it.
+    /// True when the row matches what the dispatcher typed. Matches the broker's trip
+    /// number (never the internal id) as well as the notification text.
     /// </summary>
     public bool Matches(string search)
     {
@@ -479,7 +485,6 @@ public sealed class NotificationItemViewModel : BaseViewModel
         var term = search.Trim();
 
         return Contains(TripLabel, term)
-               || Contains(BrokerTripNumber, term)
                || Contains(Title, term)
                || Contains(Body, term)
                || Contains(EventName, term);

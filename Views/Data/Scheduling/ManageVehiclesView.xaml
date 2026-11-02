@@ -28,11 +28,11 @@
                     <views:SpaceTypesView />
                 </TabItem>
 
-                <TabItem Header="{Binding Capacities}">
+                <TabItem Header="{Binding Capacities}" Visibility="Collapsed">
                     <views:CapacitiesView />
                 </TabItem>
 
-                <TabItem Header="{Binding Speeds}">
+                <TabItem Header="{Binding Speeds}" Visibility="Collapsed">
                     <views:SpeedsView />
                 </TabItem>
 

@@ -93,6 +93,13 @@ namespace Raphael.Desktop.Models
         /// </summary>
         public bool IsTenant { get => _isTenant; set => SetProperty(ref _isTenant, value); }
 
+        private bool _vehicleInspectionEnabled;
+        /// <summary>
+        /// RE-062: its drivers inspect the vehicle at Pull-out and Pull-in. Saved through its own
+        /// endpoint (<c>PUT providers/{id}/vehicle-inspection</c>), never with the rest of the form.
+        /// </summary>
+        public bool VehicleInspectionEnabled { get => _vehicleInspectionEnabled; set => SetProperty(ref _vehicleInspectionEnabled, value); }
+
         private int _workMode;
         /// <summary>
         /// 0 = works in Raphael, 1 = External (Booking portal only). Saved through its own endpoint

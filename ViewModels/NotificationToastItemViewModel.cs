@@ -100,7 +100,8 @@ public sealed class NotificationToastItemViewModel : BaseViewModel
     {
         get
         {
-            if (!Dto.Metadata.TryGetValue(NotificationKeys.Metadata.TripId, out var tripId) ||
+            // The broker's trip number, the one the dispatcher knows; the internal id never shows.
+            if (!Dto.Metadata.TryGetValue(NotificationKeys.Metadata.ExternalTripId, out var tripId) ||
                 string.IsNullOrWhiteSpace(tripId))
             {
                 return string.Empty;

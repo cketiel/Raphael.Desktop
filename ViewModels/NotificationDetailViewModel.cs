@@ -208,22 +208,10 @@ public sealed class NotificationDetailViewModel : BaseViewModel
     public bool HasRoute => Route is not null;
 
     /// <summary>
-    /// Both numbers, because they are not the same thing and both get used. The internal
-    /// identifier is what the notification text cites; <c>TripId</c> is the number a broker
-    /// or a funding source quotes on the phone.
+    /// The broker's trip number (<c>TripId</c>), the one a funding source quotes on the
+    /// phone. The internal identifier is never shown to the dispatcher.
     /// </summary>
-    public string TripNumberDisplay
-    {
-        get
-        {
-            if (Trip is null)
-                return string.Empty;
-
-            return string.IsNullOrWhiteSpace(Trip.TripId)
-                ? Trip.Id.ToString()
-                : $"{Trip.Id} · {Trip.TripId}";
-        }
-    }
+    public string TripNumberDisplay => Trip?.TripId ?? string.Empty;
 
     /// <summary>
     /// The date and the pickup window, as wall-clock time where the trip is operated.

@@ -71,11 +71,11 @@
                 <views:DataSchedulingView />
             </TabItem>
 
-            <TabItem Header="{Binding Location}">
+            <TabItem Header="{Binding Location}" Visibility="Collapsed">
                 <views:DataLocationView />
             </TabItem>
 
-            <TabItem Header="{Binding Other}">
+            <TabItem Header="{Binding Other}" Visibility="Collapsed">
                 <views:DataOtherView />
             </TabItem>
                 

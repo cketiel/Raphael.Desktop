@@ -25,5 +25,14 @@ namespace Raphael.Desktop.Services
             System.Threading.CancellationToken ct = default);
         Task DeleteAsync(int id);
         Task<bool> CancelAsync(int id);
+
+        /// <summary>
+        /// The routes in service from today on that the route described would clash with (RE-063): the
+        /// driver's route and the route using the login. Saves nothing.
+        /// </summary>
+        Task<List<RunConflictDto>> FindConflictsAsync(RunConflictQueryDto query);
+
+        /// <summary>Ends a route on a day, its last in service (RE-063). Throws ApiException with the server's reason when refused.</summary>
+        Task<VehicleRoute> EndAsync(int id, DateTime endDate);
     }
 }

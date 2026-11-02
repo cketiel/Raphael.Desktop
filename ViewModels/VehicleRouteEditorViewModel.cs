@@ -40,6 +40,15 @@ namespace Raphael.Desktop.ViewModels
         // Event to notify the view (the window) that it should be closed
         public event EventHandler<bool?> RequestClose;
 
+        /// <summary>
+        /// RE-063: the route the dispatcher chose to edit instead of this one, from the conflict dialog.
+        /// The list opens it once this editor has closed.
+        /// </summary>
+        public int? OpenInsteadRouteId { get; private set; }
+
+        /// <summary>RE-063: routes ended from the conflict dialog while saving this one. The list reloads them.</summary>
+        public bool EndedOtherRoutes { get; private set; }
+
         public VehicleRouteEditorViewModel(VehicleRoute route, IRunService runService)
         {
             _runService = runService;
@@ -182,8 +191,21 @@ namespace Raphael.Desktop.ViewModels
             // Use the mapper to convert Model to DTO
             var routeDto = Route.ToDto();
 
+            // RE-063: an end before the start is refused by the server too; said here, next to the dates.
+            if (routeDto.ToDate is { } end && end.Date < routeDto.FromDate.Date)
+            {
+                var l = LocalizationService.Instance;
+                MessageBox.Show(string.Format(l["runConflict.EndBeforeStart"], end, routeDto.FromDate), l["runConflict.Title"],
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
+                // RE-063: one route in service per driver a day and per login, from today on. Asked
+                // before saving, so the dispatcher is helped to fix it rather than just told.
+                if (!await ResolveConflictsAsync(routeDto)) return;
+
                 if (Route.Id == 0) // It's a new route
                 {
                     var createdRoute = await _runService.CreateAsync(routeDto);
@@ -218,6 +240,55 @@ namespace Raphael.Desktop.ViewModels
                 //Helpers.UiError.Show($"Error al guardar: {ex.Message}\nDetalles: {ex.Details}", "Error de API", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             
+        }
+
+        /// <summary>
+        /// Shows what the route clashes with and does what the dispatcher picks (RE-063). True when it
+        /// can be saved; false to stay in the editor, or when another route is to be edited instead.
+        /// </summary>
+        /// <remarks>
+        /// Asked again after ending a route in the way: the driver and the login are two clashes, and
+        /// somebody else may have saved meanwhile. Three rounds and it stops asking.
+        /// </remarks>
+        private async Task<bool> ResolveConflictsAsync(DTOs.VehicleRouteDto routeDto)
+        {
+            for (var round = 0; round < 3; round++)
+            {
+                var conflicts = await _runService.FindConflictsAsync(new DTOs.RunConflictQueryDto
+                {
+                    RouteId = Route.Id == 0 ? null : Route.Id,
+                    DriverId = routeDto.DriverId,
+                    SmartphoneLogin = routeDto.SmartphoneLogin,
+                    FromDate = routeDto.FromDate,
+                    ToDate = routeDto.ToDate,
+                });
+                if (conflicts.Count == 0) return true;
+
+                var dialog = new Views.RunConflictDialog(Route.Driver?.FullName, conflicts) { Owner = ActiveWindow() };
+                if (dialog.ShowDialog() != true || dialog.Choice == Views.RunConflictChoice.Back) return false;
+
+                if (dialog.Choice == Views.RunConflictChoice.OpenOther)
+                {
+                    OpenInsteadRouteId = dialog.Target.RouteId;
+                    RequestClose?.Invoke(this, false);
+                    return false;
+                }
+
+                if (dialog.Choice == Views.RunConflictChoice.CoverToday)
+                {
+                    // For today only: the new route covers the broken-down vehicle's day and the
+                    // other route goes on tomorrow. Shown in the editor too, in case it is saved again.
+                    var businessToday = dialog.Target.SuggestedEndDate.AddDays(1);
+                    routeDto.ToDate = businessToday;
+                    Route.ToDate = businessToday;
+                    OnPropertyChanged(nameof(Route));
+                    continue;
+                }
+
+                await _runService.EndAsync(dialog.Target.RouteId, dialog.EndDate);
+                EndedOtherRoutes = true;
+            }
+            return false;
         }
 
         /// <summary>
