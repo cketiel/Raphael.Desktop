@@ -14,6 +14,7 @@ namespace Raphael.Desktop.Services
         Task<bool> DeleteProviderAsync(int id);
         /// <summary>Makes the Provider a client company of the platform, or stops it being one (RE-049).</summary>
         Task SetTenantAsync(int id, bool isTenant);
+        Task SetVehicleInspectionAsync(int id, bool enabled);
         /// <summary>Raphael (0) or External (1); going External also stops it being a tenant.</summary>
         Task SetWorkModeAsync(int id, int workMode);
         /// <summary>Trips the Provider still has from today on, to warn before switching it off (RE-055).</summary>

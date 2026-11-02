@@ -204,6 +204,11 @@ namespace Raphael.Desktop.ViewModels
 
         public IAsyncRelayCommand ShowHistoryCommand { get; }
 
+        /// <summary>RE-062: opens the vehicle inspection of a Pull-out or Pull-in row.</summary>
+        public IAsyncRelayCommand ShowInspectionCommand { get; }
+
+        public string ShowInspectionToolTip => LocalizationService.Instance["inspection.Show"];
+
         /// <param name="notificationService">
         /// The office inbox, when this tab is one the dispatcher works in. Optional
         /// because Dispatch builds a schedule model of its own for its inner panel, and
@@ -244,6 +249,7 @@ namespace Raphael.Desktop.ViewModels
             ManualRefreshCommand = new AsyncRelayCommand(ManualRefreshAsync); // RefreshLiveDataAsync
 
             ShowHistoryCommand = new AsyncRelayCommand<object>(ExecuteShowHistoryAsync);
+            ShowInspectionCommand = new AsyncRelayCommand<ScheduleDto>(ExecuteShowInspectionAsync);
 
             DismissStopOrderAdvisoryCommand = new RelayCommand(() => StopOrderAdvisory = null);
 
@@ -262,6 +268,25 @@ namespace Raphael.Desktop.ViewModels
 
             AttachNotifications(notificationService);
             AttachBoard(new DispatchBoardService());
+        }
+
+        /// <summary>
+        /// RE-062: the vehicle inspections of the selected route and day, opened on the row's own.
+        /// Read-only, fetched when asked for: nothing of it is kept on this computer.
+        /// </summary>
+        private async Task ExecuteShowInspectionAsync(ScheduleDto schedule)
+        {
+            if (schedule is null || SelectedVehicleRoute is null) return;
+            if (schedule.Name != "Pull-out" && schedule.Name != "Pull-in")
+            {
+                Helpers.UiError.Show(LocalizationService.Instance["inspection.OnlyGarage"], LocalizationService.Instance["inspection.Title"],
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+
+            var viewModel = new VehicleInspectionViewModel(SelectedVehicleRoute.Id, schedule.Date ?? SelectedDate, schedule.Id);
+            var view = new Views.Inspections.VehicleInspectionDialog { DataContext = viewModel };
+            await MaterialDesignThemes.Wpf.DialogHost.Show(view, "ScheduleRootDialogHost");
         }
 
         private async Task ExecuteShowHistoryAsync(object parameter)

@@ -118,6 +118,17 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        /// <summary>RE-062: switches the vehicle inspection on or off for a Provider's drivers. Platform admins only.</summary>
+        public async Task SetVehicleInspectionAsync(int id, bool enabled)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/vehicle-inspection", new { enabled });
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception(string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body);
+            }
+        }
+
         public async Task<int> GetPendingTripsAsync(int id)
         {
             var response = await _httpClient.GetAsync($"{EndPoint}/{id}/pending-trips");

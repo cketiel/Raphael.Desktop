@@ -796,6 +796,27 @@
                                                             </Button>
                                                         </Grid>
 
+                                                        <!-- RE-062: the vehicle inspection, on the garage rows only. -->
+                                                        <Button Command="{Binding Data.ShowInspectionCommand, Source={StaticResource vmProxy}}"
+                                                                CommandParameter="{Binding}"
+                                                                VerticalAlignment="Center" Margin="2,0,0,0"
+                                                                ToolTip="{Binding Data.ShowInspectionToolTip, Source={StaticResource vmProxy}}">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource TripActionButtonStyle}">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-out">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Name}" Value="Pull-in">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="20" Height="20" Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
+                                                        </Button>
+
                                                         <!-- This one stop as a time bar, read beside the
                                                              figures it came from. Pull-out and Pull-in
                                                              have no bar to show: nobody was promised an
