@@ -20,6 +20,17 @@ namespace Raphael.Desktop.Models
         [System.Text.Json.Serialization.JsonIgnore]
         public string? OutOfServiceText => OutOfServiceRecord is null ? null : Helpers.OutOfServiceUi.Describe(new[] { OutOfServiceRecord });
 
+        /// <summary>RE-065: where its compliance documents stand, set by the screen. Never sent to the server.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public DTOs.ComplianceSummaryDto? DocsSummary { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string DocsText => Helpers.ComplianceUi.TextOf(DocsSummary);
+
+        /// <summary>danger, warn, info, ok or none: the colour of the Documents badge.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string DocsState => Helpers.ComplianceUi.StateOf(DocsSummary);
+
         public int Id { get; set; }
         [Required]
         public string FullName { get; set; }

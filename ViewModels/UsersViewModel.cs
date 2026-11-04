@@ -78,6 +78,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 var users = await _userService.GetUsersAsync();
                 await MarkOutOfServiceAsync(users);
+                await MarkDocumentsAsync(users);
                 Users = new ObservableCollection<User>(users);
             }
             catch (Exception ex)
@@ -86,6 +87,19 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+
+        // ---- RE-065: compliance documents, managed in Docs; here only their status and the way there ----
+
+        public ICommand OpenDocumentsCommand { get; } = new RelayCommandObject(p => { if (p is User u) Helpers.ComplianceUi.Open("USER", u.Id); });
+        public string OpenDocumentsToolTip => LocalizationService.Instance["compliance.OpenDocs"];
+        public string ColumnHeaderDocuments => LocalizationService.Instance["compliance.ColumnDocs"];
+
+        private static async Task MarkDocumentsAsync(System.Collections.Generic.IEnumerable<User> users)
+        {
+            var summaries = await Helpers.ComplianceUi.SummariesAsync("USER");
+            if (summaries is null) return;
+            foreach (var u in users) u.DocsSummary = summaries.GetValueOrDefault(u.Id);
+        }
 
         // ---- RE-053: Out of Service ----
 

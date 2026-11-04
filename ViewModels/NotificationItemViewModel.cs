@@ -253,6 +253,22 @@ public sealed class NotificationItemViewModel : BaseViewModel
             ? external
             : BrokerTripNumber ?? string.Empty;
 
+    // ---- RE-065: a compliance notice points at one document of one person or vehicle ----
+
+    public bool IsCompliance => BusinessEventCode?.StartsWith("COMPLIANCE_", StringComparison.OrdinalIgnoreCase) == true;
+    public bool IsInspection => BusinessEventCode?.Contains("INSPECTION", StringComparison.OrdinalIgnoreCase) == true;
+
+    public string ComplianceSubject => Dto.Metadata.TryGetValue("ComplianceSubject", out var s) ? s : null;
+
+    public int? ComplianceSubjectId =>
+        Dto.Metadata.TryGetValue("ComplianceSubjectId", out var raw) && int.TryParse(raw, out var id) ? id : null;
+
+    public int? ComplianceDocumentId =>
+        Dto.Metadata.TryGetValue("ComplianceDocumentId", out var raw) && int.TryParse(raw, out var id) ? id : null;
+
+    /// <summary>Docs can open on it: the notice says whose document it is (older ones did not).</summary>
+    public bool CanOpenInDocs => IsCompliance && ComplianceSubject != null && ComplianceSubjectId != null;
+
     public int? RiderId =>
         Dto.Metadata.TryGetValue(NotificationKeys.Metadata.RiderId, out var raw) &&
         int.TryParse(raw, out var id)

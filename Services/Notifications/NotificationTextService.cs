@@ -62,8 +62,17 @@ public sealed class NotificationTextService
             ? Substitute(bodyTemplate, parameters)
             : notification.Message;
 
+        // A template whose values did not come (a notification stored before the server sent
+        // them) would show "{ComplianceDocumentName}" to a dispatcher: the server's own text,
+        // in English but whole, is better than that.
+        if (HasHole(title)) title = notification.Title;
+        if (HasHole(body)) body = notification.Message;
+
         return (title, body);
     }
+
+    private static bool HasHole(string text) =>
+        text is not null && System.Text.RegularExpressions.Regex.IsMatch(text, @"\{[A-Za-z]+\}");
 
     /// <summary>
     /// Human name of the business event, for the Type column and the tab headers.

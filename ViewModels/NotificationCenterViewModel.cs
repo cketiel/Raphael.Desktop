@@ -121,6 +121,14 @@ public sealed class NotificationCenterViewModel : BaseViewModel
 
         SelectCallRequestsCommand = new RelayCommandObject(_ => IsCallRequestsSelected = true);
 
+        // RE-065: the document a notice is about, in Docs, selected.
+        OpenInDocsCommand = new RelayCommandObject(parameter =>
+        {
+            var item = parameter as NotificationItemViewModel ?? SelectedNotification;
+            if (item?.CanOpenInDocs != true) return;
+            Helpers.ComplianceUi.Open(item.ComplianceSubject, item.ComplianceSubjectId!.Value, item.ComplianceDocumentId);
+        });
+
         ToggleReadCommand = new RelayCommandObject(ToggleRead);
 
         ArchiveCommand = new AsyncRelayCommand(ToggleArchivedAsync);
@@ -215,6 +223,9 @@ public sealed class NotificationCenterViewModel : BaseViewModel
     #region Commands
 
     public ICommand SelectTabCommand { get; }
+
+    /// <summary>RE-065: opens Docs on the document of a compliance notice.</summary>
+    public ICommand OpenInDocsCommand { get; }
 
     public ICommand SelectCallRequestsCommand { get; }
 
@@ -637,6 +648,19 @@ public sealed class NotificationCenterViewModel : BaseViewModel
             "NotificationTabCompleted",
             PackIconKind.FlagCheckered,
             item => Is(item, NotificationKeys.Events.DriverCompletedTrip)));
+
+        // Not about a trip: the vehicle inspections (RE-062) and the compliance documents (RE-065).
+        // A document notice opens Docs on it; an inspection one has nowhere to go yet (there is
+        // no Inspections screen), see BACKLOG.
+        Tabs.Add(NewTab(
+            "NotificationTabInspections",
+            PackIconKind.ClipboardCheckOutline,
+            item => item.IsInspection));
+
+        Tabs.Add(NewTab(
+            "NotificationTabDocuments",
+            PackIconKind.FileCertificateOutline,
+            item => item.IsCompliance));
 
         _selectedTab = Tabs[0];
         _selectedTab.IsSelected = true;

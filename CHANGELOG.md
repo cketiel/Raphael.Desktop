@@ -5,6 +5,38 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Added (RE-065 — compliance documents)
+- New main tab **Compliance** (administrators and dispatchers):
+  - **To review**: the documents waiting, with View; only an administrator approves or rejects (with
+    the reason the driver reads).
+  - **Expiring**: approved documents expiring within 30, 60 or 90 days, expired ones first; tick rows
+    and notify their drivers.
+  - **Drivers** and **Vehicles**: each one with its counts and next expiry; its documents on the right,
+    to view, upload or renew, and approve or reject when one waits. Tick drivers to notify them.
+  - **My documents**: the dispatcher's own.
+- Upload for a driver, a vehicle or yourself: a file per part (JPG, PNG or PDF, up to 10 MB; the five
+  vehicle photos), the expiration date, and the progress while it goes up.
+- Notify drivers: a message of your own that reaches them by push, in Alerts, and stays on their
+  Dashboard until read.
+
+- The menu entry is **Docs** (it fits in English and Spanish). Its lists use the same grids, action
+  icons and badges as Users and Vehicles; People shows drivers and dispatchers with their role.
+- Each document: view, upload or renew, correct while in review (expiry or files), approve or reject
+  (administrators), and its history (every version, who uploaded and who reviewed it).
+- An administrator may approve a document as they upload it.
+- Users and Vehicles: a Documents badge per row and an icon that opens Docs on that person or vehicle.
+- The notice to drivers comes with a ready text (the document and its date when it is one), editable.
+- View opens photos in the Desktop itself (the five vehicle photos in one window, in order); a PDF opens in
+  the computer's viewer, or its folder when there is none.
+- The compliance notifications (to review, expiring, expired) have their titles and texts; one whose
+  values did not come shows the server's text instead of a "{placeholder}".
+- Notifications: new tabs **Inspections** and **Documents**. A document notice has "Open the document in
+  Docs", which opens Docs on that person or vehicle with the document selected.
+- Docs grids look exactly like the Home and Schedule trip grids (ContentDataGridStyle and its row,
+  header and cell styles, TripActionButtonStyle).
+
+⚠️ Needs the Raphael.Backend release with RE-065.
+
 ## [1.15.2] - 2026-11-02
 
 **Slices:** RE-062, RE-063, plus the general changes below (counted as a third, so the patch is .2).

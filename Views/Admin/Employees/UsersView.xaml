@@ -63,6 +63,13 @@
                                             ToolTip="{Binding Data.DeleteUserToolTip, Source={StaticResource vmProxy}}">
                                         <materialDesign:PackIcon Kind="DeleteForever" Foreground="Red"/>
                                     </Button>
+                                    <!-- RE-065: the documents of this one, in Docs. -->
+                                    <Button Command="{Binding Data.OpenDocumentsCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource MaterialDesignToolButton}"
+                                            ToolTip="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}">
+                                        <materialDesign:PackIcon Kind="FileDocumentMultipleOutline" Foreground="#2196F3"/>
+                                    </Button>
                                     <!-- RE-053: Out of Service, or back in service when it already is. -->
                                     <Button Command="{Binding Data.OutOfServiceCommand, Source={StaticResource vmProxy}}"
                                             CommandParameter="{Binding}"
@@ -92,6 +99,32 @@
                                         Padding="6,1" ToolTip="{Binding OutOfServiceText}"
                                         Visibility="{Binding IsOutOfService, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="{Binding Data.OutOfServiceBadge, Source={StaticResource vmProxy}}" Foreground="#B71C1C" FontWeight="SemiBold"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <!-- RE-065: where its documents stand; a click opens Docs on it. -->
+                    <DataGridTemplateColumn Header="{Binding Data.ColumnHeaderDocuments, Source={StaticResource vmProxy}}" SortMemberPath="DocsState">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="3" Padding="6,1" BorderThickness="1" HorizontalAlignment="Left" Cursor="Hand"
+                                        ToolTip="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick" Command="{Binding Data.OpenDocumentsCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"/>
+                                    </Border.InputBindings>
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#F5F5F5"/>
+                                            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DocsState}" Value="ok"><Setter Property="Background" Value="#E8F5E9"/><Setter Property="BorderBrush" Value="#2E7D32"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding DocsState}" Value="warn"><Setter Property="Background" Value="#FFF4E0"/><Setter Property="BorderBrush" Value="#B26A00"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding DocsState}" Value="danger"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#C62828"/></DataTrigger>
+                                                <DataTrigger Binding="{Binding DocsState}" Value="info"><Setter Property="Background" Value="#E3F2FD"/><Setter Property="BorderBrush" Value="#1565C0"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding DocsText}" FontWeight="SemiBold"/>
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

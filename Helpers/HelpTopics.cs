@@ -44,6 +44,7 @@ public static class HelpTopics
         MENU.Data => "desktop/data/overview",
         MENU.Schedules => "desktop/schedules/overview",
         MENU.Dispatch => "desktop/dispatch/overview",
+        MENU.Compliance => "desktop/compliance/overview",
         MENU.Reports => "desktop/reports/overview",
         MENU.Admin => "desktop/admin/overview",
         MENU.Notification => Notifications,

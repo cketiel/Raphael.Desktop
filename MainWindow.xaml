@@ -167,6 +167,25 @@
                             </TabItem.Header>
                         </TabItem>
 
+                        <!-- RE-065 Compliance: documents of drivers, vehicles and dispatchers. Role 1 and 3;
+                             only role 1 approves, which the view itself decides. -->
+                        <TabItem x:Name="ComplianceTabMenu"
+                                 Tag="{x:Static local:MENU.Compliance}"
+                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                            <TabItem.Header>
+
+                                <StackPanel>
+                                    <materialDesign:PackIcon Kind="FileCertificateOutline"
+                                                             Width="24"
+                                                             Height="24"
+                                                             HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MainMenuCompliance}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+
+                            </TabItem.Header>
+                        </TabItem>
+
                         <!-- Reports: Visible for Role 1, 2 and 3 -->
                         <TabItem x:Name="ReportsTabMenu"
                                  Tag="{x:Static local:MENU.Reports}"

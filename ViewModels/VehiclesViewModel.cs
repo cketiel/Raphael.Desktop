@@ -196,6 +196,8 @@ namespace Raphael.Desktop.ViewModels
                 
                 var vehiclesList = await _vehicleService.GetVehiclesAsync();
                 await MarkOutOfServiceAsync(vehiclesList);
+                var docs = await Helpers.ComplianceUi.SummariesAsync("VEHICLE");
+                if (docs != null) foreach (var v in vehiclesList) v.DocsSummary = docs.GetValueOrDefault(v.Id);
                 _allVehicles = new ObservableCollection<Vehicle>(vehiclesList);
 
                 FilterVehicles();
@@ -212,6 +214,11 @@ namespace Raphael.Desktop.ViewModels
 
 
         // ---- RE-053: Out of Service ----
+
+        // RE-065: compliance documents, managed in Docs; here only their status and the way there.
+        public ICommand OpenDocumentsCommand { get; } = new RelayCommandObject(p => { if (p is Vehicle v) Helpers.ComplianceUi.Open("VEHICLE", v.Id); });
+        public string OpenDocumentsToolTip => LocalizationService.Instance["compliance.OpenDocs"];
+        public string ColumnHeaderDocuments => LocalizationService.Instance["compliance.ColumnDocs"];
 
         public ICommand OutOfServiceCommand { get; private set; }
         public ICommand ReturnToServiceCommand { get; private set; }

@@ -1370,6 +1370,10 @@ namespace Raphael.Desktop
             }
         }
 
+        /// <summary>RE-065: Docs on one person or vehicle, from Users or Vehicles.</summary>
+        public void OpenCompliance(string subject, int id, int? documentId = null) =>
+            OpenTab(LocalizationService.Instance["Compliance"], new Views.Compliance.ComplianceView(subject, id, documentId), PackIconKind.FileCertificateOutline);
+
         private void MenuTabControl_PreviewMouseLeftButtonUp(
             object sender,
             MouseButtonEventArgs e)
@@ -1393,6 +1397,7 @@ namespace Raphael.Desktop
                 if ((selectedMenu == MENU.Data ||
                      selectedMenu == MENU.Schedules ||
                      selectedMenu == MENU.Dispatch ||
+                     selectedMenu == MENU.Compliance ||
                      selectedMenu == MENU.Notification)
                      &&
                      (role != "1" && role != "3"))
@@ -1431,6 +1436,13 @@ namespace Raphael.Desktop
                             LocalizationService.Instance["Dispatch"],
                             new DispatchView(),
                             PackIconKind.WrenchClock);
+                        break;
+
+                    case MENU.Compliance:
+                        OpenTab(
+                            LocalizationService.Instance["Compliance"],
+                            new Views.Compliance.ComplianceView(),
+                            PackIconKind.FileCertificateOutline);
                         break;
 
                     case MENU.Reports:
@@ -1479,6 +1491,7 @@ namespace Raphael.Desktop
         Dispatch,
         Reports,
         Admin,
-        Notification
+        Notification,
+        Compliance
     }
 }

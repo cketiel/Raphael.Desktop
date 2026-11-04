@@ -79,6 +79,9 @@ namespace Raphael.Desktop.ViewModels
         public string MainMenuAdmin =>
             LocalizationService.Instance["Admin"];
 
+        public string MainMenuCompliance =>
+            LocalizationService.Instance["Compliance"];
+
 
         public string Settings =>
             LocalizationService.Instance["Settings"];
