@@ -208,10 +208,21 @@ public sealed class NotificationDetailViewModel : BaseViewModel
     public bool HasRoute => Route is not null;
 
     /// <summary>
-    /// The broker's trip number (<c>TripId</c>), the one a funding source quotes on the
-    /// phone. The internal identifier is never shown to the dispatcher.
+    /// The number a broker or a funding source quotes on the phone (<c>Trip.TripId</c>), or
+    /// "—". Never the internal identifier (RE-060).
     /// </summary>
-    public string TripNumberDisplay => Trip?.TripId ?? string.Empty;
+    public string TripNumberDisplay
+    {
+        get
+        {
+            if (Trip is null)
+                return string.Empty;
+
+            return string.IsNullOrWhiteSpace(Trip.TripId)
+                ? Helpers.NotificationKeys.NoTripNumber
+                : Trip.TripId;
+        }
+    }
 
     /// <summary>
     /// The date and the pickup window, as wall-clock time where the trip is operated.
@@ -567,10 +578,8 @@ public sealed class NotificationDetailViewModel : BaseViewModel
 
         if (trip is not null)
         {
-            Add(TripFields, "NotificationFieldInternalId", trip.Id.ToString());
-
             // ⚠️ The number the business calls "trip number" is Trip.TripId — the one a
-            // broker or a funding source quotes. The internal identifier above is not it.
+            // broker or a funding source quotes. The internal identifier is not shown (RE-060).
             Add(TripFields, "NotificationFieldTripNumber", trip.TripId);
             Add(TripFields, "Type", trip.Type);
             Add(TripFields, "NotificationStateColumn", trip.Status);

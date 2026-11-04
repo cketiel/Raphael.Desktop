@@ -37,6 +37,14 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ⚠️ Needs the Raphael.Backend release with RE-065.
 
+### Changed (RE-060 — external trip number in notifications)
+- Completes what 1.15.2 started: a notification about a trip with no broker number reads "—", also in
+  the toast, the message text and the Excel export. The internal identifier is never shown.
+- The search box finds notifications by that number, no longer by the internal identifier.
+
+### Removed (RE-060)
+- The "Internal no." field of the notification detail pane.
+
 ## [1.15.2] - 2026-11-02
 
 **Slices:** RE-062, RE-063, plus the general changes below (counted as a third, so the patch is .2).
