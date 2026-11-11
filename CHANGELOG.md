@@ -5,6 +5,20 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.16.3] - 2026-11-11
+
+### Changed (schedule)
+- With **All Groups** selected, the route list is grouped by vehicle group, in the same order as
+  the group list; routes without a group go last.
+
+### Changed (reports)
+- **Trip2 PDF Report** is now **Manifest Report**. Next to DRIVER'S SIGNATURE each driver's page
+  prints the signature of their latest signed vehicle inspection in the period; blank if none.
+- **Aviata Report** is now **Facility Report**, with a driver filter (all drivers ticked by
+  default; one or several can be chosen).
+- **Production Report** has an optional **Trip Id** filter (the external trip id).
+- Needs Raphael.Backend 2.7.0 (`GET /api/vehicle-inspections/signed` and the new report filters).
+
 ### Added (RE-065 — compliance documents)
 - New main tab **Compliance** (administrators and dispatchers):
   - **To review**: the documents waiting, with View; only an administrator approves or rejects (with
@@ -35,7 +49,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 - Docs grids look exactly like the Home and Schedule trip grids (ContentDataGridStyle and its row,
   header and cell styles, TripActionButtonStyle).
 
-⚠️ Needs the Raphael.Backend release with RE-065.
+⚠️ Needs Raphael.Backend 2.6.0 (RE-065).
 
 ### Changed (RE-060 — external trip number in notifications)
 - Completes what 1.15.2 started: a notification about a trip with no broker number reads "—", also in
