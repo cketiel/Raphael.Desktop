@@ -911,6 +911,17 @@ namespace Raphael.Desktop.ViewModels
             // sees what happened to it instead of being moved to another route.
             filtered = filtered.Where(r => r.Id == previousSelected?.Id || IsRoutable(r));
 
+            // Routes follow the order of the group list. OrderBy is stable, so inside a group they
+            // keep the order they came in; routes without a group go last.
+            var groupOrder = VehicleGroups
+                .Select((g, i) => (g.Id, i))
+                .GroupBy(x => x.Id)
+                .ToDictionary(x => x.Key, x => x.First().i);
+            filtered = filtered.OrderBy(r =>
+                r.Vehicle?.VehicleGroup?.Id is int gid && groupOrder.TryGetValue(gid, out var pos)
+                    ? pos
+                    : int.MaxValue);
+
             VehicleRoutes.ReplaceAll(filtered);
 
             // Mantener selección si es posible
