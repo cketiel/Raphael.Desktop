@@ -14,11 +14,15 @@ namespace Raphael.Desktop.Models.Pdf
     {
         private List<IGrouping<string, ProductionReportRowDto>> _data;
         private DateTime _date;
+        // Driver name → PNG of the signature from their latest signed vehicle inspection in the period.
+        private readonly IReadOnlyDictionary<string, byte[]> _driverSignatures;
 
-        public Trip2Document(List<IGrouping<string, ProductionReportRowDto>> data, DateTime date)
+        public Trip2Document(List<IGrouping<string, ProductionReportRowDto>> data, DateTime date,
+            IReadOnlyDictionary<string, byte[]> driverSignatures = null)
         {
             _data = data;
             _date = date;
+            _driverSignatures = driverSignatures ?? new Dictionary<string, byte[]>();
         }
 
         public void Compose(IDocumentContainer container)
@@ -35,7 +39,7 @@ namespace Raphael.Desktop.Models.Pdf
 
                     page.Header().Element(header => ComposeHeader(header, driverGroup));
                     page.Content().Element(content => ComposeContent(content, driverGroup));
-                    page.Footer().Element(ComposeFooter);
+                    page.Footer().Element(footer => ComposeFooter(footer, driverGroup.Key));
                 });
             }
         }
@@ -162,8 +166,10 @@ namespace Raphael.Desktop.Models.Pdf
             });
         }
 
-        private void ComposeFooter(IContainer container)
+        private void ComposeFooter(IContainer container, string driverName)
         {
+            _driverSignatures.TryGetValue(driverName ?? "", out var signature);
+
             container.Column(col =>
             {
                 col.Item().PaddingTop(5).Text(t =>
@@ -184,11 +190,11 @@ namespace Raphael.Desktop.Models.Pdf
                 col.Item().PaddingTop(15).Row(row =>
                 {
                     row.RelativeItem();
-                    row.ConstantItem(250).Column(c =>
-                    {
-                        c.Item().AlignCenter().Text("DRIVER'S SIGNATURE:").Bold().FontSize(9);
-                        //c.Item().PaddingVertical(2).LineHorizontal(1f);
-                    });
+                    row.ConstantItem(150).AlignRight().AlignMiddle().PaddingRight(8)
+                        .Text("DRIVER'S SIGNATURE:").Bold().FontSize(9);
+                    var signatureBox = row.ConstantItem(160).Height(35).BorderBottom(0.5f);
+                    if (signature != null && signature.Length > 0)
+                        signatureBox.AlignCenter().AlignBottom().Image(signature, ImageScaling.FitArea);
                     row.RelativeItem();
                 });
             });

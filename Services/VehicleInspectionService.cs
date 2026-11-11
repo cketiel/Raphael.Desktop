@@ -24,6 +24,15 @@ namespace Raphael.Desktop.Services
             return await response.Content.ReadFromJsonAsync<List<VehicleInspectionDetailDto>>() ?? new();
         }
 
+        /// <summary>The signed inspections of a period, newest first (at most 62 days): the driver's signature for the Manifest Report.</summary>
+        public async Task<List<VehicleInspectionDetailDto>> GetSignedAsync(DateTime startDate, DateTime endDate)
+        {
+            var response = await _httpClient.GetAsync($"{EndPoint}/signed?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+            if (!response.IsSuccessStatusCode)
+                throw new Exception(response.ReasonPhrase);
+            return await response.Content.ReadFromJsonAsync<List<VehicleInspectionDetailDto>>() ?? new();
+        }
+
         public async Task<VehicleInspectionDetailDto> GetAsync(int id)
         {
             var response = await _httpClient.GetAsync($"{EndPoint}/{id}");

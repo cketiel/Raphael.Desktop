@@ -26,6 +26,27 @@ namespace Raphael.Desktop.ViewModels
         private readonly RunService _vehicleRouteService;
         private readonly UserService _userService;
         private readonly VehicleService _vehicleService;
+        private readonly VehicleInspectionService _inspectionService;
+
+        // Production Report: optional filter by the external trip id.
+        public string TripIdFilter { get; set; }
+
+        // Facility Report: its own driver list, every driver ticked by default.
+        public ObservableCollection<ReportFilterOption> FacilityDrivers { get; } = new ObservableCollection<ReportFilterOption>();
+        public ReportFilterOption SelectedFacilityDriver { get; set; }
+        private bool _isUpdatingFacilityDriversSelection;
+        private bool _isAllFacilityDriversSelected;
+        public bool IsAllFacilityDriversSelected
+        {
+            get => _isAllFacilityDriversSelected;
+            set
+            {
+                if (_isAllFacilityDriversSelected == value) return;
+                _isAllFacilityDriversSelected = value;
+                OnPropertyChanged();
+                ToggleAll(FacilityDrivers, value, ref _isUpdatingFacilityDriversSelection);
+            }
+        }
 
         private bool _isAllRoutesSelected;
         public bool IsAllRoutesSelected
@@ -186,6 +207,7 @@ namespace Raphael.Desktop.ViewModels
             _vehicleRouteService = new RunService();
             _userService = new UserService();
             _vehicleService = new VehicleService();
+            _inspectionService = new VehicleInspectionService();
 
             // We pass the async method to the command and manage the execution state.
             GenerateProductionReportCommand = new RelayCommandObject(async (o) => await GenerateProductionReport(o), (o) => !_isGenerating);
@@ -219,7 +241,7 @@ namespace Raphael.Desktop.ViewModels
                 var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
 
                 // 2. Llamar al servicio 
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles));
+                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles), TripIdFilter);
 
                 if (reportData == null || !reportData.Any())
                 {
@@ -260,6 +282,7 @@ namespace Raphael.Desktop.ViewModels
                 AllVehicleRoutes.Clear();
                 AllDrivers.Clear();
                 AllVehicles.Clear();
+                FacilityDrivers.Clear();
 
                 var sources = await _fundingSourceService.GetFundingSourcesAsync(false);
                 foreach (var s in sources)
@@ -310,7 +333,11 @@ namespace Raphael.Desktop.ViewModels
                     // of them, the same as the route list above.
                     var users = await _userService.GetAllAsync();
                     foreach (var u in users.Where(u => u.RoleId == 2).OrderBy(u => u.FullName))
+                    {
                         AddOption(AllDrivers, u.Id, u.FullName, false, OnDriverSelectionChanged);
+                        AddOption(FacilityDrivers, u.Id, u.FullName, true, OnFacilityDriverSelectionChanged);
+                    }
+                    IsAllFacilityDriversSelected = FacilityDrivers.Any();
 
                     var vehicles = await _vehicleService.GetVehiclesAsync();
                     foreach (var v in vehicles.OrderBy(v => v.Name))
@@ -356,6 +383,14 @@ namespace Raphael.Desktop.ViewModels
             _isUpdatingDriversSelection = true;
             IsAllDriversSelected = AllDrivers.All(x => x.IsSelected);
             _isUpdatingDriversSelection = false;
+        }
+
+        private void OnFacilityDriverSelectionChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(ReportFilterOption.IsSelected) || _isUpdatingFacilityDriversSelection) return;
+            _isUpdatingFacilityDriversSelection = true;
+            IsAllFacilityDriversSelected = FacilityDrivers.All(x => x.IsSelected);
+            _isUpdatingFacilityDriversSelection = false;
         }
 
         private void OnVehicleSelectionChanged(object sender, PropertyChangedEventArgs e)
@@ -466,7 +501,7 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || !reportData.Any())
                 {
-                    MessageBox.Show("No data found for Trip2 with selected filters.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No data found for the Manifest Report with the selected filters.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -478,7 +513,8 @@ namespace Raphael.Desktop.ViewModels
                 string fileName = $"Trip2Preview_{DateTime.Now:yyyyMMddHHmmss}.pdf";
                 string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), fileName);
 
-                var document = new Trip2Document(groupedByDriver, Trip2StartDate); // Or handle range in document
+                var signatures = await LoadDriverSignaturesAsync(groupedByDriver.Select(g => g.Key), Trip2StartDate, Trip2EndDate);
+                var document = new Trip2Document(groupedByDriver, Trip2StartDate, signatures); // Or handle range in document
                 document.GeneratePdf(tempPath);
 
                 // 4. Update UI
@@ -495,20 +531,50 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        /// <summary>
+        /// Each driver's signature for the Manifest Report: the one from their latest signed vehicle
+        /// inspection in the period. Matched by name, the same key the report groups by. A driver who
+        /// signed none, or a failure fetching them, leaves the line blank rather than stopping the report.
+        /// </summary>
+        private async Task<Dictionary<string, byte[]>> LoadDriverSignaturesAsync(IEnumerable<string> driverNames, DateTime start, DateTime end)
+        {
+            var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var wanted = new HashSet<string>(driverNames.Where(n => !string.IsNullOrWhiteSpace(n)), StringComparer.OrdinalIgnoreCase);
+                if (wanted.Count == 0) return result;
+
+                // The API answers newest first, so the first one per driver is their latest.
+                var signed = await _inspectionService.GetSignedAsync(start, end);
+                var latest = signed
+                    .Where(i => wanted.Contains(i.DriverName?.Trim() ?? ""))
+                    .GroupBy(i => i.DriverName.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First());
+
+                foreach (var inspection in latest)
+                {
+                    var bytes = await _inspectionService.GetSignatureAsync(inspection.Id);
+                    if (bytes != null && bytes.Length > 0) result[inspection.DriverName.Trim()] = bytes;
+                }
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Driver signatures unavailable: {ex.GetType().Name}"); }
+            return result;
+        }
+
         private void SaveTrip2PreviewToFile()
         {
             if (string.IsNullOrEmpty(Trip2PreviewFilePath)) return;
             SaveFileDialog sfd = new SaveFileDialog
             {
                 Filter = "PDF Document|*.pdf",
-                FileName = $"Trip2_{Trip2StartDate:MM-dd-yyyy}_{Trip2EndDate:MM-dd-yyyy}.pdf"
+                FileName = $"Manifest_{Trip2StartDate:MM-dd-yyyy}_{Trip2EndDate:MM-dd-yyyy}.pdf"
             };
 
             if (sfd.ShowDialog() == true)
             {
                 string localPath = new Uri(Trip2PreviewFilePath).LocalPath;
                 System.IO.File.Copy(localPath, sfd.FileName, true);
-                MessageBox.Show("Trip2 Report saved!");
+                MessageBox.Show("Manifest Report saved!");
             }
         }
 
@@ -523,11 +589,20 @@ namespace Raphael.Desktop.ViewModels
                 // Get only selected IDs for the report
                 var selectedIds = AllFundingSources.Where(x => x.IsSelected && x.Id != -1).Select(x => x.Id).ToList();
 
-                var reportData = await _scheduleService.GetAviataReportDataAsync(StartDate, EndDate, selectedIds);
+                // Every driver ticked means no driver filter: trips not yet on a route still count.
+                var driverIds = SelectedIds(FacilityDrivers);
+                if (FacilityDrivers.Any() && driverIds.Count == 0)
+                {
+                    MessageBox.Show("Select at least one driver.", "Facility Report", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                if (IsAllFacilityDriversSelected) driverIds = null;
+
+                var reportData = await _scheduleService.GetAviataReportDataAsync(StartDate, EndDate, selectedIds, driverIds);
 
                 if (reportData == null || !reportData.Any())
                 {
-                    MessageBox.Show("No data found for the selected Funding Sources.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No data found for the selected filters.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -561,9 +636,9 @@ namespace Raphael.Desktop.ViewModels
             SaveFileDialog sfd = new SaveFileDialog 
             {
                 Filter = "PDF Document|*.pdf",
-                FileName = $"Aviata_{StartDate:MM-dd-yyyy}_{EndDate:MM-dd-yyyy}.pdf"
+                FileName = $"Facility_{StartDate:MM-dd-yyyy}_{EndDate:MM-dd-yyyy}.pdf"
             };
-            
+
             if (sfd.ShowDialog() == true)
             {
                 string localPath = new Uri(AviataPreviewFilePath).LocalPath;
@@ -593,7 +668,7 @@ namespace Raphael.Desktop.ViewModels
                 var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
                 // 3. Obtener datos del servicio usando el rango de fechas (StartDate y EndDate)
                 // Se asume que has añadido 'GetProductionReportDataRangeAsync' a tu ScheduleService
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles));
+                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles), TripIdFilter);
 
                 if (reportData == null || reportData.Count == 0)
                 {

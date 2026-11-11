@@ -212,7 +212,8 @@ namespace Raphael.Desktop.Services
             List<int> fundingSourceIds,
             List<int> vehicleRouteIds,
             List<int> driverIds = null,
-            List<int> vehicleIds = null)
+            List<int> vehicleIds = null,
+            string tripId = null)
         {
             string start = startDate.ToString("yyyy-MM-dd");
             string end = endDate.ToString("yyyy-MM-dd");
@@ -237,6 +238,12 @@ namespace Raphael.Desktop.Services
             if (vehicleIds != null && vehicleIds.Any())
             {
                 requestUri += $"&vehicleIds={string.Join(",", vehicleIds)}";
+            }
+
+            // The external trip id: not PHI, but escaped because it is free text.
+            if (!string.IsNullOrWhiteSpace(tripId))
+            {
+                requestUri += $"&tripId={Uri.EscapeDataString(tripId.Trim())}";
             }
 
             var response = await _httpClient.GetAsync(requestUri);
@@ -298,7 +305,7 @@ namespace Raphael.Desktop.Services
             return await response.Content.ReadFromJsonAsync<List<ProductionReportRowDto>>();
         }
 
-        public async Task<List<ProductionReportRowDto>> GetAviataReportDataAsync(DateTime startDate, DateTime endDate, List<int> fundingSourceIds)
+        public async Task<List<ProductionReportRowDto>> GetAviataReportDataAsync(DateTime startDate, DateTime endDate, List<int> fundingSourceIds, List<int> driverIds = null)
         {
             // Format dates for the QueryString
             string start = startDate.ToString("yyyy-MM-dd");
@@ -312,6 +319,11 @@ namespace Raphael.Desktop.Services
             {
                 string idsString = string.Join(",", fundingSourceIds);
                 requestUri += $"&fundingSourceIds={idsString}";
+            }
+
+            if (driverIds != null && driverIds.Any())
+            {
+                requestUri += $"&driverIds={string.Join(",", driverIds)}";
             }
 
             var response = await _httpClient.GetAsync(requestUri);
