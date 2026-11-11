@@ -104,9 +104,13 @@
                                 materialDesign:HintAssist.Hint="Filter by vehicle..."
                                 SelectedItem="{Binding SelectedVehicle}"/>
 
+                            <TextBlock Text="Trip Id (optional)" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <TextBox Text="{Binding TripIdFilter, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="External trip id..."/>
+
                             <Separator Margin="0,20"/>
 
-                            <Button Command="{Binding PreviewProductionReportCommand}" 
+                            <Button Command="{Binding PreviewProductionReportCommand}"
                         Content="GENERATE PREVIEW" 
                         Style="{StaticResource GenerateButtonStyle}" 
                         Background="#673AB7"/>
@@ -210,8 +214,8 @@
                 </Grid>
             </TabItem>-->
 
-            <!-- Trip2 PDF Report Tab -->
-            <TabItem Header="Trip2 PDF Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+            <!-- Manifest Report Tab (formerly Trip2 PDF Report) -->
+            <TabItem Header="Manifest Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -221,7 +225,7 @@
                     <!-- FILTERS SIDEBAR -->
                     <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
                         <StackPanel>
-                            <TextBlock Text="Trip2 Report Filters" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
+                            <TextBlock Text="Manifest Report Filters" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
 
                             <TextBlock Text="Date Range" FontWeight="SemiBold" Margin="0,0,0,5"/>
                             <DatePicker SelectedDate="{Binding Trip2StartDate}" materialDesign:HintAssist.Hint="Start Date" Margin="0,5"/>
@@ -264,7 +268,7 @@
                             <!-- Placeholder -->
                             <StackPanel VerticalAlignment="Center" Visibility="{Binding IsTrip2PreviewReady, Converter={StaticResource AviataInverseVisibilityConverter}}">
                                 <materialDesign:PackIcon Kind="FilePdfBox" Width="60" Height="60" HorizontalAlignment="Center" Foreground="#BDBDBD"/>
-                                <TextBlock Text="Click 'Generate Preview' to see the Trip2 report." HorizontalAlignment="Center" Foreground="#9E9E9E"/>
+                                <TextBlock Text="Click 'Generate Preview' to see the Manifest report." HorizontalAlignment="Center" Foreground="#9E9E9E"/>
                             </StackPanel>
 
                             <!-- WebView2 Preview -->
@@ -276,8 +280,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- AVIATA (Previsualización y Filtros) -->
-            <TabItem Header="Aviata Report"  Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+            <!-- Facility Report (formerly Aviata Report) -->
+            <TabItem Header="Facility Report"  Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -287,7 +291,7 @@
                     <!-- FILTROS -->
                     <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
                         <StackPanel>
-                            <TextBlock Text="Aviata Billing Filters" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+                            <TextBlock Text="Facility Report Filters" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
 
                             <TextBlock Text="Start Date:" Margin="0,10,0,5"/>
                             <DatePicker SelectedDate="{Binding StartDate}"/>
@@ -307,6 +311,15 @@
                                       ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
                                       materialDesign:HintAssist.Hint="Filter by item..."
                                       SelectedItem="{Binding SelectedFundingSource}"/>
+
+                            <TextBlock Text="Drivers:" Margin="0,15,0,5"/>
+                            <CheckBox Content="[ SELECT ALL DRIVERS ]"
+                                      IsChecked="{Binding IsAllFacilityDriversSelected}"
+                                      FontWeight="Bold" Margin="2,0,0,5"/>
+                            <ComboBox ItemsSource="{Binding FacilityDrivers}"
+                                      ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                                      materialDesign:HintAssist.Hint="Filter by driver..."
+                                      SelectedItem="{Binding SelectedFacilityDriver}"/>
 
                             <Separator Margin="0,20"/>
                             <Button Command="{Binding PreviewAviataReportCommand}" Content="GENERATE PREVIEW" Style="{StaticResource GenerateButtonStyle}" Background="#673AB7"/>
