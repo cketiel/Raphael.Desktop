@@ -5,6 +5,14 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-11-12
+
+### Changed (compliance)
+- The Docs menu entry is now **Compliance** (Spanish: **Cumpl.** in the menu, **Cumplimiento**
+  everywhere else). The menu item is wider so the word fits without clipping.
+- Every "Docs" text (tab title, Users/Vehicles tooltip, notification text, "Open the document in…")
+  now reads Compliance / Cumplimiento.
+
 ## [1.16.3] - 2026-11-11
 
 ### Changed (schedule)

@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.16.3"
+    "Raphael.Desktop": "1.17.0"
   },
-  "builtUtc": "2026-11-11T23:16:46.919Z",
-  "sourceCommit": "7ab8e4c",
+  "builtUtc": "2026-11-12T18:08:01.660Z",
+  "sourceCommit": "10f4ced",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.16.3",
+      "lastReviewed": "1.17.0",
       "roles": [
         "admin",
         "dispatcher",
@@ -559,10 +559,10 @@
         "admin",
         "dispatcher"
       ],
-      "menu": "Docs",
+      "menu": "Cumpl.",
       "title": {
-        "es": "Docs — los documentos de choferes, vehículos y dispatchers",
-        "en": "Docs — driver, vehicle and dispatcher documents"
+        "es": "Cumplimiento — los documentos de choferes, vehículos y dispatchers",
+        "en": "Compliance — driver, vehicle and dispatcher documents"
       }
     },
     {
