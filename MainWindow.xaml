@@ -170,6 +170,7 @@
                         <!-- RE-065 Compliance: documents of drivers, vehicles and dispatchers. Role 1 and 3;
                              only role 1 approves, which the view itself decides. -->
                         <TabItem x:Name="ComplianceTabMenu"
+                                 Width="88"
                                  Tag="{x:Static local:MENU.Compliance}"
                                  Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
                             <TabItem.Header>

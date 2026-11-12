@@ -1481,7 +1481,8 @@
     "notes.OpenNeedsSave": "Save the trip first: the notes are kept on the places of a saved trip.",
     "notes.GridToReview": "Notes: {0} to review",
     "notes.Help": "Help: notes for the driver (F1)",
-    "Compliance": "Docs",
+    "Compliance": "Compliance",
+    "MenuCompliance": "Compliance",
     "compliance.Title": "Compliance documents",
     "compliance.TabReview": "To review",
     "compliance.TabExpiring": "Expiring",
@@ -1599,7 +1600,7 @@
     "compliance.Approving": "Approving…",
     "compliance.NoticeTemplate": "Please check My documents in the Raphael Driver app: one of your documents needs to be uploaded or renewed. Thank you.",
     "compliance.NoticeTemplateOne": "Your {0} expires on {1}. Please upload the renewal in My documents of the Raphael Driver app. Thank you.",
-    "compliance.OpenDocs": "Documents (opens Docs)",
+    "compliance.OpenDocs": "Documents (opens Compliance)",
     "compliance.ColumnDocs": "Documents",
     "compliance.BadgeExpired": "{0} expired",
     "compliance.BadgeRejected": "{0} rejected",
@@ -1613,12 +1614,12 @@
     "notification.event.COMPLIANCE_DOCUMENT_EXPIRED": "Document Expired",
     "notification.event.COMPLIANCE_NOTICE": "Message about Documents",
     "notification.COMPLIANCE_DOCUMENT_SUBMITTED.DESKTOP_USER.title": "Document to review",
-    "notification.COMPLIANCE_DOCUMENT_SUBMITTED.DESKTOP_USER.body": "{ComplianceDocumentName} of {ComplianceSubjectName} was uploaded and waits for an administrator (Docs › To review).",
+    "notification.COMPLIANCE_DOCUMENT_SUBMITTED.DESKTOP_USER.body": "{ComplianceDocumentName} of {ComplianceSubjectName} was uploaded and waits for an administrator (Compliance › To review).",
     "notification.COMPLIANCE_DOCUMENT_EXPIRING.DESKTOP_USER.title": "Document expiring",
     "notification.COMPLIANCE_DOCUMENT_EXPIRING.DESKTOP_USER.body": "{ComplianceDocumentName} of {ComplianceSubjectName} expires on {ComplianceExpiresOn}.",
     "notification.COMPLIANCE_DOCUMENT_EXPIRED.DESKTOP_USER.title": "Document expired",
     "notification.COMPLIANCE_DOCUMENT_EXPIRED.DESKTOP_USER.body": "{ComplianceDocumentName} of {ComplianceSubjectName} expired; it is out of service until the renewal is approved. Its trips were not changed.",
     "NotificationTabInspections": "Inspections",
     "NotificationTabDocuments": "Documents",
-    "compliance.OpenInDocs": "Open the document in Docs"
+    "compliance.OpenInDocs": "Open the document in Compliance"
 }

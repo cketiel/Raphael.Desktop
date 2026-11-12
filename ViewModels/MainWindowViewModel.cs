@@ -80,7 +80,7 @@ namespace Raphael.Desktop.ViewModels
             LocalizationService.Instance["Admin"];
 
         public string MainMenuCompliance =>
-            LocalizationService.Instance["Compliance"];
+            LocalizationService.Instance["MenuCompliance"];
 
 
         public string Settings =>

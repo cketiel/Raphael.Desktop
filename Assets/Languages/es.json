@@ -1481,7 +1481,8 @@
     "notes.OpenNeedsSave": "Guarda el viaje primero: las notas se guardan en los lugares de un viaje guardado.",
     "notes.GridToReview": "Notas: {0} por revisar",
     "notes.Help": "Ayuda: notas para el conductor (F1)",
-    "Compliance": "Docs",
+    "Compliance": "Cumplimiento",
+    "MenuCompliance": "Cumpl.",
     "compliance.Title": "Documentos de cumplimiento",
     "compliance.TabReview": "Por revisar",
     "compliance.TabExpiring": "Por vencer",
@@ -1599,7 +1600,7 @@
     "compliance.Approving": "Aprobando…",
     "compliance.NoticeTemplate": "Please check My documents in the Raphael Driver app: one of your documents needs to be uploaded or renewed. Thank you.",
     "compliance.NoticeTemplateOne": "Your {0} expires on {1}. Please upload the renewal in My documents of the Raphael Driver app. Thank you.",
-    "compliance.OpenDocs": "Documentos (abre Docs)",
+    "compliance.OpenDocs": "Documentos (abre Cumplimiento)",
     "compliance.ColumnDocs": "Documentos",
     "compliance.BadgeExpired": "{0} vencido(s)",
     "compliance.BadgeRejected": "{0} rechazado(s)",
@@ -1613,12 +1614,12 @@
     "notification.event.COMPLIANCE_DOCUMENT_EXPIRED": "Documento vencido",
     "notification.event.COMPLIANCE_NOTICE": "Mensaje sobre documentos",
     "notification.COMPLIANCE_DOCUMENT_SUBMITTED.DESKTOP_USER.title": "Documento por revisar",
-    "notification.COMPLIANCE_DOCUMENT_SUBMITTED.DESKTOP_USER.body": "{ComplianceDocumentName} de {ComplianceSubjectName} se subió y espera a un administrador (Docs › Por revisar).",
+    "notification.COMPLIANCE_DOCUMENT_SUBMITTED.DESKTOP_USER.body": "{ComplianceDocumentName} de {ComplianceSubjectName} se subió y espera a un administrador (Cumplimiento › Por revisar).",
     "notification.COMPLIANCE_DOCUMENT_EXPIRING.DESKTOP_USER.title": "Documento por vencer",
     "notification.COMPLIANCE_DOCUMENT_EXPIRING.DESKTOP_USER.body": "{ComplianceDocumentName} de {ComplianceSubjectName} vence el {ComplianceExpiresOn}.",
     "notification.COMPLIANCE_DOCUMENT_EXPIRED.DESKTOP_USER.title": "Documento vencido",
     "notification.COMPLIANCE_DOCUMENT_EXPIRED.DESKTOP_USER.body": "{ComplianceDocumentName} de {ComplianceSubjectName} venció; queda fuera de servicio hasta que se apruebe la renovación. Sus viajes no se tocaron.",
     "NotificationTabInspections": "Inspecciones",
     "NotificationTabDocuments": "Documentos",
-    "compliance.OpenInDocs": "Abrir el documento en Docs"
+    "compliance.OpenInDocs": "Abrir el documento en Cumplimiento"
 }
