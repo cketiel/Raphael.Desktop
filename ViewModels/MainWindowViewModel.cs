@@ -192,6 +192,13 @@ namespace Raphael.Desktop.ViewModels
 
         private Action? _openNotificationCenter;
 
+        /// <summary>
+        /// RE-068: the bell (and with it the Notifications tab) for roles that have it, unless
+        /// Raphael's admin hid the center from this user's Provider. Raphael's office always has it.
+        /// </summary>
+        public bool IsNotificationCenterVisible =>
+            IsGeneralVisible && (_notificationService?.IsCenterEnabled ?? true);
+
         public int UnreadNotificationsCount =>
             _notificationService?.UnreadCount ?? 0;
 
@@ -376,7 +383,8 @@ namespace Raphael.Desktop.ViewModels
             _notificationService.NotificationReceived +=
                 (_, notification) =>
                 {
-                    if (_showNotificationAlert is null)
+                    // RE-068: hidden center, no pop-up either. The notice still arrived.
+                    if (_showNotificationAlert is null || !_notificationService.IsCenterEnabled)
                         return;
 
                     Application.Current?.Dispatcher.Invoke(
@@ -393,6 +401,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 await _notificationService.InitializeAsync();
 
+                OnPropertyChanged(nameof(IsNotificationCenterVisible));
                 RaiseNotificationCounters();
             }
             catch
@@ -421,6 +430,9 @@ namespace Raphael.Desktop.ViewModels
 
         private void OpenNotificationCenter()
         {
+            if (!IsNotificationCenterVisible)
+                return;
+
             // The panel is a tab like any other, so the main window owns the opening: it
             // is the one that knows the tab strip.
             _openNotificationCenter?.Invoke();

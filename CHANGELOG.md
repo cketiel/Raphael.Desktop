@@ -5,6 +5,13 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Added (RE-068 — notifications per Provider)
+- **Admin → Providers → edit**: new box **Show notifications**, only for Raphael's administrator and
+  only on a Provider that works in Raphael. Off, that Provider's users do not see the bell, the
+  Notification Center or the pop-up alerts; notifications still arrive and screens keep refreshing.
+- Raphael's office always sees its notifications. Each Provider sees only its own.
+- Needs backend RE-068 (`GET api/notifications/center`). Against an older backend the bell stays shown.
+
 ### Added (RE-066 — AI access)
 - **Admin → Employees → edit a user**: new field **AI access (MCP)** with None, Summary (no patient
   data), Detail (with patient data) and Full. Only Raphael's administrator sees it, and only when

@@ -234,6 +234,7 @@ namespace Raphael.Desktop.ViewModels
                 OnPropertyChanged(nameof(IsExternal));
                 OnPropertyChanged(nameof(CanSetTenant));
                 OnPropertyChanged(nameof(CanSetVehicleInspection));
+                OnPropertyChanged(nameof(CanSetNotificationCenter));
             }
         }
 
@@ -251,6 +252,10 @@ namespace Raphael.Desktop.ViewModels
         public bool CanSetVehicleInspection => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
         public string VehicleInspectionText => LocalizationService.Instance["admin.ProviderVehicleInspection"];
         public string VehicleInspectionHelpText => LocalizationService.Instance["admin.ProviderVehicleInspectionHelp"];
+        /// <summary>RE-068: only Raphael's admin shows or hides the notification center, and only for a Provider that uses Desktop.</summary>
+        public bool CanSetNotificationCenter => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
+        public string NotificationCenterText => LocalizationService.Instance["admin.ProviderNotificationCenter"];
+        public string NotificationCenterHelpText => LocalizationService.Instance["admin.ProviderNotificationCenterHelp"];
 
         public string IsTenantText => LocalizationService.Instance["admin.ProviderIsTenant"];
         public string IsTenantHelpText => LocalizationService.Instance["admin.ProviderIsTenantHelp"];

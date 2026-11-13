@@ -232,6 +232,10 @@ namespace Raphael.Desktop
         /// </remarks>
         private void OpenNotificationCenter()
         {
+            // RE-068: hidden center, no way in either (help links, alerts).
+            if (!_viewModel.IsNotificationCenterVisible)
+                return;
+
             // The bell is not a main-menu tab, so nothing else sets this. Without it, F1 straight
             // after clicking the bell would answer for whichever tab was opened before.
             CurrentMenu = MENU.Notification;

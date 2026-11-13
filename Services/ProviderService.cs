@@ -129,6 +129,17 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        /// <summary>RE-068: shows or hides the notification center to a Provider's users. Platform admins only.</summary>
+        public async Task SetNotificationCenterAsync(int id, bool enabled)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}/notification-center", new { enabled });
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                throw new Exception(string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body);
+            }
+        }
+
         public async Task<int> GetPendingTripsAsync(int id)
         {
             var response = await _httpClient.GetAsync($"{EndPoint}/{id}/pending-trips");

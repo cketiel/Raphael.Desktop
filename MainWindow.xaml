@@ -395,11 +395,11 @@
                         </Border>
                     </Grid>
 
-                    <!-- Notifications -->
+                    <!-- Notifications. RE-068: hidden when Raphael's admin hid the center from this Provider. -->
                     <Grid Width="58"
                           Height="60"
                           Margin="0,0,0,0"
-                          Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                          Visibility="{Binding IsNotificationCenterVisible, Converter={StaticResource BoolToVisConverter}}">
 
                         <Button x:Name="NotificationButton"
                                 Command="{Binding OpenNotificationCenterCommand}"

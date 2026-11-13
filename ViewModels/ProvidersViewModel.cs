@@ -115,6 +115,12 @@ namespace Raphael.Desktop.ViewModels
                     if (id > 0 && vm.Provider.VehicleInspectionEnabled != hadInspection)
                         await _service.SetVehicleInspectionAsync(id, vm.Provider.VehicleInspectionEnabled);
 
+                    // RE-068: the notification center, its own call, only when it changed. A new
+                    // Provider is born with it on, like the server.
+                    var hadCenter = isNew || item.NotificationCenterEnabled;
+                    if (id > 0 && vm.Provider.NotificationCenterEnabled != hadCenter)
+                        await _service.SetNotificationCenterAsync(id, vm.Provider.NotificationCenterEnabled);
+
                     LoadData();
                 }
                 catch (Exception ex)
