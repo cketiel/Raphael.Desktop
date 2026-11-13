@@ -5,6 +5,20 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Added (RE-066 — AI access)
+- **Admin → Employees → edit a user**: new field **AI access (MCP)** with None, Summary (no patient
+  data), Detail (with patient data) and Full. Only Raphael's administrator sees it, and only when
+  editing. Full is shown and cannot be chosen; a user who has it shows the field disabled.
+- Choosing Detail asks for **BAA on record** (the document and date of the company's BAA with its
+  AI vendor) and does not save without it.
+- Help: *AI access (MCP)* and *Connect your AI assistant*, in Admin.
+- Needs Raphael.Backend with the `AddUserMcpAccess` migration; against an older backend the field
+  is ignored.
+
+### Fixed
+- Saving a user from Admin → Employees erased the driver's licence: the screen did not send it
+  back, and the server writes every field it receives.
+
 ## [1.17.0] - 2026-11-12
 
 ### Changed (compliance)
