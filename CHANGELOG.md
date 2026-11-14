@@ -5,6 +5,13 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Changed
+
+- The Provider editor says, on Raphael's own row (the broker's Provider), that its vehicle
+  inspection switch applies to every driver and route with no Provider, and that a driver covering
+  a colleague's route with CHANGE ROUTE inspects it too. Nothing on the screen told that row apart
+  from any other Provider (RE-067).
+
 ## [1.18.1] - 2026-11-14
 
 **Slices:** RE-066 and RE-068. **Needs:** Raphael.Backend 2.8.1 (older backends: the new field and the switch are ignored, the bell stays shown).

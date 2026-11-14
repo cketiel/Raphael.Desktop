@@ -710,6 +710,7 @@
     "admin.ProviderNotificationCenter": "Mostrar notificaciones",
     "admin.ProviderNotificationCenterHelp": "Sus usuarios ven la pestaña Notificaciones y la campanita. Desactivarla solo las oculta: las notificaciones se siguen generando y las pantallas se siguen actualizando solas. La oficina de Raphael siempre ve las suyas.",
     "admin.ProviderVehicleInspectionHelp":"Sus choferes inspeccionan el vehículo (odómetro, VIN, lista con fotos, comentario y firma) antes de poder hacer el Pull-out y el Pull-in. Actívala solo cuando todos sus choferes tengan Driver 1.8 o posterior: una versión anterior no puede empezar su ruta.",
+"admin.ProviderVehicleInspectionHelpBroker":"Esta es la operación propia de Raphael: la casilla se aplica a todos los choferes sin Provider y a todas las rutas sin Provider dueño. Sus choferes inspeccionan el vehículo (odómetro, VIN, lista con fotos, comentario y firma) antes de poder hacer el Pull-out y el Pull-in. Un chofer que cubre la ruta de un compañero con CHANGE ROUTE también la inspecciona. Actívala solo cuando todos sus choferes tengan la versión del Driver con RE-067 o posterior.",
     "admin.ProviderIsTenant": "Empresa cliente de Raphael (tenant)",
     "admin.ProviderIsTenantHelp": "Sus usuarios solo ven y modifican la flota, las rutas, los pagadores y las personas de su empresa, además del catálogo común. Dale usuarios con este Provider.",
     "admin.ProviderClinicsHelp": "Se corrigen desde la ficha de cada clínica (Integrators).",
