@@ -5,6 +5,11 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-11-14
+
+**Slices:** RE-067 and RE-069. **Needs:** Raphael.Backend 2.9.1 for the live updates and for View in
+To review (older backends: the screen works as before and View in To review still opens nothing).
+
 ### Added
 
 - Compliance updates itself: a document uploaded from the Driver or by another user, corrected,
@@ -21,17 +26,14 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
   scrolls to it (RE-069).
 - Compliance: the People tab is now Staff (RE-069).
 - Notification center: the Documents tab is now Compliance (Cumplimiento in Spanish), as the menu (RE-069).
-
-### Fixed
-
-- Compliance: View in To review and Expiring opened nothing (RE-069, with the backend fix).
-
-### Changed
-
 - The Provider editor says, on Raphael's own row (the broker's Provider), that its vehicle
   inspection switch applies to every driver and route with no Provider, and that a driver covering
   a colleague's route with CHANGE ROUTE inspects it too. Nothing on the screen told that row apart
   from any other Provider (RE-067).
+
+### Fixed
+
+- Compliance: View in To review and Expiring opened nothing (RE-069, with the backend fix).
 
 ## [1.18.1] - 2026-11-14
 

@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.18.1"
+    "Raphael.Desktop": "1.19.1"
   },
-  "builtUtc": "2026-11-14T04:39:59.748Z",
-  "sourceCommit": "ca579c9",
+  "builtUtc": "2026-11-14T07:26:28.167Z",
+  "sourceCommit": "beee64b",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.18.1",
+      "lastReviewed": "1.19.1",
       "roles": [
         "admin",
         "dispatcher",
@@ -492,7 +492,7 @@
       "id": "desktop/schedules/vehicle-inspection",
       "mode": "reference",
       "since": "1.15.0",
-      "lastReviewed": "1.15.0",
+      "lastReviewed": "1.18.1",
       "roles": [
         "admin",
         "dispatcher"
@@ -554,7 +554,7 @@
       "id": "desktop/compliance/overview",
       "mode": "how-to",
       "since": "1.16.3",
-      "lastReviewed": "1.16.3",
+      "lastReviewed": "1.18.1",
       "roles": [
         "admin",
         "dispatcher"

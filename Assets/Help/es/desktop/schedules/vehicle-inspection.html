@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inspección del vehículo · Ayuda de Raphael</title>
 <meta name="description" content="Qué inspecciona el chofer en el Pull-out y en el Pull-in, dónde ver sus respuestas y fotos, y qué avisa a la oficina.">
-<meta name="help-covers" content="Raphael.Desktop 1.18.1">
+<meta name="help-covers" content="Raphael.Desktop 1.19.1">
 <meta name="help-built" content="2026-11-14">
 <link rel="stylesheet" href="../../../assets/help.css">
 </head>
@@ -20,7 +20,7 @@
     <a class="rf-brand" href="../../../es/desktop/getting-started/overview.html">
       <span class="rf-brand-mark" aria-hidden="true">R</span>
       <span>Ayuda de Raphael</span>
-      <span class="rf-brand-sub">1.18.1</span>
+      <span class="rf-brand-sub">1.19.1</span>
     </a>
 
     <div class="rf-search">
@@ -66,14 +66,23 @@
 <p>Las fotos y la firma no se guardan en tu equipo: se piden al servidor cada vez que las abres.</p>
 <h2 id="avisos-a-la-oficina">Avisos a la oficina<a class="help-anchor" href="#avisos-a-la-oficina" aria-label="Enlace a esta sección">#</a></h2>
 <p>Si la inspección marca algún problema, la oficina del <strong>Provider al que pertenece el vehículo</strong> recibe la notificación <strong>Problema en la inspección del vehículo</strong>, con el vehículo, el chofer y cuántos puntos. Ningún problema impide salir: es un aviso.</p>
+<h2 id="quien-la-hace">Quién la hace<a class="help-anchor" href="#quien-la-hace" aria-label="Enlace a esta sección">#</a></h2>
+<p>La hace el chofer que va a conducir la ruta ese día:</p>
+<ul><li><strong>El chofer asignado a la ruta.</strong></li><li><strong>Un compañero que la cubre con CHANGE ROUTE.</strong> Si la ruta exige la inspección, quien la cubre la hace, porque sin ella no podría empezar el día. La inspección y su firma quedan <strong>a nombre de quien la hizo</strong>, no del chofer asignado.</li></ul>
+<p>Solo puede cubrir, y por tanto inspeccionar, un chofer de <strong>la misma empresa</strong> que la ruta. Los choferes de Raphael cubren las rutas de Raphael; nunca las de otro Provider.</p>
 <h2 id="activarla">Activarla<a class="help-anchor" href="#activarla" aria-label="Enlace a esta sección">#</a></h2>
-<p>La activa o desactiva el administrador de Raphael para cada Provider, en <strong>Admin → Providers</strong>. Con ella desactivada, el chofer trabaja como siempre: odómetro y, en el Pull-in, firma.</p>
+<p>La activa o desactiva el administrador de Raphael para cada Provider, en <strong>Admin → Providers</strong>, con la casilla <strong>Inspección del vehículo en Pull-out y Pull-in</strong>. Con ella desactivada, el chofer trabaja como siempre: odómetro y, en el Pull-in, firma.</p>
+<p><strong>Los choferes de Raphael.</strong> Un chofer sin Provider y una ruta sin Provider dueño pertenecen a la operación propia de Raphael. Esa operación tiene su propia fila en <strong>Admin → Providers</strong>: la del Provider número 1. El editor lo indica debajo de la casilla. <strong>La casilla de esa fila es la que activa la inspección para todos los choferes y todas las rutas de Raphael.</strong> No hay que configurar nada más.</p>
+<blockquote><p><strong>Por qué importa.</strong> Con la inspección activada, ningún chofer de ese Provider puede hacer el Pull-out sin terminarla. Actívala solo cuando todos sus choferes tengan una versión del Driver que la soporte. Si no, la ruta no sale y los pacientes de ese día no llegan a su cita.</p></blockquote>
+<h2 id="que-ve-el-chofer-cuando-algo-falla">Qué ve el chofer cuando algo falla<a class="help-anchor" href="#que-ve-el-chofer-cuando-algo-falla" aria-label="Enlace a esta sección">#</a></h2>
+<ul><li><strong>Sin conexión.</strong> La app usa la lista guardada en el teléfono, guarda la inspección y la envía sola cuando vuelve la cobertura. El chofer puede seguir.</li><li><strong>Inspection not available.</strong> El servidor contestó, pero esa ruta no es una que este chofer pueda conducir. Por ejemplo, porque es de otra empresa o porque la oficina la quitó. La app no abre el formulario y explica el motivo. Si el chofer está cubriendo a un compañero, debe abrir la ruta con <strong>CHANGE ROUTE</strong>. Si no, que llame a la oficina.</li><li><strong>Inspection not saved.</strong> El servidor no aceptó la inspección enviada. El aviso dice por qué: el motivo que da el servidor (por ejemplo, un odómetro menor que el del Pull-out), una sesión caducada, una foto demasiado grande o un problema del servidor. Nunca muestra un texto genérico.</li></ul>
+<p>Si el Provider <strong>no</strong> exige la inspección, la app no la pide y el Pull-out se hace como siempre.</p>
 
       <section class="rf-related"><h2>Ver también</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../es/desktop/schedules/overview.html"><strong>Schedules — planificar el día</strong><span>Qué hace esta pantalla, las tres zonas, las dos rejillas con todas sus columnas y colores, y por qué se mueve sola.</span></a><a class="rf-related-card" href="../../../es/desktop/admin/providers.html"><strong>Admin — Providers</strong><span>Los providers de la operación y el huso horario en el que operan sus viajes.</span></a></div></section>
 
       <footer class="rf-foot">
         <span class="rf-slogan">Raphael Driving Health · The Rider’s Angel</span>
-        <span data-covers>Cubre Raphael.Desktop 1.18.1</span>
+        <span data-covers>Cubre Raphael.Desktop 1.19.1</span>
         <span>Actualizado el 14/11/2026</span>
         <button class="rf-btn" type="button" data-diagnostics>Copiar informe para soporte</button>
       </footer>
@@ -83,12 +92,12 @@
 
   <aside class="rf-aside" aria-label="En esta página">
     <p class="rf-aside-title">En esta página</p>
-    <ul><li class="rf-lvl-2"><a href="#que-contesta-el-chofer">Qué contesta el chofer</a></li><li class="rf-lvl-2"><a href="#verla-desde-schedule">Verla desde Schedule</a></li><li class="rf-lvl-2"><a href="#avisos-a-la-oficina">Avisos a la oficina</a></li><li class="rf-lvl-2"><a href="#activarla">Activarla</a></li></ul>
+    <ul><li class="rf-lvl-2"><a href="#que-contesta-el-chofer">Qué contesta el chofer</a></li><li class="rf-lvl-2"><a href="#verla-desde-schedule">Verla desde Schedule</a></li><li class="rf-lvl-2"><a href="#avisos-a-la-oficina">Avisos a la oficina</a></li><li class="rf-lvl-2"><a href="#quien-la-hace">Quién la hace</a></li><li class="rf-lvl-2"><a href="#activarla">Activarla</a></li><li class="rf-lvl-2"><a href="#que-ve-el-chofer-cuando-algo-falla">Qué ve el chofer cuando algo falla</a></li></ul>
   </aside>
 
 </div>
 
-<script>window.__HELP_PAGE__ = {"id":"desktop/schedules/vehicle-inspection","lang":"es","app":"Raphael.Desktop","appVersion":"1.18.1","built":"2026-11-14","sourceCommit":"ca579c9","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","slogan":"Raphael Driving Health · The Rider’s Angel","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
+<script>window.__HELP_PAGE__ = {"id":"desktop/schedules/vehicle-inspection","lang":"es","app":"Raphael.Desktop","appVersion":"1.19.1","built":"2026-11-14","sourceCommit":"beee64b","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","slogan":"Raphael Driving Health · The Rider’s Angel","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
 <script src="../../../assets/search-index.es.js"></script>
 <script src="../../../assets/help.js"></script>
 </body>
