@@ -100,6 +100,14 @@ namespace Raphael.Desktop.Models
         /// </summary>
         public bool VehicleInspectionEnabled { get => _vehicleInspectionEnabled; set => SetProperty(ref _vehicleInspectionEnabled, value); }
 
+        private bool _notificationCenterEnabled = true;
+
+        /// <summary>
+        /// RE-068: this Provider's users see the Notifications tab and the bell. Only hides them:
+        /// notifications still arrive in real time. Changed only through its own call (platform admin).
+        /// </summary>
+        public bool NotificationCenterEnabled { get => _notificationCenterEnabled; set => SetProperty(ref _notificationCenterEnabled, value); }
+
         private int _workMode;
         /// <summary>
         /// 0 = works in Raphael, 1 = External (Booking portal only). Saved through its own endpoint

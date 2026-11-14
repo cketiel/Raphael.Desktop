@@ -51,6 +51,12 @@ namespace Raphael.Desktop.Models
         public int? IntegratorId { get; set; }
         public int? ProviderId { get; set; }
 
+        /// <summary>RE-066: MCP access level. 0 None, 1 Summary, 2 Detail, 3 Full (set only in the database).</summary>
+        public int McpAccess { get; set; }
+
+        /// <summary>RE-066: the written BAA evidence recorded for a Detail user.</summary>
+        public string? McpBaaReference { get; set; }
+
 
     }
 }

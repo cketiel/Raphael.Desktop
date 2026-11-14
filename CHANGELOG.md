@@ -1,9 +1,34 @@
-﻿# Changelog
+# Changelog
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
+
+## [1.18.1] - 2026-11-14
+
+**Slices:** RE-066 and RE-068. **Needs:** Raphael.Backend 2.8.1 (older backends: the new field and the switch are ignored, the bell stays shown).
+
+### Added (RE-068 — notifications per Provider)
+- **Admin → Providers → edit**: new box **Show notifications**, only for Raphael's administrator and
+  only on a Provider that works in Raphael. Off, that Provider's users do not see the bell, the
+  Notification Center or the pop-up alerts; notifications still arrive and screens keep refreshing.
+- Raphael's office always sees its notifications. Each Provider sees only its own.
+- Needs backend RE-068 (`GET api/notifications/center`). Against an older backend the bell stays shown.
+
+### Added (RE-066 — AI access)
+- **Admin → Employees → edit a user**: new field **AI access (MCP)** with None, Summary (no patient
+  data), Detail (with patient data) and Full. Only Raphael's administrator sees it, and only when
+  editing. Full is shown and cannot be chosen; a user who has it shows the field disabled.
+- Choosing Detail asks for **BAA on record** (the document and date of the company's BAA with its
+  AI vendor) and does not save without it.
+- Help: *AI access (MCP)* and *Connect your AI assistant*, in Admin.
+- Needs Raphael.Backend with the `AddUserMcpAccess` migration; against an older backend the field
+  is ignored.
+
+### Fixed
+- Saving a user from Admin → Employees erased the driver's licence: the screen did not send it
+  back, and the server writes every field it receives.
 
 ## [1.17.0] - 2026-11-12
 

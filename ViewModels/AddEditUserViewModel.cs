@@ -44,6 +44,53 @@ namespace Raphael.Desktop.ViewModels
 
         public ObservableCollection<Role> AvailableRoles { get; set; }
 
+        // ---- RE-066: access to the MCP server (AI assistants) --------------------------------
+
+        /// <summary>One choice of the MCP access list. Full is shown and can never be picked.</summary>
+        public sealed record McpAccessOption(int Value, string Label, bool IsSelectable);
+
+        public const int McpNone = 0, McpSummary = 1, McpDetail = 2, McpFull = 3;
+
+        public IReadOnlyList<McpAccessOption> McpAccessOptions { get; } = new[]
+        {
+            new McpAccessOption(McpNone, "None", true),
+            new McpAccessOption(McpSummary, "Summary (no patient data)", true),
+            new McpAccessOption(McpDetail, "Detail (with patient data)", true),
+            new McpAccessOption(McpFull, "Full (set by Raphael only)", false),
+        };
+
+        /// <summary>
+        /// Only Raphael's administrator grants MCP access, and only to somebody who already
+        /// exists. The server enforces all of it again.
+        /// </summary>
+        public bool ShowMcpFields => Helpers.SessionManager.IsPlatformAdmin && _isEditMode;
+
+        /// <summary>A Full user was set in the database: this screen shows it and cannot change it.</summary>
+        public bool CanEditMcpAccess => _originalMcpAccess != McpFull;
+
+        private readonly int _originalMcpAccess;
+        private int _mcpAccess;
+        public int McpAccess
+        {
+            get => _mcpAccess;
+            set
+            {
+                // Full can be displayed, never chosen.
+                if (value == McpFull && _originalMcpAccess != McpFull) return;
+                if (SetProperty(ref _mcpAccess, value))
+                    OnPropertyChanged(nameof(ShowMcpBaa));
+            }
+        }
+
+        public bool ShowMcpBaa => ShowMcpFields && McpAccess == McpDetail;
+
+        private string? _mcpBaaReference;
+        public string? McpBaaReference
+        {
+            get => _mcpBaaReference;
+            set => SetProperty(ref _mcpBaaReference, value);
+        }
+
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
 
@@ -75,8 +122,13 @@ namespace Raphael.Desktop.ViewModels
                     IsActive = user.IsActive,
                     RoleId = user.RoleId,
                     IntegratorId = user.IntegratorId, 
-                    ProviderId = user.ProviderId
+                    ProviderId = user.ProviderId,
+                    McpAccess = user.McpAccess,
+                    McpBaaReference = user.McpBaaReference
                 };
+                _originalMcpAccess = user.McpAccess;
+                _mcpAccess = user.McpAccess;
+                _mcpBaaReference = user.McpBaaReference;
                 _isEditMode = true;
                 IsCreateMode = false;
             }
@@ -90,7 +142,9 @@ namespace Raphael.Desktop.ViewModels
             // Agrega las validaciones que necesites
             return !string.IsNullOrWhiteSpace(User.FullName) &&
                    !string.IsNullOrWhiteSpace(User.Username) &&
-                   User.RoleId > 0;
+                   User.RoleId > 0 &&
+                   // RE-066: Detail shows patient data to an AI vendor; not without the BAA on record.
+                   (!ShowMcpBaa || !string.IsNullOrWhiteSpace(McpBaaReference));
         }
 
         private async void Save(object parameter)
@@ -112,11 +166,15 @@ namespace Raphael.Desktop.ViewModels
                         Email = User.Email,
                         PhoneNumber = User.PhoneNumber,
                         Address = User.Address,
+                        DriverLicense = User.DriverLicense,
                         IsActive = User.IsActive,
                         RoleId = User.RoleId,
                         IntegratorId = User.IntegratorId,
-                        ProviderId = User.ProviderId
-                    };                    
+                        ProviderId = User.ProviderId,
+                        // Sent only when this screen may change it; null leaves it untouched.
+                        McpAccess = ShowMcpFields && CanEditMcpAccess ? McpAccess : null,
+                        McpBaaReference = ShowMcpBaa ? McpBaaReference?.Trim() : null
+                    };
                     await _userService.UpdateUserAsync(userDto);
                 }
                 else

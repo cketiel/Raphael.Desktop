@@ -5,6 +5,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
     mc:Ignorable="d"
     Title="Add/Edit User" Height="500" Width="400"
     WindowStartupLocation="CenterOwner" SizeToContent="Height"
@@ -18,6 +19,9 @@
     
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -88,7 +92,32 @@
               materialDesign:HintAssist.Hint="Select Provider (Optional)"
               materialDesign:TextFieldAssist.HasClearButton="True"/>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="10" Grid.Column="1" HorizontalAlignment="Right">
+        <!-- RE-066: access to the MCP server (AI assistants). Help: desktop/admin/mcp-access -->
+        <Label Content="AI access (MCP):" Visibility="{Binding ShowMcpFields, Converter={StaticResource BoolToVisConverter}}" Grid.Row="10" Grid.Column="0" VerticalAlignment="Center"/>
+        <ComboBox Visibility="{Binding ShowMcpFields, Converter={StaticResource BoolToVisConverter}}" Grid.Row="10" Grid.Column="1" Margin="5"
+              ItemsSource="{Binding McpAccessOptions}"
+              DisplayMemberPath="Label"
+              SelectedValuePath="Value"
+              SelectedValue="{Binding McpAccess}"
+              IsEnabled="{Binding CanEditMcpAccess}"
+              helpers:HelpAssist.TopicId="desktop/admin/mcp-access">
+            <ComboBox.ItemContainerStyle>
+                <Style TargetType="ComboBoxItem" BasedOn="{StaticResource MaterialDesignComboBoxItemStyle}">
+                    <Setter Property="IsEnabled" Value="{Binding IsSelectable}"/>
+                </Style>
+            </ComboBox.ItemContainerStyle>
+        </ComboBox>
+
+        <Label Content="BAA on record:" Visibility="{Binding ShowMcpBaa, Converter={StaticResource BoolToVisConverter}}" Grid.Row="11" Grid.Column="0" VerticalAlignment="Center"/>
+        <TextBox Text="{Binding McpBaaReference, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                 Visibility="{Binding ShowMcpBaa, Converter={StaticResource BoolToVisConverter}}" Grid.Row="11" Grid.Column="1" Margin="5"
+                 materialDesign:HintAssist.Hint="Document and date of the BAA with the AI vendor"/>
+
+        <TextBlock Visibility="{Binding ShowMcpBaa, Converter={StaticResource BoolToVisConverter}}" Grid.Row="12" Grid.Column="1" Margin="5,0,5,8"
+                   TextWrapping="Wrap" FontSize="11" Opacity="0.75"
+                   Text="Detail sends patient names, addresses, phones, dates of birth and e-mails to the user's AI vendor. Grant it only with written evidence of that company's BAA with the vendor."/>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="14" Grid.Column="1" HorizontalAlignment="Right">
             <Button Content="Save" Command="{Binding SaveCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,10,0"/>
             <Button Content="Cancel" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
         </StackPanel>

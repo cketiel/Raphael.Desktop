@@ -41,6 +41,19 @@ namespace Raphael.Desktop.Services
         }
 
         /// <summary>
+        /// RE-068: whether this user's Desktop shows the Notifications tab and the bell. Raphael's
+        /// office always; a Provider's user as Raphael's admin set it.
+        /// </summary>
+        public async Task<bool> GetCenterEnabledAsync(CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.GetAsync("notifications/center", cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            return JsonConvert.DeserializeAnonymousType(json, new { enabled = true })?.enabled ?? true;
+        }
+
+        /// <summary>
         /// Gets a notification by its identifier.
         /// </summary>
         public async Task<NotificationDto?> GetNotificationByIdAsync(

@@ -83,8 +83,21 @@ public sealed class NotificationService : INotificationService
         _signalR.ConnectionStateChanged += (_, _) => RaiseConnectionStateChanged();
     }
 
+    /// <inheritdoc />
+    public bool IsCenterEnabled { get; private set; } = true;
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        try
+        {
+            IsCenterEnabled = await _apiClient.GetCenterEnabledAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Shown when in doubt: hiding Raphael's own notices by mistake is the worse error.
+            System.Diagnostics.Debug.WriteLine($"Could not read the notification center setting: {ex.Message}");
+        }
+
         await RefreshAsync(cancellationToken);
 
         await _signalR.StartAsync(cancellationToken);

@@ -26,6 +26,12 @@ public interface INotificationService
     /// </summary>
     int PendingActionCount { get; }
 
+    /// <summary>
+    /// RE-068: whether the Notifications tab, the bell and the pop-up alerts are shown. Only what
+    /// is SHOWN: the live connection runs either way, because screens refresh with it.
+    /// </summary>
+    bool IsCenterEnabled { get; }
+
     /// <summary>Live connection state, for the channel health banner.</summary>
     HubConnectionState ConnectionState { get; }
 
