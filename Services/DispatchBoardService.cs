@@ -36,6 +36,7 @@ namespace Raphael.Desktop.Services
         public event EventHandler<VehiclePositionMessage>? VehiclePosition;
         public event EventHandler<CallRequestChangedMessage>? CallRequestChanged;
         public event EventHandler<RouteServiceChangedMessage>? RouteServiceChanged;
+        public event EventHandler<ComplianceChangedMessage>? ComplianceChanged;
         public event EventHandler? Reconnected;
 
         public HubConnectionState State => _connection.State;
@@ -175,6 +176,24 @@ namespace Raphael.Desktop.Services
             await SafeInvokeAsync("WatchFleet");
         }
 
+        private bool _watchingCompliance;
+
+        /// <summary>RE-069: compliance documents changing, for the Compliance screen. Office staff only.</summary>
+        public async Task WatchComplianceAsync()
+        {
+            if (_watchingCompliance) return;
+
+            _watchingCompliance = true;
+
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"compliance queued, connection is {_connection.State}");
+                return;
+            }
+
+            await SafeInvokeAsync("WatchCompliance");
+        }
+
         public async Task StopAsync()
         {
             _watchedDay = null;
@@ -182,6 +201,7 @@ namespace Raphael.Desktop.Services
             _watchedRouteDay = null;
             _watchingCallRequests = false;
             _watchingFleet = false;
+            _watchingCompliance = false;
 
             try
             {
@@ -236,6 +256,13 @@ namespace Raphael.Desktop.Services
                     Trace($"<- CallRequestChanged {m?.Change} request {m?.Request?.Id}");
                     CallRequestChanged?.Invoke(this, m);
                 });
+
+            _connection.On<ComplianceChangedMessage>(
+                "ComplianceChanged", m =>
+                {
+                    Trace($"<- ComplianceChanged document {m?.DocumentId} {m?.Subject} {m?.SubjectId}");
+                    ComplianceChanged?.Invoke(this, m);
+                });
         }
 
         private async Task RestoreWatchesAsync()
@@ -253,6 +280,9 @@ namespace Raphael.Desktop.Services
 
             if (_watchingFleet)
                 await SafeInvokeAsync("WatchFleet");
+
+            if (_watchingCompliance)
+                await SafeInvokeAsync("WatchCompliance");
         }
 
         private async Task SafeInvokeAsync(string method, params object?[] args)

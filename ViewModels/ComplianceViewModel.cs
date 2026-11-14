@@ -41,6 +41,9 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>Only what is still waiting can be corrected; an approved one is renewed.</summary>
         public bool CanEdit => Pending is not null && Owner.CanUpload;
         public bool HasHistory => Item.Current is not null || Item.Latest is not null;
+
+        /// <summary>RE-069: the document a notice pointed at, marked so the eye finds it at once.</summary>
+        public bool IsHighlighted { get; set; }
     }
 
     /// <summary>A line of the People and Vehicles lists, with a tick to notify.</summary>
@@ -127,8 +130,11 @@ namespace Raphael.Desktop.ViewModels
 
         [ObservableProperty] private ComplianceSummaryRow _selectedPerson;
         [ObservableProperty] private ComplianceSummaryRow _selectedVehicle;
-        partial void OnSelectedPersonChanged(ComplianceSummaryRow value) { if (value != null) _ = Run(() => LoadPanelCoreAsync(PersonPanel, "USER", value.Summary.SubjectId)); }
-        partial void OnSelectedVehicleChanged(ComplianceSummaryRow value) { if (value != null) _ = Run(() => LoadPanelCoreAsync(VehiclePanel, "VEHICLE", value.Summary.SubjectId)); }
+        partial void OnSelectedPersonChanged(ComplianceSummaryRow value) { if (value != null && !_reselecting) _ = Run(() => LoadPanelCoreAsync(PersonPanel, "USER", value.Summary.SubjectId)); }
+        partial void OnSelectedVehicleChanged(ComplianceSummaryRow value) { if (value != null && !_reselecting) _ = Run(() => LoadPanelCoreAsync(VehiclePanel, "VEHICLE", value.Summary.SubjectId)); }
+
+        /// <summary>Putting back the same selection after a live update: its panel is reloaded only if it changed.</summary>
+        private bool _reselecting;
 
         public ObservableCollection<ComplianceDocRow> PersonPanel { get; } = new();
         public ObservableCollection<ComplianceDocRow> VehiclePanel { get; } = new();
@@ -140,6 +146,8 @@ namespace Raphael.Desktop.ViewModels
         private readonly (string Subject, int Id)? _focus;
         /// <summary>A notice's document: the row selected once its owner's documents are shown.</summary>
         private int? _focusDocumentId;
+        /// <summary>RE-069: the notice's document, marked in its panel (unlike the selection, it stays).</summary>
+        private readonly int? _highlightDocumentId;
 
         /// <summary>The selected document row of the panel on screen (one selection for the three panels).</summary>
         [ObservableProperty] private ComplianceDocRow _selectedDoc;
@@ -148,7 +156,92 @@ namespace Raphael.Desktop.ViewModels
         {
             if (focusSubject != null) _focus = (focusSubject, focusId);
             _focusDocumentId = focusDocumentId;
+            _highlightDocumentId = focusDocumentId;
             _ = LoadAllAsync();
+
+            // RE-069: the screen updates itself when anyone changes a document. Weak: a closed tab
+            // must not be kept alive, and reloading, by the shared channel.
+            WeakEventManager<ComplianceBoard, ComplianceChangedEventArgs>.AddHandler(ComplianceBoard.Instance, nameof(ComplianceBoard.Changed), OnComplianceChanged);
+            ComplianceBoard.Instance.EnsureStarted();
+        }
+
+        // ---- Live updates (RE-069) -------------------------------------------------------------
+
+        private readonly HashSet<(string Subject, int Id)> _liveSubjects = new();
+        private bool _liveEverything;
+        private System.Windows.Threading.DispatcherTimer _liveTimer;
+
+        /// <summary>
+        /// Collects what changed for a moment before reading it again: an upload with five photos is
+        /// six saves, and the screen should read once, not six times.
+        /// </summary>
+        private void OnComplianceChanged(object sender, ComplianceChangedEventArgs e)
+        {
+            if (e.Message is null) _liveEverything = true;
+            else _liveSubjects.Add((e.Message.Subject, e.Message.SubjectId));
+
+            if (_liveTimer is null)
+            {
+                _liveTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+                _liveTimer.Tick += async (_, _) => { _liveTimer.Stop(); await ApplyLiveAsync(); };
+            }
+            _liveTimer.Stop();
+            _liveTimer.Start();
+        }
+
+        /// <summary>
+        /// Reads again only what the change can touch, without the busy bar and keeping what the user
+        /// ticked and selected: the lists of documents, the overview of that kind of subject, and the
+        /// panel on screen only when it is that subject's.
+        /// </summary>
+        private async Task ApplyLiveAsync()
+        {
+            var everything = _liveEverything;
+            var subjects = _liveSubjects.ToList();
+            _liveEverything = false;
+            _liveSubjects.Clear();
+
+            try
+            {
+                var tickedDocs = Pending.Concat(Expiring).Where(r => r.IsChecked).Select(r => r.Doc.Id).ToHashSet();
+                await LoadPendingAsync();
+                await LoadExpiringCoreAsync();
+                foreach (var r in Pending.Concat(Expiring)) r.IsChecked = tickedDocs.Contains(r.Doc.Id);
+
+                bool Touches(string subject, int id) => everything || subjects.Contains((subject, id));
+
+                if (everything || subjects.Any(s => s.Subject == "USER"))
+                {
+                    var ticked = _allPeople.Where(r => r.IsChecked).Select(r => r.Summary.SubjectId).ToHashSet();
+                    _allPeople = (await _service.GetOverviewAsync("USER")).Select(s => new ComplianceSummaryRow { Summary = s, IsChecked = ticked.Contains(s.SubjectId) }).ToList();
+                    var keep = SelectedPerson?.Summary.SubjectId;
+                    FilterPeople();
+                    Reselect(() => SelectedPerson = People.FirstOrDefault(p => p.Summary.SubjectId == keep));
+                    if (keep is int person && Touches("USER", person)) await LoadPanelCoreAsync(PersonPanel, "USER", person);
+                    if (int.TryParse(SessionManager.UserId, out var me) && Touches("USER", me)) await LoadPanelCoreAsync(MinePanel, "USER", me);
+                }
+
+                if (everything || subjects.Any(s => s.Subject == "VEHICLE"))
+                {
+                    _allVehicles = (await _service.GetOverviewAsync("VEHICLE")).Select(s => new ComplianceSummaryRow { Summary = s }).ToList();
+                    var keep = SelectedVehicle?.Summary.SubjectId;
+                    Filter(_allVehicles, Vehicles, VehicleSearch, _ => true);
+                    Reselect(() => SelectedVehicle = Vehicles.FirstOrDefault(v => v.Summary.SubjectId == keep));
+                    if (keep is int vehicle && Touches("VEHICLE", vehicle)) await LoadPanelCoreAsync(VehiclePanel, "VEHICLE", vehicle);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Never in the user's way: the next change, or the next time the tab opens, reads it again.
+                FileLogger.Log($"Compliance live update: {ex.Message}");
+            }
+        }
+
+        private void Reselect(Action select)
+        {
+            _reselecting = true;
+            try { select(); }
+            finally { _reselecting = false; }
         }
 
         [RelayCommand]
@@ -199,7 +292,14 @@ namespace Raphael.Desktop.ViewModels
         {
             var data = await _service.GetSubjectAsync(subject, id);
             panel.Clear();
-            foreach (var item in data.Items) panel.Add(RowOf(item, data));
+            foreach (var item in data.Items)
+            {
+                var row = RowOf(item, data);
+                // The document a notice pointed at stays marked while that panel is on screen.
+                if (_highlightDocumentId is int h && (item.Current?.Id == h || item.Latest?.Id == h))
+                    row.IsHighlighted = true;
+                panel.Add(row);
+            }
             if (panel == PersonPanel) PersonPanelTitle = data.SubjectName;
             if (panel == VehiclePanel) VehiclePanelTitle = data.SubjectName;
 
@@ -234,6 +334,62 @@ namespace Raphael.Desktop.ViewModels
 
         [RelayCommand] private Task ViewRowAsync(ComplianceDocRow row) => ViewDocAsync(row?.Viewable);
         [RelayCommand] private Task ViewListRowAsync(ComplianceListRow row) => ViewDocAsync(row?.Doc);
+
+        /// <summary>
+        /// RE-069: saves the document's files where the user chooses. One file asks for its name;
+        /// several (a vehicle's photos) ask for a folder. The file name says what it is and whose.
+        /// </summary>
+        [RelayCommand]
+        private async Task DownloadDocAsync(ComplianceDocumentDto doc)
+        {
+            if (doc is null || doc.Files.Count == 0) return;
+
+            static string Safe(string s) => string.Concat((s ?? "").Split(System.IO.Path.GetInvalidFileNameChars())).Trim();
+            static string Ext(string contentType) => contentType switch
+            {
+                "application/pdf" => ".pdf",
+                "image/png" => ".png",
+                _ => ".jpg"
+            };
+            var baseName = Safe($"{doc.DocumentTypeName} - {doc.SubjectName}");
+
+            List<(ComplianceDocumentFileDto File, string Target)> plan;
+            if (doc.Files.Count == 1)
+            {
+                var file = doc.Files[0];
+                var save = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = T("compliance.Download"),
+                    FileName = baseName + Ext(file.ContentType),
+                    Filter = $"{T("compliance.Download")}|*{Ext(file.ContentType)}"
+                };
+                if (save.ShowDialog() != true) return;
+                plan = [(file, save.FileName)];
+            }
+            else
+            {
+                var folder = new Microsoft.Win32.OpenFolderDialog { Title = T("compliance.DownloadFolder") };
+                if (folder.ShowDialog() != true) return;
+                plan = doc.Files.Select(f => (f, System.IO.Path.Combine(folder.FolderName,
+                    $"{baseName} - {Safe(T($"compliance.Slot.{f.Slot}"))}{Ext(f.ContentType)}"))).ToList();
+            }
+
+            var saved = false;
+            await Run(async () =>
+            {
+                foreach (var (file, target) in plan)
+                {
+                    var temp = await _service.DownloadAsync(doc.Id, file.Slot, file.ContentType);
+                    System.IO.File.Copy(temp, target, overwrite: true);
+                }
+                saved = true;
+            });
+            if (saved)
+                MessageBox.Show(string.Format(T("compliance.Downloaded"), plan.Count), T("compliance.Download"), MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        [RelayCommand] private Task DownloadRowAsync(ComplianceDocRow row) => DownloadDocAsync(row?.Viewable);
+        [RelayCommand] private Task DownloadListRowAsync(ComplianceListRow row) => DownloadDocAsync(row?.Doc);
 
         [RelayCommand]
         private async Task ApproveAsync(ComplianceDocumentDto doc)

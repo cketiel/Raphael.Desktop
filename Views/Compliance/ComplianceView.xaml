@@ -99,8 +99,21 @@
         <DataTemplate x:Key="DocsGrid">
             <DataGrid ItemsSource="{Binding}" Style="{StaticResource Grid}"
                       ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}"
-                      SelectedItem="{Binding DataContext.SelectedDoc, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                      SelectedItem="{Binding DataContext.SelectedDoc, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      SelectionChanged="DocsGrid_SelectionChanged">
                 <DataGrid.Columns>
+                    <!-- RE-069: the document a notice pointed at. A mark of its own, not a row colour:
+                         the shared row and cell styles paint over a row background. -->
+                    <DataGridTemplateColumn Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <materialDesign:PackIcon Kind="BellRing" Foreground="#F9A825" Width="18" Height="18" Margin="4,0,0,0"
+                                                         VerticalAlignment="Center"
+                                                         ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.FromNotice]}"
+                                                         Visibility="{Binding IsHighlighted, Converter={StaticResource BoolToVis}}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTemplateColumn Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -109,6 +122,11 @@
                                             ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.View]}"
                                             Command="{Binding DataContext.ViewRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                         <materialDesign:PackIcon Kind="EyeOutline" Foreground="#2196F3"/>
+                                    </Button>
+                                    <Button Style="{StaticResource TripActionButtonStyle}" Visibility="{Binding CanView, Converter={StaticResource BoolToVis}}"
+                                            ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Download]}"
+                                            Command="{Binding DataContext.DownloadRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                        <materialDesign:PackIcon Kind="DownloadOutline" Foreground="#2196F3"/>
                                     </Button>
                                     <Button Style="{StaticResource TripActionButtonStyle}" Visibility="{Binding CanUpload, Converter={StaticResource BoolToVis}}"
                                             ToolTip="{Binding UploadToolTip}"
@@ -172,12 +190,8 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Legend, status and Refresh -->
+            <!-- Legend and status. No Refresh (RE-069): the screen updates itself when anything changes. -->
             <DockPanel Margin="4,6,4,4">
-                <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" Command="{Binding LoadAllCommand}"
-                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Refresh]}">
-                    <materialDesign:PackIcon Kind="Refresh" Width="22" Height="22"/>
-                </Button>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="9" Height="9" Fill="{StaticResource OkBrush}"/>
                     <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Valid]}" Margin="5,0,16,0"/>
@@ -236,6 +250,11 @@
                                                         ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.View]}"
                                                         Command="{Binding DataContext.ViewListRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                                     <materialDesign:PackIcon Kind="EyeOutline" Foreground="#2196F3"/>
+                                                </Button>
+                                                <Button Style="{StaticResource TripActionButtonStyle}"
+                                                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Download]}"
+                                                        Command="{Binding DataContext.DownloadListRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    <materialDesign:PackIcon Kind="DownloadOutline" Foreground="#2196F3"/>
                                                 </Button>
                                                 <Button Style="{StaticResource TripActionButtonStyle}" Visibility="{Binding IsAdmin, Converter={StaticResource BoolToVis}}"
                                                         ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Approve]}"
@@ -300,11 +319,18 @@
                                 <DataGridTemplateColumn Width="Auto">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Style="{StaticResource TripActionButtonStyle}"
-                                                    ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.View]}"
-                                                    Command="{Binding DataContext.ViewListRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="EyeOutline" Foreground="#2196F3"/>
-                                            </Button>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource TripActionButtonStyle}"
+                                                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.View]}"
+                                                        Command="{Binding DataContext.ViewListRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    <materialDesign:PackIcon Kind="EyeOutline" Foreground="#2196F3"/>
+                                                </Button>
+                                                <Button Style="{StaticResource TripActionButtonStyle}"
+                                                        ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Download]}"
+                                                        Command="{Binding DataContext.DownloadListRowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    <materialDesign:PackIcon Kind="DownloadOutline" Foreground="#2196F3"/>
+                                                </Button>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

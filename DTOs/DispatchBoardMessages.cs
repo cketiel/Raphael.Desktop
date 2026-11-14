@@ -95,4 +95,15 @@ namespace Raphael.Desktop.DTOs
 
         public CallRequestSummaryDto Request { get; set; } = new();
     }
+
+    /// <summary>A compliance document changed (RE-069). Ids only. Mirror of the server's message.</summary>
+    public class ComplianceChangedMessage
+    {
+        public int DocumentId { get; set; }
+
+        /// <summary><c>USER</c> or <c>VEHICLE</c>.</summary>
+        public string Subject { get; set; } = string.Empty;
+
+        public int SubjectId { get; set; }
+    }
 }
