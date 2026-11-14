@@ -23,6 +23,9 @@ namespace Raphael.Desktop.Services
         /// <summary>Routes went out of service or came back (RE-053).</summary>
         event EventHandler<RouteServiceChangedMessage>? RouteServiceChanged;
 
+        /// <summary>A compliance document changed (RE-069). Ids only.</summary>
+        event EventHandler<ComplianceChangedMessage>? ComplianceChanged;
+
         /// <summary>
         /// The connection came back. Anything missed while it was down is lost, so a screen that
         /// keeps state reloads it here.
@@ -44,6 +47,9 @@ namespace Raphael.Desktop.Services
 
         /// <summary>Listen to the fleet's state: routes out of service and back (RE-053). Office staff only.</summary>
         Task WatchFleetAsync();
+
+        /// <summary>Listen to the compliance documents (RE-069). Office staff only.</summary>
+        Task WatchComplianceAsync();
 
         Task StopAsync();
     }

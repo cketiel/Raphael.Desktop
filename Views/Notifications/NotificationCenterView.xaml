@@ -703,21 +703,102 @@
                                         <TextBlock Text="{Binding SelectedNotification.Body}"
                                                    TextWrapping="Wrap" Margin="0 12 0 0" FontSize="14" />
 
-                                        <!-- RE-065: a document notice goes to that document, in Docs. -->
-                                        <Button HorizontalAlignment="Left" Margin="0 12 0 0"
-                                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                Command="{Binding OpenInDocsCommand}"
-                                                Visibility="{Binding SelectedNotification.CanOpenInDocs, Converter={StaticResource BoolToVis}}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="FileCertificateOutline" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.OpenInDocs]}" Margin="6 0 0 0" />
+                                        <!-- RE-069: a document notice shows the document as it is now, and
+                                             its only way to act is Compliance. Nothing about trips. -->
+                                        <Border DataContext="{Binding ComplianceNotice}"
+                                                Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}"
+                                                Background="White" BorderBrush="{StaticResource AccentBorder}" BorderThickness="1"
+                                                CornerRadius="10" Padding="14 12" Margin="0 14 0 0">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0 0 0 10">
+                                                    <materialDesign:PackIcon Kind="FileCertificateOutline" Width="18" Height="18"
+                                                                             VerticalAlignment="Center" Foreground="{StaticResource AccentDeep}" />
+                                                    <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.NoticeDocument]}"
+                                                               FontWeight="SemiBold" FontSize="14" Margin="8 0 0 0" VerticalAlignment="Center" />
+                                                </StackPanel>
+
+                                                <ProgressBar Style="{StaticResource MaterialDesignLinearProgressBar}" IsIndeterminate="True"
+                                                             Foreground="{StaticResource Accent}" Margin="0 0 0 8"
+                                                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+                                                <TextBlock Text="{Binding Error}" Foreground="#B3261E" TextWrapping="Wrap" Margin="0 0 0 8"
+                                                           Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.NoticeReplaced]}"
+                                                           TextWrapping="Wrap" Opacity="0.8" Margin="0 0 0 8"
+                                                           Visibility="{Binding IsReplaced, Converter={StaticResource BoolToVis}}" />
+
+                                                <Grid Visibility="{Binding HasDocument, Converter={StaticResource BoolToVis}}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.Resources>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Margin" Value="0 0 0 6" />
+                                                            <Setter Property="TextWrapping" Value="Wrap" />
+                                                        </Style>
+                                                    </Grid.Resources>
+
+                                                    <TextBlock Grid.Row="0" Opacity="0.65" Margin="0 0 16 6" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Document]}" />
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" FontWeight="SemiBold" Text="{Binding DocumentName}" />
+                                                    <TextBlock Grid.Row="1" Opacity="0.65" Margin="0 0 16 6" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Owner]}" />
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding OwnerText}" />
+                                                    <TextBlock Grid.Row="2" Opacity="0.65" Margin="0 0 16 6" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Status]}" />
+                                                    <Border Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" CornerRadius="10" Padding="10 2" Margin="0 0 0 6">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#E8EAED" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding State}" Value="valid"><Setter Property="Background" Value="#E6F4EA" /></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding State}" Value="soon"><Setter Property="Background" Value="#FEF7E0" /></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding State}" Value="expired"><Setter Property="Background" Value="#FCE8E6" /></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding State}" Value="rejected"><Setter Property="Background" Value="#FCE8E6" /></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding State}" Value="pending"><Setter Property="Background" Value="#E8F0FE" /></DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding StateText}" FontWeight="SemiBold" FontSize="12" Margin="0" />
+                                                    </Border>
+                                                    <TextBlock Grid.Row="3" Opacity="0.65" Margin="0 0 16 6" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Expires]}" />
+                                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ExpiresText}" />
+                                                    <TextBlock Grid.Row="4" Opacity="0.65" Margin="0 0 16 6" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Uploaded]}" />
+                                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding UploadedText}" />
+                                                    <TextBlock Grid.Row="5" Opacity="0.65" Margin="0 0 16 6" Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Reviewed]}" />
+                                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ReviewedText}" />
+                                                    <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Foreground="#B3261E" Text="{Binding RejectionText}"
+                                                               Visibility="{Binding HasRejection, Converter={StaticResource BoolToVis}}" />
+                                                </Grid>
+
+                                                <WrapPanel Margin="0 6 0 0">
+                                                    <Button Style="{StaticResource MaterialDesignRaisedButton}" Margin="0 0 8 0"
+                                                            Command="{Binding OpenCommand}"
+                                                            Visibility="{Binding CanOpen, Converter={StaticResource BoolToVis}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="OpenInApp" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.OpenInDocs]}" Margin="6 0 0 0" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                            Foreground="{StaticResource AccentDeep}" BorderBrush="{StaticResource Accent}"
+                                                            Command="{Binding ViewCommand}"
+                                                            Visibility="{Binding CanView, Converter={StaticResource BoolToVis}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="EyeOutline" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.NoticeView]}" Margin="6 0 0 0" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </WrapPanel>
                                             </StackPanel>
-                                        </Button>
+                                        </Border>
 
                                         <!-- The state of the trip right now, next to what was
                                              said about it when the notice was raised. They are
-                                             not always the same story. -->
-                                        <WrapPanel Margin="0 12 0 0">
+                                             not always the same story. Hidden on a document notice (RE-069). -->
+                                        <WrapPanel Margin="0 12 0 0" Visibility="{Binding ComplianceNotice.IsVisible, Converter={StaticResource InverseBoolToVis}}">
 
                                             <Border Background="{StaticResource Accent}" CornerRadius="12"
                                                     Padding="12 4" Margin="0 0 8 0"
@@ -783,7 +864,7 @@
 
                                         </WrapPanel>
 
-                                        <WrapPanel Margin="0 14 0 0">
+                                        <WrapPanel Margin="0 14 0 0" Visibility="{Binding ComplianceNotice.IsVisible, Converter={StaticResource InverseBoolToVis}}">
 
                                             <!-- ⚠️ Confirming a Will Call tells the patient the
                                                  office is arranging their ride. Explicit, always. -->

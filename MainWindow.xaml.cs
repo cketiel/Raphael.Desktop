@@ -214,6 +214,7 @@ namespace Raphael.Desktop
                     await _callBoard.StopAsync();
 
                 await FleetBoard.Instance.StopAsync();
+                await ComplianceBoard.Instance.StopAsync();
             }
             catch
             {

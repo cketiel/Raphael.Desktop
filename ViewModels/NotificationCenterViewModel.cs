@@ -89,6 +89,9 @@ public sealed class NotificationCenterViewModel : BaseViewModel
 
     public NotificationDetailViewModel Detail { get; }
 
+    /// <summary>RE-069: the document a compliance notice is about, as it is now. Hidden for any other notice.</summary>
+    public ComplianceNoticeViewModel ComplianceNotice { get; } = new();
+
     public NotificationCenterViewModel(
         INotificationService notifications,
         NotificationTextService text)
@@ -561,7 +564,10 @@ public sealed class NotificationCenterViewModel : BaseViewModel
             // Selecting is how a dispatcher walks the list with the arrow keys; a call to
             // the API per row would turn scrolling into a load test.
             if (IsReading)
+            {
                 _ = Detail.ShowAsync(value);
+                _ = ComplianceNotice.ShowAsync(value);
+            }
         }
     }
 
@@ -778,6 +784,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
         IsReading = true;
 
         _ = Detail.ShowAsync(item);
+        _ = ComplianceNotice.ShowAsync(item);
     }
 
     private bool CanMove(int step)

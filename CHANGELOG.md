@@ -5,6 +5,27 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Added
+
+- Compliance updates itself: a document uploaded from the Driver or by another user, corrected,
+  approved, rejected or expired shows straight away, keeping what is ticked and selected. The
+  Refresh button is gone (RE-069).
+- Compliance: a Download button next to View in every list. One file asks where to save it; several
+  (a vehicle's photos) go to a chosen folder (RE-069).
+
+### Changed
+
+- Notification center: opening a compliance notice no longer shows the trip buttons and chips. It
+  shows the document as it is now (status, expiry, uploaded and reviewed by, rejection reason), with
+  View document and Open the document in Compliance. Compliance marks that document with a bell and
+  scrolls to it (RE-069).
+- Compliance: the People tab is now Staff (RE-069).
+- Notification center: the Documents tab is now Compliance (Cumplimiento in Spanish), as the menu (RE-069).
+
+### Fixed
+
+- Compliance: View in To review and Expiring opened nothing (RE-069, with the backend fix).
+
 ### Changed
 
 - The Provider editor says, on Raphael's own row (the broker's Provider), that its vehicle
