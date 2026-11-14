@@ -251,7 +251,15 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>RE-062: only Raphael's admin switches the vehicle inspection, and only for a Provider with a fleet here.</summary>
         public bool CanSetVehicleInspection => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
         public string VehicleInspectionText => LocalizationService.Instance["admin.ProviderVehicleInspection"];
-        public string VehicleInspectionHelpText => LocalizationService.Instance["admin.ProviderVehicleInspectionHelp"];
+        /// <remarks>
+        /// RE-067: the broker's own row (<c>Operations:BrokerProviderId</c>) stands for every driver and
+        /// route with no Provider, so its switch is the one for Raphael's own drivers. It says so, because
+        /// nothing else on this screen tells it apart from any other Provider.
+        /// </remarks>
+        public string VehicleInspectionHelpText =>
+            LocalizationService.Instance[Provider.Id == Services.CallRequests.BusinessDay.BrokerProviderId
+                ? "admin.ProviderVehicleInspectionHelpBroker"
+                : "admin.ProviderVehicleInspectionHelp"];
         /// <summary>RE-068: only Raphael's admin shows or hides the notification center, and only for a Provider that uses Desktop.</summary>
         public bool CanSetNotificationCenter => Helpers.SessionManager.IsPlatformAdmin && !Provider.IsExternal;
         public string NotificationCenterText => LocalizationService.Instance["admin.ProviderNotificationCenter"];

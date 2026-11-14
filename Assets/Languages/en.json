@@ -710,6 +710,7 @@
     "admin.ProviderNotificationCenter": "Show notifications",
     "admin.ProviderNotificationCenterHelp": "Its users see the Notifications tab and the bell. Switching it off only hides them: notifications are still raised and screens keep refreshing on their own. Raphael's office always sees its own.",
     "admin.ProviderVehicleInspectionHelp":"Its drivers inspect the vehicle (odometer, VIN, checklist with photos, comment and signature) before they can perform the Pull-out and the Pull-in. Switch it on only when all its drivers have Driver 1.8 or later: an older version cannot start its route.",
+"admin.ProviderVehicleInspectionHelpBroker":"This is Raphael's own operation: the switch applies to every driver with no Provider and to every route with no owning Provider. Its drivers inspect the vehicle (odometer, VIN, checklist with photos, comment and signature) before they can perform the Pull-out and the Pull-in. A driver covering a colleague's route with CHANGE ROUTE inspects it too. Switch it on only when all its drivers have the Driver version with RE-067 or later.",
     "admin.ProviderIsTenant": "Client company of Raphael (tenant)",
     "admin.ProviderIsTenantHelp": "Its users only see and change their own company's fleet, routes, payers and people, plus the common catalog. Give it users with this Provider.",
     "admin.ProviderClinicsHelp": "Corrected from each clinic's file (Integrators).",
