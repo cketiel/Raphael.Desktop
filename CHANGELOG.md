@@ -1,9 +1,13 @@
-﻿# Changelog
+# Changelog
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
+
+## [1.18.1] - 2026-11-14
+
+**Slices:** RE-066 and RE-068. **Needs:** Raphael.Backend 2.8.1 (older backends: the new field and the switch are ignored, the bell stays shown).
 
 ### Added (RE-068 — notifications per Provider)
 - **Admin → Providers → edit**: new box **Show notifications**, only for Raphael's administrator and
