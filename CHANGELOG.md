@@ -5,9 +5,16 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-**Slices:** RE-072, RE-074, RE-075 (reports), RE-076. **Needs:** Raphael.Backend with RE-071 to RE-077.
+## [1.20.3] - 2026-11-18
+
+**Slices:** RE-072, RE-074, RE-075 (reports), RE-076. **Needs:** Raphael.Backend **2.10.7**.
 
 ### Fixed
+
+- **Home no longer downloads every trip ever recorded when it opens** — `GET /api/trips` filled a
+  list no screen read; start-ups slowed as history grew and patient data reached every desk for
+  nothing.
+- **The day's charge total on Home leaves cancelled trips out.**
 
 - **New trip: the Dropoff input sometimes did not appear** — the map showed a single "Search address"
   box and the trip could not be created. The map page was reloaded right after being told to show the

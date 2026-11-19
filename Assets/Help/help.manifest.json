@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.19.1"
+    "Raphael.Desktop": "1.20.3"
   },
-  "builtUtc": "2026-11-19T00:30:16.590Z",
-  "sourceCommit": "5bfb8b0",
+  "builtUtc": "2026-11-19T02:11:10.195Z",
+  "sourceCommit": "d5cd454",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.19.1",
+      "lastReviewed": "1.20.3",
       "roles": [
         "admin",
         "dispatcher",
