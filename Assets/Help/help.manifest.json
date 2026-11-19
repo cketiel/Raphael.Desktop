@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.20.3"
   },
-  "builtUtc": "2026-11-19T02:11:10.195Z",
-  "sourceCommit": "d5cd454",
+  "builtUtc": "2026-11-19T02:42:56.700Z",
+  "sourceCommit": "9fa9ec6",
   "languages": [
     "es",
     "en"
@@ -282,7 +282,7 @@
       "id": "desktop/home/overview",
       "mode": "reference",
       "since": "1.3.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.20.3",
       "roles": [
         "admin",
         "dispatcher"
@@ -625,7 +625,7 @@
       "id": "desktop/admin/billing",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.5.0",
+      "lastReviewed": "1.20.3",
       "roles": [
         "admin"
       ],
@@ -638,8 +638,8 @@
     {
       "id": "desktop/admin/billing-rates",
       "mode": "reference",
-      "since": "1.20.0",
-      "lastReviewed": "1.20.0",
+      "since": "1.20.3",
+      "lastReviewed": "1.20.3",
       "roles": [
         "admin"
       ],
