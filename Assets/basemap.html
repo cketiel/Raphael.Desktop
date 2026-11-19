@@ -92,6 +92,10 @@
         // why no marker is dropped for it — the same rule the previous version applied.
         const PLACEHOLDER_LAT = 25.77427;
 
+        // Opened from the trip form: both inputs from the start, before Google even loads
+        // (see HomeView.LoadMap).
+        if (RaphaelMaps.num('dropoff', 0) === 1) showDropoff();
+
         RaphaelMaps.ready().then(initMap).catch(error => {
             document.getElementById('map').innerHTML =
                 '<p style="padding:16px;color:#a00">' + error.message + '</p>';
