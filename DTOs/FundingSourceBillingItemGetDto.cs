@@ -26,5 +26,12 @@ namespace Raphael.Desktop.DTOs
         public string BillingItemDescription { get; set; }
         public string BillingItemUnitAbbreviation { get; set; }
         public string SpaceTypeName { get; set; }
+
+        /// <summary>0 extra, 1 Miles, 2 Loading Fee, 3 Cancellation (copy of Raphael.Shared, RE-071).</summary>
+        public int BillingItemKind { get; set; }
+        public int BillingItemSortOrder { get; set; }
+
+        /// <summary>The last trip this rate priced; null if it never applied. Such a rate is history (RE-072).</summary>
+        public DateTime? LastUsedOn { get; set; }
     }
 }

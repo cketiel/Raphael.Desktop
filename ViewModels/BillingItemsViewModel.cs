@@ -48,6 +48,8 @@ namespace Raphael.Desktop.ViewModels
             GroupedBillingItems = CollectionViewSource.GetDefaultView(_billingItems);
             GroupedBillingItems.GroupDescriptions.Add(new PropertyGroupDescription(nameof(BillingItem.OwnerGroup)));
             GroupedBillingItems.SortDescriptions.Add(new SortDescription(nameof(BillingItem.OwnerSortKey), ListSortDirection.Ascending));
+            // RE-071: by importance (Miles, Loading Fee, Cancelation, then by use), as the API orders them.
+            GroupedBillingItems.SortDescriptions.Add(new SortDescription(nameof(BillingItem.SortOrder), ListSortDirection.Ascending));
             GroupedBillingItems.SortDescriptions.Add(new SortDescription(nameof(BillingItem.Description), ListSortDirection.Ascending));
 
             LoadBillingItemsCommand = new AsyncRelayCommand(LoadBillingItemsAsync);
@@ -79,6 +81,9 @@ namespace Raphael.Desktop.ViewModels
                         UnitId = dto.UnitId,
                         OwnerIntegratorId = dto.OwnerIntegratorId,
                         OwnerIntegratorName = dto.OwnerIntegratorName,
+                        Kind = dto.Kind,
+                        SortOrder = dto.SortOrder,
+                        FundingSourceCount = dto.FundingSourceCount,
                         // We rebuild the Unit object so that the DataGrid binding works
                         Unit = new Unit { Abbreviation = dto.UnitAbbreviation }
                     });
@@ -137,6 +142,8 @@ namespace Raphael.Desktop.ViewModels
         public string AddBillingItemToolTip => LocalizationService.Instance["AddBillingItem"];
         public string EditBillingItemToolTip => LocalizationService.Instance["EditBillingItem"];      
 
+        public string ColumnHeaderKind => LocalizationService.Instance["billing.Kind"];
+        public string ColumnHeaderInUse => LocalizationService.Instance["billing.InUse"];
         public string ColumnHeaderDescription => LocalizationService.Instance["Description"];
         public string ColumnHeaderUnit => LocalizationService.Instance["Unit"];
         public string ColumnHeaderIsCopay => LocalizationService.Instance["IsCopay"]; // "Is Copay"

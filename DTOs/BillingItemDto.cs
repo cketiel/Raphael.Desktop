@@ -18,6 +18,9 @@ namespace Raphael.Desktop.DTOs
 
         public bool IsCopay { get; set; }
 
+        /// <summary>0 extra, 1 Miles, 2 Loading Fee, 3 Cancellation. Null keeps the current kind (RE-071).</summary>
+        public int? Kind { get; set; }
+
         [StringLength(50)]
         public string? ARAccount { get; set; }
 

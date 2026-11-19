@@ -46,6 +46,7 @@ namespace Raphael.Desktop.ViewModels
                 Description = billingItem.Description,
                 UnitId = billingItem.UnitId,
                 IsCopay = billingItem.IsCopay,
+                Kind = billingItem.Kind,
                 ARAccount = billingItem.ARAccount,
                 ARSubAccount = billingItem.ARSubAccount,
                 ARCompany = billingItem.ARCompany,
@@ -57,6 +58,15 @@ namespace Raphael.Desktop.ViewModels
             };
 
             SaveCommand = new AsyncRelayCommand(SaveAsync);
+
+            // RE-071: what the item is for. The charge formula reads it, never the description.
+            Kinds = new List<KeyValuePair<int, string>>
+            {
+                new(0, Services.LocalizationService.Instance["billing.KindExtra"]),
+                new(1, Services.LocalizationService.Instance["billing.KindMiles"]),
+                new(2, Services.LocalizationService.Instance["billing.KindLoading"]),
+                new(3, Services.LocalizationService.Instance["billing.KindCancellation"]),
+            };
            
             _ = LoadUnitsAsync();
         }
@@ -78,6 +88,9 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
+        public List<KeyValuePair<int, string>> Kinds { get; }
+        public string TextKind => Services.LocalizationService.Instance["billing.Kind"];
+
         private async Task SaveAsync()
         {
             if (string.IsNullOrWhiteSpace(CurrentBillingItem.Description))
@@ -90,6 +103,13 @@ namespace Raphael.Desktop.ViewModels
             {
                 MessageBox.Show("You must select a Unit.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return; 
+            }
+
+            var unit = AvailableUnits.FirstOrDefault(u => u.Id == CurrentBillingItem.UnitId)?.Abbreviation?.Trim();
+            if (CurrentBillingItem.Kind == 3 && !string.Equals(unit, "PERCENT", System.StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(Services.LocalizationService.Instance["rates.ErrCancelPercent"], "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
 
             try

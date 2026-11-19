@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.SignalR.Client;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
 using System;
@@ -37,6 +37,8 @@ namespace Raphael.Desktop.Services
         public event EventHandler<CallRequestChangedMessage>? CallRequestChanged;
         public event EventHandler<RouteServiceChangedMessage>? RouteServiceChanged;
         public event EventHandler<ComplianceChangedMessage>? ComplianceChanged;
+        public event EventHandler<BillingRatesChangedMessage>? BillingRatesChanged;
+        public event EventHandler<TripChargesChangedMessage>? TripChargesChanged;
         public event EventHandler? Reconnected;
 
         public HubConnectionState State => _connection.State;
@@ -194,8 +196,27 @@ namespace Raphael.Desktop.Services
             await SafeInvokeAsync("WatchCompliance");
         }
 
+        private bool _watchingBilling;
+
+        /// <summary>RE-072/074: rates and trip charges changing, for the rates screen and Home's Billing. Office staff only.</summary>
+        public async Task WatchBillingAsync()
+        {
+            if (_watchingBilling) return;
+
+            _watchingBilling = true;
+
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"billing queued, connection is {_connection.State}");
+                return;
+            }
+
+            await SafeInvokeAsync("WatchBilling");
+        }
+
         public async Task StopAsync()
         {
+            _watchingBilling = false;
             _watchedDay = null;
             _watchedRouteId = null;
             _watchedRouteDay = null;
@@ -257,6 +278,20 @@ namespace Raphael.Desktop.Services
                     CallRequestChanged?.Invoke(this, m);
                 });
 
+            _connection.On<BillingRatesChangedMessage>(
+                "BillingRatesChanged", m =>
+                {
+                    Trace($"<- BillingRatesChanged funding source {m?.FundingSourceId} space type {m?.SpaceTypeId}");
+                    BillingRatesChanged?.Invoke(this, m);
+                });
+
+            _connection.On<TripChargesChangedMessage>(
+                "TripChargesChanged", m =>
+                {
+                    Trace($"<- TripChargesChanged {m?.TripIds?.Count ?? 0} trip(s)");
+                    TripChargesChanged?.Invoke(this, m);
+                });
+
             _connection.On<ComplianceChangedMessage>(
                 "ComplianceChanged", m =>
                 {
@@ -283,6 +318,9 @@ namespace Raphael.Desktop.Services
 
             if (_watchingCompliance)
                 await SafeInvokeAsync("WatchCompliance");
+
+            if (_watchingBilling)
+                await SafeInvokeAsync("WatchBilling");
         }
 
         private async Task SafeInvokeAsync(string method, params object?[] args)

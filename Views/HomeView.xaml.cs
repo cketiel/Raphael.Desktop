@@ -686,8 +686,15 @@ namespace Raphael.Desktop.Views
 
             if (trip == null)
             {
+                // ⚠️ The page has to know its mode from the URL. ApplyTripFormLayout tells it with
+                // showDropoff(), but this navigation often lands right after that call (the
+                // selected trip or the map's visibility changes as the form opens) and the fresh
+                // page starts with the Dropoff input hidden: the trip form was left with one
+                // "Search address" box and no way to enter the dropoff.
+                var tripForm = ViewModel.CurrentMode is HomeMode.CreatingTrip or HomeMode.EditingTrip;
                 MapWebViewHost.Navigate(
-                    MapaWebView, "basemap.html", ("lat", 25.77427), ("lng", -80.19366));
+                    MapaWebView, "basemap.html", ("lat", 25.77427), ("lng", -80.19366),
+                    ("dropoff", tripForm ? 1 : 0));
 
                 return;
             }
@@ -1071,7 +1078,7 @@ namespace Raphael.Desktop.Views
 
             string tripType = TripType.Appointment;
             //TripTypeTextBlock.Text = tripType;  
-            BillingSectionTabItem.Header = tripType + " " + ForDateCalendar.SelectedDate.Value.Date.ToShortDateString() + " " + "Hora";
+            BillingSectionTabItem.Header = tripType + " · " + ForDateCalendar.SelectedDate.Value.Date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture); // the fixed "Hora" meant nothing
             if (DataContext is HomeViewModel vm)
             {
                 vm.TripType = tripType;
@@ -1087,7 +1094,7 @@ namespace Raphael.Desktop.Views
 
             string tripType = TripType.Return;
             TripTypeTextBlock.Text = tripType;
-            BillingSectionTabItem.Header = TripType.Return + " " + ForDateCalendar.SelectedDate.Value.Date.ToShortDateString() + " " + "Hora";
+            BillingSectionTabItem.Header = TripType.Return + " · " + ForDateCalendar.SelectedDate.Value.Date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
         }
 
         private void GeolocateFloatingButton_MouseEnter(object sender, MouseEventArgs e)

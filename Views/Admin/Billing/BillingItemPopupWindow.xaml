@@ -29,6 +29,8 @@
        
         <ComboBox ItemsSource="{Binding AvailableUnits}" SelectedValue="{Binding CurrentBillingItem.UnitId}" DisplayMemberPath="Description" SelectedValuePath="Id"/>
 
+        <Label Content="{Binding TextKind}"/>
+        <ComboBox ItemsSource="{Binding Kinds}" SelectedValue="{Binding CurrentBillingItem.Kind}" DisplayMemberPath="Value" SelectedValuePath="Key"/>
         <CheckBox Content="Is Copay" IsChecked="{Binding CurrentBillingItem.IsCopay}" Margin="0,10"/>
 
         <GroupBox Header="Accounts Receivable" Margin="0,5">

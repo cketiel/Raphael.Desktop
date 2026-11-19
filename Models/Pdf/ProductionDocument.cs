@@ -12,12 +12,16 @@ namespace Raphael.Desktop.Models.Pdf
         private readonly List<ProductionReportRowDto> _data;
         private readonly DateTime _startDate;
         private readonly DateTime _endDate;
+        private readonly bool _cancelledIncluded;
+        private readonly ProductionTotals _totals;
 
-        public ProductionDocument(List<ProductionReportRowDto> data, DateTime startDate, DateTime endDate)
+        public ProductionDocument(List<ProductionReportRowDto> data, DateTime startDate, DateTime endDate, bool cancelledIncluded = true)
         {
             _data = data;
             _startDate = startDate;
             _endDate = endDate;
+            _cancelledIncluded = cancelledIncluded;
+            _totals = ProductionTotals.Of(data);
         }
 
         public void Compose(IDocumentContainer container)
@@ -40,8 +44,10 @@ namespace Raphael.Desktop.Models.Pdf
         {
             container.Row(row => {
                 row.RelativeItem().Column(col => {
-                    col.Item().Text("PRODUCTION REPORT (FULL DATA)").FontSize(16).SemiBold().FontColor("#007ACC");
-                    col.Item().Text($"Range: {_startDate:MM/dd/yyyy} - {_endDate:MM/dd/yyyy}");
+                    col.Item().Text("PRODUCTION REPORT").FontSize(16).SemiBold().FontColor("#007ACC");
+                    col.Item().Text($"From {_startDate:MM/dd/yyyy} to {_endDate:MM/dd/yyyy}" + (_cancelledIncluded ? "" : "  (cancelled trips not included)"));
+                    // RE-076: the totals on every page, next to the period they belong to.
+                    col.Item().Text(_totals.Summary).SemiBold();
                 });
                 row.RelativeItem().AlignRight().Text(DateTime.Now.ToString("g"));
             });
@@ -101,8 +107,8 @@ namespace Raphael.Desktop.Models.Pdf
                             // --- SECCIÓN 5: LOGÍSTICA Y COBRO ---
                             AddEntry(grid, "Funding Src", item.FundingSource);
                             AddEntry(grid, "Authorization", item.Authorization);
-                            AddEntry(grid, "Charge", $"${item.Charge:N2}");
-                            AddEntry(grid, "Paid", $"${item.Paid:N2}");
+                            AddEntry(grid, "Charge", (item.Charge ?? 0).ToString("$#,##0.00", System.Globalization.CultureInfo.InvariantCulture));
+                            AddEntry(grid, "Paid", (item.Paid ?? 0).ToString("$#,##0.00", System.Globalization.CultureInfo.InvariantCulture));
                             AddEntry(grid, "Space", item.Space);
                             AddEntry(grid, "Type", item.Type);
                             AddEntry(grid, "Distance", item.Distance?.ToString());
@@ -143,5 +149,27 @@ namespace Raphael.Desktop.Models.Pdf
                 x.Span(value ?? "N/A").FontSize(7);
             });
         }
+    }
+
+    /// <summary>The totals of a production report (RE-076), the same in the preview and in the Excel file.</summary>
+    public sealed class ProductionTotals
+    {
+        public int Trips { get; init; }
+        public int Billable { get; init; }
+        public int Cancelled { get; init; }
+        public double Miles { get; init; }
+        public decimal Charge { get; init; }
+
+        public static ProductionTotals Of(IReadOnlyCollection<ProductionReportRowDto> rows) => new()
+        {
+            Trips = rows.Count,
+            Cancelled = rows.Count(r => r.Canceled),
+            Billable = rows.Count(r => !r.Canceled),
+            Miles = rows.Where(r => !r.Canceled).Sum(r => r.Distance ?? 0),
+            Charge = rows.Sum(r => (decimal)(r.Charge ?? 0)),
+        };
+
+        public string Summary =>
+            FormattableString.Invariant($"Trips: {Trips}   Billable: {Billable}   Cancelled: {Cancelled}   Miles: {Miles:N1}   Total charge: ${Charge:N2}");
     }
 }

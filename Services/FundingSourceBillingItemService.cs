@@ -33,21 +33,92 @@ public class FundingSourceBillingItemService : IFundingSourceBillingItemService
     public async Task<FundingSourceBillingItem> CreateAsync(FundingSourceBillingItemDto dto)
     {
         var response = await _httpClient.PostAsJsonAsync(EndPoint, dto);
-        response.EnsureSuccessStatusCode();
+        await EnsureAsync(response);
         return await response.Content.ReadFromJsonAsync<FundingSourceBillingItem>();
     }
 
     public async Task UpdateAsync(int id, FundingSourceBillingItemDto dto)
     {
         var response = await _httpClient.PutAsJsonAsync($"{EndPoint}/{id}", dto);
-        response.EnsureSuccessStatusCode();
+        await EnsureAsync(response);
     }
 
-    public async Task DeleteAsync(int id)
+    /// <summary>
+    /// Removes a rate. The API erases it only if it never priced a trip; otherwise it retires it
+    /// (To Date = yesterday). Returns "deleted" or "retired" (RE-072).
+    /// </summary>
+    public async Task<string> RemoveAsync(int id)
     {
         var response = await _httpClient.DeleteAsync($"{EndPoint}/{id}");
-        response.EnsureSuccessStatusCode();
+        await EnsureAsync(response);
+        var body = await response.Content.ReadFromJsonAsync<OutcomeDto>();
+        return body?.Outcome ?? "deleted";
     }
+
+    public async Task NewPeriodAsync(int id, FundingSourceBillingItemDto dto)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"{EndPoint}/{id}/new-period", dto);
+        await EnsureAsync(response);
+    }
+
+    public async Task RenewAsync(int id)
+    {
+        var response = await _httpClient.PostAsync($"{EndPoint}/{id}/renew", null);
+        await EnsureAsync(response);
+    }
+
+    public async Task<BillingRatesCopyResultDto> CopyAsync(BillingRatesCopyRequestDto request)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"{EndPoint}/copy", request);
+        await EnsureAsync(response);
+        return await response.Content.ReadFromJsonAsync<BillingRatesCopyResultDto>() ?? new BillingRatesCopyResultDto();
+    }
+
+    public async Task<BillingSimulationResultDto> SimulateAsync(BillingSimulationRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"{EndPoint}/simulate", request, cancellationToken);
+        await EnsureAsync(response);
+        return await response.Content.ReadFromJsonAsync<BillingSimulationResultDto>(cancellationToken: cancellationToken) ?? new BillingSimulationResultDto();
+    }
+
+    public async Task<List<BillingRateExpiringDto>> GetExpiringAsync(int months = 6) =>
+        await _httpClient.GetFromJsonAsync<List<BillingRateExpiringDto>>($"{EndPoint}/expiring?months={months}") ?? new();
+
+    public async Task<List<BillingRatesHealthDto>> GetHealthAsync() =>
+        await _httpClient.GetFromJsonAsync<List<BillingRatesHealthDto>>($"{EndPoint}/health") ?? new();
+
+    /// <summary>
+    /// Throws with the API's own explanation when it refused the request: a billing rule the API
+    /// rejects says why (overlap, history, dates), and that is what the user needs to read.
+    /// </summary>
+    private static async Task EnsureAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode) return;
+
+        string? message = null;
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
+            message = problem?.Problems is { Count: > 1 }
+                ? string.Join(Environment.NewLine + Environment.NewLine, problem.Problems.Select(p => p.Message))
+                : problem?.Message;
+        }
+        catch
+        {
+            // Not the API's problem shape: fall back to the status code below.
+        }
+
+        throw new BillingRuleApiException(message ?? $"The server answered {(int)response.StatusCode} {response.ReasonPhrase}.");
+    }
+
+    private sealed class OutcomeDto { public string? Outcome { get; set; } }
+    private sealed class ProblemDto
+    {
+        public string? Code { get; set; }
+        public string? Message { get; set; }
+        public List<ProblemItemDto>? Problems { get; set; }
+    }
+    private sealed class ProblemItemDto { public string? Code { get; set; } public string Message { get; set; } = ""; }
 
     public Task ExportToExcelAsync(List<FundingSourceBillingItem> items)
     {
@@ -83,4 +154,10 @@ public class FundingSourceBillingItemService : IFundingSourceBillingItemService
         }
         return Task.CompletedTask;
     }
+}
+
+/// <summary>The API refused a billing change; <see cref="Exception.Message"/> is its explanation, ready to show.</summary>
+public sealed class BillingRuleApiException : Exception
+{
+    public BillingRuleApiException(string message) : base(message) { }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+using System.Collections.Generic;
+using System;
 
 namespace Raphael.Desktop.DTOs
 {
@@ -105,5 +106,26 @@ namespace Raphael.Desktop.DTOs
         public string Subject { get; set; } = string.Empty;
 
         public int SubjectId { get; set; }
+    }
+
+    /// <summary>
+    /// RE-072: a funding source's rates changed (created, edited, renewed, copied, retired). The
+    /// rates screen and an open trip form re-read what they show. Ids only.
+    /// </summary>
+    public class BillingRatesChangedMessage
+    {
+        public int FundingSourceId { get; set; }
+
+        /// <summary>Null when several space types changed at once (a copy).</summary>
+        public int? SpaceTypeId { get; set; }
+    }
+
+    /// <summary>
+    /// RE-074: the stored charge of these trips was rewritten (a rate, an extra, a day's extra, an
+    /// edit, the trip ending). Home re-reads the Billing of the trip it has open. Ids only.
+    /// </summary>
+    public class TripChargesChangedMessage
+    {
+        public List<int> TripIds { get; set; } = new();
     }
 }

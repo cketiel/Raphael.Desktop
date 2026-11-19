@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
@@ -136,6 +136,8 @@ namespace Raphael.Desktop.ViewModels
             OnPropertyChanged(nameof(CorrectionReason));
             OnPropertyChanged(nameof(IsEditingRoutedTrip));
             OnPropertyChanged(nameof(IsEditingReadOnlyTrip));
+            // RE-074: the extras' buttons follow the lock (a correction opens them).
+            if (_chargesTripId != null) _ = LoadTripChargesAsync(_chargesTripId.Value);
             OnPropertyChanged(nameof(IsCorrectingTrip));
             OnPropertyChanged(nameof(CanEditTripFields));
             OnPropertyChanged(nameof(CanEditRoutedFields));

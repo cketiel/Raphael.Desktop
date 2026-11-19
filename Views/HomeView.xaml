@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Raphael.Desktop.Views.HomeView"
+<UserControl x:Class="Raphael.Desktop.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -19,6 +19,7 @@
     
     
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="RE074BoolToVis"/>
         <!-- vmProxy “captures” the current DataContext (HomeViewModel) -->
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
@@ -1578,224 +1579,288 @@
                                 VerticalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
                                 VerticalContentAlignment="Stretch">
+                                <TabControl.Resources>
+                                    <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                        <Setter Property="Height" Value="30"/>
+                                        <Setter Property="Padding" Value="10,0"/>
+                                    </Style>
+                                </TabControl.Resources>
 
                             <TabItem x:Name="BillingSectionTabItem" Header="{Binding TextHeaderBillingSection}">
 
-                                <TabControl  
-                                    HorizontalAlignment="Stretch"
-                                    VerticalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch">
+                                <!-- RE-074: Billing. Compact on purpose: everything has to fit in the column's
+                                     fixed height, the extras' list included. -->
+                                <TabControl SelectedIndex="{Binding BillingTabIndex, Mode=TwoWay}"
+                                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                    <TabControl.Resources>
+                                        <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                            <Setter Property="Height" Value="30"/>
+                                            <Setter Property="Padding" Value="10,0"/>
+                                        </Style>
+                                    </TabControl.Resources>
 
                                     <TabItem x:Name="ChargesTabItem" Header="{Binding Charges}">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                            <RowDefinition/>
-                                        </Grid.RowDefinitions>
-                                    
-                                        <StackPanel Grid.Row="0" Margin="5 10 0 5" Orientation="Horizontal">
-                                            <TextBlock Text="{Binding TotalTripChargeTextLabel}" Margin="0 0 0 0" FontWeight="Bold" Foreground="Green"/>
-                                            <TextBlock Text=": " Margin="0 0 8 0" FontWeight="Bold" Foreground="Green"/>
-                                            <TextBlock Text="{Binding TotalTripCharge}" Margin="0 0 40 0" FontWeight="Bold" Foreground="Green"/>
-                                            <TextBlock x:Name="TripTypeTextBlock" Text="{Binding TripType}" Margin="0 0 8 0" FontWeight="Bold"/>
-                                        </StackPanel>
-                                        
-                                        <StackPanel Grid.Row="1" Margin="5 10 0 0" Orientation="Horizontal">
-                                            <TextBlock Text="{Binding DistanceTextLabel}" Margin="0 0 0 0" FontWeight="Bold"/>
-                                            <TextBlock Text=": " Margin="0 0 8 0" FontWeight="Bold" />
-                                            <TextBlock Text="{Binding Distance}" Margin="0 0 8 0" FontWeight="Bold"/>
-                                        </StackPanel>
-                                        
-                                        <StackPanel Grid.Row="2"
-                                            Orientation="Horizontal" Margin="10,10,0,0"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center">
-                                            
-                                            <RadioButton x:Name="ImportedRadioButton" Content="{Binding Imported}"
-                                                 GroupName="OriginRadioButtonGroup"
-                                                 IsChecked="{Binding OriginImported}" 
-                                                 Style="{StaticResource MaterialDesignRadioButton}" Margin="0,0,10,0"/>     
-                                            <RadioButton x:Name="RoutedRadioButton" Content="{Binding Routed}"
-                                                 GroupName="OriginRadioButtonGroup"
-                                                 IsChecked="{Binding OriginRouted}" 
-                                                 Style="{StaticResource MaterialDesignRadioButton}"/>
-                                        </StackPanel>
-                                        
-                                        <StackPanel Grid.Row="3" Margin="5 10 0 5" Orientation="Horizontal">
-                                            <TextBlock Text="{Binding SelectedChargesTextLabel}" Margin="0 0 15 0" FontWeight="Bold"/>
-                                            <CheckBox x:Name="AllowUdateCheckBox" Content="{Binding AllowUpdateText}"/>
-                                        </StackPanel>
-                                        
-                                        <Border Grid.Row="4" BorderThickness="1,1,1,1" 
-                                                BorderBrush="{StaticResource MainBorderBrush}"
-                                                Background="White">
+                                        <StackPanel Margin="4,4,4,2">
 
-                                            <Grid Margin="4"
-                                                VerticalAlignment="Stretch"
-                                                HorizontalAlignment="Stretch">
+                                            <!-- Summary: four facts in a 2 x 2 grid -->
+                                            <Border CornerRadius="6" Padding="10,5" Background="#F3F8F4" BorderBrush="#CFE5D4" BorderThickness="1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding TotalTripChargeTextLabel}" FontWeight="SemiBold" Foreground="#38444F" VerticalAlignment="Center"/>
+                                                        <TextBlock Text=": " FontWeight="SemiBold" Foreground="#38444F" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding ChargeTotalText}" FontSize="16" FontWeight="Bold" Foreground="#1B7F3B" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="1" Background="#E3ECF7" CornerRadius="9" Padding="8,1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                        <TextBlock x:Name="TripTypeTextBlock" Text="{Binding TripType}" FontSize="11" FontWeight="SemiBold" Foreground="#24507A"/>
+                                                    </Border>
+                                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,2,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding DistanceTextLabel}" FontWeight="SemiBold" Foreground="#38444F"/>
+                                                        <TextBlock Text=": " FontWeight="SemiBold" Foreground="#38444F"/>
+                                                        <TextBlock Text="{Binding Distance}" Margin="4,0,0,0"/>
+                                                    </StackPanel>
+                                                    <!-- Origin: read-only, from the trip's history -->
+                                                    <Border Grid.Row="1" Grid.Column="1" Background="White" BorderBrush="#D5DCE3" BorderThickness="1" CornerRadius="9" Padding="7,0"
+                                                            Margin="0,2,0,0" HorizontalAlignment="Right" ToolTip="{Binding TextChargesOrigin}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="{Binding TripOriginIcon}" Width="12" Height="12" Foreground="#5B6B78" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding TripOriginText}" FontSize="11" Margin="4,0,0,0" Foreground="#38444F" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
 
-                                                <!-- DATAGRID -->
-                                                <DataGrid x:Name="SelectedChargesDataGrid"          
-                                                      ItemsSource="{Binding SelectedCharges}"                                                      
-                                                      SelectionMode="Single"
-                                                      AutoGenerateColumns="False"
-                                                      IsReadOnly="True"
-                                                      AlternationCount="2"
-                                                      AlternatingRowBackground="White"   
-          
-                                                      Style="{StaticResource CustomDataGridStyle}"
-                                                      ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
-                                                      RowStyle="{StaticResource CustomRowStyle}"
-                                                      CellStyle="{StaticResource CustomCellStyle}"
-                                                      SelectionUnit="FullRow">
+                                            <!-- Frozen / warnings: one line each -->
+                                            <Border Background="#FFF4E0" BorderBrush="#F0CF95" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,4,0,0"
+                                                    Visibility="{Binding ChargesFrozen, Converter={StaticResource RE074BoolToVis}}">
+                                                <DockPanel>
+                                                    <materialDesign:PackIcon Kind="SnowflakeVariant" Width="14" Height="14" Foreground="#7A4A00" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding TextChargesFrozen}" FontSize="11" Foreground="#7A4A00" Margin="5,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </Border>
+                                            <Border Background="#FFF8E6" BorderBrush="#F2D48A" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,4,0,0"
+                                                    Visibility="{Binding HasChargeWarning, Converter={StaticResource RE074BoolToVis}}">
+                                                <DockPanel>
+                                                    <materialDesign:PackIcon Kind="AlertOutline" Width="14" Height="14" Foreground="#B26A00" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding ChargeWarningText}" FontSize="11" Foreground="#8A5300" Margin="5,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </Border>
 
-                                                    <DataGrid.Columns>
-                                                        
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding BillingItem.Description}"
-                                                            Header="{Binding Data.ChargesDescriptionText, Source={StaticResource vmProxy}}"/>
-                                                        
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding Rate}"
-                                                            Header="{Binding Data.ChargesRateText, Source={StaticResource vmProxy}}"/>
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding Qty}"
-                                                            Header="{Binding Data.ChargesQtyText, Source={StaticResource vmProxy}}"/>
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding Per}"
-                                                            Header="{Binding Data.ChargesPerText, Source={StaticResource vmProxy}}"/>
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding ProcedureCode}"
-                                                            Header="{Binding Data.ChargesProcedureCodeText, Source={StaticResource vmProxy}}"/>
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding Cost}"
-                                                            Header="{Binding Data.ChargesCostText, Source={StaticResource vmProxy}}"/>
-
-                                                    </DataGrid.Columns>
-                                                    
-                                                </DataGrid>
-
-                                            </Grid>
-
-                                        </Border>
-
-                                        <Grid Grid.Row="5" Margin="2 10 2 10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <!-- Left Column -->
-                                            <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                            <!-- Funding source and authorization -->
+                                            <Grid Margin="0,4,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="3*"/>
+                                                    <ColumnDefinition Width="2*"/>
+                                                </Grid.ColumnDefinitions>
                                                 <ComboBox x:Name="FundingSourceBillingComboBox" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}"
-                                                    ItemsSource="{Binding FundingSources}" 
-                                                    SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}" 
-                                                    DisplayMemberPath="Name" 
+                                                    ItemsSource="{Binding FundingSources}"
+                                                    SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}"
+                                                    DisplayMemberPath="Name"
                                                     SelectedValuePath="Id"
                                                     Style="{StaticResource MaterialDesignFilledComboBox}"
                                                     materialDesign:TextFieldAssist.HasClearButton="True"
                                                     materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                     materialDesign:TextFieldAssist.LeadingIcon="Finance"
-                                                    Margin="0,0,0,2"
-                                                    materialDesign:HintAssist.Hint="{Binding FundingSourceText}" />  
-
-                                            </StackPanel>
-
-                                            <!-- Right Column -->
-                                            <StackPanel Grid.Column="1">
-                                                <TextBox x:Name="BillingAuthorization" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}" Text="{Binding Authorization}" 
-                                                     materialDesign:HintAssist.Hint="{Binding AuthorizationText}" 
+                                                    Margin="0,0,6,0"
+                                                    materialDesign:HintAssist.Hint="{Binding FundingSourceText}" />
+                                                <TextBox Grid.Column="1" x:Name="BillingAuthorization" IsEnabled="{Binding CanEditRoutedFields}" helpers:LockHighlight.IsOn="{Binding ShowRoutedLockHighlight}" ToolTipService.ShowOnDisabled="True" ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.IsEnabled="{Binding IsEditingRoutedTrip}" Text="{Binding Authorization}"
+                                                     materialDesign:HintAssist.Hint="{Binding AuthorizationText}"
                                                      materialDesign:TextFieldAssist.HasClearButton="True"
                                                      materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                      materialDesign:TextFieldAssist.LeadingIcon="KeyVariant"
-                                                     Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
-                                            </StackPanel>
-
-                                        </Grid>
-
-                                        <StackPanel Grid.Row="6" Margin="5 10 0 5" Orientation="Horizontal">
-                                            <TextBlock Text="{Binding NonDefaultChargesTextLabel}" Margin="0 0 0 0" FontWeight="Bold"/>
-                                            
-                                        </StackPanel>
-
-                                        <Border Grid.Row="7" BorderThickness="1,1,1,1" 
-                                            BorderBrush="{StaticResource MainBorderBrush}"
-                                            Background="White">
-
-                                            <Grid Margin="4"
-                                                VerticalAlignment="Stretch"
-                                                HorizontalAlignment="Stretch">
-
-                                                <!-- DATAGRID -->
-                                                <DataGrid x:Name="NonDefaultChargesDataGrid"          
-                                                      ItemsSource="{Binding NonDefaultCharges}"                                                      
-                                                      SelectionMode="Single"
-                                                      AutoGenerateColumns="False"
-                                                      IsReadOnly="True"
-                                                      AlternationCount="2"
-                                                      AlternatingRowBackground="White"   
-          
-                                                      Style="{StaticResource CustomDataGridStyle}"
-                                                      ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
-                                                      RowStyle="{StaticResource CustomRowStyle}"
-                                                      CellStyle="{StaticResource CustomCellStyle}"
-                                                      SelectionUnit="FullRow">
-
-                                                    <DataGrid.Columns>
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding BillingItem.Description}"
-                                                            Header="{Binding Data.ChargesDescriptionText, Source={StaticResource vmProxy}}"/>   
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding Rate}"
-                                                            Header="{Binding Data.ChargesRateText, Source={StaticResource vmProxy}}"/>
-
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding Per}"
-                                                            Header="{Binding Data.ChargesPerText, Source={StaticResource vmProxy}}"/>
-
-                                                        <DataGridCheckBoxColumn Binding="{Binding IsDefault}"
-                                                            Header="{Binding Data.IsDefaultText, Source={StaticResource vmProxy}}"                       
-                                                            IsReadOnly="True"/>
-                                                        
-                                                        <DataGridTextColumn 
-                                                            Binding="{Binding ProcedureCode}"
-                                                            Header="{Binding Data.ChargesProcedureCodeText, Source={StaticResource vmProxy}}"/>
-
-                                                    </DataGrid.Columns>
-
-                                                </DataGrid>
-
+                                                     Style="{StaticResource MaterialDesignFilledTextBox}"/>
                                             </Grid>
 
-                                        </Border>
+                                            <!-- Applied charges: one aligned table. Default lines carry a lock (always applied);
+                                                 additional ones are amber, with a red "remove" button in the same column. -->
+                                            <DockPanel Margin="2,6,0,2">
+                                                <TextBlock Text="{Binding TextChargesApplied}" FontWeight="SemiBold" Foreground="#38444F"/>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Border Width="9" Height="9" CornerRadius="2" Background="#9DB8A4" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding TextLegendDefault}" FontSize="10" Foreground="#6B7782" Margin="3,0,8,0" VerticalAlignment="Center"/>
+                                                    <Border Width="9" Height="9" CornerRadius="2" Background="#E0A100" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding TextLegendExtra}" FontSize="10" Foreground="#6B7782" Margin="3,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <Border BorderBrush="#E1E6EB" BorderThickness="1" CornerRadius="4" Background="White" Grid.IsSharedSizeScope="True">
+                                                <StackPanel>
+                                                    <ItemsControl x:Name="SelectedChargesDataGrid" ItemsSource="{Binding ChargeLines}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border x:Name="Row" BorderBrush="#9DB8A4" BorderThickness="3,0,0,0" Background="White">
+                                                                    <Border BorderBrush="#EEF1F4" BorderThickness="0,0,0,1" Padding="7,3,2,3">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ChargeDetail"/>
+                                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ChargeAmount"/>
+                                                                                <ColumnDefinition Width="28"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <Grid.RowDefinitions>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                            </Grid.RowDefinitions>
+                                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                                <TextBlock Text="{Binding Description}" FontWeight="SemiBold" Foreground="#22303C" VerticalAlignment="Center"/>
+                                                                                <Border x:Name="ExtraChip" Background="#FFF1C7" CornerRadius="7" Padding="5,0" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                                                                    <TextBlock Text="{Binding KindText}" FontSize="10" FontWeight="SemiBold" Foreground="#8A5A00"/>
+                                                                                </Border>
+                                                                            </StackPanel>
+                                                                            <TextBlock Grid.Column="1" FontSize="11" Foreground="#6B7782" Margin="8,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                                                <Run Text="{Binding QuantityText, Mode=OneWay}"/><Run Text=" × "/><Run Text="{Binding RateText, Mode=OneWay}"/>
+                                                                            </TextBlock>
+                                                                            <TextBlock Grid.Column="2" Text="{Binding AmountText}" FontWeight="SemiBold" Foreground="#1B7F3B"
+                                                                                       MinWidth="62" TextAlignment="Right" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                                            <!-- Default: a lock. Additional: remove. Same column, so amounts stay aligned. -->
+                                                                            <materialDesign:PackIcon x:Name="LockIcon" Grid.Column="3" Kind="LockOutline" Width="13" Height="13" Foreground="#A9B4BD"
+                                                                                                     HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent"
+                                                                                                     ToolTip="{Binding Data.TextDefaultLocked, Source={StaticResource vmProxy}}"/>
+                                                                            <Button x:Name="RemoveButton" Grid.Column="3" Style="{StaticResource MaterialDesignToolButton}" Padding="0" Width="24" Height="22"
+                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"
+                                                                                    ToolTip="{Binding Data.TextRemoveExtra, Source={StaticResource vmProxy}}"
+                                                                                    Command="{Binding Data.RemoveExtraCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}">
+                                                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="#C62828"/>
+                                                                            </Button>
+                                                                            <!-- Explanations: free miles, Per and procedure code -->
+                                                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal">
+                                                                                <Border Background="#E8F4FD" CornerRadius="3" Padding="5,0" Margin="0,2,6,0"
+                                                                                        Visibility="{Binding HasNote, Converter={StaticResource RE074BoolToVis}}">
+                                                                                    <StackPanel Orientation="Horizontal">
+                                                                                        <materialDesign:PackIcon Kind="GiftOutline" Width="12" Height="12" Foreground="#0B6AA8" VerticalAlignment="Center"/>
+                                                                                        <TextBlock Text="{Binding Note}" FontSize="10.5" Foreground="#0B5C91" Margin="3,0,0,0" TextWrapping="Wrap"/>
+                                                                                    </StackPanel>
+                                                                                </Border>
+                                                                                <TextBlock Text="{Binding CodesText}" FontSize="10.5" Foreground="#6B7782" Margin="0,2,0,0"
+                                                                                           Visibility="{Binding HasCodes, Converter={StaticResource RE074BoolToVis}}"/>
+                                                                            </StackPanel>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </Border>
+                                                                <DataTemplate.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsExtra}" Value="True">
+                                                                        <Setter TargetName="Row" Property="BorderBrush" Value="#E0A100"/>
+                                                                        <Setter TargetName="Row" Property="Background" Value="#FFFBEF"/>
+                                                                        <Setter TargetName="ExtraChip" Property="Visibility" Value="Visible"/>
+                                                                        <Setter TargetName="LockIcon" Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding CanRemove}" Value="True">
+                                                                        <Setter TargetName="RemoveButton" Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </DataTemplate.Triggers>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="{Binding TextChargesNoLines}" Foreground="#8A96A0" FontStyle="Italic" FontSize="11" Margin="8,5" TextWrapping="Wrap">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasChargeLines}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
 
-                                    </Grid>
-                                    
-                                </TabItem>
-                                
+                                            <!-- Additional rates that can be added -->
+                                            <TextBlock Text="{Binding TextChargesAvailable}" FontWeight="SemiBold" Foreground="#38444F" Margin="2,6,0,2"/>
+                                            <Border BorderBrush="#E1E6EB" BorderThickness="1" CornerRadius="4" Background="#FAFBFC">
+                                                <StackPanel>
+                                                    <ItemsControl x:Name="NonDefaultChargesDataGrid" ItemsSource="{Binding AvailableExtras}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border BorderBrush="#EEF1F4" BorderThickness="0,0,0,1" Padding="2,0,8,0">
+                                                                    <DockPanel>
+                                                                        <Button DockPanel.Dock="Left" Style="{StaticResource MaterialDesignToolButton}" Padding="0" Width="26" Height="24"
+                                                                                Visibility="{Binding CanAdd, Converter={StaticResource RE074BoolToVis}}"
+                                                                                ToolTip="{Binding Data.TextAddExtra, Source={StaticResource vmProxy}}"
+                                                                                Command="{Binding Data.AddExtraCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}">
+                                                                            <materialDesign:PackIcon Kind="PlusCircleOutline" Width="17" Height="17" Foreground="#B07D00"/>
+                                                                        </Button>
+                                                                        <TextBlock DockPanel.Dock="Right" Text="{Binding RateText}" FontSize="11" Foreground="#5B6B78" VerticalAlignment="Center"/>
+                                                                        <TextBlock Text="{Binding Description}" Margin="2,0,8,0" VerticalAlignment="Center" Foreground="#22303C"/>
+                                                                    </DockPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="{Binding TextChargesNoAvailable}" Foreground="#8A96A0" FontStyle="Italic" FontSize="11" Margin="8,5" TextWrapping="Wrap">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasAvailableExtras}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </TabItem>
+
+                                    <!-- RE-074: the trip's change history. One card per change, so Prior and New value
+                                         fit in a narrow column: what changed, who and when, then "before → after". -->
                                     <TabItem x:Name="HistoryTabItem" Header="{Binding History}">
-
+                                        <Grid Margin="4">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="430">
+                                                <ItemsControl ItemsSource="{Binding TripHistoryRows}">
+                                                    <ItemsControl.Resources>
+                                                        <converters:UtcToLocalConverter x:Key="RE074UtcToLocal"/>
+                                                    </ItemsControl.Resources>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border BorderBrush="#E7EBEF" BorderThickness="1" CornerRadius="4" Background="White" Padding="8,4" Margin="0,0,4,4">
+                                                                <StackPanel>
+                                                                    <DockPanel>
+                                                                        <TextBlock DockPanel.Dock="Right" FontSize="10.5" Foreground="#6B7782" VerticalAlignment="Center"
+                                                                                   Text="{Binding ChangeDate, Converter={StaticResource RE074UtcToLocal}, StringFormat={}{0:MM/dd/yyyy HH:mm}}"/>
+                                                                        <TextBlock Text="{Binding Field}" FontWeight="SemiBold" Foreground="#22303C" TextTrimming="CharacterEllipsis"/>
+                                                                    </DockPanel>
+                                                                    <StackPanel Orientation="Horizontal" Margin="0,1,0,3">
+                                                                        <materialDesign:PackIcon Kind="AccountOutline" Width="12" Height="12" Foreground="#8A96A0" VerticalAlignment="Center"/>
+                                                                        <TextBlock Text="{Binding User}" FontSize="10.5" Foreground="#6B7782" Margin="3,0,0,0"/>
+                                                                    </StackPanel>
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Border Background="#FDF0EF" CornerRadius="3" Padding="5,2" ToolTip="{Binding Data.TextHistoryPrior, Source={StaticResource vmProxy}}">
+                                                                            <TextBlock Text="{Binding PriorValue, TargetNullValue='—'}" FontSize="11" Foreground="#8E2B23" TextWrapping="Wrap"/>
+                                                                        </Border>
+                                                                        <materialDesign:PackIcon Grid.Column="1" Kind="ArrowRight" Width="14" Height="14" Foreground="#8A96A0" Margin="4,0" VerticalAlignment="Center"/>
+                                                                        <Border Grid.Column="2" Background="#EEF7EF" CornerRadius="3" Padding="5,2" ToolTip="{Binding Data.TextHistoryNew, Source={StaticResource vmProxy}}">
+                                                                            <TextBlock Text="{Binding NewValue, TargetNullValue='—'}" FontSize="11" Foreground="#1D5E2A" TextWrapping="Wrap"/>
+                                                                        </Border>
+                                                                    </Grid>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </ScrollViewer>
+                                            <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" Height="3"
+                                                         Visibility="{Binding IsHistoryLoading, Converter={StaticResource RE074BoolToVis}}"/>
+                                            <TextBlock Text="{Binding HistoryEmptyText}" Foreground="#8A96A0" FontStyle="Italic" Margin="12,30,12,0"
+                                                       HorizontalAlignment="Center" TextWrapping="Wrap"
+                                                       Visibility="{Binding HasHistoryEmptyText, Converter={StaticResource RE074BoolToVis}}"/>
+                                        </Grid>
                                     </TabItem>
-                                    <TabItem x:Name="SignatureTabItem" Header="{Binding Signature}">
-
-                                    </TabItem>
-
 
                                 </TabControl>
-                                
+
                             </TabItem>
 
                         </TabControl>
