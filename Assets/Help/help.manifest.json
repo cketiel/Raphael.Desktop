@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.19.1"
   },
-  "builtUtc": "2026-11-14T07:26:28.167Z",
-  "sourceCommit": "beee64b",
+  "builtUtc": "2026-11-19T00:30:16.590Z",
+  "sourceCommit": "5bfb8b0",
   "languages": [
     "es",
     "en"
@@ -538,7 +538,7 @@
       "id": "desktop/reports/production",
       "mode": "how-to",
       "since": "1.3.0",
-      "lastReviewed": "1.15.3",
+      "lastReviewed": "1.20.0",
       "roles": [
         "admin",
         "dispatcher",
@@ -633,6 +633,20 @@
       "title": {
         "es": "Admin — Billing",
         "en": "Admin — Billing"
+      }
+    },
+    {
+      "id": "desktop/admin/billing-rates",
+      "mode": "reference",
+      "since": "1.20.0",
+      "lastReviewed": "1.20.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Tarifas",
+      "title": {
+        "es": "Admin — Tarifas de los funding sources",
+        "en": "Admin — Funding source rates"
       }
     },
     {

@@ -105,12 +105,12 @@ namespace Raphael.Desktop.Models.Pdf
                         foreach (var line in trip.BillableLines) c.Item().AlignCenter().Text(line.Quantity.ToString("N1"));
                     });
                     table.Cell().Background(bgColor).Element(CellStyle).Column(c => {
-                        foreach (var line in trip.BillableLines) c.Item().Text(line.Rate.ToString("C2"));
+                        foreach (var line in trip.BillableLines) c.Item().Text(line.Rate.ToString("$#,##0.00", System.Globalization.CultureInfo.InvariantCulture));
                     });
 
                     // Columna Ext Amount
                     table.Cell().Background(bgColor).Element(CellStyle).Column(c => {
-                        foreach (var line in trip.BillableLines) c.Item().AlignRight().Text(line.Amount.ToString("C2"));
+                        foreach (var line in trip.BillableLines) c.Item().AlignRight().Text(line.Amount.ToString("$#,##0.00", System.Globalization.CultureInfo.InvariantCulture));
                     });
 
                     table.Cell().Background(bgColor).Element(CellStyle).Text(trip.Authorization);
@@ -129,7 +129,7 @@ namespace Raphael.Desktop.Models.Pdf
 
                 // Total de Ext Amount (Justo debajo de la columna Ext Amount)
                 table.Cell().Background("#D3D3D3").Border(0.5f).Padding(2).AlignRight()
-                     .Text(group.Sum(x => x.TotalTripAmount).ToString("C2")).Bold();
+                     .Text(group.Sum(x => x.TotalTripAmount).ToString("$#,##0.00", System.Globalization.CultureInfo.InvariantCulture)).Bold();
 
                 // Celda vacía final para Authorization
                 table.Cell().Border(0.5f).Text("");

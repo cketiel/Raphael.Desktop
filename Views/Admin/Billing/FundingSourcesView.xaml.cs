@@ -1,45 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.ViewModels;
 
 namespace Raphael.Desktop.Views.Admin.Billing
 {
-    /// <summary>
-    /// Lógica de interacción para FundingSourcesView.xaml
-    /// </summary>
+    /// <summary>Admin → Billing → Funding Sources (RE-072).</summary>
     public partial class FundingSourcesView : UserControl
     {
+        private bool _loaded;
+
         public FundingSourcesView()
         {
             InitializeComponent();
-            var fsService = new FundingSourceService();
-            var fsbiService = new FundingSourceBillingItemService();
-            var billingItemService = new BillingItemService();
-            var spaceTypeService = new SpaceTypeService();           
 
-            var integratorService = new IntegratorService();
+            var viewModel = new FundingSourcesViewModel(
+                new FundingSourceService(),
+                new FundingSourceBillingItemService(),
+                new BillingItemService(),
+                new SpaceTypeService(),
+                new IntegratorService());
+            DataContext = viewModel;
 
-            var viewModel = new FundingSourcesViewModel(fsService, fsbiService, billingItemService, spaceTypeService, integratorService); 
-            DataContext = viewModel;            
+            // Loaded fires every time the tab is shown again. Reading everything each time used to
+            // empty the list and lose the funding source being worked on, so it loads once.
+            // Live while shown (RE-072): the language and other people's changes.
+            Unloaded += (s, e) => viewModel.Detach();
 
-            Loaded += async (s, e) => {
-                if (viewModel.LoadFundingSourcesCommand.CanExecute(null))
-                {
-                    await viewModel.LoadFundingSourcesCommand.ExecuteAsync(null);
-                }
+            Loaded += async (s, e) =>
+            {
+                viewModel.Attach();
+                if (_loaded) return;
+                _loaded = true;
+                await viewModel.LoadCommand.ExecuteAsync(null);
             };
         }
     }

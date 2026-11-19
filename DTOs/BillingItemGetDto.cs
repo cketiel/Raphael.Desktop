@@ -25,5 +25,12 @@ namespace Raphael.Desktop.DTOs
 
         /// <summary>That clinic's name, to group the items without another call.</summary>
         public string? OwnerIntegratorName { get; set; }
+
+        /// <summary>0 extra, 1 Miles, 2 Loading Fee, 3 Cancellation (RE-071).</summary>
+        public int Kind { get; set; }
+        public int SortOrder { get; set; }
+
+        /// <summary>How many funding sources have a rate for this item.</summary>
+        public int FundingSourceCount { get; set; }
     }
 }

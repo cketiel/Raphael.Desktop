@@ -109,6 +109,14 @@
                     Header="{Binding Data.ColumnHeaderDescription, Source={StaticResource vmProxy}}"  Width="2*" />
 
                 <DataGridTextColumn 
+                    Binding="{Binding KindText}"
+                    Header="{Binding Data.ColumnHeaderKind, Source={StaticResource vmProxy}}"  Width="Auto" />
+
+                <DataGridTextColumn 
+                    Binding="{Binding FundingSourceCount}"
+                    Header="{Binding Data.ColumnHeaderInUse, Source={StaticResource vmProxy}}"  Width="Auto" />
+
+                <DataGridTextColumn 
                     Binding="{Binding Unit.Abbreviation}"
                     Header="{Binding Data.ColumnHeaderUnit, Source={StaticResource vmProxy}}"  Width="Auto" />
 

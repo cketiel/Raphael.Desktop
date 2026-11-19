@@ -1,138 +1,143 @@
 ﻿<Window x:Class="Raphael.Desktop.Views.Admin.Billing.FundingSourceBillingItemPopupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        Title="Billing Item Rule"
-        Width="600" MaxHeight="750"
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        Title="{Binding TextTitle}"
+        Width="680" MaxHeight="820"
         WindowStartupLocation="CenterOwner"
-        SizeToContent="Height">
+        SizeToContent="Height"
+        helpers:HelpAssist.TopicId="desktop/admin/billing-rates">
 
-    <Grid Margin="15">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <Style TargetType="TextBlock" x:Key="FieldLabel">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="Hint">
+            <Setter Property="Foreground" Value="#757575"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <!-- Contenido con Scroll -->
-            <RowDefinition Height="Auto" />
-            <!-- Botones -->
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,15,0">
+        <!-- A rate that has priced trips: what saving will do. -->
+        <Border Grid.Row="0" Background="#FFF4E5" BorderBrush="#B26A00" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,12"
+                Visibility="{Binding IsHistory, Converter={StaticResource BoolToVis}}">
             <StackPanel>
-                <!-- Grupo de Asociación -->
-                <GroupBox Header="Core Association" FontWeight="Bold">
-                    <Grid Margin="5">
+                <TextBlock Text="{Binding TextHistoryBanner}" TextWrapping="Wrap" Foreground="#7A4A00"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="{Binding TextNewPeriodFrom}" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#7A4A00"/>
+                    <DatePicker SelectedDate="{Binding NewPeriodFrom}" Width="140"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,8,0">
+            <StackPanel>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="{Binding TextItem}" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox Grid.Column="1" Margin="0,3" ItemsSource="{Binding AvailableBillingItems}"
+                              SelectedValue="{Binding BillingItemId}" SelectedValuePath="Id" DisplayMemberPath="DisplayName"
+                              IsEnabled="{Binding CanEditCore}"/>
+                    <TextBlock Grid.Row="1" Text="{Binding TextSpaceType}" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,3" ItemsSource="{Binding AvailableSpaceTypes}"
+                              SelectedValue="{Binding SpaceTypeId}" SelectedValuePath="Id" DisplayMemberPath="Name"
+                              IsEnabled="{Binding CanEditCore}"/>
+                </Grid>
+
+                <GroupBox Header="{Binding TextGroupPrice}" Padding="8" Margin="0,0,0,10">
+                    <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="140"/>
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="185"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
+                        <TextBlock Text="{Binding TextRate}" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Column="1" Margin="0,3" Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Column="2" Text="{Binding TextPer}" Style="{StaticResource FieldLabel}" Margin="12,0,8,0"/>
+                        <TextBox Grid.Column="3" Margin="0,3" Text="{Binding Per, UpdateSourceTrigger=PropertyChanged}"/>
 
-                        <Label Grid.Row="0" Grid.Column="0" Content="Billing Item *:" VerticalAlignment="Center" />
-                        <ComboBox Grid.Row="0" Grid.Column="1" Margin="5"
-                                  ItemsSource="{Binding AvailableBillingItems}"
-                                  SelectedValue="{Binding CurrentItem.BillingItemId}"
-                                  DisplayMemberPath="DisplayName"
-                                  SelectedValuePath="Id"/>
+                        <TextBlock Grid.Row="1" Text="{Binding TextMinCharge}" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,3" Text="{Binding MinCharge, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding TextMaxCharge}" Style="{StaticResource FieldLabel}" Margin="12,0,8,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,3" Text="{Binding MaxCharge, UpdateSourceTrigger=PropertyChanged}"/>
 
-                        <Label Grid.Row="1" Grid.Column="0" Content="Space Type *:" VerticalAlignment="Center" />
-                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="5"
-                                  ItemsSource="{Binding AvailableSpaceTypes}"
-                                  SelectedValue="{Binding CurrentItem.SpaceTypeId}"
-                                  DisplayMemberPath="Name"
-                                  SelectedValuePath="Id"/>
+                        <TextBlock Grid.Row="2" Text="{Binding TextProcedureCode}" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,3" Text="{Binding ProcedureCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
                 </GroupBox>
 
-                <!-- Grupo de Precios y Tarifas -->
-                <GroupBox Header="Rate and Pricing" FontWeight="Bold" Margin="0,10,0,0">
-                    <Grid Margin="5">
+                <GroupBox Header="{Binding TextGroupQty}" Padding="8" Margin="0,0,0,10">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="185"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding TextFreeQty}" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Grid.Column="1" Margin="0,3" Text="{Binding FreeQty, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsFreeQtyEnabled}"/>
+                            <TextBlock Grid.Row="1" Text="{Binding TextMinQty}" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,3" Text="{Binding MinQty, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsMinQtyEnabled}"/>
+                            <TextBlock Grid.Row="2" Text="{Binding TextMaxQty}" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="0,3" Text="{Binding MaxQty, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                        <TextBlock Text="{Binding TextQtyHint}" Style="{StaticResource Hint}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="{Binding TextGroupPeriod}" Padding="8" Margin="0,0,0,10">
+                    <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="140"/>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="185"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Label Grid.Row="0" Grid.Column="0" Content="Rate:" VerticalAlignment="Center" />
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CurrentItem.Rate, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-
-                        <Label Grid.Row="0" Grid.Column="2" Content="Per:" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding CurrentItem.Per, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-
-                        <Label Grid.Row="1" Grid.Column="0" Content="Min Charge:" VerticalAlignment="Center" />
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CurrentItem.MinCharge, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-
-                        <Label Grid.Row="1" Grid.Column="2" Content="Max Charge:" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding CurrentItem.MaxCharge, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-
-                        <Label Grid.Row="2" Grid.Column="0" Content="Procedure Code:" VerticalAlignment="Center" />
-                        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding CurrentItem.ProcedureCode, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
+                        <TextBlock Text="{Binding TextFrom}" Style="{StaticResource FieldLabel}"/>
+                        <DatePicker Grid.Column="1" Margin="0,3" SelectedDate="{Binding FromDate}" IsEnabled="{Binding CanEditCore}"/>
+                        <TextBlock Grid.Column="2" Text="{Binding TextTo}" Style="{StaticResource FieldLabel}" Margin="12,0,8,0"/>
+                        <DatePicker Grid.Column="3" Margin="0,3" SelectedDate="{Binding ToDate}"/>
                     </Grid>
                 </GroupBox>
 
-                <!-- Grupo de Reglas de Cantidad -->
-                <GroupBox Header="Quantity Rules" FontWeight="Bold" Margin="0,10,0,0">
-                    <Grid Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="140"/>
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Label Grid.Row="0" Grid.Column="0" Content="Greater Than (>) Min Qty:" VerticalAlignment="Center" />
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CurrentItem.GreaterThanMinQty, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-
-                        <Label Grid.Row="1" Grid.Column="0" Content="Less Or Equal (&lt;=) Max Qty:" VerticalAlignment="Center" />
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CurrentItem.LessOrEqualMaxQty, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-
-                        <Label Grid.Row="2" Grid.Column="0" Content="Free Quantity:" VerticalAlignment="Center" />
-                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding CurrentItem.FreeQty, UpdateSourceTrigger=PropertyChanged}" Margin="5" />
-                    </Grid>
-                </GroupBox>
-
-                <!-- Grupo de Período de Validez -->
-                <GroupBox Header="Validity Period" FontWeight="Bold" Margin="0,10,0,0">
-                    <Grid Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="140"/>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Label Grid.Row="0" Grid.Column="0" Content="From Date:" VerticalAlignment="Center"/>
-                        <DatePicker Grid.Row="0" Grid.Column="1" SelectedDate="{Binding CurrentItem.FromDate}" Margin="5"/>
-
-                        <Label Grid.Row="0" Grid.Column="2" Content="To Date:" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        <DatePicker Grid.Row="0" Grid.Column="3" SelectedDate="{Binding CurrentItem.ToDate}" Margin="5"/>
-                    </Grid>
-                </GroupBox>
-
-                <CheckBox Content="Is Default" IsChecked="{Binding CurrentItem.IsDefault}" Margin="5,15,5,5"/>
-
+                <CheckBox Content="{Binding TextIsDefault}" IsChecked="{Binding IsDefault}" Margin="0,4,0,2"/>
+                <TextBlock Text="{Binding TextIsDefaultHint}" Style="{StaticResource Hint}" Margin="20,0,0,0"/>
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Botones de Acción -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Save" Command="{Binding SaveCommand}" IsDefault="True" MinWidth="80" Margin="0,0,10,0"/>
-            <Button Content="Cancel" IsCancel="True" MinWidth="80"/>
+        <TextBlock Grid.Row="2" Text="{Binding Errors}" Foreground="#C62828" TextWrapping="Wrap" Margin="0,10,0,0"/>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="{Binding TextCancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="90" Margin="0,0,8,0"/>
+            <Button Content="{Binding TextSave}" Command="{Binding SaveCommand}" IsDefault="True" MinWidth="90"/>
         </StackPanel>
     </Grid>
 </Window>

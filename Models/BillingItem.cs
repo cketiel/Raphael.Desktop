@@ -15,6 +15,23 @@ namespace Raphael.Desktop.Models
         public int UnitId { get; set; }
         public Unit Unit { get; set; }
         public bool IsCopay { get; set; }
+
+        /// <summary>0 extra, 1 Miles, 2 Loading Fee, 3 Cancellation (RE-071). The charge formula reads it.</summary>
+        public int Kind { get; set; }
+
+        /// <summary>Miles, Loading Fee and Cancelation first, then the rest by use (RE-071).</summary>
+        public int SortOrder { get; set; }
+
+        /// <summary>How many funding sources rate this item.</summary>
+        public int FundingSourceCount { get; set; }
+
+        public string KindText => Raphael.Desktop.Services.LocalizationService.Instance[Kind switch
+        {
+            1 => "billing.KindMiles",
+            2 => "billing.KindLoading",
+            3 => "billing.KindCancellation",
+            _ => "billing.KindExtra",
+        }];
         public string? ARAccount { get; set; }
         public string? ARSubAccount { get; set; }
         public string? ARCompany { get; set; }

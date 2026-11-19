@@ -141,7 +141,7 @@ namespace Raphael.Desktop.Models.Pdf
                     table.Cell().Element(CellStyle).AlignCenter().Text(item.DropoffPerform?.ToString(@"hh\:mm") ?? "");
                     table.Cell().Element(CellStyle).AlignCenter().Text(item.WillCallTime?.ToString(@"hh\:mm") ?? "");
                     table.Cell().Element(CellStyle).AlignRight().Text(item.Distance?.ToString("N2") ?? "0.00");
-                    table.Cell().Element(CellStyle).AlignRight().Text(item.Charge?.ToString("C2") ?? "$0.00"); // Nota: Usé "C2" para que salga con formato de moneda ($) 
+                    table.Cell().Element(CellStyle).AlignRight().Text(item.Charge?.ToString("$#,##0.00", System.Globalization.CultureInfo.InvariantCulture) ?? "$0.00"); // Nota: Usé "C2" para que salga con formato de moneda ($) 
 
                     // --- CELDA DE LA FIRMA ---
                     // Usamos Constrained con Height fijo para evitar el error de conflicto de tamaños

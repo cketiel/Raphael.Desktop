@@ -58,6 +58,9 @@ namespace Raphael.Desktop.ViewModels
 
             // The chips are strings already built, so no notification reaches inside them.
             Filters.RaiseChipsChanged();
+
+            // RE-074: the Billing lines are built strings too; drawn again from what was last read.
+            RefreshChargeTexts();
         }
 
         #region Screen mode
@@ -702,56 +705,13 @@ namespace Raphael.Desktop.ViewModels
 
         public void UpdateSelectedCharges()
         {
-            if (_allFundingSourceBillingItem != null) {
-                var selected = (SelectedFundingSource == null && SelectedSpaceType == null) ? _allFundingSourceBillingItem : new ObservableCollection<FundingSourceBillingItem>(
-                    _allFundingSourceBillingItem.Where(f => f.FundingSourceId == SelectedFundingSource?.Id && f.SpaceTypeId == SelectedSpaceType?.Id && f.IsDefault == true));
-
-                if (selected != null)
-                {
-                    SelectedCharges.Clear();
-                    foreach (var c in selected)
-                    {
-                        if (c.BillingItem.Unit.Abbreviation == "MILE")
-                        {
-                          string[] parts = Distance.Split(' '); // format => 11.5 mi
-                            c.Qty = decimal.Parse(parts[0]);
-                        }
-                        else if (c.BillingItem.Unit.Abbreviation == "UNIT")
-                        {
-                            c.Qty = 1;
-                        }
-                        else
-                        {
-                            c.Qty = 1; // Despues ver todas las opciones, por el momento, para que no de error de referencia.
-                        }
-
-                        c.Cost = c.Rate * c.Qty;
-                        SelectedCharges.Add(c);
-
-                    }
-                }
-            }
-                     
-            
+            // RE-074: the lines come from the server's single formula (HomeViewModel.Charges.cs).
+            ScheduleChargePreview();
         }
 
         public void UpdateNonDefaultCharges()
         {
-            if (_allFundingSourceBillingItem != null) {
-                var nonDefault = (SelectedFundingSource == null && SelectedSpaceType == null) ? _allFundingSourceBillingItem : new ObservableCollection<FundingSourceBillingItem>(
-                _allFundingSourceBillingItem.Where(f => f.FundingSourceId == SelectedFundingSource?.Id && f.SpaceTypeId == SelectedSpaceType?.Id && f.IsDefault != true));
-
-                if (nonDefault != null)
-                {
-                    NonDefaultCharges.Clear();
-                    foreach (var s in nonDefault)
-                    {
-                        NonDefaultCharges.Add(s);
-                    }
-                }
-            }
-            
-            
+            // RE-074: the available extras arrive with the preview (ScheduleChargePreview).
         }
 
         #endregion
@@ -2234,6 +2194,9 @@ namespace Raphael.Desktop.ViewModels
         /// </summary>
         private void LoadTripIntoForm(TripReadDto value)
         {
+            // RE-074: nothing of the previous trip's charge may leak into this one's preview.
+            ResetCharges();
+            _chargesTripId = value.Id;
 
             // 1. Cargar el Cliente asociado para que se llenen los campos de la izquierda
             var customer = Customers.FirstOrDefault(c => c.Id == value.CustomerId);
@@ -2291,6 +2254,9 @@ namespace Raphael.Desktop.ViewModels
             // method is gone: the grid's selection is not what decides it any more.
             TripBeingEdited = value;
             TripDate = value.Date.Date;
+
+            // RE-074: its charge, its extras and whether it is frozen.
+            _ = LoadTripChargesAsync(value.Id);
 
             // Last, on purpose: OnCurrentModeChanged photographs the form for
             // HasUnsavedTripChanges, and it has to see it already filled.
@@ -2658,7 +2624,8 @@ namespace Raphael.Desktop.ViewModels
             _ = LoadProviderOptionsAsync();
             LoadSpaceTypesAsync();
             LoadCustomersFromApi();
-            LoadFundingSourceBillingItemAsync();
+            // RE-074: every rate of every funding source is no longer read at start-up; the Billing
+            // section asks the server for the trip's own charge.
             LoadCapacityTypesAsync();
             LoadTripsFromApi();
         }
@@ -2861,6 +2828,7 @@ namespace Raphael.Desktop.ViewModels
                     trip1.Type = trip1.WillCall ? "Return" : "Appointment";
 
                     var result = await _tripService.CreateTripAsync(trip1);
+                    await SaveExtrasForNewTripAsync(result?.Id);
 
                     // --- RETURN TRIP (ONLY IF IT IS ROUND TRIP) ---
                     if (IsRoundTrip)
@@ -2903,7 +2871,8 @@ namespace Raphael.Desktop.ViewModels
                             ProviderId = trip1.ProviderId
                         };
 
-                        await _tripService.CreateTripAsync(trip2);
+                        var returnLeg = await _tripService.CreateTripAsync(trip2);
+                        await SaveExtrasForNewTripAsync(returnLeg?.Id);
                     }
 
                     MessageBox.Show(IsRoundTrip ? "Round Trip created successfully!" : "Trip created successfully!");
@@ -2954,6 +2923,7 @@ namespace Raphael.Desktop.ViewModels
             PickupPhone = string.Empty;
             IsWillCall = false;
             ResetProviderOption();
+            ResetCharges();
         }
 
         /*private async void SaveTrip()

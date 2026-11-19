@@ -252,25 +252,6 @@ namespace Raphael.Desktop.Services
             return await response.Content.ReadFromJsonAsync<List<ProductionReportRowDto>>();
         }
 
-        public async Task<List<ProductionReportRowDto>> GetProductionReportDataRangeAsync2(DateTime startDate, DateTime endDate, List<int> fundingSourceIds)
-        {
-            string start = startDate.ToString("yyyy-MM-dd");
-            string end = endDate.ToString("yyyy-MM-dd");
-
-            // Endpoint: reports/production-range
-            var requestUri = $"{_endPoint}/reports/production-range?startDate={start}&endDate={end}&includeSignatures=true";
-
-            if (fundingSourceIds != null && fundingSourceIds.Any())
-            {
-                string idsString = string.Join(",", fundingSourceIds);
-                requestUri += $"&fundingSourceIds={idsString}";
-            }
-
-            var response = await _httpClient.GetAsync(requestUri);
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadFromJsonAsync<List<ProductionReportRowDto>>();
-        }
         public async Task<List<ProductionReportRowDto>> GetProductionReportDataAsync(DateTime date, int? fundingSourceId)
         {
             // Format the date correctly for the URL query string.

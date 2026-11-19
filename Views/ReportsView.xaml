@@ -55,6 +55,8 @@
                         <StackPanel>
                             <TextBlock Text="Production Report Filters" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
 
+                            <CheckBox Content="{Binding TextShowCancelled}" IsChecked="{Binding ShowCancelled}" Margin="0,0,0,14"/>
+
                             <TextBlock Text="Date Range" FontWeight="SemiBold" Margin="0,0,0,5"/>
                             <DatePicker SelectedDate="{Binding StartDate}" materialDesign:HintAssist.Hint="Start Date" Margin="0,5"/>
                             <DatePicker SelectedDate="{Binding EndDate}" materialDesign:HintAssist.Hint="End Date" Margin="0,5"/>

@@ -31,6 +31,17 @@ namespace Raphael.Desktop.ViewModels
         // Production Report: optional filter by the external trip id.
         public string TripIdFilter { get; set; }
 
+        /// <summary>
+        /// RE-076: cancelled trips are left out of the production report unless asked for. They cost $0
+        /// (cancellations are not charged), so they only add rows.
+        /// </summary>
+        public bool ShowCancelled { get; set; }
+        public string TextShowCancelled => LocalizationService.Instance["reports.ShowCancelled"];
+
+        /// <summary>The rows the production report shows: the server's, without cancelled trips unless asked.</summary>
+        private List<Raphael.Desktop.DTOs.ProductionReportRowDto> ProductionRows(List<Raphael.Desktop.DTOs.ProductionReportRowDto> rows) =>
+            ShowCancelled ? rows : rows.Where(r => !r.Canceled).ToList();
+
         // Facility Report: its own driver list, every driver ticked by default.
         public ObservableCollection<ReportFilterOption> FacilityDrivers { get; } = new ObservableCollection<ReportFilterOption>();
         public ReportFilterOption SelectedFacilityDriver { get; set; }
@@ -241,7 +252,7 @@ namespace Raphael.Desktop.ViewModels
                 var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
 
                 // 2. Llamar al servicio 
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles), TripIdFilter);
+                var reportData = ProductionRows(await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles), TripIdFilter) ?? new());
 
                 if (reportData == null || !reportData.Any())
                 {
@@ -254,7 +265,7 @@ namespace Raphael.Desktop.ViewModels
                 string fileName = $"ProdPreview_{DateTime.Now:yyyyMMddHHmmss}.pdf";
                 string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), fileName);
 
-                var document = new ProductionDocument(reportData, StartDate, EndDate);              
+                var document = new ProductionDocument(reportData, StartDate, EndDate, ShowCancelled);              
                 document.GeneratePdf(tempPath);
 
                 // 4. Mostrar en UI
@@ -668,7 +679,7 @@ namespace Raphael.Desktop.ViewModels
                 var selectedRouteIds = AllVehicleRoutes.Where(x => x.IsSelected).Select(x => x.Id).ToList();
                 // 3. Obtener datos del servicio usando el rango de fechas (StartDate y EndDate)
                 // Se asume que has añadido 'GetProductionReportDataRangeAsync' a tu ScheduleService
-                var reportData = await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles), TripIdFilter);
+                var reportData = ProductionRows(await _scheduleService.GetProductionReportDataRangeAsync(StartDate, EndDate, selectedFsIds, selectedRouteIds, SelectedIds(AllDrivers), SelectedIds(AllVehicles), TripIdFilter) ?? new());
 
                 if (reportData == null || reportData.Count == 0)
                 {
@@ -690,6 +701,17 @@ namespace Raphael.Desktop.ViewModels
                     {
                         var worksheet = workbook.Worksheets.Add("Production Report");
 
+                        // RE-076: what the file is, for which days, and its totals, before the table.
+                        var totals = Models.Pdf.ProductionTotals.Of(reportData);
+                        worksheet.Cell(1, 1).Value = "Production Report";
+                        worksheet.Cell(1, 1).Style.Font.Bold = true;
+                        worksheet.Cell(1, 1).Style.Font.FontSize = 16;
+                        worksheet.Cell(1, 1).Style.Font.FontColor = XLColor.FromHtml("#007ACC");
+                        worksheet.Cell(2, 1).Value = $"From {StartDate:MM/dd/yyyy} to {EndDate:MM/dd/yyyy}" + (ShowCancelled ? "" : "  (cancelled trips not included)");
+                        worksheet.Cell(3, 1).Value = totals.Summary;
+                        worksheet.Cell(3, 1).Style.Font.Bold = true;
+                        const int headerRow = 5;
+
                         // 5. Definir Encabezados de la tabla
                         string[] headers = new string[] {
                     "Date", "Req Pickup", "Appointment", "Patient", "Pickup Address",
@@ -707,7 +729,7 @@ namespace Raphael.Desktop.ViewModels
                         // Estilo para el encabezado
                         for (int i = 0; i < headers.Length; i++)
                         {
-                            var cell = worksheet.Cell(1, i + 1);
+                            var cell = worksheet.Cell(headerRow, i + 1);
                             cell.Value = headers[i];
                             cell.Style.Font.Bold = true;
                             cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#007ACC");
@@ -718,7 +740,7 @@ namespace Raphael.Desktop.ViewModels
                         for (int i = 0; i < reportData.Count; i++)
                         {
                             var d = reportData[i];
-                            int r = i + 2; // Empezar en la fila 2 debido al encabezado
+                            int r = i + headerRow + 1; // the table starts under the title block (RE-076)
 
                             worksheet.Cell(r, 1).Value = d.Date.ToShortDateString();
                             worksheet.Cell(r, 2).Value = d.ReqPickup?.ToString(@"hh\:mm") ?? "";
@@ -769,6 +791,15 @@ namespace Raphael.Desktop.ViewModels
                             worksheet.Cell(r, 47).Value = d.DropoffLon;
                             worksheet.Cell(r, 48).Value = d.Created.ToString("g");
                         }
+
+                        // RE-076: the total under the Charge column, where an accountant looks for it.
+                        int totalRow = headerRow + reportData.Count + 1;
+                        worksheet.Cell(totalRow, 7).Value = "TOTAL";
+                        worksheet.Cell(totalRow, 7).Style.Font.Bold = true;
+                        worksheet.Cell(totalRow, 8).FormulaA1 = $"SUM(H{headerRow + 1}:H{totalRow - 1})";
+                        worksheet.Cell(totalRow, 8).Style.Font.Bold = true;
+                        worksheet.Cell(totalRow, 8).Style.NumberFormat.Format = "$#,##0.00";
+                        worksheet.Range(headerRow + 1, 8, totalRow - 1, 8).Style.NumberFormat.Format = "$#,##0.00";
 
                         // Ajustar columnas al contenido
                         worksheet.Columns().AdjustToContents();

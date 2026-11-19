@@ -1,0 +1,39 @@
+<Window x:Class="Raphael.Desktop.Views.Admin.Billing.ApplyExtraDayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding TextTitle}" Width="480" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <StackPanel Margin="18">
+        <TextBlock Text="{Binding TextIntro}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+        <TextBlock Text="{Binding TextDate}" Margin="0,0,0,4"/>
+        <DatePicker SelectedDate="{Binding Date}" Width="160" HorizontalAlignment="Left"/>
+        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+            <RadioButton Content="{Binding TextAdd}" IsChecked="True" GroupName="mode" Margin="0,0,16,0"/>
+            <RadioButton Content="{Binding TextRemove}" IsChecked="{Binding RemoveMode}" GroupName="mode"/>
+        </StackPanel>
+        <Border Background="#F1F4F8" CornerRadius="4" Padding="10" Margin="0,12,0,0">
+            <TextBlock Text="{Binding PreviewText}" TextWrapping="Wrap"/>
+        </Border>
+        <!-- RE-074: undo the last application to this day -->
+        <Border Background="#FFF6E5" BorderBrush="#F0D29A" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,10,0,0">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CanUndo}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="{Binding TextUndo}" Command="{Binding UndoCommand}" MinWidth="90" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding UndoText}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="{Binding TextCancel}" Command="{Binding CancelCommand}" MinWidth="90" Margin="0,0,8,0" IsCancel="True"/>
+            <Button Content="{Binding TextApply}" Command="{Binding ApplyCommand}" MinWidth="90" IsEnabled="{Binding CanApply}"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

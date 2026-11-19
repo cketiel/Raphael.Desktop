@@ -5,6 +5,84 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+**Slices:** RE-072, RE-074, RE-075 (reports), RE-076. **Needs:** Raphael.Backend with RE-071 to RE-077.
+
+### Fixed
+
+- **New trip: the Dropoff input sometimes did not appear** — the map showed a single "Search address"
+  box and the trip could not be created. The map page was reloaded right after being told to show the
+  Dropoff input, and the fresh page started with it hidden. The page now knows from its URL that it was
+  opened from the trip form.
+- **Billing in Home: "Per" and the procedure code are back** on each charge line; RE-074 had dropped
+  their columns without saying so.
+- **Rates screen follows the language at once** (it needed reopening).
+
+### Added
+
+- **Live billing**: the rates screen and Home's Billing re-read by themselves when anyone changes a
+  funding source's rates or a trip's charge (new `BillingRatesChanged` / `TripChargesChanged` board
+  messages, ids only).
+- **Rates screen: fold a space type's card** by clicking its header; it stays folded while the
+  application runs, live refreshes included.
+- **Billing title**: "Appointment · 11/18/2026" instead of a fixed, meaningless "Hora".
+- **Undo a day's extra**: the "apply to a day" dialog shows the last application to that day and takes
+  it back from the trips it touched, never from one that had the fee added by hand.
+- **Billing section redesigned**: total card with distance, ETA, trip type and the trip's origin
+  (office, import, Booking, integrator) instead of the two radio buttons that could be clicked but
+  meant nothing; Coverage (funding source, authorization) before the charges; free miles explained on
+  the Miles line, or as a $0 line when they cover the whole trip; the History tab shows the trip's
+  change history; the empty Signature tab is gone.
+
+### Changed
+
+- **Admin → Billing → Funding Sources is one screen** (RE-072): the funding sources on the left, with
+  search, an "Active only" filter and a warning mark when one has no rates or a space type misses its
+  Loading Fee or Miles; on the right, the selected one's rates in **one card per space type**, always
+  Loading Fee, Miles, Cancelation Fee, then the additional ones, each labelled Default, Additional,
+  Future or Expired and saying whether it has priced trips. The selection survives switching tabs.
+- "Show history" starts unticked and filters on screen: ticking it no longer asks the server again.
+- The rate form checks itself before calling the server (dates, numbers, Per, Free Qty and Min Qty
+  exclusive — filling one locks the other —, max qty, percentages, cancellation fees) and shows the
+  server's own explanation when it refuses one.
+- A rate that has priced trips is history: the form says so and, if its amounts change, saving
+  creates a new period from a chosen date instead of rewriting it.
+- Billing Items are listed by importance (Miles, Loading Fee, Cancelation Fee, then by use), with
+  their kind and how many funding sources use them.
+
+### Added
+
+- **The trip's charges in Home** (RE-074): Billing → Charges shows the trip's charge line by line, from
+  the server's single formula and the values on the form, with the funding source's additional rates
+  underneath to add (+) or remove (X). A saved trip saves the change at once; a new one saves it when
+  created, on both legs of a round trip; a finished or cancelled trip's charge is frozen. Before, the
+  section showed another funding source's rates or none, and extras could not be saved at all.
+- **"Apply to a day's trips"** (calendar button on additional rates, RE-074): adds a rate (a holiday
+  fee, say) to every open trip of that funding source and space type on a day, or removes it, after
+  saying how many trips and how much money.
+- **Production report** (RE-076): "Show cancelled trips" first among the filters, unticked by default;
+  the period and the totals (trips, billable, cancelled, miles, total charge) at the top of the PDF and
+  the Excel file, and a TOTAL row under the Charge column in Excel.
+- Billing items: the Kind can be chosen in the item form; a cancellation item must use PERCENT.
+- A simulator at the foot of each card: type some miles and see what that trip costs today, line by
+  line, and cancelled. The server prices it with the same formula as every report.
+- "Copy rates from…" another funding source, from a date; rates already there are skipped and listed.
+- "Ending soon": default rates of active funding sources ending within 6 months with no period after
+  them, each with "Renew" (the next period with the same values).
+- Help topic `desktop/admin/billing-rates`.
+
+### Fixed
+
+- Facility and Manifest printed money with the machine's currency format ("C2"): on a Spanish-language
+  machine the amounts did not show in dollars. They are always $ now (RE-076).
+- Home no longer reads every rate of every funding source at start-up (RE-074).
+- The rate delete button did nothing: it called a command that did not exist. It now asks first and
+  retires a rate that has priced trips instead of erasing it.
+- Choosing another tab lost the selected funding source and emptied its rates.
+
+### Removed
+
+- `ScheduleService.GetProductionReportDataRangeAsync2`, which called an endpoint removed in RE-071.
+
 ## [1.19.1] - 2026-11-14
 
 **Slices:** RE-067 and RE-069. **Needs:** Raphael.Backend 2.9.1 for the live updates and for View in
