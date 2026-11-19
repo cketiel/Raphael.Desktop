@@ -738,7 +738,9 @@ namespace Raphael.Desktop.ViewModels
                 return string.Format(
                     LocalizationService.Instance["home.DividerSummary"],
                     shown.Count,
-                    Money(shown.Sum(t => t.Charge ?? 0)),
+                    // Cancelled trips never add to the day's money, whatever a funding source's
+                    // cancellation fee is: the figure is what the day bills for trips done.
+                    Money(shown.Where(t => !IsCanceled(t)).Sum(t => t.Charge ?? 0)),
                     Money(shown.Sum(t => t.Paid ?? 0)));
             }
         }
@@ -2627,7 +2629,9 @@ namespace Raphael.Desktop.ViewModels
             // RE-074: every rate of every funding source is no longer read at start-up; the Billing
             // section asks the server for the trip's own charge.
             LoadCapacityTypesAsync();
-            LoadTripsFromApi();
+            // LoadTripsFromApi() was called here: GET /api/trips, every trip ever recorded with its
+            // patient, into a list no screen reads (the grid shows TripsByDate, loaded per day).
+            // Slower start-ups as history grew, and PHI sent to every desk for nothing.
         }
 
         private void SaveCustomer()
