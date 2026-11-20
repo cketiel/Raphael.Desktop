@@ -2,6 +2,7 @@
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,7 +20,12 @@ namespace Raphael.Desktop.Services
 
         public event EventHandler<Guid>? NotificationAcknowledged;
 
-        public event EventHandler? NotificationsRefreshRequested;
+        public event EventHandler<Guid>? NotificationUnviewed;
+
+        /// <summary>The connection came back after a drop: messages sent meanwhile were lost.</summary>
+        public event EventHandler? Reconnected;
+
+        public event EventHandler<IReadOnlyList<Guid>>? NotificationsViewed;
 
         public event EventHandler<Exception>? ConnectionError;
 
@@ -101,14 +107,29 @@ namespace Raphael.Desktop.Services
                         notificationRecipientId);
                 });
 
-            _connection.On(
-                "RefreshNotifications",
-                () =>
+            _connection.On<Guid>(
+                "NotificationUnviewed",
+                notificationRecipientId =>
                 {
-                    NotificationsRefreshRequested?.Invoke(
+                    NotificationUnviewed?.Invoke(
                         this,
-                        EventArgs.Empty);
+                        notificationRecipientId);
                 });
+
+            _connection.On<List<Guid>>(
+                "NotificationsViewed",
+                notificationRecipientIds =>
+                {
+                    NotificationsViewed?.Invoke(
+                        this,
+                        notificationRecipientIds);
+                });
+
+            // "RefreshNotifications" is deliberately not handled (RE-078). It goes to the whole
+            // office group, so every open Desktop reloaded the full inbox at the same second.
+            // Every change now arrives as its own incremental message, and a reconnection
+            // reloads on its own.
+            _connection.On("RefreshNotifications", () => { });
         }
 
         public async Task StartAsync(
@@ -200,6 +221,10 @@ namespace Raphael.Desktop.Services
             _started = true;
 
             ConnectionStateChanged?.Invoke(
+                this,
+                EventArgs.Empty);
+
+            Reconnected?.Invoke(
                 this,
                 EventArgs.Empty);
 

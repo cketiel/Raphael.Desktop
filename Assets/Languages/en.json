@@ -450,6 +450,8 @@
     "NotificationAcknowledge": "Confirm",
     "NotificationAcknowledgeTitle": "Confirm notification",
     "NotificationAcknowledgeWillCallConfirm": "Confirming tells the patient the dispatch office is arranging their ride, and a vehicle must reach them by the deadline shown. Confirm?",
+    "UpgradeRequiredTitle": "Update required",
+    "UpgradeRequiredMessage": "This version of Raphael Desktop is no longer supported. Install version {0} or later. The application will close.",
     "NotificationAcknowledged": "Confirmed",
     "NotificationPending": "Pending",
     "NotificationOverdue": "Overdue",

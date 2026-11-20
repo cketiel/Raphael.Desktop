@@ -56,6 +56,11 @@ namespace Raphael.Desktop.Services.Auth
 
             var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
+            // The one gate: the server refuses this build outright (RE-078). Every call would
+            // fail from here on, so say it once, clearly, and close instead of piling up errors.
+            if (response.StatusCode == (System.Net.HttpStatusCode)426)
+                ShowUpgradeRequiredOnce(response);
+
             if (!IsOutdated &&
                 response.Headers.TryGetValues(StatusHeader, out var status) &&
                 status.Any(v => string.Equals(v, "outdated", StringComparison.OrdinalIgnoreCase)))
@@ -73,6 +78,33 @@ namespace Raphael.Desktop.Services.Auth
             }
 
             return response;
+        }
+
+        private static int _upgradeShown;
+
+        private static void ShowUpgradeRequiredOnce(HttpResponseMessage response)
+        {
+            if (System.Threading.Interlocked.Exchange(ref _upgradeShown, 1) == 1)
+                return;
+
+            var minimum = response.Headers.TryGetValues(MinimumHeader, out var values)
+                ? values.FirstOrDefault()
+                : null;
+
+            var app = System.Windows.Application.Current;
+            if (app is null)
+                return;
+
+            app.Dispatcher.BeginInvoke(() =>
+            {
+                var l = LocalizationService.Instance;
+                System.Windows.MessageBox.Show(
+                    string.Format(l["UpgradeRequiredMessage"], minimum ?? "?"),
+                    l["UpgradeRequiredTitle"],
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+                app.Shutdown();
+            });
         }
     }
 }

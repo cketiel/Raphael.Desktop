@@ -450,6 +450,8 @@
     "NotificationAcknowledge": "Confirmar",
     "NotificationAcknowledgeTitle": "Confirmar notificación",
     "NotificationAcknowledgeWillCallConfirm": "Al confirmar se le dice al paciente que la oficina está gestionando su viaje, y un vehículo debe llegar antes del plazo indicado. ¿Confirmar?",
+    "UpgradeRequiredTitle": "Actualización obligatoria",
+    "UpgradeRequiredMessage": "Esta versión de Raphael Desktop ya no está admitida. Instala la versión {0} o posterior. La aplicación se cerrará.",
     "NotificationAcknowledged": "Confirmada",
     "NotificationPending": "Pendiente",
     "NotificationOverdue": "Vencido",

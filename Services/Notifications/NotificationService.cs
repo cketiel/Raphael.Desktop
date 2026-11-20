@@ -63,8 +63,18 @@ public sealed class NotificationService : INotificationService
 
         _signalR.NotificationReceived += OnNotificationReceived;
 
-        _signalR.NotificationsRefreshRequested += async (_, _) =>
+        _signalR.NotificationUnviewed += (_, recipientId) =>
+            UpdateRecipient(recipientId, r => r.ViewedAtUtc = null);
+
+        _signalR.NotificationsViewed += (_, recipientIds) =>
+            UpdateRecipients(recipientIds, r => r.ViewedAtUtc ??= DateTime.UtcNow);
+
+        // Whatever changed while the socket was down only exists in the database. When the
+        // server restarts every Desktop reconnects at the same moment, so each waits a random
+        // 0-3 s before reading: they no longer hit SQL in the same second (RE-078).
+        _signalR.Reconnected += async (_, _) =>
         {
+            await Task.Delay(Random.Shared.Next(0, 3000));
             await RefreshAsync();
         };
 
@@ -312,6 +322,32 @@ public sealed class NotificationService : INotificationService
             apply(recipient);
 
             RaiseNotificationsChanged();
+        });
+    }
+
+    /// <summary>One message for a whole batch, so one repaint instead of one per notice.</summary>
+    private void UpdateRecipients(IReadOnlyList<Guid> recipientIds, Action<NotificationRecipientDto> apply)
+    {
+        if (recipientIds.Count == 0)
+            return;
+
+        var ids = new HashSet<Guid>(recipientIds);
+
+        Invoke(() =>
+        {
+            var changed = false;
+
+            foreach (var recipient in _notifications.SelectMany(n => n.Recipients))
+            {
+                if (!ids.Contains(recipient.Id))
+                    continue;
+
+                apply(recipient);
+                changed = true;
+            }
+
+            if (changed)
+                RaiseNotificationsChanged();
         });
     }
 

@@ -5,6 +5,21 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Changed
+
+- **The notification inbox updates by its own messages and never reloads in full on a signal**
+  (RE-078). Viewed, acknowledged, unread and mark all are applied in memory; `RefreshNotifications`
+  is ignored. A reconnection still reloads. Needs the Raphael.Backend version that sends
+  `NotificationUnviewed` and `NotificationsViewed`.
+- **After a dropped connection the inbox reloads**, waiting a random 0-3 s so that every Desktop
+  reconnecting after a server restart does not read at the same second. Before, changes made while
+  disconnected stayed missing until the application was restarted (RE-078).
+
+### Added
+
+- **When the server refuses this version** (`426`), the application says so once, in the user's
+  language, and closes, instead of failing call after call (RE-078).
+
 ## [1.20.3] - 2026-11-18
 
 **Slices:** RE-072, RE-074, RE-075 (reports), RE-076. **Needs:** Raphael.Backend **2.10.7**.
