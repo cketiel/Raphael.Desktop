@@ -5,6 +5,15 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Added
+
+- **Fleet productivity report** (RE-081), a new tab in Reports for office staff: paid hours and
+  odometer miles per driver and day over a date range, filtered by drivers and vehicles, with the
+  period's totals and a reliability mark per day. A click opens the day: the paid shift minute by
+  minute and the miles (loaded, empty, GPS, planned, passenger, off-route). Saves as PDF and as an
+  Excel workbook with hours as durations and formula totals. Needs the Raphael.Backend version with
+  `GET api/reports/productivity`. Help topic `desktop/reports/productivity`.
+
 ### Changed
 
 - **The notification inbox updates by its own messages and never reloads in full on a signal**

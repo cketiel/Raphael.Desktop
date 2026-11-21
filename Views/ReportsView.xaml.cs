@@ -25,5 +25,11 @@ namespace Raphael.Desktop.Views
             InitializeComponent();
             this.DataContext = new ViewModels.ReportsViewModel();
         }
+
+        // RE-081: the productivity filters are read the first time the tab is opened, not with the screen.
+        private async void ProductivityGrid_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.ReportsViewModel vm) await vm.Productivity.EnsureFiltersAsync();
+        }
     }
 }

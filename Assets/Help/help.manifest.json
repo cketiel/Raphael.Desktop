@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.20.3"
   },
-  "builtUtc": "2026-11-19T02:42:56.700Z",
-  "sourceCommit": "9fa9ec6",
+  "builtUtc": "2026-11-21T22:59:12.638Z",
+  "sourceCommit": "89d4807",
   "languages": [
     "es",
     "en"
@@ -548,6 +548,21 @@
       "title": {
         "es": "Production Report — la producción de un periodo",
         "en": "Production Report — a period's production"
+      }
+    },
+    {
+      "id": "desktop/reports/productivity",
+      "mode": "how-to",
+      "since": "1.21.0",
+      "lastReviewed": "1.21.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "Productividad de la flota — horas y millas por conductor",
+        "en": "Fleet productivity — hours and miles per driver"
       }
     },
     {

@@ -166,6 +166,9 @@ namespace Raphael.Desktop.ViewModels
         public bool IsPreviewReadyAviata { get; set; }
         public bool IsNotDriver { get; set; }
 
+        /// <summary>RE-081: the fleet productivity tab.</summary>
+        public ProductivityReportViewModel Productivity { get; } = new ProductivityReportViewModel();
+
         public bool IsAllSelected
         {
             get => _isAllSelected;

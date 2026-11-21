@@ -145,6 +145,338 @@
                 </Grid>
             </TabItem>
 
+            <!-- RE-081: Fleet productivity (office staff; the API refuses anyone else) -->
+            <TabItem x:Name="ProductivityTab" Header="{Binding Productivity.TitleText}" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+                <!-- F1 topic on the content, never on the TabItem: every header exists at once. -->
+                <Grid Margin="10" DataContext="{Binding Productivity}" Loaded="ProductivityGrid_Loaded" helpers:HelpAssist.TopicId="desktop/reports/productivity">
+                    <Grid.Resources>
+                        <!-- A DataGrid column is not in the visual tree: headers reach the ViewModel through a proxy. -->
+                        <helpers:BindingProxy x:Key="ProdProxy" Data="{Binding}"/>
+                    </Grid.Resources>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="{Binding TitleText}" FontSize="18" FontWeight="Bold" Foreground="#007ACC"/>
+                            <TextBlock Text="{Binding IntroText}" TextWrapping="Wrap" Foreground="#5B6B7C" Margin="0,4,0,16"/>
+
+                            <TextBlock Text="{Binding DateRangeText}" FontWeight="SemiBold"/>
+                            <DatePicker SelectedDate="{Binding StartDate}" Margin="0,5"/>
+                            <DatePicker SelectedDate="{Binding EndDate}" Margin="0,5"/>
+
+                            <TextBlock Text="{Binding DriversText}" FontWeight="SemiBold" Margin="0,15,0,0"/>
+                            <ComboBox ItemsSource="{Binding Drivers}" ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                                      materialDesign:HintAssist.Hint="{Binding AllHintText}" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="{Binding VehiclesText}" FontWeight="SemiBold" Margin="0,15,0,0"/>
+                            <ComboBox ItemsSource="{Binding Vehicles}" ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                                      materialDesign:HintAssist.Hint="{Binding AllHintText}" Margin="0,4,0,0"/>
+
+                            <Separator Margin="0,20"/>
+                            <Button Command="{Binding GenerateCommand}" Content="{Binding GenerateText}" Style="{StaticResource GenerateButtonStyle}" Background="#673AB7"/>
+                            <Button Command="{Binding SavePdfCommand}" Content="{Binding PdfText}" Style="{StaticResource GenerateButtonStyle}" Background="#1E3A8A" Margin="0,10,0,0"/>
+                            <Button Command="{Binding SaveExcelCommand}" Content="{Binding ExcelText}" Style="{StaticResource GenerateButtonStyle}" Background="#2E7D32" Margin="0,10,0,0"/>
+                            <ProgressBar IsIndeterminate="True" Margin="0,10" Visibility="{Binding IsBusy, Converter={StaticResource StandardBoolToVis}}"/>
+                            <TextBlock Text="{Binding ErrorText}" Foreground="#C62828" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- The period at a glance: icon, figure and what it means per driver-day -->
+                        <UniformGrid Rows="1" Margin="0,0,0,12" Visibility="{Binding HasRows, Converter={StaticResource StandardBoolToVis}}">
+                            <UniformGrid.Resources>
+                                <Style x:Key="ProdTile" TargetType="Border">
+                                    <Setter Property="Background" Value="White"/>
+                                    <Setter Property="CornerRadius" Value="10"/>
+                                    <Setter Property="BorderBrush" Value="#E3E8EF"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Setter Property="Padding" Value="14,12"/>
+                                    <Setter Property="Margin" Value="0,0,10,0"/>
+                                    <Setter Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="10" ShadowDepth="1" Direction="270" Opacity="0.10" Color="#0F1E2E"/></Setter.Value></Setter>
+                                </Style>
+                            </UniformGrid.Resources>
+                            <Border Style="{StaticResource ProdTile}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="40" Height="40" CornerRadius="20" Background="#EDE7F6" VerticalAlignment="Top" Margin="0,2,12,0">
+                                        <materialDesign:PackIcon Kind="CalendarCheckOutline" Width="22" Height="22" Foreground="#673AB7" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding TotalDaysText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Totals.Days}" FontSize="22" FontWeight="Bold" Foreground="#1E2A36" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding Totals.DaysSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource ProdTile}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="40" Height="40" CornerRadius="20" Background="#E0F2FE" VerticalAlignment="Top" Margin="0,2,12,0">
+                                        <materialDesign:PackIcon Kind="ClockTimeFourOutline" Width="22" Height="22" Foreground="#0EA5E9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding TotalPaidText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Totals.PaidText}" FontSize="22" FontWeight="Bold" Foreground="#1E2A36" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding Totals.PaidSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource ProdTile}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="40" Height="40" CornerRadius="20" Background="#E8F5E9" VerticalAlignment="Top" Margin="0,2,12,0">
+                                        <materialDesign:PackIcon Kind="Speedometer" Width="22" Height="22" Foreground="#2E7D32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding TotalMilesText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Totals.MilesText}" FontSize="22" FontWeight="Bold" Foreground="#1E2A36" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding Totals.MilesSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource ProdTile}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="40" Height="40" CornerRadius="20" Background="#FFEDD5" VerticalAlignment="Top" Margin="0,2,12,0">
+                                        <materialDesign:PackIcon Kind="AccountArrowRightOutline" Width="22" Height="22" Foreground="#C2410C" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding TotalLoadedText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Totals.LoadedText}" FontSize="22" FontWeight="Bold" Foreground="#1E2A36" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding Totals.LoadedSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource ProdTile}" Margin="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="40" Height="40" CornerRadius="20" Background="#E0E7FF" VerticalAlignment="Top" Margin="0,2,12,0">
+                                        <materialDesign:PackIcon Kind="MapMarkerPath" Width="22" Height="22" Foreground="#1E3A8A" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding TotalTripsText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Totals.Trips}" FontSize="22" FontWeight="Bold" Foreground="#1E2A36" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding Totals.TripsSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </UniformGrid>
+
+                        <Border Grid.Row="1" Background="White" CornerRadius="5" BorderBrush="#E0E0E0" BorderThickness="1">
+                            <Grid>
+                                <TextBlock Text="{Binding EmptyText}" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" Foreground="#9E9E9E"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding HasRows, Converter={StaticResource AviataInverseVisibilityConverter}}"/>
+
+                                <!-- One line per driver and day; a click opens its breakdown -->
+                                <!-- Exactly the Home trips grid: same base style, centred headers, banded rows, accent
+                                     bar on hover and selection. Named one by one, as Home does: MaterialDesign sets
+                                     these on the element, so a derived style's setters would not apply. -->
+                                <DataGrid ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
+                                          SelectionMode="Single" SelectionUnit="FullRow" AlternationCount="2" Cursor="Hand"
+                                          Style="{StaticResource CustomDataGridStyle}"
+                                          ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                                          RowStyle="{StaticResource ContentRowStyle}"
+                                          CellStyle="{StaticResource TripSelectionCellStyle}"
+                                          RowDetailsVisibilityMode="VisibleWhenSelected"
+                                          Visibility="{Binding HasRows, Converter={StaticResource StandardBoolToVis}}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Date, StringFormat=MM/dd/yyyy}" Width="112">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColDate, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Driver}" Width="*">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColDriver, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Vehicle}" Width="*">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColVehicle, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding ShiftText}" Width="110">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColShift, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding PaidText}" Width="70">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColPaid, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding MilesText}" Width="90">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColMiles, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding LoadedText}" Width="90">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColLoaded, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Trips}" Width="60">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColTrips, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTemplateColumn Width="90">
+                                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColReliability, Source={StaticResource ProdProxy}}"/></DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="9" Padding="8,2" HorizontalAlignment="Center" ToolTip="{Binding ReliabilityTip}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#FDEBD0"/>
+                                                                <Style.Triggers><DataTrigger Binding="{Binding IsReliable}" Value="True"><Setter Property="Background" Value="#DCF2E3"/></DataTrigger></Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Width="13" Height="13" VerticalAlignment="Center">
+                                                                <materialDesign:PackIcon.Style>
+                                                                    <Style TargetType="materialDesign:PackIcon">
+                                                                        <Setter Property="Kind" Value="AlertOutline"/><Setter Property="Foreground" Value="#C2410C"/>
+                                                                        <Style.Triggers><DataTrigger Binding="{Binding IsReliable}" Value="True"><Setter Property="Kind" Value="CheckCircle"/><Setter Property="Foreground" Value="#1B7F3B"/></DataTrigger></Style.Triggers>
+                                                                    </Style>
+                                                                </materialDesign:PackIcon.Style>
+                                                            </materialDesign:PackIcon>
+                                                            <TextBlock Text="{Binding Reliability}" FontWeight="SemiBold" Margin="4,0,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+
+                                    <DataGrid.RowDetailsTemplate>
+                                        <DataTemplate>
+                                            <!-- The day, opened: a card under its row. Hours as a stacked bar of the six buckets
+                                                 that make the paid shift; miles as the odometer split loaded / empty; and what the
+                                                 reliability mark is about. -->
+                                            <Border Margin="12,4,12,14" Padding="18,16" Background="White" CornerRadius="10" BorderBrush="#E3E8EF" BorderThickness="1"
+                                                    TextElement.FontWeight="Normal" TextElement.Foreground="#1E2A36" Cursor="Arrow">
+                                                <Border.Effect><DropShadowEffect BlurRadius="12" ShadowDepth="1" Direction="270" Opacity="0.12" Color="#0F1E2E"/></Border.Effect>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="1"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="1"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.Resources>
+                                                        <!-- One legend line: colour, name, h:mm or miles, share -->
+                                                        <DataTemplate x:Key="LegendLine">
+                                                            <Grid Margin="0,3" Width="360">
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                                                                <Border Width="10" Height="10" CornerRadius="3" Background="{Binding Color}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                                <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="#3B4856"/>
+                                                                <TextBlock Grid.Column="2" Text="{Binding Value}" FontWeight="SemiBold"/>
+                                                                <TextBlock Grid.Column="3" Text="{Binding Share}" Foreground="#7A8794" HorizontalAlignment="Right"/>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                        <!-- A segment of a stacked bar -->
+                                                        <DataTemplate x:Key="BarSegment">
+                                                            <Border Width="{Binding Width}" Height="14" Background="{Binding Color}" ToolTip="{Binding Label}"/>
+                                                        </DataTemplate>
+                                                        <ItemsPanelTemplate x:Key="BarPanel"><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                                    </Grid.Resources>
+
+                                                    <!-- HOURS -->
+                                                    <StackPanel Grid.Column="0" Margin="0,0,24,0">
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                            <materialDesign:PackIcon Kind="ClockTimeFourOutline" Width="18" Height="18" Foreground="#673AB7" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding HoursTitle}" FontSize="14" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <!-- The paid shift, big, with its window -->
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding PaidText}" FontSize="28" FontWeight="Bold" Foreground="#673AB7"/>
+                                                            <StackPanel Margin="12,4,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Foreground="#5B6B7C"><Run Text="{Binding PaidFromLabel, Mode=OneWay}"/> <Run Text="{Binding PaidStartText, Mode=OneWay}" FontWeight="SemiBold" Foreground="#1E2A36"/> <Run Text="{Binding PaidToLabel, Mode=OneWay}"/> <Run Text="{Binding PaidEndText, Mode=OneWay}" FontWeight="SemiBold" Foreground="#1E2A36"/></TextBlock>
+                                                                <TextBlock Text="{Binding RealShiftLine}" Foreground="#7A8794" FontSize="11.5"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                        <Border CornerRadius="7" ClipToBounds="True" Margin="0,12,0,10" HorizontalAlignment="Left" Width="360" Background="#EEF1F5">
+                                                            <Border.OpacityMask><VisualBrush><VisualBrush.Visual><Border Width="360" Height="14" CornerRadius="7" Background="Black"/></VisualBrush.Visual></VisualBrush></Border.OpacityMask>
+                                                            <ItemsControl ItemsSource="{Binding HourSegments}" ItemTemplate="{StaticResource BarSegment}" ItemsPanel="{StaticResource BarPanel}"/>
+                                                        </Border>
+                                                        <ItemsControl ItemsSource="{Binding HourSegments}" ItemTemplate="{StaticResource LegendLine}"/>
+                                                        <!-- Apart from the sum -->
+                                                        <WrapPanel Margin="0,10,0,0">
+                                                            <Border Background="#F3E8FF" CornerRadius="10" Padding="9,3" Margin="0,0,6,0">
+                                                                <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="AccountMultipleOutline" Width="13" Height="13" Foreground="#673AB7" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding PatientHoursLine}" FontSize="11.5" Foreground="#4C1D95" Margin="4,0,0,0"/></StackPanel>
+                                                            </Border>
+                                                            <Border Background="#E0E7FF" CornerRadius="10" Padding="9,3" Margin="0,0,6,0">
+                                                                <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="MapMarkerPath" Width="13" Height="13" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding TripsLine}" FontSize="11.5" Foreground="#1E3A8A" Margin="4,0,0,0"/></StackPanel>
+                                                            </Border>
+                                                            <Border Background="#FFEDD5" CornerRadius="10" Padding="9,3" Visibility="{Binding HasTrimmed, Converter={StaticResource StandardBoolToVis}}">
+                                                                <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="ClockAlertOutline" Width="13" Height="13" Foreground="#C2410C" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding TrimmedLine}" FontSize="11.5" Foreground="#9A3412" Margin="4,0,0,0"/></StackPanel>
+                                                            </Border>
+                                                        </WrapPanel>
+                                                    </StackPanel>
+
+                                                    <Border Grid.Column="1" Background="#E3E8EF"/>
+
+                                                    <!-- MILES -->
+                                                    <StackPanel Grid.Column="2" Margin="24,0">
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                            <materialDesign:PackIcon Kind="Speedometer" Width="18" Height="18" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding MilesTitle}" FontSize="14" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding MilesText}" FontSize="28" FontWeight="Bold" Foreground="#2E7D32"/>
+                                                            <StackPanel Margin="12,4,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding OdometerRange}" FontWeight="SemiBold"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                        <Border CornerRadius="7" Margin="0,12,0,10" HorizontalAlignment="Left" Width="360" Background="#EEF1F5">
+                                                            <Border.OpacityMask><VisualBrush><VisualBrush.Visual><Border Width="360" Height="14" CornerRadius="7" Background="Black"/></VisualBrush.Visual></VisualBrush></Border.OpacityMask>
+                                                            <ItemsControl ItemsSource="{Binding MileSegments}" ItemTemplate="{StaticResource BarSegment}" ItemsPanel="{StaticResource BarPanel}" Height="14"/>
+                                                        </Border>
+                                                        <ItemsControl ItemsSource="{Binding MileSegments}" ItemTemplate="{StaticResource LegendLine}"/>
+                                                        <!-- The other measures, as small cards -->
+                                                        <ItemsControl ItemsSource="{Binding MileFacts}" Margin="0,10,0,0" Width="360" HorizontalAlignment="Left">
+                                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Background="#F6F8FA" CornerRadius="8" Padding="10,6" Margin="0,0,6,6">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="{Binding Label}" Foreground="#7A8794" FontSize="11"/>
+                                                                            <TextBlock Text="{Binding Value}" FontWeight="SemiBold" FontSize="13"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+
+                                                    <Border Grid.Column="3" Background="#E3E8EF"/>
+
+                                                    <!-- RELIABILITY -->
+                                                    <StackPanel Grid.Column="4" Margin="24,0,0,0" MinWidth="220">
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                            <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="18" Height="18" Foreground="#0F766E" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding ReliabilityTitle}" FontSize="14" FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <Border Background="#DCF2E3" CornerRadius="8" Padding="10,8" Visibility="{Binding IsReliable, Converter={StaticResource StandardBoolToVis}}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <materialDesign:PackIcon Kind="CheckCircle" Width="16" Height="16" Foreground="#1B7F3B" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding ReliableLine}" Foreground="#14532D" Margin="6,0,0,0" TextWrapping="Wrap" MaxWidth="240"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <ItemsControl ItemsSource="{Binding IssueLines}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Background="#FFF4E5" CornerRadius="8" Padding="10,7" Margin="0,0,0,6" BorderBrush="#FBD38D" BorderThickness="1">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                                            <materialDesign:PackIcon Kind="AlertOutline" Width="16" Height="16" Foreground="#C2410C" VerticalAlignment="Top" Margin="0,1,6,0"/>
+                                                                            <TextBlock Grid.Column="1" Text="{Binding}" Foreground="#7C2D12" TextWrapping="Wrap" MaxWidth="260"/>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGrid.RowDetailsTemplate>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
             <!-- GPS Report Tab -->
             <TabItem Header="GPS Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid>
