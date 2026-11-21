@@ -41,6 +41,12 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 - **The live map moves on to the next stop within seconds of the driver performing one** (RE-080),
   instead of up to two minutes later: the line's legs are read again when its vehicle reaches the stop
   it was heading to and when it leaves it.
+- **Fleet productivity report** (RE-081), a new tab in Reports for office staff: paid hours and
+  odometer miles per driver and day over a date range, filtered by drivers and vehicles, with the
+  period's totals and a reliability mark per day. A click opens the day: the paid shift minute by
+  minute and the miles (loaded, empty, GPS, planned, passenger, off-route). Saves as PDF and as an
+  Excel workbook with hours as durations and formula totals. Needs the Raphael.Backend version with
+  `GET api/reports/productivity`. Help topic `desktop/reports/productivity`.
 
 ### Changed
 
