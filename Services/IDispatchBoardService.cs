@@ -48,6 +48,9 @@ namespace Raphael.Desktop.Services
         /// <summary>Listen to the fleet's state: routes out of service and back (RE-053). Office staff only.</summary>
         Task WatchFleetAsync();
 
+        /// <summary>RE-080: every vehicle position of the caller's scope, for the live map.</summary>
+        Task WatchMapAsync();
+
         /// <summary>Listen to the compliance documents (RE-069). Office staff only.</summary>
         Task WatchComplianceAsync();
 

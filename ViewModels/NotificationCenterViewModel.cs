@@ -208,7 +208,7 @@ public sealed class NotificationCenterViewModel : BaseViewModel
             _ =>
             {
                 if (SelectedNotification?.TripId is int tripId)
-                    OpenTripRequested?.Invoke(tripId);
+                    OpenTripRequested?.Invoke(tripId, SelectedNotification.BusinessEventCode);
             },
             _ => SelectedNotification?.TripId is not null);
 
@@ -287,7 +287,8 @@ public sealed class NotificationCenterViewModel : BaseViewModel
     public Action ToggleWindowRequested { get; set; }
 
     /// <summary>Opens the selected trip wherever the host decides. Wired by the view.</summary>
-    public Action<int> OpenTripRequested { get; set; }
+    /// <summary>Trip id and the business event code, which says whether the notice is about the pickup or the dropoff.</summary>
+    public Action<int, string> OpenTripRequested { get; set; }
 
     /// <summary>
     /// Opens this dispatcher's live alert preferences. Wired by the host, because the

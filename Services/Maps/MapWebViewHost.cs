@@ -87,8 +87,22 @@ namespace Raphael.Desktop.Services.Maps
         public static async Task InitializeAsync(WebView2 webView, CoreWebView2Environment environment = null)
         {
             await webView.EnsureCoreWebView2Async(environment);
+            await ConfigureAsync(webView.CoreWebView2);
+        }
 
-            var core = webView.CoreWebView2;
+        /// <summary>
+        /// The same, for the composition control (RE-080): it draws inside WPF's own surface, so WPF
+        /// panels can sit on top of the map. The classic control is a window of its own and covers
+        /// anything drawn over it.
+        /// </summary>
+        public static async Task InitializeAsync(WebView2CompositionControl webView, CoreWebView2Environment environment = null)
+        {
+            await webView.EnsureCoreWebView2Async(environment);
+            await ConfigureAsync(webView.CoreWebView2);
+        }
+
+        private static async Task ConfigureAsync(CoreWebView2 core)
+        {
 
             core.SetVirtualHostNameToFolderMapping(
                 VirtualHostName,

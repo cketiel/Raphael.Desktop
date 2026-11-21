@@ -58,8 +58,12 @@ namespace Raphael.Desktop.ViewModels
         }
 
         /// <summary>Opens a route and day with one trip's two stops framed (RE-051).</summary>
-        public Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId) =>
-            ScheduleContentViewModel.ShowTripAsync(date, vehicleRouteId, tripId);
+        public Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId, bool atDropoff = false) =>
+            ScheduleContentViewModel.ShowTripAsync(date, vehicleRouteId, tripId, atDropoff);
+
+        /// <summary>RE-080: a route and day, nothing picked out.</summary>
+        public Task ShowRouteAsync(DateTime date, int vehicleRouteId) =>
+            ScheduleContentViewModel.ShowRouteAsync(date, vehicleRouteId);
 
         /// <summary>Opens a day's unscheduled trips with some picked out (RE-053).</summary>
         public Task ShowUnscheduledAsync(DateTime date, System.Collections.Generic.IReadOnlyCollection<int> tripIds) =>

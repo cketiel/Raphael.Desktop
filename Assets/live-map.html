@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Live map</title>
+    <!--
+        RE-080: the live map's drawing surface. The Desktop keeps everything else (groups, filters,
+        panels, the route card) in WPF and tells this page what to draw through WebView2 messages.
+        Served from https://raphael.maps/ (MapWebViewHost) so the browser key can be restricted by
+        referrer. The key arrives as window.RAPHAEL_MAPS, never in this file.
+    -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet" />
+    <style>
+        html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #e9ecef; }
+
+        /* Vehicle: 40 x 40 box, centred on its position. */
+        .lm-v { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; cursor: pointer; z-index: 2; }
+        .lm-v:hover, .lm-v.selected { z-index: 5; }
+        .lm-v .lm-ptr { position: absolute; inset: 0; width: 40px; height: 40px; transform-origin: 20px 20px; }
+        .lm-v .lm-disc { position: absolute; left: 7px; top: 7px; width: 26px; height: 26px; border-radius: 50%;
+                         border: 2.5px solid #fff; box-sizing: border-box;
+                         box-shadow: 0 0 0 2.5px var(--route, transparent), 0 2px 6px rgba(15, 30, 46, .45); }
+        .lm-v .lm-disc svg { width: 21px; height: 21px; margin: 0 0 0 0; display: block; }
+        .lm-v .lm-pause { position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; border-radius: 50%;
+                          background: #5B6B7C; border: 1.5px solid #fff; box-sizing: border-box; }
+        .lm-v .lm-pause svg { width: 11px; height: 11px; display: block; }
+        .lm-v.speeding .lm-disc { box-shadow: 0 0 0 3px #D93B3B, 0 2px 6px rgba(15, 30, 46, .45); }
+        .lm-v.stale { opacity: .5; filter: grayscale(.6); }
+        .lm-v.hidden { display: none; }
+        /* The selected vehicle: bigger, in front, with a soft pulse in its line's colour. Nothing else changes. */
+        .lm-v.selected { z-index: 6; transform: scale(1.45); }
+        .lm-v.selected::before { content: ''; position: absolute; left: 4px; top: 4px; width: 32px; height: 32px; border-radius: 50%;
+                                 background: var(--route, #2563EB); opacity: .35; animation: lm-halo 1.8s ease-out infinite; }
+        @keyframes lm-halo { 0% { transform: scale(.8); opacity: .45; } 100% { transform: scale(1.9); opacity: 0; } }
+
+        /* Booking's StopMarker: pin, and a solid label in the pin's colour with a white ring. */
+        .lm-pinwrap { position: absolute; }
+        .lm-pin { position: relative; transform: translate(-50%, -38px); }
+        .lm-pin svg { display: block; margin: 0 auto; filter: drop-shadow(0 2px 3px rgb(0 0 0 / .45)); }
+        .lm-pinlabel { position: absolute; left: 50%; top: 44px; transform: translateX(-50%); white-space: nowrap; border-radius: 6px;
+                       padding: 4px 10px; color: #fff; font: 600 11.5px 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
+                       text-transform: uppercase; letter-spacing: .04em; box-shadow: 0 0 0 2px #fff, 0 6px 14px rgb(0 0 0 / .35); }
+
+        /* The line's name under the vehicle, with the routes layer on or when selected. */
+        .lm-v .lm-name { display: none; position: absolute; top: 37px; left: 50%; transform: translateX(-50%);
+                         padding: 1px 6px; border-radius: 6px; background: #fff; color: #1E2A36;
+                         border-left: 3px solid var(--route, #1F6FD1);
+                         font: 600 11px 'Segoe UI', Arial, sans-serif; white-space: nowrap; box-shadow: 0 1px 4px rgba(15, 30, 46, .3); }
+        .lm-v.named .lm-name { display: block; }
+
+        .lm-v .lm-delay { position: absolute; left: 30px; top: -4px; padding: 1px 5px; border-radius: 8px; background: #D93B3B;
+                          color: #fff; font: 700 11px 'Segoe UI', Arial, sans-serif; white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+        /* The finish flag at the end of a route in progress: the pole's foot is the spot. */
+        .lm-finishwrap { position: absolute; }
+        .lm-finish { transform: translate(-9px, -40px) scale(1.2); transform-origin: 9px 40px; filter: drop-shadow(0 2px 3px rgb(15 30 46 / .35)); }
+        .lm-finish svg { display: block; }
+
+        /* Numbered stops (Dispatch colours). One chip per place; several stops at one place share it. */
+        /* A callout above its spot: a dot on the spot and a tail down to it, so a vehicle standing there
+           never hides the numbers. */
+        .lm-stop { position: absolute; }
+        .lm-stop::before { content: ''; position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%;
+                           background: #1E2A36; border: 2px solid #fff; box-sizing: border-box; }
+        /* The stem: tall enough to clear a selected vehicle standing on the spot. */
+        .lm-stop::after { content: ''; position: absolute; left: -1.5px; top: -30px; width: 3px; height: 27px; border-radius: 2px; background: #fff; box-shadow: 0 0 2px rgba(15, 30, 46, .5); }
+        .lm-stopin { position: absolute; transform: translate(-50%, calc(-100% - 30px)); transform-origin: 50% 100%; display: flex; border-radius: 13px; border: 2.5px solid #fff;
+                     box-shadow: 0 2px 5px rgba(15, 30, 46, .4); overflow: hidden; white-space: nowrap; }
+        .lm-stopin span { display: block; min-width: 21px; height: 21px; padding: 0 4px; box-sizing: border-box; text-align: center;
+                          color: #fff; font: 700 13px/21px 'Segoe UI', Arial, sans-serif; transition: opacity .25s, filter .25s; }
+        .lm-stopin.multi span + span { border-left: 1.5px solid rgba(255, 255, 255, .85); }
+        /* wait: already reached, before the trail gets there; pop: the trail just reached it. */
+        .lm-stopin span.wait { opacity: .3; filter: grayscale(.7); }
+        .lm-stop.pop .lm-stopin { animation: lm-pop .8s cubic-bezier(.2, .9, .3, 1.25); }
+        @keyframes lm-pop { 0% { transform: translate(-50%, calc(-100% - 30px)) scale(.85); }
+                            35% { transform: translate(-50%, calc(-100% - 30px)) scale(1.9); box-shadow: 0 0 0 8px color-mix(in srgb, var(--route) 35%, transparent), 0 4px 10px rgba(15, 30, 46, .45); }
+                            100% { transform: translate(-50%, calc(-100% - 30px)) scale(1); } }
+        .lm-stopin span.pop { animation: lm-flash .8s ease-out; }
+        @keyframes lm-flash { 0% { filter: brightness(1.8); } 100% { filter: none; } }
+        /* Where the vehicle is heading now: a ring in the line's colour that breathes. */
+        .lm-stop.next .lm-stopin { box-shadow: 0 0 0 3px var(--route), 0 2px 6px rgba(15, 30, 46, .45); animation: lm-next 1.6s ease-in-out infinite; }
+        .lm-stop.next.pop .lm-stopin { animation: lm-pop .8s cubic-bezier(.2, .9, .3, 1.25), lm-next 1.6s ease-in-out .8s infinite; }
+        @keyframes lm-next { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--route) 45%, transparent), 0 2px 6px rgba(15, 30, 46, .45); } }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <!-- The finish flag's chequers, defined once for every flag on the page. -->
+    <svg width="0" height="0" style="position:absolute"><defs>
+        <pattern id="lm-checker" width="6" height="6" patternUnits="userSpaceOnUse">
+            <rect width="6" height="6" fill="#fff"/><rect width="3" height="3" fill="#1E2A36"/><rect x="3" y="3" width="3" height="3" fill="#1E2A36"/>
+        </pattern></defs></svg>
+    <script src="raphael-maps.js"></script>
+    <script src="live-map.js"></script>
+</body>
+</html>

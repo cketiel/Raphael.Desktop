@@ -55,17 +55,22 @@ namespace Raphael.Desktop.ViewModels
         /// Opens a route on a day and frames one trip's pickup and dropoff — what Home's
         /// "show in Schedule" lands on.
         /// </summary>
-        public async Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId)
+        /// <param name="atDropoff">RE-080: a notice about the dropoff lands on the dropoff row.</param>
+        public async Task ShowTripAsync(DateTime date, int vehicleRouteId, int tripId, bool atDropoff = false)
         {
             GuideTripId = tripId;
             await ShowRouteAsync(date, vehicleRouteId);
             ApplyGuideHighlight();
 
-            var pickup = Schedules.FirstOrDefault(s => s.TripId == tripId);
-            if (pickup != null)
+            var wanted = atDropoff ? Models.ScheduleEventType.Dropoff : Models.ScheduleEventType.Pickup;
+
+            // A cancelled trip only shows its pickup, so the dropoff falls back to it.
+            var stop = Schedules.FirstOrDefault(s => s.TripId == tripId && s.EventType == wanted)
+                       ?? Schedules.FirstOrDefault(s => s.TripId == tripId);
+            if (stop != null)
             {
-                SelectedSchedule = pickup;
-                ScrollScheduleIntoViewRequest?.Invoke(this, pickup);
+                SelectedSchedule = stop;
+                ScrollScheduleIntoViewRequest?.Invoke(this, stop);
             }
         }
 

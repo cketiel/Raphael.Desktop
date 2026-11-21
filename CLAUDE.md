@@ -7,7 +7,7 @@ Herramienta del dispatcher: gestiona customers, rutas, billing, funding sources,
 producción y administración de usuarios/roles. Es la app con más superficie del ecosistema —
 si un DTO llega incompleto aquí, el dispatcher toma decisiones de ruta con datos parciales.
 
-Target: `net8.0-windows`
+Target: `net8.0-windows10.0.19041.0` (desde RE-080: el mapa en vivo usa `WebView2CompositionControl`, que necesita la proyección del SDK de Windows; mínimo Windows 10 1809)
 
 ## Contrato con la API
 - Auth: **JWT** → `Services/AuthService.cs`

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Live ETA</title>
+    <!--
+        RE-080: Booking's two tracking pieces in the Desktop's route card, copied from
+        raphael-web/apps/booking/src/features/tracking: TripProgressBar.tsx (on the page surface) and
+        LiveEta.tsx size "lg" (on the tracking page's dark live card), with etaModel.ts for the values.
+        Same markup, the Tailwind classes turned into plain CSS, the same colours and font. If those
+        files change in Booking, this one has to change with them.
+
+        The host posts the inputs ({ type: 'eta', ... }); the page recomputes every second, as the
+        Booking page does, so the minutes and the age of the position keep moving.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            /* Booking's light theme (globals.css). */
+            --ds-surface: #ffffff; --ds-on-surface: #10303f; --ds-on-surface-variant: #41616f; --ds-outline: #b6c7d1;
+            --ds-success: #1c8a57; --ds-pickup: #c0392b; --ds-dropoff: #0a5c7e;
+            --st-late: #d4691a; --st-late-ink: #a85115; --st-inprogress: #6d4ad6;
+            --mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0 3px 0 2px; background: #fff; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden; }
+
+        /* ---------- TripProgressBar ---------- */
+        .tpb { min-width: 0; margin-bottom: 14px; }
+        .tpb-row { position: relative; display: flex; height: 24px; align-items: center; }
+        .tpb-pick { position: relative; z-index: 1; width: 12px; height: 12px; flex-shrink: 0; border-radius: 999px;
+                    border: 2px solid var(--ds-surface); background: var(--ds-pickup); box-shadow: 0 0 0 1.5px var(--ds-pickup); }
+        .tpb-track { position: relative; margin: 0 4px; height: 6px; flex: 1; }
+        .tpb-ahead { position: absolute; inset: 0; border-radius: 999px; opacity: .8;
+                     background: repeating-linear-gradient(90deg, var(--ds-outline) 0 8px, transparent 8px 13px); }
+        .tpb-done { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; transition: width .7s; }
+        .tpb-van { position: absolute; top: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); display: flex;
+                   align-items: center; justify-content: center; border-radius: 999px; border: 2px solid var(--ds-surface);
+                   box-shadow: 0 2px 6px rgb(5 25 35 / .3); transition: left .7s; }
+        .tpb-drop { position: relative; z-index: 1; width: 12px; height: 12px; flex-shrink: 0; display: flex; align-items: center;
+                    justify-content: center; border-radius: 999px; border: 2px solid var(--ds-surface); box-shadow: 0 0 0 1.5px var(--ds-dropoff); }
+        .tpb-drop.done { width: 16px; height: 16px; }
+        .tpb-text { font-family: var(--mono); margin-top: 4px; display: flex; align-items: center; gap: 8px; font-size: 10.5px;
+                    text-transform: uppercase; letter-spacing: .06em; color: var(--ds-on-surface-variant); }
+        .tpb-text .tr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tpb-text .cap { margin: 0 auto; flex-shrink: 0; font-weight: 600; color: var(--ds-on-surface); }
+        .tpb-text .cap.late { color: var(--st-late-ink); }
+
+        /* ---------- the dark live card (TripTrackingPage) ---------- */
+        .card { position: relative; border-radius: 12px; padding: 18px; color: #f2f8fb;
+                background: radial-gradient(circle at 88% 6%, rgb(129 99 230 / .42), transparent 58%), linear-gradient(170deg, #073d55, #04202d); }
+
+        /* ---------- LiveEta lg ---------- */
+        .le { display: flex; width: 100%; flex-direction: column; gap: 14px; }
+        .le-phase { font-family: var(--mono); display: flex; align-items: center; gap: 8px; font-weight: 600; text-transform: uppercase;
+                    letter-spacing: .12em; font-size: 11px; }
+        .le-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 999px; }
+        .ds-pulse { animation: ds-pulse 2.4s ease-in-out infinite; }
+        @keyframes ds-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.82); } }
+        .le-row { display: flex; width: 100%; align-items: center; }
+        .le-disc { display: flex; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 999px; width: 62px; height: 62px; }
+        .le-rail { flex: 1; border-radius: 2px; min-width: 14px; height: 3px; }
+        .le-mid { flex-shrink: 0; text-align: center; padding: 0 14px; }
+        .flash { border-radius: 9px; }
+        .ds-live-flash { animation: ds-live-flash .8s ease-out; }
+        @keyframes ds-live-flash { 0% { background: rgb(169 140 247 / .3); box-shadow: 0 0 0 7px rgb(169 140 247 / .3); } 100% { background: transparent; box-shadow: 0 0 0 7px transparent; } }
+        .le-big-wrap { padding: 3px 7px; }
+        .le-big { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+        .le-num { font-family: var(--mono); white-space: nowrap; font-weight: 600; line-height: 1; letter-spacing: -.01em; }
+        .le-unit { font-family: var(--mono); font-weight: 600; letter-spacing: .12em; font-size: 15px; }
+        .le-miles-wrap { margin-top: 2px; padding: 2px 7px; border-radius: 7px; }
+        .le-miles { font-family: var(--mono); white-space: nowrap; font-weight: 500; letter-spacing: .14em; font-size: 12px; }
+        .le-arrow { margin-right: 2px; width: 0; height: 0; flex-shrink: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid; }
+        .le-dialcol { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; gap: 6px; }
+        .le-dial { position: relative; width: 88px; height: 88px; border-radius: 999px; }
+        .le-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .le-dial .in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+        .le-dial .eta { font-family: var(--mono); font-weight: 600; line-height: 1; font-size: 21px; }
+        .le-dial .cap { font-family: var(--mono); text-transform: uppercase; letter-spacing: .12em; font-size: 8.5px; color: #cfe4ef; }
+        .le-late { font-family: var(--mono); display: inline-flex; height: 20px; align-items: center; gap: 5px; border-radius: 5px; padding: 0 8px;
+                   font-size: 10px; font-weight: 600; letter-spacing: .06em; background: rgb(240 146 63 / .18); color: #f7bd81; }
+        .le-late i { width: 6px; height: 6px; border-radius: 2px; background: #f0923f; display: inline-block; }
+        .le-foot { font-family: var(--mono); display: flex; align-items: center; gap: 7px; text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px; }
+        .le-foot svg { width: 13px; height: 13px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+    (function () {
+        'use strict';
+
+        // ---- texts: Booking's messages (tracking.*, liveEta.*), English and Spanish ----
+        var T = {
+            en: { pickup: 'Pickup', dropoff: 'Dropoff', progressDone: 'Completed', progressWaiting: 'Not started', progressToPickup: 'Heading to pickup',
+                  progressOnBoard: 'On board', progressToGo: '{miles} mi to go', mi: 'MI', min: 'MIN', arrivingNow: 'ARRIVING NOW', lateShort: 'LATE',
+                  lateBy: '{by} LATE', toPickup: 'Arriving at pickup', toDropoff: 'Arriving at drop-off', waitingTitle: 'Waiting for position',
+                  waitingFirst: 'Waiting for the first position…', lastPosition: 'Last position {age} ago', updated: 'Updated {age} ago',
+                  seconds: '{n} s', minutes: '{n} min', arrival: 'Arrival' },
+            es: { pickup: 'Recogida', dropoff: 'Entrega', progressDone: 'Completado', progressWaiting: 'Sin empezar', progressToPickup: 'Hacia la recogida',
+                  progressOnBoard: 'Paciente a bordo', progressToGo: 'Faltan {miles} mi', mi: 'MI', min: 'MIN', arrivingNow: 'LLEGANDO', lateShort: 'TARDE',
+                  lateBy: '{by} TARDE', toPickup: 'Llegando a la recogida', toDropoff: 'Llegando al destino', waitingTitle: 'Esperando posición',
+                  waitingFirst: 'Esperando la primera posición…', lastPosition: 'Última posición hace {age}', updated: 'Actualizado hace {age}',
+                  seconds: '{n} s', minutes: '{n} min', arrival: 'Llegada' }
+        };
+        var lang = 'en';
+        function t(key, args) {
+            var s = (T[lang] || T.en)[key] || key;
+            Object.keys(args || {}).forEach(function (k) { s = s.replace('{' + k + '}', args[k]); });
+            return s;
+        }
+
+        // ---- etaModel.ts ----
+        var STALE_AFTER_SECONDS = 120, ARRIVING_MINUTES = 2;
+        function clockMinutes(v) { var m = v ? /^(\d{1,2}):(\d{2})/.exec(v) : null; return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+        function hhmm(v) { return v ? v.slice(0, 5) : null; }
+
+        var input = null, receivedAt = 0, last = {};
+
+        /** Business wall clock now, in minutes after midnight: the host's value advanced by the time since. */
+        function nowMinutes() { return clockMinutes(input.businessNow) + (Date.now() - receivedAt) / 60000; }
+
+        function minutesUntil(eta) {
+            var at = clockMinutes(eta);
+            return at === null ? null : Math.ceil(at - nowMinutes());
+        }
+
+        function liveEtaValues(i) {
+            var phase = i.phase;
+            var eta = phase === 'Pickup' ? i.pickupEta : i.dropoffEta;
+            var minutes = minutesUntil(eta);
+            var milesNumber = i.remainingMiles == null ? null : i.remainingMiles;
+            var miles = milesNumber === null ? null : milesNumber.toFixed(1);
+            var ageSeconds = i.positionAtUtc ? Math.max(0, Math.round((Date.now() - Date.parse(i.positionAtUtc)) / 1000)) : null;
+            var etaAt = clockMinutes(i.dropoffEta), apptAt = clockMinutes(i.appointment);
+            var lateMinutes = phase === 'Dropoff' && etaAt !== null && apptAt !== null ? etaAt - apptAt : 0;
+            var state = 'live';
+            if (!i.positionAtUtc) state = 'nodata';
+            else if (ageSeconds !== null && ageSeconds > STALE_AFTER_SECONDS) state = 'stale';
+            else if (minutes !== null && minutes < ARRIVING_MINUTES) state = 'arriving';
+            else if (lateMinutes > 0) state = 'late';
+            var progress = 0;
+            if (state !== 'nodata') {
+                progress = phase === 'Dropoff' && milesNumber !== null && i.legMiles ? 1 - milesNumber / i.legMiles
+                    : minutes === null ? 0.5 : 1 - minutes / 30;
+                progress = Math.max(0.1, Math.min(state === 'arriving' ? 0.95 : 0.88, progress));
+            }
+            return { state: state, phase: phase, minutes: minutes, miles: miles, eta: hhmm(eta), ageSeconds: ageSeconds,
+                     lateBy: lateMinutes > 0 ? lateMinutes + ' MIN' : null, progress: progress };
+        }
+
+        // ---- icons: Phosphor Van (fill), Check (bold), WarningCircle ----
+        function van(size, color) {
+            return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 256 256" fill="' + color + '"><path d="M240,112H211.31L168,68.69A15.86,15.86,0,0,0,156.69,64H32A16,16,0,0,0,16,80V176a16,16,0,0,0,16,16H49a32,32,0,0,0,62,0h50a32,32,0,0,0,62,0h17a16,16,0,0,0,16-16V128A16,16,0,0,0,240,112ZM80,200a16,16,0,1,1,16-16A16,16,0,0,1,80,200Zm112,0a16,16,0,1,1,16-16A16,16,0,0,1,192,200ZM32,112V80H72v32Zm56,0V80h40v32Zm56,0V80h12.69l32,32Z"/></svg>';
+        }
+        var CHECK = '<svg width="9" height="9" viewBox="0 0 256 256" fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"><polyline points="40 144 96 200 224 72"/></svg>';
+        var WARN = '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></svg>';
+
+        // ---- TripProgressBar ----
+        function tripProgressBar(stage, progress, late, milesToGo, pickupLabel, dropoffLabel) {
+            var done = stage === 'done';
+            var p = done ? 1 : stage === 'onBoard' ? Math.max(0.02, Math.min(0.98, progress)) : 0;
+            var fill = done ? 'var(--ds-success)' : late ? 'var(--st-late)' : 'var(--st-inprogress)';
+            var showVehicle = stage === 'onBoard' || stage === 'toPickup';
+            var caption = done ? t('progressDone') : stage === 'waiting' ? t('progressWaiting') : stage === 'toPickup' ? t('progressToPickup')
+                : milesToGo ? t('progressToGo', { miles: milesToGo }) : t('progressOnBoard');
+            return '<div class="tpb"><div class="tpb-row">' +
+                '<span class="tpb-pick"></span>' +
+                '<div class="tpb-track"><span class="tpb-ahead"></span>' +
+                '<span class="tpb-done" style="width:' + (p * 100) + '%;background:' + fill + '"></span>' +
+                (showVehicle ? '<span class="tpb-van" style="left:' + (p * 100) + '%;background:' + fill + '">' + van(13, '#fff') + '</span>' : '') +
+                '</div>' +
+                '<span class="tpb-drop' + (done ? ' done' : '') + '" style="background:' + (done ? 'var(--ds-success)' : 'var(--ds-dropoff)') + '">' + (done ? CHECK : '') + '</span>' +
+                '</div><div class="tpb-text"><span class="tr">' + pickupLabel + '</span>' +
+                '<span class="cap' + (late && !done ? ' late' : '') + '">' + caption + '</span>' +
+                '<span class="tr" style="text-align:right">' + dropoffLabel + '</span></div></div>';
+        }
+
+        // ---- LiveEta lg (dark ground) ----
+        var g = { ink: '#f2f8fb', mute: '#cfe4ef', phase: '#d3c6fb', dot: '#a98cf7', disc: '#a98cf7', halo: 'rgb(169 140 247 / 0.3)', van: '#1b1333',
+                  ring: 'rgb(255 255 255 / 0.18)', tick: 'rgb(207 228 239 / 0.4)', rail: 'rgb(207 228 239 / 0.3)', late: '#f0923f', lateInk: '#f7bd81' };
+        var CIRC = 2 * Math.PI * 46;
+
+        function ageText(seconds) {
+            if (seconds === null) return '—';
+            return seconds < 120 ? t('seconds', { n: seconds }) : t('minutes', { n: Math.round(seconds / 60) });
+        }
+
+        function liveEta(v) {
+            var noData = v.state === 'nodata', stale = v.state === 'stale', arriving = v.state === 'arriving', late = v.state === 'late';
+            var live = !stale && !noData;
+            var accent = late ? g.late : g.disc;
+            var thread = live ? accent : g.rail;
+            var minutesText = noData || v.minutes === null ? '—' : String(Math.max(0, v.minutes));
+            var milesText = noData || v.miles === null ? '—' : v.miles + ' ' + t('mi');
+            var etaText = noData || !v.eta ? '—' : v.eta;
+            var unitShown = !noData && !arriving && v.minutes !== null;
+            var bigText = arriving ? t('arrivingNow') : minutesText;
+            var arcDash = (v.progress * CIRC).toFixed(1) + ' ' + CIRC.toFixed(1);
+            var ahead = 'repeating-linear-gradient(90deg, ' + thread + ' 0 7px, transparent 7px 16px)';
+
+            var flashMin = last.minutes !== undefined && last.minutes !== v.minutes ? ' ds-live-flash' : '';
+            var flashMiles = last.miles !== undefined && last.miles !== v.miles ? ' ds-live-flash' : '';
+            var flashEta = last.eta !== undefined && last.eta !== v.eta ? ' ds-live-flash' : '';
+            last = { minutes: v.minutes, miles: v.miles, eta: v.eta };
+
+            var dot = live ? 'background:' + (late ? g.late : g.dot) + ';box-shadow:0 0 10px ' + (late ? g.late : g.dot) : 'border:1.5px solid ' + g.mute;
+            var foot = noData ? t('waitingFirst') : stale ? t('lastPosition', { age: ageText(v.ageSeconds) }) : t('updated', { age: ageText(v.ageSeconds) });
+
+            return '<div class="le">' +
+                '<div class="le-phase" style="color:' + (live ? g.phase : g.mute) + '"><span class="le-dot' + (live ? ' ds-pulse' : '') + '" style="' + dot + '"></span>' +
+                (noData ? t('waitingTitle') : v.phase === 'Pickup' ? t('toPickup') : t('toDropoff')) + '</div>' +
+                '<div class="le-row">' +
+                '<span class="le-disc" style="background:' + (live ? accent : 'transparent') + ';box-shadow:0 0 0 6px ' + (live ? g.halo : 'transparent') + '">' + van(30, live ? g.van : g.mute) + '</span>' +
+                '<span class="le-rail" style="background:' + thread + '"></span>' +
+                '<div class="le-mid">' +
+                '<div class="flash le-big-wrap' + flashMin + '"><span class="le-big"><span class="le-num" style="font-size:' + (arriving ? 22 : 44) + 'px;color:' + (stale ? g.mute : g.ink) + '">' + bigText + '</span>' +
+                (unitShown ? '<span class="le-unit" style="color:' + (stale ? g.mute : accent) + '">' + t('min') + '</span>' : '') + '</span></div>' +
+                '<div class="le-miles-wrap' + flashMiles + '"><span class="le-miles" style="color:' + g.mute + '">' + milesText + '</span></div>' +
+                '</div>' +
+                '<span class="le-rail" style="background:' + ahead + ';background-size:16px 3px"></span>' +
+                '<span class="le-arrow" style="border-left-color:' + thread + '"></span>' +
+                '<div class="le-dialcol"><div class="le-dial' + flashEta + '">' +
+                '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="' + g.ring + '" stroke-width="3"/>' +
+                '<circle cx="50" cy="50" r="46" fill="none" stroke="' + (live ? accent : g.rail) + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + arcDash + '"/>' +
+                '<circle cx="50" cy="50" r="38" fill="none" stroke="' + g.tick + '" stroke-width="4" stroke-dasharray="2.2 17.7"/></svg>' +
+                '<div class="in"><span class="eta" style="color:' + (late ? g.lateInk : stale ? g.mute : g.ink) + '">' + etaText + '</span>' +
+                (noData ? '' : '<span class="cap">' + t('arrival') + '</span>') + '</div></div>' +
+                (late ? '<span class="le-late"><i></i>' + (v.lateBy ? t('lateBy', { by: v.lateBy }) : t('lateShort')) + '</span>' : '') +
+                '</div></div>' +
+                '<div class="le-foot" style="color:' + (stale ? g.lateInk : g.mute) + '">' + (stale ? WARN : '') + foot + '</div>' +
+                '</div>';
+        }
+
+        function draw() {
+            if (!input) return;
+            var v = liveEtaValues(input);
+            var onBoard = input.phase === 'Dropoff';
+            var stage = onBoard ? 'onBoard' : 'toPickup';
+            var barProgress = onBoard && input.remainingMiles != null && input.legMiles ? 1 - input.remainingMiles / input.legMiles : 0;
+            var lateBar = v.state === 'late' && onBoard;
+            var pickupLabel = (t('pickup') + ' ' + (hhmm(input.pickedUpAt) || hhmm(input.promisedPickup) || '')).trim();
+            var dropoffLabel = (t('dropoff') + ' ' + (hhmm(input.dropoffEta) || '')).trim();
+            document.getElementById('root').innerHTML =
+                tripProgressBar(stage, barProgress, lateBar, v.miles, pickupLabel, dropoffLabel) +
+                '<div class="card">' + liveEta(v) + '</div>';
+        }
+
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.addEventListener('message', function (e) {
+                var m = e.data;
+                if (!m || m.type !== 'eta') return;
+                lang = m.lang === 'es' ? 'es' : 'en';
+                if (!input || input.tripId !== m.tripId) last = {};
+                input = m; receivedAt = Date.now();
+                draw();
+            });
+            window.chrome.webview.postMessage({ type: 'etaReady' });
+        }
+        setInterval(draw, 1000);
+    })();
+    </script>
+</body>
+</html>

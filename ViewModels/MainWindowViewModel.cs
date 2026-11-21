@@ -67,8 +67,14 @@ namespace Raphael.Desktop.ViewModels
         public string MainMenuData =>
             LocalizationService.Instance["Data"];
 
+        // RE-080: the Schedules screen is labelled Dispatch in the menu. Only the label changed;
+        // the old Dispatch screen left the menu and its code stays as a reference.
         public string MainMenuSchedules =>
-            LocalizationService.Instance["Schedules"];
+            LocalizationService.Instance["Dispatch"];
+
+        /// <summary>RE-080: tooltip of the live map button, next to the bell.</summary>
+        public string LiveMapTooltip =>
+            LocalizationService.Instance["livemap.Title"];
 
         public string MainMenuDispatch =>
             LocalizationService.Instance["Dispatch"];

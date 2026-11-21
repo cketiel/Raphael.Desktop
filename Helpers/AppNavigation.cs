@@ -29,5 +29,23 @@ namespace Raphael.Desktop.Helpers
         {
             ShowUnscheduledRequested?.Invoke(date.Date, tripIds ?? Array.Empty<int>());
         }
+
+        /// <summary>RE-080: opens Dispatch (Schedules) on a route and day, with no trip picked out.</summary>
+        public static event Action<DateTime, int> ShowRouteInScheduleRequested;
+
+        public static void ShowRouteInSchedule(DateTime date, int vehicleRouteId)
+        {
+            if (vehicleRouteId <= 0) return;
+            ShowRouteInScheduleRequested?.Invoke(date.Date, vehicleRouteId);
+        }
+
+        /// <summary>RE-080: opens Home searching one trip by the broker's number.</summary>
+        public static event Action<string> ShowTripInHomeRequested;
+
+        public static void ShowTripInHome(string tripNumber)
+        {
+            if (string.IsNullOrWhiteSpace(tripNumber)) return;
+            ShowTripInHomeRequested?.Invoke(tripNumber.Trim());
+        }
     }
 }

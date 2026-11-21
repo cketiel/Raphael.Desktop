@@ -149,10 +149,12 @@
                             </TabItem.Header>
                         </TabItem>
 
-                        <!-- Dispatch: Visible for Role 1 and 3 -->
+                        <!-- Dispatch: out of the menu since RE-080. Kept, not deleted, as a
+                             reference for the live map; the Schedules tab is the one labelled
+                             Dispatch now. -->
                         <TabItem x:Name="DispatchTabMenu"
                                  Tag="{x:Static local:MENU.Dispatch}"
-                                 Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                                 Visibility="Collapsed">
                             <TabItem.Header>
 
                                 <StackPanel>
@@ -453,6 +455,20 @@
                         </Border>
 
                     </Grid>
+
+                    <!-- RE-080: the live map. After the bell; office roles only, as the
+                         Dispatch tab. -->
+                    <Button x:Name="LiveMapButton"
+                            Click="LiveMapButton_Click"
+                            Style="{StaticResource NotificationButtonStyle}"
+                            ToolTip="{Binding LiveMapTooltip}"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding IsGeneralVisible, Converter={StaticResource BoolToVisConverter}}">
+                        <materialDesign:PackIcon Kind="Earth"
+                                                 Width="27"
+                                                 Height="27"/>
+                    </Button>
 
                     </StackPanel>
 
