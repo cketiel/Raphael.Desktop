@@ -5,8 +5,56 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+### Added
+
+- **Live map** (RE-080), from the globe next to the bell; office roles. Every line of the fleet,
+  colored by group (on route today, active without trips, suspended today, out of service, expired),
+  with filters (on route today by default), a legend and a fleet summary. Vehicles move as their
+  driver reports, through the live channel, with no polling: a short glide to the new fix and the
+  shortest turn, never ahead of it. A van turned to its heading when moving, a square with a pause
+  sign when stopped, a red ring when speeding, faded after 5 minutes without a fix. It opens in a
+  tab or in its own window, like Notifications. Needs the Raphael.Backend version with
+  `GET api/live-map` and `WatchMap`.
+- **The live map draws with Maps JavaScript in WebView2** (RE-080), under floating WPF panels
+  (`WebView2CompositionControl`). Labels can be switched off on the street map too. Opens the way
+  to the traffic layer, vector maps and tilt.
+- **Route lines on the live map** (RE-080). Solid behind the vehicle, dashed ahead; blue with a
+  patient on board, gray empty, thicker with more patients. Each line shows its current leg; the line
+  whose card is open shows its whole day with numbered stops (✓ when done) and the map frames it. The
+  card docks on the right, with no backdrop, so the line stays visible. Shapes come from the routing
+  cache; a leg without one is drawn straight.
+- **Live map layers, selection and Booking's trip pieces** (RE-080). Layers: routes in progress
+  (every vehicle's current leg), Google traffic, and delays on each route (the road ahead coloured by
+  congestion, with a "+N'" badge on the vehicle). A click selects a vehicle: a bar at the top switches
+  between the trip in progress and the whole day, and opens the details; a double click opens the
+  card. The card adds Booking's trip bar and Live ETA tile, counted in the business's clock.
+- **Clearer selected routes on the live map** (RE-080). Routes in progress end at a chequered
+  finish flag. The trip in progress has arrows only from the pickup to the drop-off; on the way to the
+  pickup, the approach is a dotted line on top. The whole day reads 1 → 2 → 3, every leg with its own
+  arrows, and its animation lights each stop up as the trail reaches it. Stops at one place share one
+  label ("2 4 6"), drawn above the spot so a vehicle standing there never hides it.
+
+### Fixed
+
+- **Selecting a vehicle on the live map no longer undoes itself** (RE-080): the click also reached
+  the map underneath, which clears the selection.
+- **The live map moves on to the next stop within seconds of the driver performing one** (RE-080),
+  instead of up to two minutes later: the line's legs are read again when its vehicle reaches the stop
+  it was heading to and when it leaves it.
+
 ### Changed
 
+- **Target framework `net8.0-windows10.0.19041.0`** (RE-080), minimum Windows 10 1809: the
+  composition WebView2 needs the Windows SDK projection. The package carries
+  `Microsoft.Windows.SDK.NET.dll` (about 25 MB).
+
+- **Schedules is labelled Dispatch** in the menu and on its tab (RE-080). The old Dispatch screen
+  left the menu; its code stays as a reference. Help links and anything that still named it open
+  the new Dispatch.
+- **Open trip from a notification lands on the trip's row in Dispatch** (RE-080). The trip is read
+  again on click: routed → its route and day, on the dropoff row for dropoff events (arrived at
+  dropoff, completed) and on the pickup row otherwise; not routed → the day's unscheduled grid
+  with the trip highlighted.
 - **The notification inbox updates by its own messages and never reloads in full on a signal**
   (RE-078). Viewed, acknowledged, unread and mark all are applied in memory; `RefreshNotifications`
   is ignored. A reconnection still reloads. Needs the Raphael.Backend version that sends

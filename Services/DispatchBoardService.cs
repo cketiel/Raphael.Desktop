@@ -178,6 +178,24 @@ namespace Raphael.Desktop.Services
             await SafeInvokeAsync("WatchFleet");
         }
 
+        private bool _watchingMap;
+
+        /// <summary>RE-080: every vehicle position of the caller's scope, for the live map. Office staff only.</summary>
+        public async Task WatchMapAsync()
+        {
+            if (_watchingMap) return;
+
+            _watchingMap = true;
+
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"map queued, connection is {_connection.State}");
+                return;
+            }
+
+            await SafeInvokeAsync("WatchMap");
+        }
+
         private bool _watchingCompliance;
 
         /// <summary>RE-069: compliance documents changing, for the Compliance screen. Office staff only.</summary>
@@ -223,6 +241,7 @@ namespace Raphael.Desktop.Services
             _watchingCallRequests = false;
             _watchingFleet = false;
             _watchingCompliance = false;
+            _watchingMap = false;
 
             try
             {
@@ -318,6 +337,9 @@ namespace Raphael.Desktop.Services
 
             if (_watchingCompliance)
                 await SafeInvokeAsync("WatchCompliance");
+
+            if (_watchingMap)
+                await SafeInvokeAsync("WatchMap");
 
             if (_watchingBilling)
                 await SafeInvokeAsync("WatchBilling");

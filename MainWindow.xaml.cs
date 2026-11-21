@@ -22,6 +22,8 @@ using Raphael.Desktop.ViewModels;
 using Raphael.Desktop.ViewModels.CallRequests;
 using Raphael.Desktop.Views;
 using Raphael.Desktop.Views.Notifications;
+using Raphael.Desktop.ViewModels.LiveMap;
+using Raphael.Desktop.Views.LiveMap;
 
 namespace Raphael.Desktop
 {
@@ -41,6 +43,11 @@ namespace Raphael.Desktop
 
         private NotificationCenterView? _notificationCenter;
         private NotificationCenterWindow? _notificationCenterWindow;
+
+        // RE-080: one live map for the session, like the Notification Center.
+        private LiveMapViewModel? _liveMap;
+        private LiveMapView? _liveMapView;
+        private LiveMapWindow? _liveMapWindow;
         private NotificationToastViewModel? _toasts;
         private NotificationAlertWindow? _notificationAlertWindow;
 
@@ -155,6 +162,12 @@ namespace Raphael.Desktop
             AppNavigation.ShowUnscheduledRequested += OpenUnscheduledInSchedule;
             this.Closed += (_, _) => AppNavigation.ShowUnscheduledRequested -= OpenUnscheduledInSchedule;
 
+            // RE-080: the live map's route card.
+            AppNavigation.ShowRouteInScheduleRequested += OpenRouteInSchedule;
+            this.Closed += (_, _) => AppNavigation.ShowRouteInScheduleRequested -= OpenRouteInSchedule;
+            AppNavigation.ShowTripInHomeRequested += OpenTripInHome;
+            this.Closed += (_, _) => AppNavigation.ShowTripInHomeRequested -= OpenTripInHome;
+
             /*UpdateTheme();
 
             themeTimer = new DispatcherTimer
@@ -199,6 +212,10 @@ namespace Raphael.Desktop
             try
             {
                 _notificationCenterWindow?.Close();
+
+                _liveMapWindow?.Close();
+                if (_liveMap is not null)
+                    await _liveMap.StopAsync();
 
                 // No owner, so nothing else would ever close it — and an open window with
                 // no owner keeps the process alive after the main one is gone.
@@ -341,20 +358,126 @@ namespace Raphael.Desktop
         }
 
         /// <summary>
-        /// Opens the Dispatch screen for the trip a notification is about.
+        /// Opens Dispatch (the Schedules screen) on the trip a notification is about, and
+        /// highlights its row (RE-080).
         /// </summary>
         /// <remarks>
-        /// ⚠️ It opens Dispatch, it does not yet select the trip: DispatchView has no way
-        /// of being told which one to go to. The trip number is on screen in the detail
-        /// pane, and Copy trip number puts it on the clipboard, so the dispatcher can
-        /// search for it. Deep linking is registered in <c>_meta/BACKLOG.md</c>.
+        /// The trip is read again on click, not taken from the notice: it may have been routed,
+        /// unrouted or moved to another route since. Routed → its route and day, on the pickup
+        /// or the dropoff row depending on the event. Not routed → the day's unscheduled grid.
         /// </remarks>
-        private void OpenTripInDispatch(int tripId)
+        private async void OpenTripInDispatch(int tripId, string businessEventCode)
         {
-            OpenTab(
-                LocalizationService.Instance["Dispatch"],
-                new DispatchView(),
-                PackIconKind.WrenchClock);
+            TripReadDto trip;
+            try
+            {
+                trip = await new TripService().GetTripByIdAsync(tripId);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Dispatch: could not read trip {tripId} for a notification. {ex.Message}");
+                return;
+            }
+
+            if (trip is null)
+                return;
+
+            if (trip.VehicleRouteId > 0)
+                OpenTripInSchedule(trip.Date, trip.VehicleRouteId, tripId, IsDropoffEvent(businessEventCode));
+            else
+                OpenUnscheduledInSchedule(trip.Date, new[] { tripId });
+        }
+
+        /// <summary>The events that happen at the dropoff; every other trip notice points at the pickup.</summary>
+        private static bool IsDropoffEvent(string businessEventCode) =>
+            businessEventCode is "DRIVER_ARRIVED_DROPOFF" or NotificationKeys.Events.DriverCompletedTrip;
+
+        #endregion
+
+        #region Live map (RE-080)
+
+        private void LiveMapButton_Click(object sender, RoutedEventArgs e) => OpenLiveMap();
+
+        /// <summary>Opens the live map, or brings it forward if it is already open in a tab or a window.</summary>
+        private void OpenLiveMap()
+        {
+            if (!_viewModel.IsGeneralVisible)
+                return;
+
+            CurrentMenu = MENU.LiveMap;
+
+            if (_liveMapWindow is not null)
+            {
+                _liveMapWindow.Activate();
+                return;
+            }
+
+            var title = LocalizationService.Instance["livemap.Title"];
+
+            var existing = MainTabControl.Items
+                .OfType<TabItem>()
+                .FirstOrDefault(tab => tab.Tag?.ToString() == title);
+
+            if (existing is not null)
+            {
+                MainTabControl.SelectedItem = existing;
+                return;
+            }
+
+            if (_liveMapView is null)
+            {
+                _liveMap = new LiveMapViewModel(new LiveMapService(), new DispatchBoardService())
+                {
+                    ToggleWindowRequested = ToggleLiveMapWindow
+                };
+                _liveMapView = new LiveMapView(_liveMap);
+            }
+
+            OpenTab(title, _liveMapView, PackIconKind.Earth);
+        }
+
+        /// <summary>Moves the live map between a tab and its own window; the same view instance travels.</summary>
+        private void ToggleLiveMapWindow()
+        {
+            if (_liveMapView is null || _liveMap is null)
+                return;
+
+            if (_liveMapWindow is not null)
+            {
+                _liveMapWindow.Close();
+                return;
+            }
+
+            var title = LocalizationService.Instance["livemap.Title"];
+
+            var tab = MainTabControl.Items
+                .OfType<TabItem>()
+                .FirstOrDefault(item => item.Tag?.ToString() == title);
+
+            if (tab is not null)
+            {
+                if (tab.Content is Grid host)
+                    host.Children.Remove(_liveMapView);
+
+                MainTabControl.Items.Remove(tab);
+            }
+
+            _liveMapWindow = new LiveMapWindow(_liveMapView, this);
+            _liveMap.IsInOwnWindow = true;
+
+            _liveMapWindow.ReturnRequested += (_, _) =>
+            {
+                _liveMapWindow = null;
+
+                if (_liveMap is not null)
+                    _liveMap.IsInOwnWindow = false;
+
+                // Closing the window puts the map back in a tab, as the Notification Center does.
+                if (IsLoaded && !_isClosing)
+                    OpenLiveMap();
+            };
+
+            _liveMapWindow.Show();
         }
 
         #endregion
@@ -387,15 +510,18 @@ namespace Raphael.Desktop
         /// framed. A new tab rather than the one already open: that one holds the day somebody
         /// else is planning, and taking it over would lose their place (RE-051).
         /// </summary>
-        private async void OpenTripInSchedule(DateTime date, int vehicleRouteId, int tripId)
+        private void OpenTripInSchedule(DateTime date, int vehicleRouteId, int tripId) =>
+            OpenTripInSchedule(date, vehicleRouteId, tripId, atDropoff: false);
+
+        private async void OpenTripInSchedule(DateTime date, int vehicleRouteId, int tripId, bool atDropoff)
         {
             var view = new SchedulesView(_notificationService);
-            OpenTab(LocalizationService.Instance["Schedules"], view, PackIconKind.TableClock);
+            OpenTab(LocalizationService.Instance["Dispatch"], view, PackIconKind.TableClock);
             CurrentMenu = MENU.Schedules;
 
             try
             {
-                await view.ShowTripAsync(date, vehicleRouteId, tripId);
+                await view.ShowTripAsync(date, vehicleRouteId, tripId, atDropoff);
             }
             catch (Exception ex)
             {
@@ -410,7 +536,7 @@ namespace Raphael.Desktop
         private async void OpenUnscheduledInSchedule(DateTime date, IReadOnlyCollection<int> tripIds)
         {
             var view = new SchedulesView(_notificationService);
-            OpenTab(LocalizationService.Instance["Schedules"], view, PackIconKind.TableClock);
+            OpenTab(LocalizationService.Instance["Dispatch"], view, PackIconKind.TableClock);
             CurrentMenu = MENU.Schedules;
 
             try
@@ -421,6 +547,32 @@ namespace Raphael.Desktop
             {
                 FileLogger.Log($"Schedule: could not open the unscheduled trips of {date:yyyy-MM-dd}. {ex.Message}");
             }
+        }
+
+        /// <summary>RE-080: a Dispatch tab of its own on a route and day, from the live map's route card.</summary>
+        private async void OpenRouteInSchedule(DateTime date, int vehicleRouteId)
+        {
+            var view = new SchedulesView(_notificationService);
+            OpenTab(LocalizationService.Instance["Dispatch"], view, PackIconKind.TableClock);
+            CurrentMenu = MENU.Schedules;
+
+            try
+            {
+                await view.ShowRouteAsync(date, vehicleRouteId);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Schedule: could not open route {vehicleRouteId}. {ex.Message}");
+            }
+        }
+
+        /// <summary>RE-080: a Home tab searching one trip by the broker's number, from the route card.</summary>
+        private void OpenTripInHome(string tripNumber)
+        {
+            var view = new HomeView();
+            OpenTab(LocalizationService.Instance["Home"], view, PackIconKind.HomeOutline);
+            CurrentMenu = MENU.Home;
+            view.ViewModel.TripSearchText = tripNumber;
         }
 
         private async void OpenCallWorkbench(CallRequestSummaryDto request)
@@ -855,17 +1007,12 @@ namespace Raphael.Desktop
                         OpenNotificationCenter();
                         break;
 
+                    // RE-080: the old Dispatch screen left the menu; both links open the
+                    // Schedules screen, which is the one labelled Dispatch now.
                     case "raphael://open/tab/dispatch":
-                        OpenTab(
-                            LocalizationService.Instance["Dispatch"],
-                            new DispatchView(),
-                            PackIconKind.WrenchClock);
-                        CurrentMenu = MENU.Dispatch;
-                        break;
-
                     case "raphael://open/tab/schedules":
                         OpenTab(
-                            LocalizationService.Instance["Schedules"],
+                            LocalizationService.Instance["Dispatch"],
                             new SchedulesView(_notificationService),
                             PackIconKind.TableClock);
                         CurrentMenu = MENU.Schedules;
@@ -1429,18 +1576,14 @@ namespace Raphael.Desktop
                             PackIconKind.Database);
                         break;
 
+                    // RE-080: MENU.Dispatch has no menu entry any more; kept here so nothing
+                    // that still names it can open the old screen.
+                    case MENU.Dispatch:
                     case MENU.Schedules:
                         OpenTab(
-                            LocalizationService.Instance["Schedules"],
+                            LocalizationService.Instance["Dispatch"],
                             new SchedulesView(_notificationService),
                             PackIconKind.TableClock);
-                        break;
-
-                    case MENU.Dispatch:
-                        OpenTab(
-                            LocalizationService.Instance["Dispatch"],
-                            new DispatchView(),
-                            PackIconKind.WrenchClock);
                         break;
 
                     case MENU.Compliance:
@@ -1497,6 +1640,8 @@ namespace Raphael.Desktop
         Reports,
         Admin,
         Notification,
-        Compliance
+        Compliance,
+        /// <summary>RE-080: the live map, opened from the globe next to the bell.</summary>
+        LiveMap
     }
 }
