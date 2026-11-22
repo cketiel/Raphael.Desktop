@@ -61,16 +61,138 @@
     var VAN = '<path fill="#fff" d="M4 9.5C4 8.7 4.7 8 5.5 8h9.2c.5 0 .9.2 1.2.6l2.4 3.1 1.9.6c.5.2.8.6.8 1.2V17c0 .6-.4 1-1 1h-1.1a2.3 2.3 0 0 1-4.5 0H9.6a2.3 2.3 0 0 1-4.5 0H5c-.6 0-1-.4-1-1z"/>' +
               '<path fill-opacity=".9" d="M6 10h3.6v2.6H6zM10.6 10h3.7l1.8 2.6h-5.5z" fill="currentColor"/>';
 
+    // A passenger van, side-on, facing right, drawn to read at 24-40 px: a white body with depth, tinted
+    // glass with a reflection, wheels with rims, lights front and back, and a stripe in the group's
+    // colour. Ids are made unique per call so many vans on one page never share a gradient.
+    var vanSeq = 0;
+    function vanSvg(stripe, width) {
+        var n = 'v' + (++vanSeq);
+        return '<svg class="lm-van" viewBox="0 0 48 26" width="' + (width || 28) + '" height="' + Math.round((width || 28) * 26 / 48) + '">' +
+            '<defs>' +
+            '<linearGradient id="' + n + 'b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#eef2f6"/><stop offset="1" stop-color="#b9c3cd"/></linearGradient>' +
+            '<linearGradient id="' + n + 'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3d5a73"/><stop offset=".55" stop-color="#1b2a38"/><stop offset="1" stop-color="#101a24"/></linearGradient>' +
+            '<radialGradient id="' + n + 'w" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#d9dee3"/><stop offset=".55" stop-color="#8e99a4"/><stop offset="1" stop-color="#4a535c"/></radialGradient>' +
+            '</defs>' +
+            '<ellipse cx="24" cy="23.6" rx="21" ry="1.9" fill="#0b1620" opacity=".28"/>' +
+            // body: long roof, sloped windscreen, short bonnet
+            '<path d="M3.5 7.2C3.5 5.4 4.8 4 6.6 4H30.5c1.1 0 2.1.5 2.8 1.4l5.3 6.4 4.6 1.3c1.6.5 2.8 2 2.8 3.7v2.6c0 1.1-.9 2-2 2H5.4c-1.1 0-1.9-.9-1.9-1.9z" fill="url(#' + n + 'b)" stroke="#5d6b78" stroke-width=".7"/>' +
+            // group stripe
+            '<path d="M3.6 14.2H45.6v1.9H3.6z" fill="' + stripe + '"/>' +
+            // windows: three side windows and the windscreen
+            '<path d="M6.4 6.2h7.4v5.6H6.4zM15.2 6.2h7.4v5.6h-7.4zM24 6.2h6.1c.6 0 1.1.3 1.5.7l4 4.9H24z" fill="url(#' + n + 'g)"/>' +
+            '<path d="M7 6.8l3.2 0-2.6 4.4H7zM15.8 6.8h3.2l-2.6 4.4h-.6zM24.6 6.8h3l-2.5 4.4h-.5z" fill="#ffffff" opacity=".22"/>' +
+            // sliding door seam, handle, mirror
+            '<path d="M14.5 6v13.4" stroke="#7d8a96" stroke-width=".5"/><path d="M19.4 13h2.2" stroke="#55626e" stroke-width=".8" stroke-linecap="round"/>' +
+            '<path d="M35.6 10.6l1.6-.9.6 1.4-1.6.4z" fill="#33414d"/>' +
+            // lights
+            '<path d="M44.6 14.5h1.5v1.8h-1.9z" fill="#fff4c2" stroke="#c9a94a" stroke-width=".4"/>' +
+            '<path d="M3.6 8.6h1.2v3.4H3.6z" fill="#d43c3c"/>' +
+            // bumpers
+            '<path d="M41 19.6h5c.3 0 .6.3.6.6v.6c0 .3-.3.6-.6.6h-5z" fill="#3c4650"/><path d="M3.4 19.6h4.2v1.8H3.4z" fill="#3c4650"/>' +
+            // wheels: arch shadow, tyre, rim, hub
+            '<circle cx="12" cy="20.4" r="4.6" fill="#2a333c"/><circle cx="36" cy="20.4" r="4.6" fill="#2a333c"/>' +
+            '<circle cx="12" cy="20.4" r="3.7" fill="#14191e"/><circle cx="36" cy="20.4" r="3.7" fill="#14191e"/>' +
+            '<circle cx="12" cy="20.4" r="2.1" fill="url(#' + n + 'w)"/><circle cx="36" cy="20.4" r="2.1" fill="url(#' + n + 'w)"/>' +
+            '<circle cx="12" cy="20.4" r=".6" fill="#3a434c"/><circle cx="36" cy="20.4" r=".6" fill="#3a434c"/>' +
+            '</svg>';
+    }
+
+    // The van seen from above, nose up (north). It is turned to the GPS heading, so it always points
+    // where it goes, in any direction: tinted windscreen at the front, roof panel, rear glass, mirrors
+    // and a stripe in the group's colour along the roof.
+    var topSeq = 0;
+    function topVanSvg(stripe, height) {
+        var n = 't' + (++topSeq), h = height || 24, w = Math.round(h * 20 / 36);
+        return '<svg class="lm-van" viewBox="0 0 20 36" width="' + w + '" height="' + h + '">' +
+            '<defs><linearGradient id="' + n + 'b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c4ccd4"/><stop offset=".22" stop-color="#ffffff"/><stop offset=".78" stop-color="#ffffff"/><stop offset="1" stop-color="#c4ccd4"/></linearGradient>' +
+            '<linearGradient id="' + n + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a6884"/><stop offset="1" stop-color="#16222e"/></linearGradient></defs>' +
+            '<ellipse cx="10" cy="19" rx="9.6" ry="16.6" fill="#0b1620" opacity=".25"/>' +
+            // mirrors
+            '<path d="M1.2 9.6l-1 .6v1.6h1.4zM18.8 9.6l1 .6v1.6h-1.4z" fill="#33414d"/>' +
+            // body: rounded nose, long box
+            '<path d="M3.2 6.4C3.2 3.4 6 1.6 10 1.6s6.8 1.8 6.8 4.8V32c0 1.4-1.1 2.4-2.4 2.4H5.6c-1.3 0-2.4-1-2.4-2.4z" fill="url(#' + n + 'b)" stroke="#5d6b78" stroke-width=".6"/>' +
+            // headlights
+            '<path d="M4.6 3.4l1.8-.9.3 1.1-1.9.6zM15.4 3.4l-1.8-.9-.3 1.1 1.9.6z" fill="#fff4c2"/>' +
+            // windscreen and its glint
+            '<path d="M4.4 9.2C5.6 7.6 7.6 7 10 7s4.4.6 5.6 2.2l-.8 3.4H5.2z" fill="url(#' + n + 'g)"/>' +
+            '<path d="M6.2 8.6c1-.6 2.2-.8 3.6-.8l-1.6 3.6H5.6z" fill="#fff" opacity=".22"/>' +
+            // roof with the group stripe
+            '<rect x="5" y="13.6" width="10" height="16.4" rx="1.2" fill="#f4f7fa" stroke="#c9d1d9" stroke-width=".5"/>' +
+            '<rect x="8.6" y="13.6" width="2.8" height="16.4" fill="' + stripe + '"/>' +
+            // rear glass and tail lights
+            '<path d="M5.4 31h9.2v1.6H5.4z" fill="url(#' + n + 'g)"/>' +
+            '<path d="M3.4 32.6h1.6v1.4H3.6zM15 32.6h1.6v1.4H15z" fill="#d43c3c"/>' +
+            '</svg>';
+    }
+
+    // God's Eye View's detection callout (Street Traffic), copied: four L-shaped corner brackets round the
+    // vehicle (1.25 px in the tier colour over a light 2.6 px casing at 35 %, each arm 55 % of the half-side), a
+    // 1 px leader at 60 % from the bracket's top-right corner to the card, 8 px across and 12 px up, and a
+    // card on a translucent dark plate (rgba(2,18,26,.46), 3 px corners) with a 2 px accent bar, the id in
+    // 10 px JetBrains Mono and a 9 px micro-field at 80 %. Here the tier colour is the line's pace (green,
+    // yellow, red), the id is the line's name, and the micro-field the delay (+N') or else the speed.
+    var BR = 19, BR_SEG = Math.max(4, Math.floor(BR * 0.55));
+    function bracketPath(c, h) {
+        var x0 = c - h, y0 = c - h, x1 = c + h, y1 = c + h, s = BR_SEG;
+        return 'M' + x0 + ' ' + (y0 + s) + 'V' + y0 + 'H' + (x0 + s) +
+               'M' + (x1 - s) + ' ' + y0 + 'H' + x1 + 'V' + (y0 + s) +
+               'M' + x1 + ' ' + (y1 - s) + 'V' + y1 + 'H' + (x1 - s) +
+               'M' + (x0 + s) + ' ' + y1 + 'H' + x0 + 'V' + (y1 - s);
+    }
+    function callout(d) {
+        var color = d.routeColor || '#1FA35A', p = bracketPath(20, BR);
+        var micro = d.delay > 0 ? '+' + d.delay + "'" : (d.moving && d.speedMph >= 1 ? Math.round(d.speedMph) + 'mph' : '');
+        return '<svg class="lm-bracket" viewBox="0 0 40 40" width="40" height="40">' +
+                   '<path d="' + p + '" fill="none" stroke="rgba(5,8,12,0.35)" stroke-width="2.6" stroke-linecap="square"/>' +
+                   '<path d="' + p + '" fill="none" stroke="' + color + '" stroke-width="1.25" stroke-linecap="square"/></svg>' +
+               '<svg class="lm-lead" width="10" height="14" viewBox="0 0 10 14"><path d="M0.5 13.5L8.5 1.5" stroke="' + color + '" stroke-width="1" stroke-opacity=".6"/></svg>' +
+               '<span class="lm-callout" style="--accent:' + color + '"><b>' + escapeHtml(d.name || '') + '</b>' +
+                   (micro ? '<i>' + escapeHtml(micro) + '</i>' : '') + '</span>';
+    }
+
     function vehicleHtml(d, heading) {
-        var pointer = d.moving
-            ? '<svg class="lm-ptr" viewBox="0 0 40 40" style="transform:rotate(' + (heading || 0) + 'deg)"><path d="M20 0.5 L25.5 7.5 H14.5 Z" fill="' + d.color + '" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+        var pointer = '';   // the aerial van itself points the way (2026-11-22)
+        // A speedometer and the mph: what is wrong, and by how much.
+        var speed = d.speeding
+            ? '<span class="lm-speed"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 4a10 10 0 0 0-8.66 15h17.32A10 10 0 0 0 12 4zm0 2a8 8 0 0 1 6.93 11H5.07A8 8 0 0 1 12 6zm4.24 2.76-4.95 4.95a1.5 1.5 0 1 0 2.12 2.12l2.83-7.07z"/></svg>' + Math.round(d.speedMph || 0) + '<small>mph</small></span>'
             : '';
         var pause = d.moving ? '' : '<span class="lm-pause"><svg viewBox="0 0 12 12"><rect x="3" y="2.5" width="2" height="7" fill="#fff"/><rect x="7" y="2.5" width="2" height="7" fill="#fff"/></svg></span>';
         return pointer +
-            '<span class="lm-disc" style="background:' + d.color + ';color:' + d.color + '"><svg viewBox="0 0 24 24">' + VAN + '</svg></span>' +
-            pause +
-            '<span class="lm-name">' + escapeHtml(d.name || '') + '</span>';
+            '<span class="lm-disc" style="background:' + d.color + ';color:' + d.color + '"><span class="lm-rot" style="transform:rotate(' + (heading || 0) + 'deg)">' + topVanSvg(d.color, 25) + '</span></span>' +
+            pause + speed + callout(d);
     }
+
+
+    // ================================================================ hover card
+    // The vehicle's details in our dark glass instead of the browser's grey tooltip: name and pace,
+    // driver and vehicle, group and trips, speed and the time of the last report. Built from the
+    // same lines the host sends as the vehicle's title, so the text never disagrees with the panels.
+    var card = null;
+    function showCard(entry) {
+        if (!entry || !entry.data) return;
+        if (!card) { card = document.createElement('div'); card.id = 'lm-vcard'; document.body.appendChild(card); }
+        var d = entry.data, lines = String(d.title || '').split('\n');
+        var rows = lines.slice(1, 3).map(function (l) {
+            var i = l.indexOf(':');
+            return i < 0 ? '' : '<div class="r"><span>' + escapeHtml(l.slice(0, i)) + '</span><b>' + escapeHtml(l.slice(i + 1).trim()) + '</b></div>';
+        }).join('');
+        var pace = d.routeColor || '#1FA35A';
+        var late = d.delay > 0 ? '<span class="late" style="background:' + pace + ';color:' + (pace === '#E5B21A' ? '#1E2A36' : '#fff') + '">+' + d.delay + "'</span>" : '';
+        var speed = d.speeding ? '<span class="spd">' + Math.round(d.speedMph || 0) + ' mph</span>' : '';
+        card.innerHTML =
+            '<div class="h"><i style="background:' + pace + '"></i><b>' + escapeHtml(lines[0] || d.name || '') + '</b>' + late + speed + '</div>' +
+            rows +
+            '<div class="f"><span class="g" style="background:' + (d.color || '#5B6B7C') + '"></span>' + escapeHtml(lines[3] || '') + '</div>' +
+            '<div class="t">' + escapeHtml(lines[4] || '') + '</div>';
+        var r = entry.el.getBoundingClientRect();
+        var x = r.right + 10, y = r.top - 6;
+        card.style.left = '0px'; card.style.top = '0px'; card.classList.add('on');
+        var w = card.offsetWidth, h = card.offsetHeight;
+        if (x + w > innerWidth - 8) x = r.left - w - 10;
+        if (y + h > innerHeight - 8) y = innerHeight - h - 8;
+        card.style.left = Math.max(8, x) + 'px'; card.style.top = Math.max(8, y) + 'px';
+    }
+    function hideCard() { if (card) card.classList.remove('on'); }
 
     function escapeHtml(t) {
         return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
@@ -79,7 +201,7 @@
     function render(entry) {
         var d = entry.data;
         entry.el.innerHTML = vehicleHtml(d, entry.heading);
-        entry.el.title = d.title || '';
+        entry.el.removeAttribute('title');
         var sel = layers.selected;
         entry.el.classList.toggle('stale', !!d.stale);
         entry.el.classList.toggle('hidden', !d.shown);
@@ -87,20 +209,31 @@
         entry.el.classList.toggle('selected', sel === d.id);
         entry.el.classList.toggle('named', layers.routes || sel === d.id);
         entry.el.style.setProperty('--route', d.routeColor || '#fff');
-        if (layers.delays && traffic[d.id]) setBadge(entry, traffic[d.id].delay);
+        // +N': minutes late (punctuality) or minutes the traffic adds (delays layer), in the pace's colour.
+        setBadge(entry, d.delay, d.routeColor);
+        if (tripFocus && tripFocus.id === d.id) {
+            var badge = document.createElement('div');
+            badge.className = 'lm-tripbadge';
+            badge.textContent = tripFocus.label;
+            entry.el.appendChild(badge);
+        }
     }
+    var tripFocus = null;
 
     function setHeading(entry, heading) {
         entry.heading = heading;
-        var p = entry.el.querySelector('.lm-ptr');
+        var p = entry.el.querySelector('.lm-rot');
         if (p) p.style.transform = 'rotate(' + heading + 'deg)';
     }
 
-    function setBadge(entry, minutes) {
+
+    function setBadge(entry, minutes, color) {
+        return;   // the delay is the callout's micro-field now (God's Eye style); kept for the call sites
         var badge = entry.el.querySelector('.lm-delay');
         if (!minutes || minutes < 1) { if (badge) badge.remove(); return; }
         if (!badge) { badge = document.createElement('span'); badge.className = 'lm-delay'; entry.el.appendChild(badge); }
         badge.textContent = '+' + minutes + "'";
+        if (color) { badge.style.background = color; badge.style.color = color === '#E5B21A' ? '#1E2A36' : '#fff'; }
     }
 
     function VehicleLayer() { this.div = null; }
@@ -108,28 +241,77 @@
     function defineLayer() {
         VehicleLayer.prototype = new google.maps.OverlayView();
         VehicleLayer.prototype.onAdd = function () {
-            this.div = document.createElement('div');
-            this.div.style.position = 'absolute';
-            this.getPanes().overlayMouseTarget.appendChild(this.div);
-            Object.keys(vehicles).forEach(function (id) { overlay.div.appendChild(vehicles[id].el); });
+            if (!vlayer) {
+                vlayer = document.createElement('div');
+                vlayer.id = 'lm-vlayer';
+                document.getElementById('map').insertAdjacentElement('afterend', vlayer);
+            }
+            this.div = vlayer;
+            Object.keys(vehicles).forEach(function (id) { vlayer.appendChild(vehicles[id].el); });
         };
-        VehicleLayer.prototype.draw = function () {
-            var projection = this.getProjection();
-            if (!projection) return;
-            Object.keys(vehicles).forEach(function (id) { place(vehicles[id], projection); });
-        };
-        VehicleLayer.prototype.onRemove = function () {
-            if (this.div) this.div.parentNode.removeChild(this.div);
-            this.div = null;
-        };
+        VehicleLayer.prototype.draw = function () { placeAll(); };
+        VehicleLayer.prototype.onRemove = function () { };
     }
 
-    function place(entry, projection) {
-        projection = projection || (overlay && overlay.getProjection());
-        if (!projection) return;
-        var p = projection.fromLatLngToDivPixel(new google.maps.LatLng(entry.pos.lat, entry.pos.lng));
-        entry.el.style.left = p.x + 'px';
-        entry.el.style.top = p.y + 'px';
+    // Vehicles live in a layer of their own over the map and are placed with the map's own Web Mercator
+    // maths from its current centre and zoom. Google's overlay projection is only refreshed when the
+    // camera rests, so under Follow (a camera that never rests) icons placed with it drifted off their
+    // vehicles by hundreds of pixels (2026-11-22). From the live centre and zoom they are always right.
+    var vlayer = null, tlayer = null, topMarkers = [];
+    function worldPx(lat, lng, scale) {
+        var s = Math.sin(Math.max(-85.05, Math.min(85.05, lat)) * Math.PI / 180);
+        return { x: scale * (lng + 180) / 360, y: scale * (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) };
+    }
+    var viewCache = null;
+    function camView() {
+        if (!map) return null;
+        var c = map.getCenter(), z = map.getZoom(), el = document.getElementById('map');
+        if (!c || z == null) return null;
+        var scale = 256 * Math.pow(2, z);
+        return { c: worldPx(c.lat(), c.lng(), scale), scale: scale, w: el.clientWidth, h: el.clientHeight };
+    }
+    function place(entry, v) {
+        v = v || camView();
+        if (!v || !entry.pos) return;
+        var p = worldPx(entry.pos.lat, entry.pos.lng, v.scale);
+        var x = p.x - v.c.x, y = p.y - v.c.y;
+        // across the antimeridian, take the nearer copy of the world
+        if (x > v.scale / 2) x -= v.scale; else if (x < -v.scale / 2) x += v.scale;
+        entry.el.style.left = (x + v.w / 2) + 'px';
+        entry.el.style.top = (y + v.h / 2) + 'px';
+    }
+    function placeAll() {
+        viewCache = camView();
+        Object.keys(vehicles).forEach(function (id) { place(vehicles[id], viewCache); });
+        topMarkers.forEach(function (m) { if (m.div) place({ el: m.div, pos: m.position }, viewCache); });
+        arrangeCallouts();
+    }
+
+    // Callouts never sit on one another: as God's Eye does, each tries its corners in turn (NE, NW, SE,
+    // SW) and takes the first that is clear of the callouts and vehicles already placed; the selected
+    // vehicle chooses first. Re-solved on every camera change and twice a second while vehicles move.
+    var CORNERS = ['ne', 'nw', 'se', 'sw'], lastArrange = 0;
+    function arrangeCallouts() {
+        lastArrange = performance.now();
+        var list = Object.keys(vehicles).map(function (id) { return vehicles[id]; })
+            .filter(function (e) { return e.data.shown && e.el.offsetParent !== null; });
+        list.sort(function (a, b) { return (b.data.id === layers.selected) - (a.data.id === layers.selected); });
+        var taken = list.map(function (e) {
+            var x = parseFloat(e.el.style.left), y = parseFloat(e.el.style.top);
+            return { x: x - 20, y: y - 20, w: 40, h: 40 };            // every vehicle's own box is taken
+        });
+        list.forEach(function (e) {
+            var card = e.el.querySelector('.lm-callout');
+            if (!card) return;
+            var w = card.offsetWidth || 60, h = 19, x = parseFloat(e.el.style.left) - 20, y = parseFloat(e.el.style.top) - 20;
+            var boxes = { ne: { x: x + 47, y: y - 30 }, nw: { x: x - 7 - w, y: y - 30 }, se: { x: x + 47, y: y + 51 }, sw: { x: x - 7 - w, y: y + 51 } };
+            var pick = CORNERS.filter(function (k) {
+                var r = { x: boxes[k].x, y: boxes[k].y, w: w, h: h };
+                return !taken.some(function (t) { return r.x < t.x + t.w + 2 && r.x + r.w + 2 > t.x && r.y < t.y + t.h + 2 && r.y + r.h + 2 > t.y; });
+            })[0] || 'ne';
+            CORNERS.forEach(function (k) { e.el.classList.toggle('co-' + k, k === pick); });
+            taken.push({ x: boxes[pick].x, y: boxes[pick].y, w: w, h: h });
+        });
     }
 
     function upsertVehicles(items) {
@@ -140,7 +322,11 @@
             if (!entry) {
                 var el = document.createElement('div');
                 el.className = 'lm-v';
-                el.addEventListener('click', function (e) { e.stopPropagation(); RM.post({ type: 'vehicleClick', id: d.id, double: false }); });
+                el.addEventListener('click', function (e) { e.stopPropagation(); hideCard(); RM.post({ type: 'vehicleClick', id: d.id, double: false }); });
+                el.addEventListener('mouseenter', function () { showCard(vehicles[d.id]); });
+                el.addEventListener('mouseleave', hideCard);
+                // The wheel over a vehicle still zooms the map (under Follow the vehicle is always under the cursor).
+                el.addEventListener('wheel', function (ev) { ev.preventDefault(); map.setZoom(map.getZoom() + (ev.deltaY < 0 ? 1 : -1)); }, { passive: false });
                 el.addEventListener('dblclick', function (e) { e.stopPropagation(); RM.post({ type: 'vehicleClick', id: d.id, double: true }); });
                 // Google builds its own map click from the pointer events, so stopping 'click' is not
                 // enough: without this, selecting a vehicle also clicked the map and undid the selection.
@@ -168,11 +354,11 @@
         if (!e) return;
         e.data.moving = m.moving; e.data.speeding = m.speeding; e.data.stale = m.stale;
         if (m.title) e.data.title = m.title;
+        e.data.speedMph = m.speedMph;
         render(e);
-        e.from = { lat: e.pos.lat, lng: e.pos.lng, heading: e.heading };
-        e.to = { lat: m.lat, lng: m.lng, heading: shortestTurn(e.heading, m.heading) };
-        e.start = performance.now();
-        if (!animating) { animating = true; requestAnimationFrame(step); }
+        // Where it was really reported; the drawn position cruises from there (see "always moving").
+        e.target = { lat: m.lat, lng: m.lng, heading: shortestTurn(e.heading, m.heading) };
+        report(e, m);
     }
 
     function step(now) {
@@ -187,6 +373,127 @@
             if (t >= 1) { e.to = null; if (!(layers.selected === +id && anim)) drawRoute(+id); } else any = true;
         });
         if (any) requestAnimationFrame(step); else animating = false;
+    }
+
+    // ================================================================ always moving (dead reckoning)
+    // The Driver app reports every ~30 s. Between two reports a moving vehicle keeps going along the
+    // road of the leg it is on, at its reported speed, for at most CRUISE_MAX_MS; a new report is then
+    // blended in over GLIDE_MS (the gap between where it was drawn and where it really is fades out),
+    // so it never jumps. Stopped, stale or without speed, it stays where it was reported. Nothing is
+    // invented beyond the next 45 s of a road it is already driving.
+    var CRUISE_MAX_MS = 45000, CRUISE_MIN_MPH = 3, MPH_TO_MPS = 0.44704, OFF_ROAD_M = 150;
+    var cruising = false, follow = null;
+
+    function metres(a, b) {
+        var k = Math.cos(a.lat * Math.PI / 180) * 111320, dy = (b.lat - a.lat) * 110540, dx = (b.lng - a.lng) * k;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    function bearing(a, b) {
+        var y = (b.lng - a.lng) * Math.cos(a.lat * Math.PI / 180), x = b.lat - a.lat;
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
+    /** The road ahead of a report: the current leg's shape from the point nearest to it, or null. */
+    function roadAhead(id, lat, lng) {
+        var r = routes[id];
+        var leg = r && r.legs.filter(function (l) { return l.current; })[0];
+        if (!leg || !leg.path) return null;
+        var parts = splitAt(decode(leg), lat, lng);
+        var ahead = parts.ahead.map(function (p) { return { lat: p.lat(), lng: p.lng() }; });
+        if (ahead.length < 2 || metres({ lat: lat, lng: lng }, ahead[0]) > OFF_ROAD_M) return null;   // off its road: no guessing
+        return ahead;
+    }
+
+    /** Where the vehicle is `dist` metres further along the road (or straight on, with no road). */
+    function along(c, dist) {
+        if (c.road) {
+            for (var i = 0; i < c.road.length - 1; i++) {
+                var a = c.road[i], b = c.road[i + 1], seg = metres(a, b);
+                if (dist <= seg) { var t = seg ? dist / seg : 0; return { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t, heading: bearing(a, b) }; }
+                dist -= seg;
+            }
+            var end = c.road[c.road.length - 1];
+            return { lat: end.lat, lng: end.lng, heading: c.heading };           // reached the stop: wait there
+        }
+        var h = c.heading * Math.PI / 180;
+        return { lat: c.lat + dist * Math.cos(h) / 110540, lng: c.lng + dist * Math.sin(h) / (Math.cos(c.lat * Math.PI / 180) * 111320), heading: c.heading };
+    }
+
+    /** A real report: cruise from it, and fade out the gap to where the vehicle was drawn. */
+    function report(e, m) {
+        var mph = m.speedMph || 0;
+        e.cruise = (m.moving && !m.stale && mph >= CRUISE_MIN_MPH)
+            ? { lat: m.lat, lng: m.lng, heading: m.heading || e.heading, mps: mph * MPH_TO_MPS, at: performance.now(), road: roadAhead(+e.data.id, m.lat, m.lng) }
+            : null;
+        var base = e.cruise ? { lat: m.lat, lng: m.lng } : { lat: m.lat, lng: m.lng };
+        e.gap = { lat: e.pos.lat - base.lat, lng: e.pos.lng - base.lng, at: performance.now() };
+        e.headingFrom = e.heading;
+        if (!cruising) { cruising = true; requestAnimationFrame(cruiseStep); }
+    }
+
+    function cruiseStep(now) {
+        var any = false;
+        // The camera moves first (Follow), and only then are the vehicles placed: placed before, they used
+        // the projection of the old centre and stayed off by the camera's move (seen 2026-11-22).
+        // Follow keeps the vehicle in view at every zoom, cruising or not, with an eased camera; a hand
+        // drag pauses it and it comes back after.
+        if (follow != null && vehicles[follow] && !dragging) {
+            var tgt = vehicles[follow].pos;
+            if (map3d && document.getElementById('map3d').style.display === 'block') {
+                map3d.center = { lat: tgt.lat, lng: tgt.lng, altitude: 0 };
+            } else {
+                // Eased, every frame: the camera covers a share of the gap to the vehicle that depends on
+                // the time since the last frame (exponential smoothing, time constant FOLLOW_TAU). At a
+                // steady speed it settles a little behind the vehicle and moves exactly as fast, so it
+                // glides with it instead of catching up in steps. Far away (a jump, a long gap) it cuts.
+                var dt = Math.min(0.1, Math.max(0, (now - (lastFollowAt || now)) / 1000));
+                lastFollowAt = now;
+                var cv = camView();
+                if (cv) {
+                    var wp = worldPx(tgt.lat, tgt.lng, cv.scale);
+                    var dx = wp.x - cv.c.x, dy = wp.y - cv.c.y;
+                    if (Math.abs(dx) > cv.w || Math.abs(dy) > cv.h) map.moveCamera({ center: tgt });
+                    else if (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3) {
+                        var k = 1 - Math.exp(-dt / FOLLOW_TAU);
+                        var c0 = map.getCenter();
+                        map.moveCamera({ center: { lat: c0.lat() + (tgt.lat - c0.lat()) * k, lng: c0.lng() + (tgt.lng - c0.lng()) * k } });
+                    }
+                }
+            }
+        }
+        viewCache = camView();
+        Object.keys(vehicles).forEach(function (id) {
+            var e = vehicles[id];
+            if (!e.target) { if (follow != null) place(e, viewCache); return; }
+            var c = e.cruise, p;
+            if (c && now - c.at <= CRUISE_MAX_MS) { p = along(c, c.mps * (now - c.at) / 1000); any = true; }
+            else p = { lat: e.target.lat, lng: e.target.lng, heading: e.target.heading };
+
+            // The gap to the drawn position fades out over GLIDE_MS (ease out).
+            var g = e.gap, k = g ? Math.min(1, (now - g.at) / GLIDE_MS) : 1, fade = 1 - (1 - Math.pow(1 - k, 3));
+            if (g && k < 1) any = true;
+            e.pos = { lat: p.lat + (g ? g.lat * fade : 0), lng: p.lng + (g ? g.lng * fade : 0) };
+            setHeading(e, k < 1 ? e.headingFrom + (shortestTurn(e.headingFrom, p.heading) - e.headingFrom) * (1 - fade) : shortestTurn(e.heading, p.heading));
+            place(e, viewCache);
+            if (k >= 1 && e.gap) { e.gap = null; if (!(layers.selected === +id && anim)) drawRoute(+id); }
+        });
+        if (now - lastArrange > 500) arrangeCallouts();
+        if (any || follow != null) requestAnimationFrame(cruiseStep); else cruising = false;
+    }
+
+    // Follow: the camera stays on one vehicle until Follow is pressed again, Esc, or another selection.
+    // Dragging the map only pauses it while the button is held. Nothing else moves the camera then.
+    var dragging = false, lastFollowAt = 0;
+    var FOLLOW_TAU = 0.6;   // seconds: how closely the camera trails the vehicle (smaller = tighter)
+    function setFollow(id) {
+        follow = id;
+        if (id != null && vehicles[id]) { map.setZoom(Math.max(map.getZoom(), 15)); map.setCenter(vehicles[id].pos); }
+        if (!cruising) { cruising = true; requestAnimationFrame(cruiseStep); }
+    }
+    function stopFollow() {
+        if (follow == null) return;
+        follow = null;
+        RM.post({ type: 'followStopped' });
     }
 
     // ================================================================ geometry
@@ -275,16 +582,30 @@
             this.div.className = this.cls;
             this.div.style.zIndex = this.z;
             this.div.innerHTML = this.html;
+            if (this.cls && this.cls.indexOf('lm-top') >= 0) {
+                // Over the vehicles' layer (a stop's label must never sit under a van), placed with the
+                // same live-camera maths as the vehicles.
+                if (!tlayer) { tlayer = document.createElement('div'); tlayer.id = 'lm-tlayer'; (vlayer || document.getElementById('map')).insertAdjacentElement('afterend', tlayer); }
+                tlayer.appendChild(this.div);
+                topMarkers.push(this);
+                this.draw();
+                return;
+            }
             this.getPanes().overlayLayer.appendChild(this.div);
         };
         HtmlMarker.prototype.draw = function () {
+            if (this.div && this.cls && this.cls.indexOf('lm-top') >= 0) { place({ el: this.div, pos: this.position }); return; }
             var projection = this.getProjection();
             if (!projection || !this.div) return;
             var p = projection.fromLatLngToDivPixel(new google.maps.LatLng(this.position.lat, this.position.lng));
             this.div.style.left = p.x + 'px';
             this.div.style.top = p.y + 'px';
         };
-        HtmlMarker.prototype.onRemove = function () { if (this.div) this.div.remove(); this.div = null; };
+        HtmlMarker.prototype.onRemove = function () {
+            var self = this;
+            topMarkers = topMarkers.filter(function (m) { return m !== self; });
+            if (this.div) this.div.remove(); this.div = null;
+        };
         /** Runs fn(element) once the element exists (onAdd runs on the next frame). */
         HtmlMarker.prototype.apply = function (fn) {
             var self = this;
@@ -345,9 +666,10 @@
         var kind = st.kind === 'Dropoff' ? 'dropoff' : 'pickup';
         var fill = BOOKING[kind];
         var text = (LABELS[layers.lang] || LABELS.en)[kind] + (st.time ? ' ' + st.time : '');
-        var html = '<div class="lm-pin"><svg width="30" height="38" viewBox="0 0 12 16"><path d="M6 0a6 6 0 0 0-6 6c0 4.4 6 10 6 10s6-5.6 6-10a6 6 0 0 0-6-6z" fill="' + fill + '" stroke="#fff" stroke-width=".9"/><circle cx="6" cy="6" r="2.2" fill="#fff"/></svg>' +
-                   '<span class="lm-pinlabel" style="background:' + fill + '">' + escapeHtml(text) + '</span></div>';
+        var html = '<div class="lm-pin"><svg width="30" height="38" viewBox="0 0 12 16"><path d="M6 0a6 6 0 0 0-6 6c0 4.4 6 10 6 10s6-5.6 6-10a6 6 0 0 0-6-6z" fill="' + fill + '" stroke="#fff" stroke-width=".9"/><circle cx="6" cy="6" r="2.2" fill="#fff"/></svg></div>';
         htmlMarker(drawn, { lat: st.lat, lng: st.lng }, html, 60);
+        // The label goes on the top layer, so a vehicle at its stop never covers it.
+        htmlMarker(drawn, { lat: st.lat, lng: st.lng }, '<span class="lm-pinlabel lm-stoplabel" style="--accent:' + fill + '">' + escapeHtml(text) + '</span>', 60, 'lm-top');
     }
 
     function lineWith(drawn, path, color, weight, opacity, z, extra) {
@@ -562,6 +884,8 @@
     }
 
     function fitRoute(id) {
+        if (follow != null) return;                       // Follow owns the camera
+        if (is3d()) { frame3dRoute(id); return; }
         var r = routes[id], v = vehicles[id];
         if (!r && !v) return;
         var bounds = new google.maps.LatLngBounds(), n = 0;
@@ -605,6 +929,8 @@
     }
 
     function fit(ids) {
+        if (follow != null) return;                       // Follow owns the camera
+        if (is3d()) { frame3d(ids); return; }
         var bounds = new google.maps.LatLngBounds(), count = 0;
         (ids || Object.keys(vehicles)).forEach(function (id) {
             var e = vehicles[id];
@@ -622,8 +948,317 @@
         map.setOptions({ styles: type === 'roadmap' && !m.labels ? noLabels : null });
     }
 
+    var setActionTexts = function () { };
+    function initActions() {
+    // ------------------------------------------------------------------ top-centre actions (God's Eye's)
+    // Five glass circles, God's Eye's #top-center-actions: Street View, map view, full screen, fit
+    // the vehicles, own window. Hovering one grows it and opens a card with its name and what it
+    // does, so the four that look alike are told apart before the click.
+    var ACTION_ICONS = { streetview: 'streetview', camera: 'control_camera', fullscreen: 'fullscreen', fit: 'fit_screen', window: 'open_in_new', panels: 'visibility_off' };
+    var actionTexts = {
+        streetview: { title: 'Street View', desc: 'Pick a spot on the map to see the street' },
+        camera: { title: 'Map view', desc: 'Zoom and move the map step by step' },
+        fullscreen: { title: 'Full screen', desc: 'The map over the whole screen · Esc leaves' },
+        fit: { title: 'Fit the vehicles', desc: 'Frame every vehicle shown' },
+        window: { title: 'Own window', desc: 'Move the map to a window of its own' },
+        panels: { title: 'Hide panels', desc: 'Only the map, without the windows on top · H' },
+        panelsShow: { title: 'Show panels', desc: 'Bring the windows back on top of the map · H' },
+        exitStreetView: 'Exit Street View', pickSpot: 'Click the street to look at · Esc cancels'
+    };
+    var actions = document.getElementById('lm-actions'), tip = document.getElementById('lm-action-tip');
+
+    function showTip(btn) {
+        var t = btn.dataset.k === 'panels' && clean ? actionTexts.panelsShow : actionTexts[btn.dataset.k]; if (!t) return;
+        tip.querySelector('.lm-tip-title').textContent = t.title;
+        tip.querySelector('.lm-tip-desc').textContent = t.desc;
+        var r = btn.getBoundingClientRect();
+        tip.style.left = (r.left + r.width / 2) + 'px';
+        tip.classList.add('visible');
+    }
+    function hideTip() { tip.classList.remove('visible'); }
+
+    Object.keys(ACTION_ICONS).forEach(function (k) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.dataset.k = k;
+        b.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + ACTION_ICONS[k] + '</span>';
+        b.addEventListener('mouseenter', function () { showTip(b); });
+        b.addEventListener('focus', function () { showTip(b); });
+        b.addEventListener('mouseleave', hideTip);
+        b.addEventListener('blur', hideTip);
+        b.addEventListener('click', function (e) { e.stopPropagation(); hideTip(); runAction(k); });
+        actions.appendChild(b);
+    });
+    function labelActions() {
+        actions.querySelectorAll('button[data-k]').forEach(function (b) {
+            var t = actionTexts[b.dataset.k]; if (t) b.setAttribute('aria-label', t.title + ' — ' + t.desc);
+        });
+        document.getElementById('lm-sv-exit-label').textContent = actionTexts.exitStreetView;
+        document.getElementById('lm-sv-pick-label').textContent = actionTexts.pickSpot;
+    }
+    labelActions();
+
+    function runAction(k) {
+        if (k === 'streetview') { pickStreetView(!picking); return; }
+        if (k === 'camera') { document.getElementById('lm-camera').classList.toggle('open'); return; }
+        if (k === 'fullscreen') RM.post({ type: 'fullScreen' });
+        if (k === 'fit') RM.post({ type: 'fitFleet' });
+        if (k === 'window') RM.post({ type: 'toggleWindow' });
+        if (k === 'panels') setClean(!clean);
+    }
+
+    // Only the map: every window drawn on top goes (the host hides its own), the actions stay so they
+    // can be brought back. H does the same.
+    var clean = false;
+    function setClean(on) {
+        clean = on;
+        document.body.classList.toggle('lm-clean', on);
+        var b = actions.querySelector('[data-k="panels"]');
+        b.querySelector('.material-symbols-outlined').textContent = on ? 'visibility' : 'visibility_off';
+        b.classList.toggle('active', on);
+        if (on) document.getElementById('lm-camera').classList.remove('open');
+        RM.post({ type: 'cleanView', on: on });
+    }
+    document.addEventListener('keydown', function (e) {
+        var t = e.target;
+        if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.altKey && !(t && t.matches && t.matches('input, textarea, select'))) setClean(!clean);
+    });
+
+    // Map view: zoom and pan in steps, for those who do not drag or scroll.
+    document.querySelectorAll('#lm-camera [data-cam]').forEach(function (b) {
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var c = b.dataset.cam, step = 160;
+            if (c === 'in') map.setZoom(map.getZoom() + 1);
+            else if (c === 'out') map.setZoom(map.getZoom() - 1);
+            else map.panBy(c === 'left' ? -step : c === 'right' ? step : 0, c === 'up' ? -step : c === 'down' ? step : 0);
+        });
+    });
+
+    // Street View: click the button, then the street. The blue coverage shows where there is one.
+    var picking = false, coverage = null, pano = null;
+    function pickStreetView(on) {
+        picking = on;
+        document.body.classList.toggle('lm-sv-picking', on);
+        actions.querySelector('[data-k="streetview"]').classList.toggle('active', on);
+        if (!coverage) coverage = new google.maps.StreetViewCoverageLayer();
+        coverage.setMap(on ? map : null);
+        map.setOptions({ draggableCursor: on ? 'crosshair' : null });
+    }
+    function openStreetView(latLng) {
+        // About 30 screen pixels around the click, in metres at this zoom: a click on a zoomed-out
+        // map cannot hit a street within a few metres.
+        var metresPerPixel = 156543.03392 * Math.cos(latLng.lat() * Math.PI / 180) / Math.pow(2, map.getZoom());
+        var radius = Math.min(5000, Math.max(50, metresPerPixel * 30));
+        new google.maps.StreetViewService().getPanorama({ location: latLng, radius: radius, preference: google.maps.StreetViewPreference.NEAREST }, function (data, status) {
+            if (status !== 'OK') {
+                // Stay in pick mode and say why nothing opened.
+                document.getElementById('lm-sv-pick-label').textContent = actionTexts.noImagery || 'No street imagery here · try a street';
+                return;
+            }
+            pickStreetView(false);
+            document.getElementById('lm-sv-pick-label').textContent = actionTexts.pickSpot;
+            pano.setPano(data.location.pano);
+            pano.setPov({ heading: 0, pitch: 0 });
+            pano.setVisible(true);
+        });
+    }
+    function setupStreetView() {
+        pano = map.getStreetView();
+        // While Street View is open every panel steps aside (the host hides its own) and the exit is a
+        // big labelled button at the top: Google's controls are no longer under our windows.
+        pano.setOptions({
+            enableCloseButton: false, fullscreenControl: false, motionTrackingControl: false,
+            addressControlOptions: { position: google.maps.ControlPosition.BOTTOM_CENTER },
+            panControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+            zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }
+        });
+        pano.addListener('visible_changed', function () {
+            var on = pano.getVisible();
+            document.body.classList.toggle('lm-streetview', on);
+            RM.post({ type: 'streetView', on: on });
+        });
+        document.getElementById('lm-sv-exit').addEventListener('click', function () { pano.setVisible(false); });
+        map.addListener('click', function (e) { if (picking && e.latLng) openStreetView(e.latLng); });
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            if (pano.getVisible()) { pano.setVisible(false); e.stopImmediatePropagation(); }
+            else if (picking) { pickStreetView(false); e.stopImmediatePropagation(); }
+        }, true);
+    }
+
+    setActionTexts = function (t) {
+        if (!t) return; actionTexts = t; labelActions();
+        if (t.window && t.window.icon) actions.querySelector('[data-k="window"] .material-symbols-outlined').textContent = t.window.icon;
+    };
+    setupStreetView();
+    }
+
+    // ------------------------------------------------------------------ 3D (Maps JavaScript, maps3d)
+    // Photorealistic 3D over the 2D map, centred where the 2D map is, with the vehicles as 3D
+    // markers. Loaded only when chosen, so it costs nothing until then.
+    var map3d = null, markers3d = {};
+    async function show3d(on) {
+        var host = document.getElementById('map3d');
+        if (!on) { if (host) host.style.display = 'none'; clearInterval(timer3d); timer3d = null; return { ok: true }; }
+        try {
+            var lib = await google.maps.importLibrary('maps3d');
+            if (!map3d) {
+                var c = map.getCenter();
+                map3d = new lib.Map3DElement({
+                    center: { lat: c.lat(), lng: c.lng(), altitude: 0 },
+                    range: Math.max(800, 40000000 / Math.pow(2, map.getZoom())), tilt: 60, heading: 0,
+                    mode: lib.MapMode ? lib.MapMode.HYBRID : 'HYBRID'
+                });
+                host.appendChild(map3d);
+            } else {
+                var c2 = map.getCenter();
+                map3d.center = { lat: c2.lat(), lng: c2.lng(), altitude: 0 };
+            }
+            host.style.display = 'block';
+            draw3dVehicles(lib);
+            draw3dRoutes();
+            if (follow == null) { if (layers.selected != null) frame3dRoute(layers.selected); else frame3d(); }
+            // The vans keep moving in 3D too (their drawn positions, once a second); the roads, every 5 s.
+            clearInterval(timer3d);
+            var tick = 0;
+            timer3d = setInterval(function () { draw3dVehicles(); if (++tick % 5 === 0) draw3dRoutes(); }, 1000);
+            return { ok: true };
+        } catch (e) {
+            if (host) host.style.display = 'none';
+            RM.post({ type: 'error', message: '3D map: ' + String(e && e.message || e) });
+            return { ok: false, error: String(e && e.message || e) };
+        }
+    }
+    // The marker: our disc and van as one image, in the group's colour with the pace ring.
+    function marker3dImage(d, heading) {
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">' +
+            '<circle cx="28" cy="28" r="25" fill="' + (d.routeColor || '#1FA35A') + '"/>' +
+            '<circle cx="28" cy="28" r="21" fill="' + d.color + '" stroke="#fff" stroke-width="3"/>' +
+            '<g transform="rotate(' + Math.round(heading || 0) + ' 28 28) translate(18 8) scale(1.11)">' + topVanSvg(d.color, 36).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g></svg>';
+        var img = document.createElement('img');
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        img.width = 44; img.height = 44;
+        return img;
+    }
+
+    var lib3d = null, timer3d = null;
+    function draw3dVehicles(lib) {
+        if (!map3d) return;
+        lib3d = lib || lib3d;
+        var seen = {};
+        Object.keys(vehicles).forEach(function (id) {
+            var v = vehicles[id];
+            if (!v.data.shown || !v.pos) return;
+            seen[id] = true;
+            var m = markers3d[id];
+            var key = v.data.color + v.data.routeColor + Math.round(v.heading / 15);   // redrawn every 15° of turn
+            if (!m) {
+                var Cls = lib3d.Marker3DInteractiveElement || lib3d.Marker3DElement;
+                m = markers3d[id] = new Cls({ altitudeMode: 'RELATIVE_TO_GROUND', extruded: true, label: v.data.name || '' });
+                m.addEventListener('gmp-click', function () { RM.post({ type: 'vehicleClick', id: +id, double: false }); });
+                map3d.append(m);
+            }
+            if (m._key !== key) {
+                m.replaceChildren();
+                var tpl = document.createElement('template');
+                tpl.content.appendChild(marker3dImage(v.data, v.heading));
+                m.append(tpl);
+                m._key = key;
+            }
+            m.position = { lat: v.pos.lat, lng: v.pos.lng, altitude: 30 };
+        });
+        Object.keys(markers3d).forEach(function (id) { if (!seen[id]) { markers3d[id].remove(); delete markers3d[id]; } });
+    }
+
+    function is3d() { return !!map3d && document.getElementById('map3d').style.display === 'block'; }
+
+    /** The 3D camera over some points: their middle, far enough back to hold all of them. */
+    function frame3dPoints(pts) {
+        if (!pts.length || !map3d) return;
+        var la = pts.map(function (p) { return p.lat; }), ln = pts.map(function (p) { return p.lng; });
+        var c = { lat: (Math.min.apply(null, la) + Math.max.apply(null, la)) / 2, lng: (Math.min.apply(null, ln) + Math.max.apply(null, ln)) / 2 };
+        var span = Math.max(metres({ lat: Math.min.apply(null, la), lng: c.lng }, { lat: Math.max.apply(null, la), lng: c.lng }),
+                            metres({ lat: c.lat, lng: Math.min.apply(null, ln) }, { lat: c.lat, lng: Math.max.apply(null, ln) }));
+        map3d.center = { lat: c.lat, lng: c.lng, altitude: 0 };
+        map3d.range = Math.max(1200, span * 1.9);
+    }
+
+    /** The shown fleet (or the given lines) in 3D. */
+    function frame3d(ids) {
+        frame3dPoints((ids || Object.keys(vehicles)).map(function (id) { return vehicles[id]; })
+            .filter(function (v) { return v && v.data.shown && v.pos; }).map(function (v) { return v.pos; }));
+    }
+
+    /** A selected line in 3D: its vehicle and the stops of its trip (or of its day). */
+    function frame3dRoute(id) {
+        var r = routes[id], v = vehicles[id], pts = [];
+        var current = r ? r.legs.filter(function (l) { return l.current; })[0] : null;
+        var trip = r && current ? (stopByNumber(r, current.toStop) || {}).trip : null;
+        if (r) r.stops.forEach(function (st) { if (layers.wholeDay || st.trip === trip) pts.push({ lat: st.lat, lng: st.lng }); });
+        if (v && v.pos) pts.push(v.pos);
+        frame3dPoints(pts);
+    }
+
+    // Routes in 3D: the selected line's legs (driven grey, ahead in its pace) and its stops; with
+    // "Routes in progress", every line's current leg. Ground-hugging, drawn over the buildings.
+    var drawn3d = [];
+    function draw3dRoutes() {
+        if (!lib3d || !map3d) return;
+        drawn3d.forEach(function (x) { x.remove(); });
+        drawn3d = [];
+        var Line = lib3d.Polyline3DElement;
+        if (!Line) return;
+        function add(path, color, width) {
+            if (!path || path.length < 2) return;
+            var p = new Line({ altitudeMode: 'CLAMP_TO_GROUND', strokeColor: color, strokeWidth: width, outerColor: '#ffffff', outerWidth: 0.35, drawsOccludedSegments: true });
+            p.coordinates = path.map(function (q) { return { lat: q.lat(), lng: q.lng() }; });
+            map3d.append(p); drawn3d.push(p);
+        }
+        Object.keys(routes).forEach(function (key) {
+            var id = +key, r = routes[id], v = vehicles[id];
+            if (!r || !v || !v.data.shown) return;
+            var color = v.data.routeColor || '#1FA35A';
+            var selected = layers.selected === id;
+            if (!selected && !layers.routes) return;
+            var current = r.legs.filter(function (l) { return l.current; })[0];
+            if (!selected) {
+                if (current && current.visible) add(splitAt(decode(current), v.pos.lat, v.pos.lng).ahead, color, 7);
+                return;
+            }
+            var trip = current ? (stopByNumber(r, current.toStop) || {}).trip : null;
+            r.legs.forEach(function (l) {
+                var to = stopByNumber(r, l.toStop) || {};
+                if (!layers.wholeDay && to.trip !== trip) return;
+                if (l.current) {
+                    var parts = splitAt(decode(l), v.pos.lat, v.pos.lng);
+                    add(parts.done, DRIVEN, 6); add(parts.ahead, color, 9);
+                } else add(decode(l), l.driven ? DRIVEN : color, l.driven ? 6 : 8);
+            });
+            r.stops.forEach(function (st) {
+                if (!layers.wholeDay && st.trip !== trip) return;
+                var m = new (lib3d.Marker3DElement)({ altitudeMode: 'RELATIVE_TO_GROUND', extruded: true, position: { lat: st.lat, lng: st.lng, altitude: 20 } });
+                var img = document.createElement('img'); img.src = stopIcon(st).url; img.width = 26; img.height = 26;
+                var tpl = document.createElement('template'); tpl.content.appendChild(img); m.append(tpl);
+                map3d.append(m); drawn3d.push(m);
+            });
+        });
+    }
+    window.__liveMap3d = show3d;
+    // Diagnosis only: the camera's state, read through the debugging port.
+    window.__liveMapDebug = function () { return { follow: follow, selected: layers.selected, dragging: dragging, cruising: cruising, is3d: is3d(), center: map && map.getCenter().toJSON(), zoom: map && map.getZoom(), pos: follow != null && vehicles[follow] ? vehicles[follow].pos : null, rect: follow != null && vehicles[follow] ? vehicles[follow].el.getBoundingClientRect().toJSON() : null }; };
+
+    // The dock (live-map-dock/dock.js) flies the map and changes its type without a round trip.
+    window.__liveMapFly = function (lat, lng, zoom) { if (!map) return; map.panTo({ lat: lat, lng: lng }); if (zoom) map.setZoom(zoom); };
+    window.__liveMapView = function (m) { if (map) view(m); };
+
     function onMessage(m) {
         if (!m || !m.type) return;
+        handleMessage(m);
+        // In 3D the roads are redrawn whenever the selection, the layers or a line's legs change.
+        if ((m.type === 'layers' || m.type === 'legs') && is3d()) draw3dRoutes();
+    }
+
+    function handleMessage(m) {
         switch (m.type) {
             case 'vehicles': upsertVehicles(m.items || []); break;
             case 'move': move(m); break;
@@ -651,8 +1286,18 @@
                 break;
             case 'fit': fit(m.ids); break;
             case 'fitRoute': fitRoute(m.id); break;
+            case 'redraw3d': if (is3d()) draw3dRoutes(); break;
             case 'zoom': map.setZoom(map.getZoom() + (m.delta || 0)); break;
+            case 'follow': if (m.id == null) follow = null; else setFollow(m.id); break;
+            case 'mapButtons': setActionTexts(m.texts); break;
             case 'view': view(m); break;
+            case 'tripFocus':
+                // A trip found in the dock's Search: its Trip Id on the vehicle carrying it.
+                var before = tripFocus;
+                tripFocus = m.id != null && m.label ? { id: m.id, label: m.label } : null;
+                if (before && vehicles[before.id]) render(vehicles[before.id]);
+                if (tripFocus && vehicles[tripFocus.id]) render(vehicles[tripFocus.id]);
+                break;
         }
     }
 
@@ -675,16 +1320,29 @@
         catch (e) { return { ok: false, error: String(e && e.stack || e) }; }
     };
 
+    // Any script error on this page reaches the Desktop's log instead of failing silently.
+    window.addEventListener('error', function (e) { RM.post({ type: 'error', message: 'script: ' + (e.message || e) + ' @' + (e.lineno || '?') }); });
+
     RM.ready().then(function () {
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: 26.6166, lng: -81.8333 }, zoom: 10, mapTypeId: 'roadmap',
-            disableDefaultUI: true, clickableIcons: false, gestureHandling: 'greedy', keyboardShortcuts: false
+            // Map · No labels is the default: the vehicles and the routes are the labels that matter.
+            styles: noLabels,
+            disableDefaultUI: true, clickableIcons: false, gestureHandling: 'greedy', keyboardShortcuts: false,
+            // Google's own controls stay off: the top-centre actions (initActions) replace them.
+            streetViewControl: false, fullscreenControl: false
         });
+        initActions();
+        // Esc reaches the page, not the window: the host uses it to leave full screen.
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { stopFollow(); RM.post({ type: 'escapeKey' }); } });
+        map.addListener('dragstart', function () { dragging = true; });
+        map.addListener('dragend', function () { dragging = false; });
         defineLayer();
         defineHtmlMarker();
         map.addListener('click', function () { RM.post({ type: 'mapClick' }); });
         overlay = new VehicleLayer();
         overlay.setMap(map);
+        map.addListener('bounds_changed', placeAll);
         if (window.chrome && window.chrome.webview) {
             window.chrome.webview.addEventListener('message', function (e) { onMessage(e.data); });
         }

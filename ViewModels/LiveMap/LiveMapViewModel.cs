@@ -12,6 +12,7 @@ using MaterialDesignThemes.Wpf;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
 using Raphael.Desktop.Services;
+using Raphael.Desktop.Services.Maps;
 
 namespace Raphael.Desktop.ViewModels.LiveMap
 {
@@ -57,6 +58,9 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         /// <summary>Layer: each vehicle's road coloured by congestion, with the delay it adds (Routes Pro).</summary>
         [ObservableProperty] private bool _showDelays;
 
+        /// <summary>Delays from TomTom's live traffic instead of Google's (trial, the user's TomTom key).</summary>
+        [ObservableProperty] private bool _showDelaysTomTom;
+
         /// <summary>The vehicle clicked on: its route is drawn whatever the layers say.</summary>
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasSelection), nameof(SelectionVisibility), nameof(SelectionTitle))]
@@ -84,11 +88,52 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         partial void OnShowTrafficChanged(bool value) => LayersChanged?.Invoke(this, EventArgs.Empty);
         partial void OnShowWholeDayChanged(bool value) => LayersChanged?.Invoke(this, EventArgs.Empty);
 
+        // The switch (2026-11-22): punctuality, free, every minute, always; a traffic layer (Google or,
+        // on trial, TomTom) replaces it every 10 minutes, and unticking it brings punctuality straight
+        // back. The two traffic layers never run together.
         partial void OnShowDelaysChanged(bool value)
         {
+            if (value && ShowDelaysTomTom) ShowDelaysTomTom = false;
+            ApplyTrafficMode();
+        }
+
+        partial void OnShowDelaysTomTomChanged(bool value)
+        {
+            if (value && ShowDelays) ShowDelays = false;
+            ApplyTrafficMode();
+        }
+
+        /// <summary>A traffic layer is on (Google or TomTom): pace comes from traffic, not punctuality.</summary>
+        public bool TrafficOn => ShowDelays || ShowDelaysTomTom;
+
+        private void ApplyTrafficMode()
+        {
+            OnPropertyChanged(nameof(PaceSourceText));
+            OnPropertyChanged(nameof(TrafficOn));
+            OnPropertyChanged(nameof(LayerDelaysHint));
             LayersChanged?.Invoke(this, EventArgs.Empty);
-            if (value) { DelaysStatus = LocalizationService.Instance["livemap.DelaysAsking"]; _ = RefreshTrafficAsync(); _trafficTimer.Start(); }
-            else { _trafficTimer.Stop(); _traffic.Clear(); TrafficChanged?.Invoke(this, EventArgs.Empty); }
+            _trafficTimer.Stop();
+            _traffic.Clear();
+            TrafficChanged?.Invoke(this, EventArgs.Empty);
+            if (TrafficOn)
+            {
+                _punctualityTimer.Stop();
+                DelaysStatus = LocalizationService.Instance["livemap.DelaysAsking"];
+                _ = RefreshTrafficAsync();
+                _trafficTimer.Start();
+            }
+            else
+            {
+                _ = RefreshPunctualityAsync();
+                _punctualityTimer.Start();
+            }
+        }
+
+        partial void OnSelectedChanged(LiveMapVehicleViewModel oldValue, LiveMapVehicleViewModel newValue)
+        {
+            IsFollowing = false;   // another line, or none: the camera is free again
+            if (oldValue is not null) oldValue.IsSelected = false;
+            if (newValue is not null) newValue.IsSelected = true;
         }
 
         partial void OnSelectedChanged(LiveMapVehicleViewModel value)
@@ -99,6 +144,17 @@ namespace Raphael.Desktop.ViewModels.LiveMap
 
         /// <summary>A click on a vehicle: select it (its route); a second click on the same one keeps it.</summary>
         public void Select(LiveMapVehicleViewModel vehicle) => Selected = vehicle;
+
+        /// <summary>The camera follows the selected vehicle (the map page keeps it centred).</summary>
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FollowTag))]
+        private bool _isFollowing;
+
+        public string FollowTag => IsFollowing ? "On" : null;
+        public string SelFollowText => LocalizationService.Instance["livemap.SelFollow"];
+
+        [RelayCommand]
+        private void ToggleFollow() => IsFollowing = Selected is not null && !IsFollowing;
 
         [RelayCommand]
         private void ClearSelection()
@@ -119,10 +175,52 @@ namespace Raphael.Desktop.ViewModels.LiveMap
             if (Selected is not null) await RouteCard.OpenAsync(Selected);
         }
 
-        // ---- delays layer: traffic per vehicle, asked every 3 minutes while the layer is on ----
+        // ---- pace: green / yellow / red for each line on route ----
+        // Default and always: punctuality from Raphael.Api every minute (no Google). With the delays
+        // layer (only with the user's own Google key): Google's traffic every 10 minutes instead.
 
         private readonly Dictionary<int, LiveMapRouteTrafficDto> _traffic = new();
-        private readonly DispatcherTimer _trafficTimer = new() { Interval = TimeSpan.FromMinutes(3) };
+        private readonly DispatcherTimer _trafficTimer = new() { Interval = TimeSpan.FromMinutes(10) };
+        private readonly DispatcherTimer _punctualityTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+        private readonly GoogleTrafficClient _google = new(new ProviderKeyStore());
+
+        /// <summary>The delays layer can be ticked: the user saved a Google Maps key in POWER UP.</summary>
+        [ObservableProperty] private bool _canShowDelays;
+        [ObservableProperty] private bool _canShowDelaysTomTom;
+        private readonly TomTomTrafficClient _tomtom = new(new ProviderKeyStore());
+
+        public void RefreshDelaysAvailability()
+        {
+            CanShowDelays = _google.HasKey;
+            if (!CanShowDelays && ShowDelays) ShowDelays = false;
+            CanShowDelaysTomTom = _tomtom.HasKey;
+            if (!CanShowDelaysTomTom && ShowDelaysTomTom) ShowDelaysTomTom = false;
+        }
+
+        /// <summary>Raised when any line's pace changes, so the map recolours roads and rings.</summary>
+        public event EventHandler PaceChanged;
+
+        private async Task RefreshPunctualityAsync()
+        {
+            if (TrafficOn) return;
+            try
+            {
+                var rows = (await _service.GetPunctualityAsync()).ToDictionary(p => p.VehicleRouteId);
+                if (TrafficOn) return;    // a traffic layer was ticked while we waited
+                foreach (var v in Vehicles)
+                {
+                    rows.TryGetValue(v.VehicleRouteId, out var p);
+                    v.LateMinutes = p?.LateMinutes;
+                    v.DelayMinutes = p?.LateMinutes is > LiveMapPalette.LateYellowMinutes ? p.LateMinutes.Value : 0;
+                    v.Pace = LiveMapPalette.PaceFromLateness(p?.LateMinutes);
+                }
+                PaceChanged?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Live map: punctuality not available. {ex.Message}");
+            }
+        }
 
         public IReadOnlyDictionary<int, LiveMapRouteTrafficDto> Traffic => _traffic;
 
@@ -147,12 +245,18 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         {
             foreach (var v in Vehicles.Where(v => v.IsShown && v.Group == LiveMapGroups.OnRoute).ToList())
             {
-                if (!ShowDelays) return;
+                if (!TrafficOn) return;
                 try
                 {
-                    var t = await _service.GetRouteTrafficAsync(v.VehicleRouteId);
+                    // The user's own key, to the stop the line is heading for (MAPS_POLICY exception, see GoogleTrafficClient).
+                    var leg = Legs.For(v.VehicleRouteId)?.Legs.FirstOrDefault(l => l.Current && l.Visible);
+                    var t = leg is null || !v.HasPosition ? null
+                        : ShowDelaysTomTom
+                            ? await _tomtom.ComputeAsync(v.VehicleRouteId, v.Latitude, v.Longitude, leg.ToLatitude, leg.ToLongitude)
+                            : await _google.ComputeAsync(v.VehicleRouteId, v.Latitude, v.Longitude, leg.ToLatitude, leg.ToLongitude);
                     if (t is null) _traffic.Remove(v.VehicleRouteId); else _traffic[v.VehicleRouteId] = t;
                     v.DelayMinutes = t is null ? 0 : (int)Math.Round(t.DelaySeconds / 60.0);
+                    v.Pace = LiveMapPalette.PaceFromTraffic(t);
                 }
                 catch (Exception ex)
                 {
@@ -166,6 +270,7 @@ namespace Raphael.Desktop.ViewModels.LiveMap
                     ? string.Format(LocalizationService.Instance["livemap.DelaysClear"], _traffic.Count)
                     : string.Format(LocalizationService.Instance["livemap.DelaysSome"], delayed, _traffic.Count);
             TrafficChanged?.Invoke(this, EventArgs.Empty);
+            PaceChanged?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion
@@ -196,6 +301,8 @@ namespace Raphael.Desktop.ViewModels.LiveMap
             Legs = new LiveMapLegsStore(service, new RoutingApiService());
             Legs.Changed += _ => OnPropertyChanged(nameof(RoutesStatus));
             _trafficTimer.Tick += async (_, _) => await RefreshTrafficAsync();
+            _punctualityTimer.Tick += async (_, _) => await RefreshPunctualityAsync();
+            RefreshDelaysAvailability();
 
             // Opening a card selects its vehicle too: what the card describes is what the map shows.
             RouteCard.PropertyChanged += (_, e) =>
@@ -265,7 +372,14 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         public string LayerRoutesText => LocalizationService.Instance["livemap.LayerRoutes"];
         public string LayerTrafficText => LocalizationService.Instance["livemap.LayerTraffic"];
         public string LayerDelaysText => LocalizationService.Instance["livemap.LayerDelays"];
-        public string LayerDelaysHint => LocalizationService.Instance["livemap.LayerDelaysHint"];
+        public string LayerDelaysHint => LocalizationService.Instance[ShowDelaysTomTom ? "livemap.LayerDelaysTomTomHint" : "livemap.LayerDelaysHint"];
+        /// <summary>Where the pace colours come from right now, under the legend.</summary>
+        public string PaceSourceText => LocalizationService.Instance[ShowDelays ? "livemap.PaceFromGoogle" : ShowDelaysTomTom ? "livemap.PaceFromTomTom" : "livemap.PaceFromEta"];
+        public string LayerDelaysTomTomText => LocalizationService.Instance["livemap.LayerDelaysTomTom"];
+        public string LayerDelaysTomTomTip => LocalizationService.Instance[CanShowDelaysTomTom ? "livemap.LayerDelaysTomTomTip" : "livemap.LayerDelaysTomTomNeedsKey"];
+        partial void OnCanShowDelaysTomTomChanged(bool value) => OnPropertyChanged(nameof(LayerDelaysTomTomTip));
+        public string LayerDelaysTip => LocalizationService.Instance[CanShowDelays ? "livemap.LayerDelaysTip" : "livemap.LayerDelaysNeedsKey"];
+        partial void OnCanShowDelaysChanged(bool value) => OnPropertyChanged(nameof(LayerDelaysTip));
         public string SelTripText => LocalizationService.Instance["livemap.SelTrip"];
         public string SelDayText => LocalizationService.Instance["livemap.SelDay"];
         public string SelDetailsText => LocalizationService.Instance["livemap.SelDetails"];
@@ -368,6 +482,10 @@ namespace Raphael.Desktop.ViewModels.LiveMap
 
             await LoadSnapshotAsync(frame: true);
 
+            // Pace from the first minute, with nothing to switch on.
+            _ = RefreshPunctualityAsync();
+            _punctualityTimer.Start();
+
             // Routed/unrouted today can move a line between On route and Idle.
             await _board.WatchDayAsync(_operatingDate ?? DateTime.Today);
         }
@@ -376,12 +494,17 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         {
             _animator.Stop();
             _clock.Stop();
+            _punctualityTimer.Stop();
+            _trafficTimer.Stop();
             _reloadDebounce.Stop();
             LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
             await _board.StopAsync();
         }
 
         private DateTime? _operatingDate;
+
+        /// <summary>The day the map shows (the snapshot's), for the dock's trip search.</summary>
+        public DateTime OperatingDate => _operatingDate ?? DateTime.Today;
 
         private void QueueReload() =>
             Application.Current?.Dispatcher.BeginInvoke(() =>
@@ -586,7 +709,7 @@ namespace Raphael.Desktop.ViewModels.LiveMap
                      {
                          nameof(Title), nameof(FiltersHeader), nameof(LegendHeader), nameof(FleetHeader),
                          nameof(LegendMoving), nameof(LegendStopped), nameof(LegendSpeeding), nameof(LegendStale),
-                         nameof(FitText), nameof(LayersHeader), nameof(RoutesLegend1), nameof(RoutesLegend2), nameof(RoutesLegend3), nameof(TrafficLegend), nameof(DelaysLegend), nameof(SelLegendDriven), nameof(SelLegendAhead), nameof(SelLegendPlan), nameof(SelLegendPickup), nameof(SelLegendDropoff), nameof(SelLegendArrived), nameof(SelLegendDirection), nameof(SelLegendApproach), nameof(RoutesStatus), nameof(LayerRoutesText), nameof(LayerTrafficText), nameof(LayerDelaysText), nameof(LayerDelaysHint), nameof(SelTripText), nameof(SelDayText), nameof(SelDetailsText), nameof(SelCloseText), nameof(TodayHeader), nameof(DriversHeader), nameof(DriversLegend), nameof(NoDriversText), nameof(MapRoadText), nameof(MapSatelliteText), nameof(MapLabelsText), nameof(ZoomInText), nameof(ZoomOutText), nameof(ToggleWindowText), nameof(LastFixText), nameof(Summary)
+                         nameof(FitText), nameof(LayersHeader), nameof(RoutesLegend1), nameof(RoutesLegend2), nameof(RoutesLegend3), nameof(TrafficLegend), nameof(DelaysLegend), nameof(SelLegendDriven), nameof(SelLegendAhead), nameof(SelLegendPlan), nameof(SelLegendPickup), nameof(SelLegendDropoff), nameof(SelLegendArrived), nameof(SelLegendDirection), nameof(SelLegendApproach), nameof(RoutesStatus), nameof(LayerRoutesText), nameof(LayerTrafficText), nameof(LayerDelaysText), nameof(LayerDelaysHint), nameof(SelTripText), nameof(SelDayText), nameof(SelDetailsText), nameof(SelFollowText), nameof(SelCloseText), nameof(TodayHeader), nameof(DriversHeader), nameof(DriversLegend), nameof(NoDriversText), nameof(MapRoadText), nameof(MapSatelliteText), nameof(MapLabelsText), nameof(ZoomInText), nameof(ZoomOutText), nameof(ToggleWindowText), nameof(LastFixText), nameof(Summary)
                      })
                 OnPropertyChanged(name);
 

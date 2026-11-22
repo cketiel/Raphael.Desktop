@@ -25,7 +25,15 @@
             --mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
         }
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0 3px 0 2px; background: #fff; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden; }
+        html, body { margin: 0; padding: 0 3px 0 2px; background: transparent; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; overflow: hidden; }
+
+        /* The Desktop's card is dark glass and the WebView is transparent: the bar takes the live card's
+           dark tokens so the bar and the clock card read as one surface (2026-11-22). Booking keeps its light theme. */
+        :root {
+            --ds-surface: #0e1b26; --ds-on-surface: #f2f8fb; --ds-on-surface-variant: #9fbccb; --ds-outline: rgba(207, 228, 239, 0.38);
+            --ds-success: #2fbf7a; --ds-pickup: #ef6b5b; --ds-dropoff: #3fb6e8;
+            --st-late: #f0923f; --st-late-ink: #f7bd81; --st-inprogress: #a98cf7;
+        }
 
         /* ---------- TripProgressBar ---------- */
         .tpb { min-width: 0; margin-bottom: 14px; }

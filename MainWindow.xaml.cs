@@ -184,6 +184,10 @@ namespace Raphael.Desktop
         {
             // Set to full screen
             this.WindowState = WindowState.Maximized;
+
+            // The live map's browser process starts now, idle, so opening the map does not wait for it.
+            _ = Dispatcher.BeginInvoke(new Action(() => _ = Services.Maps.MapWebViewHost.PrewarmAsync()),
+                System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             //this.WindowStyle = WindowStyle.None;
             //this.Topmost = true; // To keep the window always in front
 
@@ -453,6 +457,11 @@ namespace Raphael.Desktop
             var tab = MainTabControl.Items
                 .OfType<TabItem>()
                 .FirstOrDefault(item => item.Tag?.ToString() == title);
+
+            // ⚠️ A live composition WebView2 must never change window: moved, it can stall WPF's
+            // render thread and freeze both windows (seen 2026-11-21). The view lets go of its web
+            // views here and makes new ones in the new window; the fleet lives in the view model.
+            _liveMapView.ReleaseWebViews();
 
             if (tab is not null)
             {

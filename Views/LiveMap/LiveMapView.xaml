@@ -5,6 +5,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              xmlns:conv="clr-namespace:Raphael.Desktop.Views.LiveMap"
+             xmlns:svc="clr-namespace:Raphael.Desktop.Services"
              helpers:HelpAssist.TopicId="desktop/live-map/overview">
 
     <UserControl.Resources>
@@ -15,22 +16,86 @@
         <conv:RatioToMarginConverter x:Key="LmRatioToMargin"/>
         <conv:MinusConverter x:Key="LmMinus"/>
 
-        <!-- Panels: frosted light glass, after the God's Eye View windows but in a sober gray. -->
-        <SolidColorBrush x:Key="LmPanelBg" Color="#EBF5F7F9"/>
-        <SolidColorBrush x:Key="LmPanelBorder" Color="#1F0F1E2E"/>
-        <SolidColorBrush x:Key="LmTitle" Color="#5B6B7C"/>
-        <SolidColorBrush x:Key="LmText" Color="#1E2A36"/>
-        <SolidColorBrush x:Key="LmDivider" Color="#260F1E2E"/>
+        <!-- Panels: God's Eye View's glass windows, colour for colour (glass-bg, glass-border,
+             text-primary, text-secondary, text-dim, accent). The accent follows the visual preset. -->
+        <SolidColorBrush x:Key="LmPanelBg" Color="#B80C0C14"/>
+        <SolidColorBrush x:Key="LmPanelBorder" Color="#14FFFFFF"/>
+        <SolidColorBrush x:Key="LmTitle" Color="#80E8EAED"/>
+        <SolidColorBrush x:Key="LmDim" Color="#4DE8EAED"/>
+        <SolidColorBrush x:Key="LmText" Color="#E8EAED"/>
+        <SolidColorBrush x:Key="LmAccent" Color="#00D4FF"/>
+        <SolidColorBrush x:Key="LmAccentDim" Color="#2600D4FF"/>
+        <SolidColorBrush x:Key="LmChip" Color="#0AFFFFFF"/>
+        <SolidColorBrush x:Key="LmChipBorder" Color="#14FFFFFF"/>
+        <LinearGradientBrush x:Key="LmDivider" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#4700D4FF" Offset="0"/>
+            <GradientStop Color="#2E00D4FF" Offset="0.58"/>
+            <GradientStop Color="#0000D4FF" Offset="1"/>
+        </LinearGradientBrush>
+        <FontFamily x:Key="LmMono">JetBrains Mono, Cascadia Mono, Consolas</FontFamily>
+
+        <!-- God's Eye's scrollbar: 6 px, a faint track and a cyan thumb fading down. -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="MinWidth" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Border Background="#0AFFFFFF" CornerRadius="3">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border CornerRadius="3">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                            <GradientStop Color="#A600D4FF" Offset="0"/>
+                                                            <GradientStop Color="#3300D4FF" Offset="1"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Height" Value="6"/>
+                    <Setter Property="Width" Value="Auto"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="Foreground" Value="{StaticResource LmText}"/>
+            <Setter Property="Background" Value="{DynamicResource LmAccent}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LmTitle}"/>
+        </Style>
+
+        <Style x:Key="LmOutlined" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+            <Setter Property="Foreground" Value="{DynamicResource LmAccent}"/>
+            <Setter Property="BorderBrush" Value="#6B00D4FF"/>
+            <Setter Property="Background" Value="#0AFFFFFF"/>
+            <Setter Property="FontFamily" Value="{StaticResource LmMono}"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
 
         <Style x:Key="LmPanel" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource LmPanelBg}"/>
             <Setter Property="BorderBrush" Value="{StaticResource LmPanelBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="14"/>
-            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="16,14,16,12"/>
+            <Setter Property="TextElement.Foreground" Value="{StaticResource LmText}"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="18" ShadowDepth="2" Opacity="0.12" Color="#0F1E2E"/>
+                    <DropShadowEffect BlurRadius="32" ShadowDepth="8" Direction="270" Opacity="0.5" Color="Black"/>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -57,10 +122,13 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <ContentPresenter Content="{Binding Header, RelativeSource={RelativeSource AncestorType=Expander}}"
-                                                              TextElement.FontSize="11" TextElement.FontWeight="SemiBold"
-                                                              TextElement.Foreground="{StaticResource LmTitle}"/>
-                                            <Rectangle Grid.Column="1" Height="1" Fill="{StaticResource LmDivider}" Margin="10,0" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="Sign" Grid.Column="2" Text="–" Foreground="{StaticResource LmTitle}" FontSize="13"/>
+                                                              TextElement.FontSize="10" TextElement.FontFamily="{StaticResource LmMono}"
+                                                              TextElement.Foreground="{StaticResource LmDim}" VerticalAlignment="Center"/>
+                                            <Rectangle Grid.Column="1" Height="1" Fill="{DynamicResource LmDivider}" Margin="12,0" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="2" Width="22" Height="22" CornerRadius="6" Background="#08FFFFFF" BorderBrush="#1FFFFFFF" BorderThickness="1">
+                                                <TextBlock x:Name="Sign" Text="–" Foreground="{StaticResource LmDim}" FontSize="13" FontFamily="{StaticResource LmMono}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
                                         </Grid>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsChecked" Value="False">
@@ -89,13 +157,14 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" CornerRadius="7" Padding="12,6" Background="Transparent">
-                            <ContentPresenter x:Name="Txt" TextElement.Foreground="{StaticResource LmText}" HorizontalAlignment="Center"/>
+                        <Border x:Name="Bg" CornerRadius="4" Padding="12,5" Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                            <ContentPresenter x:Name="Txt" TextElement.Foreground="{StaticResource LmTitle}" TextElement.FontFamily="{StaticResource LmMono}" TextElement.FontSize="11" HorizontalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="Tag" Value="On">
-                                <Setter TargetName="Bg" Property="Background" Value="#1F6FD1"/>
-                                <Setter TargetName="Txt" Property="TextElement.Foreground" Value="White"/>
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource LmAccentDim}"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource LmAccent}"/>
+                                <Setter TargetName="Txt" Property="TextElement.Foreground" Value="{DynamicResource LmAccent}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bg" Property="Opacity" Value="0.9"/>
@@ -107,56 +176,277 @@
         </Style>
 
 
-        <!-- Card illustrations, flat, side view. AMB: minivan. WCH: high van with the ramp down.
-             STR: high-roof van with the rear doors open and a stretcher. -->
+        <!-- Card illustrations (2026-11-22): side views drawn in vectors, with depth. A white body lit from
+             above (LmArtBody), a blue livery stripe, tinted glass with a reflection, door seams, handles,
+             mirror, lights, wheels with tyre, rim, spokes and a dark arch, and a soft shadow on the ground.
+             AMB: minivan. WCH: high-roof van with the rear ramp down and the access symbol. STR: high-roof
+             van with the rear doors open and the stretcher coming out. Front to the right. -->
+        <LinearGradientBrush x:Key="LmArtBody" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#F3F6F9" Offset="0.42"/>
+            <GradientStop Color="#D6DDE4" Offset="0.78"/>
+            <GradientStop Color="#A9B4BF" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="LmArtGlass" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#7B96AF" Offset="0"/>
+            <GradientStop Color="#2A3B4C" Offset="0.45"/>
+            <GradientStop Color="#111B25" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="LmArtStripe" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#2E7FE0" Offset="0"/>
+            <GradientStop Color="#1556A8" Offset="1"/>
+        </LinearGradientBrush>
+        <RadialGradientBrush x:Key="LmArtRim" GradientOrigin="0.38,0.32">
+            <GradientStop Color="#F4F6F8" Offset="0"/>
+            <GradientStop Color="#B9C1C9" Offset="0.55"/>
+            <GradientStop Color="#5E666E" Offset="1"/>
+        </RadialGradientBrush>
+        <RadialGradientBrush x:Key="LmArtShadow">
+            <GradientStop Color="#73000000" Offset="0"/>
+            <GradientStop Color="#00000000" Offset="1"/>
+        </RadialGradientBrush>
+        <LinearGradientBrush x:Key="LmArtLamp" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#FFF0B8" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Raphael's official logo (the designer's V7, Raphael.Driver/Resources/Images/logo_official.svg) with
+             the gold halo of the final decision of 2026-11-02, in vectors, for the card illustrations. Never
+             tinted: it keeps its own colours. -->
+        <DrawingImage x:Key="LmLogo">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Geometry="M31,122.6 A19,4.2 0 1 0 69,122.6 A19,4.2 0 1 0 31,122.6 Z">
+                        <GeometryDrawing.Brush>
+                            <RadialGradientBrush><GradientStop Color="#6B053F59" Offset="0"/><GradientStop Color="#24053F59" Offset="0.6"/><GradientStop Color="#00053F59" Offset="1"/></RadialGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Geometry="F0 M50 121.5c-2 0-3.2-1.2-4.4-3C34 100 2 82 2 49a48 48 0 0 1 96 0c0 33-32 51-43.6 69.5c-1.2 1.8-2.4 3-4.4 3ZM50 14a34 34 0 1 0 0 68a34 34 0 1 0 0-68Z">
+                        <GeometryDrawing.Brush>
+                            <LinearGradientBrush StartPoint="0.85,0.05" EndPoint="0.2,0.95">
+                                <GradientStop Color="#50ABC1" Offset="0"/><GradientStop Color="#318FB0" Offset="0.55"/><GradientStop Color="#216D92" Offset="1"/>
+                            </LinearGradientBrush>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#FFFFFF" Geometry="M16,48 A34,34 0 1 0 84,48 A34,34 0 1 0 16,48 Z"/>
+                    <DrawingGroup ClipGeometry="M16,48 A34,34 0 1 0 84,48 A34,34 0 1 0 16,48 Z">
+                        <GeometryDrawing Brush="#0A5C80" Geometry="M44.5 50c-7-1-13.5-5-16.5-12c-2.6-6-2-13 .5-17c5 4 11 8 14 14c2.4 5 3 10 2 15Z M55.5 50c7-1 13.5-5 16.5-12c2.6-6 2-13-.5-17c-5 4-11 8-14 14c-2.4 5-3 10-2 15Z M42.4,31.5 A7.6,7.6 0 1 0 57.6,31.5 A7.6,7.6 0 1 0 42.4,31.5 Z M37.5 56c0-9.5 5.6-15 12.5-15s12.5 5.5 12.5 15c0 2.6-1.2 3.6-3.4 3.6H57V86H43V59.6h-2.1c-2.2 0-3.4-1-3.4-3.6Z"/>
+                        <GeometryDrawing Brush="#FFFFFF" Geometry="M25.9,58 A5.6,5.6 0 1 0 37.1,58 A5.6,5.6 0 1 0 25.9,58 Z M21 86V73c0-6 4.4-9.6 10.5-9.6S42 67 42 73v13Z M62.9,58 A5.6,5.6 0 1 0 74.1,58 A5.6,5.6 0 1 0 62.9,58 Z M58 86V73c0-6 4.4-9.6 10.5-9.6S79 67 79 73v13Z">
+                            <GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="2.4"/></GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#0A5C80" Geometry="M25.9,58 A5.6,5.6 0 1 0 37.1,58 A5.6,5.6 0 1 0 25.9,58 Z M21 86V73c0-6 4.4-9.6 10.5-9.6S42 67 42 73v13Z M62.9,58 A5.6,5.6 0 1 0 74.1,58 A5.6,5.6 0 1 0 62.9,58 Z M58 86V73c0-6 4.4-9.6 10.5-9.6S79 67 79 73v13Z"/>
+                    </DrawingGroup>
+                    <GeometryDrawing Geometry="M41.4,21.4 A8.6,2.4 0 1 0 58.6,21.4 A8.6,2.4 0 1 0 41.4,21.4 Z">
+                        <GeometryDrawing.Pen><Pen Brush="#E9A23B" Thickness="2.1"/></GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <!-- One wheel, centred on (0,0): dark arch, tyre, rim with five spokes, hub. -->
+        <DataTemplate x:Key="LmArtWheel">
+            <Canvas>
+                <Ellipse Canvas.Left="-18" Canvas.Top="-18" Width="36" Height="36" Fill="#262B31"/>
+                <Ellipse Canvas.Left="-15" Canvas.Top="-15" Width="30" Height="30" Fill="#15181B"/>
+                <Ellipse Canvas.Left="-13.5" Canvas.Top="-13.5" Width="27" Height="27" Stroke="#24292E" StrokeThickness="1.4"/>
+                <Ellipse Canvas.Left="-9.5" Canvas.Top="-9.5" Width="19" Height="19" Fill="{StaticResource LmArtRim}" Stroke="#4B535B" StrokeThickness="0.8"/>
+                <Path Fill="#59616A" Data="M0,-8.6 L1.4,-2 L-1.4,-2 Z M8.2,-2.7 L1.9,0.4 L1.1,-2.2 Z M5.1,7 L0.6,2.1 L2.8,0.7 Z M-5.1,7 L-2.8,0.7 L-0.6,2.1 Z M-8.2,-2.7 L-1.1,-2.2 L-1.9,0.4 Z"/>
+                <Ellipse Canvas.Left="-2.6" Canvas.Top="-2.6" Width="5.2" Height="5.2" Fill="#3B434B"/>
+                <Ellipse Canvas.Left="-1.2" Canvas.Top="-1.8" Width="2" Height="1.4" Fill="#FFFFFF" Opacity="0.55"/>
+            </Canvas>
+        </DataTemplate>
+
         <DataTemplate x:Key="LmArtAmb">
+            <!-- A modern MPV (after the user's reference, 2026-11-22): tall body, short bonnet, steep
+                 windscreen, near-vertical tailgate, one dark glasshouse with black pillars so the roof
+                 floats, a dark glass roof, roof rails, a chrome waist line, a rising shoulder crease, a
+                 wrap-round tail lamp and large alloys, in a light metallic blue-grey. -->
             <Viewbox>
-                <Canvas Width="104" Height="58">
-                    <Path Fill="#1F6FD1" Data="M6,38 L10,22 C12,16 16,14 24,14 L66,14 C74,14 80,18 86,26 L96,30 C99,31 100,33 100,36 L100,42 L6,42 Z"/>
-                    <Path Fill="#E6F1FB" Data="M26,18 L44,18 L44,28 L18,28 Z M48,18 L64,18 C70,18 74,21 78,28 L48,28 Z"/>
-                    <Ellipse Canvas.Left="16" Canvas.Top="35" Width="16" Height="16" Fill="#2C2C2A"/>
-                    <Ellipse Canvas.Left="72" Canvas.Top="35" Width="16" Height="16" Fill="#2C2C2A"/>
-                    <Ellipse Canvas.Left="20" Canvas.Top="39" Width="8" Height="8" Fill="#B4B2A9"/>
-                    <Ellipse Canvas.Left="76" Canvas.Top="39" Width="8" Height="8" Fill="#B4B2A9"/>
+                <Canvas Width="208" Height="116">
+                    <Canvas.Resources>
+                        <LinearGradientBrush x:Key="Paint" StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#F2F7FB" Offset="0"/>
+                            <GradientStop Color="#C9D9E7" Offset="0.35"/>
+                            <GradientStop Color="#A9BFD3" Offset="0.62"/>
+                            <GradientStop Color="#7F97AD" Offset="0.9"/>
+                            <GradientStop Color="#647B90" Offset="1"/>
+                        </LinearGradientBrush>
+                        <LinearGradientBrush x:Key="Dlo" StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#4C5D6E" Offset="0"/>
+                            <GradientStop Color="#1C2530" Offset="0.5"/>
+                            <GradientStop Color="#0C1117" Offset="1"/>
+                        </LinearGradientBrush>
+                        <LinearGradientBrush x:Key="Tail" StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#7A1414" Offset="0"/>
+                            <GradientStop Color="#E0453F" Offset="0.6"/>
+                            <GradientStop Color="#F58A82" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Canvas.Resources>
+                    <Ellipse Canvas.Left="14" Canvas.Top="96" Width="186" Height="16" Fill="{StaticResource LmArtShadow}"/>
+                    <!-- roof rails -->
+                    <Path Stroke="#C9CED3" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M34,23.4 L118,21.6"/>
+                    <Path Fill="#9AA2AA" Data="M36,23.4 L40,23.4 L41,26 L35,26 Z M112,21.8 L116,21.7 L117,24.6 L111,24.7 Z"/>
+                    <!-- body -->
+                    <Path Fill="{StaticResource Paint}" Stroke="#5E7286" StrokeThickness="0.7"
+                          Data="M12,82 L12,58 C12,47 14,39 18,33 C20,29.5 24,27.5 30,27.5 L118,25.6 C128,25.6 136,29 144,35 L166,49.5 L192,55.5 C199,57.5 203,61.5 203,67.5 L203,82 C203,86 200,88 196,88 L182,88 A21,21 0 0 0 140,88 L72,88 A21,21 0 0 0 30,88 L18,88 C14,88 12,86 12,82 Z"/>
+                    <!-- glass roof and the glasshouse -->
+                    <Path Fill="#1A232D" Opacity="0.85" Data="M34,27 L118,25.4 C124,25.4 129,26.8 134,29.4 L36,30.6 Z"/>
+                    <Path Fill="{StaticResource Dlo}" Data="M21,37 C23,33.4 26,32.2 31,32.2 L116,30.6 C124.5,30.6 131,33.6 138,38.6 L157,51.6 L20.4,53.6 Z"/>
+                    <!-- black pillars: D at the tailgate, C, B; the A pillar runs into the screen -->
+                    <Path Fill="#0E1318" Data="M20.4,53.6 L21,37 C23,33.4 26,32.2 31,32.2 L33,32.2 L30,53.4 Z M70,31.4 L75,31.3 L74,53 L69,53.1 Z M110,30.7 L114.5,30.6 L114.2,52.4 L109.8,52.5 Z"/>
+                    <!-- reflections -->
+                    <Path Fill="#FFFFFF" Opacity="0.2" Data="M36,50 L52,34 L60,34 L44,50 Z M80,50 L94,33.4 L99,33.4 L86,50 Z M119,50 L128,34.4 L132,36 L124,50 Z"/>
+                    <!-- chrome waist line -->
+                    <Path Stroke="#E9EEF2" StrokeThickness="1.2" Data="M21,54.6 L157,52.6"/>
+                    <!-- shoulder crease: light above, shade below -->
+                    <Path Stroke="#FFFFFF" StrokeThickness="1.1" Opacity="0.8" Data="M24,62 C70,61 130,61.4 186,60.4"/>
+                    <Path Stroke="#5F7489" StrokeThickness="0.7" Opacity="0.7" Data="M24,63.6 C70,62.6 130,63 186,62"/>
+                    <!-- lower sill shade -->
+                    <Path Fill="#5A7084" Opacity="0.45" Data="M30,80 C40,79 60,79 72,80 L140,80 C150,79 170,79 182,80 L182,86 L140,86 L72,86 L30,86 Z"/>
+                    <!-- door seams, handles, mirror -->
+                    <Path Stroke="#61768A" StrokeThickness="0.8" Data="M74,53.4 L73,87 M114,52.6 L117,87 M117,87"/>
+                    <Path Fill="#DDE4EA" Stroke="#6B7F92" StrokeThickness="0.4" Data="M95,58.4 L104,58.2 L104,60.2 L95,60.4 Z M136,57.8 L145,57.6 L145,59.6 L136,59.8 Z"/>
+                    <Path Fill="#1C252E" Data="M150,46 L159,44 L162,50.6 L152.6,51.6 Z"/>
+                    <!-- Raphael livery: the logo and RAPHAEL in red -->
+                    <Image Canvas.Left="84" Canvas.Top="65" Width="9" Height="11.5" Source="{StaticResource LmLogo}"/>
+                    <TextBlock Canvas.Left="95" Canvas.Top="65.16000000000001" Text="RAPHAEL" FontSize="8" FontWeight="Black" FontFamily="Segoe UI" Foreground="#D62828"/>
+                    <!-- lamps: wrap-round tail, swept headlamp -->
+                    <Path Fill="{StaticResource Tail}" Stroke="#5A0E0E" StrokeThickness="0.5" Data="M12.2,45 L22,42.6 L23.6,55.6 L12.2,58 Z"/>
+                    <Path Fill="{StaticResource LmArtLamp}" Stroke="#9AA6B0" StrokeThickness="0.5" Data="M181,56.6 L201,61.6 L199.6,66.2 L184,63.4 Z"/>
+                    <!-- bumpers and lower intake -->
+                    <Path Fill="#4A5763" Data="M186,72 L203,73 L203,82 C203,86 200,88 196,88 L184,88 Z"/>
+                    <Path Fill="#1B2229" Data="M190,75 L202,76 L202,80 L190,79.4 Z"/>
+                    <Path Fill="#4A5763" Data="M12,74 L24,74 L24,88 L18,88 C14,88 12,86 12,82 Z"/>
+                    <Path Fill="#C9444A" Data="M13,76 L17,76 L17,78 L13,78 Z"/>
+                    <!-- large alloys -->
+                    <ContentControl Canvas.Left="51" Canvas.Top="88" ContentTemplate="{StaticResource LmArtWheel}" Content="wheel">
+                        <ContentControl.RenderTransform><ScaleTransform ScaleX="1.15" ScaleY="1.15"/></ContentControl.RenderTransform>
+                    </ContentControl>
+                    <ContentControl Canvas.Left="161" Canvas.Top="88" ContentTemplate="{StaticResource LmArtWheel}" Content="wheel">
+                        <ContentControl.RenderTransform><ScaleTransform ScaleX="1.15" ScaleY="1.15"/></ContentControl.RenderTransform>
+                    </ContentControl>
                 </Canvas>
             </Viewbox>
         </DataTemplate>
+
         <DataTemplate x:Key="LmArtWch">
             <Viewbox>
-                <Canvas Width="104" Height="58">
-                    <Path Fill="#1F6FD1" Data="M14,42 L14,10 C14,7 16,6 19,6 L72,6 C80,6 86,12 90,22 L98,28 C100,30 100,32 100,35 L100,42 Z"/>
-                    <Path Fill="#E6F1FB" Data="M22,12 L40,12 L40,24 L22,24 Z M46,12 L70,12 C76,12 80,16 84,24 L46,24 Z"/>
-                    <Path Fill="#5F5E5A" Data="M14,40 L0,52 L4,54 L16,43 Z"/>
-                    <Ellipse Canvas.Left="24" Canvas.Top="35" Width="16" Height="16" Fill="#2C2C2A"/>
-                    <Ellipse Canvas.Left="74" Canvas.Top="35" Width="16" Height="16" Fill="#2C2C2A"/>
-                    <Ellipse Canvas.Left="28" Canvas.Top="39" Width="8" Height="8" Fill="#B4B2A9"/>
-                    <Ellipse Canvas.Left="78" Canvas.Top="39" Width="8" Height="8" Fill="#B4B2A9"/>
-                    <materialDesign:PackIcon Canvas.Left="52" Canvas.Top="25" Kind="Wheelchair" Width="12" Height="12" Foreground="White"/>
+                <Canvas Width="208" Height="116">
+                    <Ellipse Canvas.Left="16" Canvas.Top="96" Width="184" Height="16" Fill="{StaticResource LmArtShadow}"/>
+                    <!-- the ramp, lowered from the rear -->
+                    <Path Fill="#9AA4AE" Stroke="#5F6973" StrokeThickness="0.8" Data="M16,86 L1,104 L7,106 L19,90 Z"/>
+                    <Path Stroke="#6E7882" StrokeThickness="0.7" Data="M13,90 L16,92 M10,94 L13,96 M7,98 L10,100"/>
+                    <!-- body: high roof, short bonnet -->
+                    <Path Fill="{StaticResource LmArtBody}" Stroke="#7D8A97" StrokeThickness="0.8"
+                          Data="M14,86 L14,19 C14,13 18,10 24,10 L146,10 C154,10 160,14 164,22 L176,47 L194,53 C200,55 203,59 203,65 L203,84 C203,88 200,90 196,90 L182,90 A18,18 0 0 0 146,90 L70,90 A18,18 0 0 0 34,90 L18,90 C16,90 14,88 14,86 Z"/>
+                    <Path Fill="#FFFFFF" Opacity="0.7" Data="M20,13 L146,13 C152,13 157,16 160,21 L146,17 L22,17 Z"/>
+                    <!-- glass -->
+                    <Path Fill="{StaticResource LmArtGlass}" Data="M24,24 L64,24 L64,47 L24,47 Z M70,24 L111,24 L111,47 L70,47 Z M118,24 L147,24 C153,24 157,28 161,34 L169,50 L118,50 Z"/>
+                    <Path Fill="#FFFFFF" Opacity="0.22" Data="M28,27 L42,27 L32,44 L28,44 Z M74,27 L88,27 L78,44 L74,44 Z M122,27 L135,27 L125,46 L122,46 Z"/>
+                    <!-- stripe, access symbol, seams, handle, mirror -->
+                    <Path Fill="{StaticResource LmArtStripe}" Data="M14.5,62 L202.6,63 L202.8,68 L14.5,68 Z"/>
+                    <!-- the international access symbol, drawn: head, seat and back, wheel -->
+                    <Rectangle Canvas.Left="80" Canvas.Top="70" Width="17" Height="17" RadiusX="2" RadiusY="2" Fill="#1556A8"/>
+                    <Ellipse Canvas.Left="86.2" Canvas.Top="72.2" Width="2.8" Height="2.8" Fill="#FFFFFF"/>
+                    <Path Stroke="#FFFFFF" StrokeThickness="1.4" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M87.4,76.4 L87.4,80.6 L91.4,80.6 L93.2,84.6"/>
+                    <Path Stroke="#FFFFFF" StrokeThickness="1.3" Data="M89.6,78.4 A4.2,4.2 0 1 1 84.4,79.2"/>
+                    <!-- Raphael livery: the logo and RAPHAEL in red -->
+                    <Image Canvas.Left="24" Canvas.Top="50" Width="9" Height="11.5" Source="{StaticResource LmLogo}"/>
+                    <TextBlock Canvas.Left="35" Canvas.Top="50.15" Text="RAPHAEL" FontSize="8" FontWeight="Black" FontFamily="Segoe UI" Foreground="#D62828"/>
+                    <Path Stroke="#94A0AC" StrokeThickness="0.9" Data="M67,12 L67,88 M114,12 L114,88"/>
+                    <Path Fill="#55616D" Data="M100,54 L107,54 L107,56 L100,56 Z M148,56 L155,56 L155,58 L148,58 Z"/>
+                    <Path Fill="#2E3A45" Data="M162,40 L171,38 L173,45 L164,46 Z"/>
+                    <Path Fill="{StaticResource LmArtLamp}" Stroke="#B8A04E" StrokeThickness="0.6" Data="M188,54 L200,57 L200,62 L188,60 Z"/>
+                    <Path Fill="#D23B3B" Data="M14.5,50 L20,49 L20,64 L14.5,64 Z"/>
+                    <Path Fill="#3A434C" Data="M186,74 L203,74 L203,84 C203,88 200,90 196,90 L184,90 Z"/>
+                    <Path Fill="#20262C" Data="M192,66 L202,68 L202,72 L192,71 Z"/>
+                    <Path Fill="#3A434C" Data="M14,78 L22,78 L22,90 L18,90 C16,90 14,88 14,86 Z"/>
+                    <Path Stroke="#FFFFFF" StrokeThickness="1" Opacity="0.75" Data="M22,74 L184,74"/>
+                    <Path Stroke="#8C98A4" StrokeThickness="0.6" Opacity="0.8" Data="M22,75.4 L184,75.4"/>
+                    <ContentControl Canvas.Left="52" Canvas.Top="90" ContentTemplate="{StaticResource LmArtWheel}" Content="wheel"/>
+                    <ContentControl Canvas.Left="164" Canvas.Top="90" ContentTemplate="{StaticResource LmArtWheel}" Content="wheel"/>
                 </Canvas>
             </Viewbox>
         </DataTemplate>
+
         <DataTemplate x:Key="LmArtStr">
             <Viewbox>
-                <Canvas Width="104" Height="58">
-                    <Path Fill="#1F6FD1" Data="M12,42 L12,4 C12,2 13,1 16,1 L72,1 C80,1 86,10 90,22 L98,28 C100,30 100,32 100,35 L100,42 Z"/>
-                    <Path Fill="#E6F1FB" Data="M58,8 L70,8 C76,8 80,14 84,24 L58,24 Z"/>
-                    <Rectangle Canvas.Left="2" Canvas.Top="6" Width="9" Height="32" Fill="#185FA5"/>
-                    <Rectangle Canvas.Left="20" Canvas.Top="18" Width="30" Height="4" Fill="White"/>
-                    <Rectangle Canvas.Left="31" Canvas.Top="11" Width="8" Height="18" Fill="White"/>
-                    <Ellipse Canvas.Left="22" Canvas.Top="35" Width="16" Height="16" Fill="#2C2C2A"/>
-                    <Ellipse Canvas.Left="74" Canvas.Top="35" Width="16" Height="16" Fill="#2C2C2A"/>
-                    <Ellipse Canvas.Left="26" Canvas.Top="39" Width="8" Height="8" Fill="#B4B2A9"/>
-                    <Ellipse Canvas.Left="78" Canvas.Top="39" Width="8" Height="8" Fill="#B4B2A9"/>
+                <Canvas Width="208" Height="116">
+                    <Ellipse Canvas.Left="10" Canvas.Top="96" Width="190" Height="16" Fill="{StaticResource LmArtShadow}"/>
+                    <!-- body: high roof, the rear opening in shadow -->
+                    <Path Fill="{StaticResource LmArtBody}" Stroke="#7D8A97" StrokeThickness="0.8"
+                          Data="M22,86 L22,19 C22,13 25,10 31,10 L146,10 C154,10 160,14 164,22 L176,47 L194,53 C200,55 203,59 203,65 L203,84 C203,88 200,90 196,90 L182,90 A18,18 0 0 0 146,90 L74,90 A18,18 0 0 0 38,90 L26,90 C24,90 22,88 22,86 Z"/>
+                    <Path Fill="#FFFFFF" Opacity="0.7" Data="M28,13 L146,13 C152,13 157,16 160,21 L146,17 L30,17 Z"/>
+                    <Path Fill="#1A2530" Data="M22,20 L34,20 L34,84 L22,84 Z"/>
+                    <!-- the rear door, swung open -->
+                    <Path Fill="{StaticResource LmArtBody}" Stroke="#7D8A97" StrokeThickness="0.8" Data="M4,22 L16,18 L16,86 L4,84 Z"/>
+                    <Path Fill="{StaticResource LmArtGlass}" Data="M6,26 L14,23.5 L14,40 L6,41 Z"/>
+                    <Path Fill="{StaticResource LmArtStripe}" Data="M4,62 L16,62 L16,67 L4,67 Z"/>
+                    <!-- the stretcher, coming out: mattress, frame and castors -->
+                    <Path Fill="#F7F9FB" Stroke="#9AA6B2" StrokeThickness="0.8" Data="M0,58 C0,56 1,55 3,55 L34,55 L34,62 L0,62 Z"/>
+                    <Path Fill="#2E7FE0" Data="M0,62 L34,62 L34,64 L0,64 Z"/>
+                    <Path Stroke="#7E8893" StrokeThickness="1.6" Data="M5,64 L19,80 M19,64 L5,80"/>
+                    <Ellipse Canvas.Left="2.5" Canvas.Top="79" Width="5" Height="5" Fill="#2B3036"/>
+                    <Ellipse Canvas.Left="16.5" Canvas.Top="79" Width="5" Height="5" Fill="#2B3036"/>
+                    <!-- glass: cab only, a small rear window -->
+                    <Path Fill="{StaticResource LmArtGlass}" Data="M74,24 L104,24 L104,40 L74,40 Z M118,24 L147,24 C153,24 157,28 161,34 L169,50 L118,50 Z"/>
+                    <Path Fill="#FFFFFF" Opacity="0.22" Data="M78,27 L90,27 L82,38 L78,38 Z M122,27 L135,27 L125,46 L122,46 Z"/>
+                    <Path Fill="{StaticResource LmArtStripe}" Data="M60,62 L202.6,63 L202.8,68 L60,68 Z"/>
+                    <!-- Raphael livery: the logo and RAPHAEL in red -->
+                    <Image Canvas.Left="40" Canvas.Top="43" Width="13" Height="16.6" Source="{StaticResource LmLogo}"/>
+                    <TextBlock Canvas.Left="55" Canvas.Top="43.620000000000005" Text="RAPHAEL" FontSize="11" FontWeight="Black" FontFamily="Segoe UI" Foreground="#D62828"/>
+                    <Path Stroke="#94A0AC" StrokeThickness="0.9" Data="M114,12 L114,88"/>
+                    <Path Fill="#55616D" Data="M148,56 L155,56 L155,58 L148,58 Z"/>
+                    <Path Fill="#2E3A45" Data="M162,40 L171,38 L173,45 L164,46 Z"/>
+                    <Path Fill="{StaticResource LmArtLamp}" Stroke="#B8A04E" StrokeThickness="0.6" Data="M188,54 L200,57 L200,62 L188,60 Z"/>
+                    <Path Fill="#3A434C" Data="M186,74 L203,74 L203,84 C203,88 200,90 196,90 L184,90 Z"/>
+                    <Path Fill="#20262C" Data="M192,66 L202,68 L202,72 L192,71 Z"/>
+                    <Path Stroke="#FFFFFF" StrokeThickness="1" Opacity="0.75" Data="M60,74 L184,74"/>
+                    <Path Stroke="#8C98A4" StrokeThickness="0.6" Opacity="0.8" Data="M60,75.4 L184,75.4"/>
+                    <ContentControl Canvas.Left="56" Canvas.Top="90" ContentTemplate="{StaticResource LmArtWheel}" Content="wheel"/>
+                    <ContentControl Canvas.Left="164" Canvas.Top="90" ContentTemplate="{StaticResource LmArtWheel}" Content="wheel"/>
                 </Canvas>
             </Viewbox>
         </DataTemplate>
 
 
-        <!-- The vehicle as the map draws it: a disc in the group colour, white border, white van. -->
+        <!-- The vehicle as the map draws it: a disc in the group colour, white border, and the van seen
+             from above (live-map.js, topVanSvg) with a stripe in the group colour. Tag = heading in degrees. -->
         <ControlTemplate x:Key="LmVehicleGlyph" TargetType="ContentControl">
             <Grid Width="22" Height="22">
                 <Ellipse Fill="{TemplateBinding Background}" Stroke="White" StrokeThickness="2"/>
-                <materialDesign:PackIcon Kind="VanPassenger" Width="13" Height="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Viewbox Width="9" Height="16" RenderTransformOrigin="0.5,0.5">
+                    <Viewbox.RenderTransform><RotateTransform Angle="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/></Viewbox.RenderTransform>
+                    <Canvas Width="20" Height="36">
+                        <Path Fill="#33414D" Data="M1.2,9.6 L0.2,10.2 L0.2,11.8 L1.6,11.8 Z M18.8,9.6 L19.8,10.2 L19.8,11.8 L18.4,11.8 Z"/>
+                        <Path Stroke="#5D6B78" StrokeThickness="0.6" Data="M3.2,6.4 C3.2,3.4 6,1.6 10,1.6 C14,1.6 16.8,3.4 16.8,6.4 L16.8,32 C16.8,33.4 15.7,34.4 14.4,34.4 L5.6,34.4 C4.3,34.4 3.2,33.4 3.2,32 Z">
+                            <Path.Fill>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#C4CCD4" Offset="0"/><GradientStop Color="#FFFFFF" Offset="0.22"/>
+                                    <GradientStop Color="#FFFFFF" Offset="0.78"/><GradientStop Color="#C4CCD4" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Path.Fill>
+                        </Path>
+                        <Path Fill="#FFF4C2" Data="M4.6,3.4 L6.4,2.5 L6.7,3.6 L4.8,4.2 Z M15.4,3.4 L13.6,2.5 L13.3,3.6 L15.2,4.2 Z"/>
+                        <Path Fill="#1F2E3C" Data="M4.4,9.2 C5.6,7.6 7.6,7 10,7 C12.4,7 14.4,7.6 15.6,9.2 L14.8,12.6 L5.2,12.6 Z"/>
+                        <Rectangle Canvas.Left="5" Canvas.Top="13.6" Width="10" Height="16.4" RadiusX="1.2" RadiusY="1.2" Fill="#F4F7FA" Stroke="#C9D1D9" StrokeThickness="0.5"/>
+                        <Rectangle Canvas.Left="8.6" Canvas.Top="13.6" Width="2.8" Height="16.4" Fill="{TemplateBinding Background}"/>
+                        <Path Fill="#1F2E3C" Data="M5.4,31 L14.6,31 L14.6,32.6 L5.4,32.6 Z"/>
+                        <Path Fill="#D43C3C" Data="M3.4,32.6 L5,32.6 L5,34 L3.6,34 Z M15,32.6 L16.6,32.6 L16.4,34 L15,34 Z"/>
+                    </Canvas>
+                </Viewbox>
+            </Grid>
+        </ControlTemplate>
+
+        <!-- The pace on the map: four corner brackets in the pace colour (Foreground) round the vehicle,
+             as live-map.js draws them (God's Eye's detection bracket). -->
+        <ControlTemplate x:Key="LmBracketGlyph" TargetType="ContentControl">
+            <Grid Width="28" Height="28">
+                <Path Stroke="#59050C12" StrokeThickness="2.4" Data="M1,7 L1,1 L7,1 M21,1 L27,1 L27,7 M27,21 L27,27 L21,27 M7,27 L1,27 L1,21"/>
+                <Path Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" Data="M1,7 L1,1 L7,1 M21,1 L27,1 L27,7 M27,21 L27,27 L21,27 M7,27 L1,27 L1,21"/>
+                <ContentControl Template="{StaticResource LmVehicleGlyph}" Background="#1F6FD1" Tag="0" Width="20" Height="20">
+                    <ContentControl.LayoutTransform><ScaleTransform ScaleX="0.86" ScaleY="0.86"/></ContentControl.LayoutTransform>
+                </ContentControl>
             </Grid>
         </ControlTemplate>
 
@@ -175,15 +465,15 @@
         <Border IsHitTestVisible="False">
             <Border.Background>
                 <RadialGradientBrush RadiusX="0.75" RadiusY="0.8" Center="0.5,0.5" GradientOrigin="0.5,0.5">
-                    <GradientStop Color="#00808A94" Offset="0.55"/>
-                    <GradientStop Color="#4D7A848E" Offset="1"/>
+                    <GradientStop Color="#00000000" Offset="0.55"/>
+                    <GradientStop Color="#40000000" Offset="1"/>
                 </RadialGradientBrush>
             </Border.Background>
         </Border>
 
         <!-- Left: filters and legend -->
-        <Border Style="{StaticResource LmPanel}" Width="276" Margin="16" HorizontalAlignment="Left" VerticalAlignment="Top">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=60}">
+        <Border x:Name="LeftPanel" Style="{StaticResource LmPanel}" Width="276" Margin="16,60,16,16" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=170}">
             <StackPanel>
                 <Expander Style="{StaticResource LmSection}" Header="{Binding FiltersHeader}">
                     <ItemsControl ItemsSource="{Binding Groups}">
@@ -206,12 +496,25 @@
                     </ItemsControl>
                 </Expander>
 
+                <Expander Style="{StaticResource LmSection}" Header="{Binding FleetHeader}" IsExpanded="False">
+                    <ItemsControl ItemsSource="{Binding Summary}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,3">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                    <TextBlock Text="{Binding Label}" Foreground="{StaticResource LmTitle}" FontSize="12.5"/>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Expander>
+
                 <Expander Style="{StaticResource LmSection}" Header="{Binding LayersHeader}">
                     <StackPanel TextElement.FontSize="12.5" TextElement.Foreground="{StaticResource LmText}">
 
                         <!-- Routes in progress -->
                         <CheckBox IsChecked="{Binding ShowRoutes}" Content="{Binding LayerRoutesText}" Margin="0,3" Cursor="Hand" FontWeight="SemiBold"/>
-                        <Border Visibility="{Binding ShowRoutes, Converter={StaticResource LmBoolToVis}}" Background="#F1F4F7" CornerRadius="8" Padding="8,6" Margin="22,2,0,8">
+                        <Border Visibility="{Binding ShowRoutes, Converter={StaticResource LmBoolToVis}}" Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="8" Padding="8,6" Margin="22,2,0,8">
                             <StackPanel TextElement.FontSize="11.5" TextElement.Foreground="{StaticResource LmTitle}">
                                 <StackPanel Orientation="Horizontal" Margin="0,2">
                                     <Grid Width="40" Height="12" VerticalAlignment="Center" Margin="0,0,8,0">
@@ -247,7 +550,7 @@
 
                         <!-- Google traffic -->
                         <CheckBox IsChecked="{Binding ShowTraffic}" Content="{Binding LayerTrafficText}" Margin="0,3" Cursor="Hand" FontWeight="SemiBold"/>
-                        <Border Visibility="{Binding ShowTraffic, Converter={StaticResource LmBoolToVis}}" Background="#F1F4F7" CornerRadius="8" Padding="8,6" Margin="22,2,0,8">
+                        <Border Visibility="{Binding ShowTraffic, Converter={StaticResource LmBoolToVis}}" Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="8" Padding="8,6" Margin="22,2,0,8">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,4">
                                     <Rectangle Width="18" Height="5" Fill="#63D668" RadiusX="2" RadiusY="2" Margin="0,0,3,0"/>
@@ -260,8 +563,14 @@
                         </Border>
 
                         <!-- Delays on each route -->
-                        <CheckBox IsChecked="{Binding ShowDelays}" Content="{Binding LayerDelaysText}" Margin="0,3" Cursor="Hand" FontWeight="SemiBold"/>
-                        <Border Visibility="{Binding ShowDelays, Converter={StaticResource LmBoolToVis}}" Background="#F1F4F7" CornerRadius="8" Padding="8,6" Margin="22,2,0,6">
+                        <CheckBox IsChecked="{Binding ShowDelays, Mode=OneWay}" PreviewMouseLeftButtonDown="DelaysCheck_Click" IsEnabled="{Binding CanShowDelays}"
+                                  Content="{Binding LayerDelaysText}" Margin="0,3" Cursor="Hand" FontWeight="SemiBold"
+                                  ToolTipService.ShowOnDisabled="True" ToolTip="{Binding LayerDelaysTip}"/>
+                        <!-- Trial: the same delays from TomTom's live traffic (the user's TomTom key). -->
+                        <CheckBox IsChecked="{Binding ShowDelaysTomTom, Mode=OneWay}" PreviewMouseLeftButtonDown="DelaysTomTomCheck_Click" IsEnabled="{Binding CanShowDelaysTomTom}"
+                                  Content="{Binding LayerDelaysTomTomText}" Margin="0,3" Cursor="Hand" FontWeight="SemiBold"
+                                  ToolTipService.ShowOnDisabled="True" ToolTip="{Binding LayerDelaysTomTomTip}"/>
+                        <Border Visibility="{Binding TrafficOn, Converter={StaticResource LmBoolToVis}}" Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="8" Padding="8,6" Margin="22,2,0,6">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,4">
                                     <Rectangle Width="26" Height="6" Fill="#E8A33D" RadiusX="3" RadiusY="3" Margin="0,0,4,0" VerticalAlignment="Center"/>
@@ -280,8 +589,8 @@
                     <StackPanel TextElement.FontSize="12" TextElement.Foreground="{StaticResource LmText}">
                         <StackPanel Orientation="Horizontal" Margin="0,3">
                             <Grid Width="26" Height="26" Margin="0,0,8,0">
-                                <Path Data="M13,0 L17,6 H9 Z" Fill="#1F6FD1" Stroke="White" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                                <ContentControl Template="{StaticResource LmVehicleGlyph}" Background="#1F6FD1" Margin="0,3,0,0"/>
+                                <!-- moving: the van turned to where it heads -->
+                                <ContentControl Template="{StaticResource LmVehicleGlyph}" Background="#1F6FD1" Tag="45"/>
                             </Grid>
                             <TextBlock Text="{Binding LegendMoving}" VerticalAlignment="Center"/>
                         </StackPanel>
@@ -294,11 +603,14 @@
                             </Grid>
                             <TextBlock Text="{Binding LegendStopped}" VerticalAlignment="Center"/>
                         </StackPanel>
+                        <!-- Speeding: the red speed tag, never the ring (the ring is the pace). -->
                         <StackPanel Orientation="Horizontal" Margin="0,3">
                             <Grid Width="26" Height="26" Margin="0,0,8,0">
-                                <Ellipse Width="26" Height="26" Stroke="#D93B3B" StrokeThickness="2.5"/>
                                 <ContentControl Template="{StaticResource LmVehicleGlyph}" Background="#1F6FD1"/>
                             </Grid>
+                            <Border Background="#D93B3B" BorderBrush="White" BorderThickness="1.5" CornerRadius="8" Padding="4,0" Margin="-14,12,6,0" VerticalAlignment="Center">
+                                <TextBlock Text="72 mph" Foreground="White" FontSize="9" FontWeight="Bold"/>
+                            </Border>
                             <TextBlock Text="{Binding LegendSpeeding}" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,3">
@@ -307,6 +619,20 @@
                             </Grid>
                             <TextBlock Text="{Binding LegendStale}" TextWrapping="Wrap" MaxWidth="190" VerticalAlignment="Center"/>
                         </StackPanel>
+
+                        <!-- Pace: the ring and the road of each line on route, three colours. -->
+                        <TextBlock Text="{Binding [livemap.PaceTitle], Source={x:Static svc:LocalizationService.Instance}}" Foreground="{StaticResource LmTitle}" FontSize="11" Margin="0,8,0,3" TextWrapping="Wrap"/>
+                        <Grid Margin="0,0,0,2">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <ContentControl Template="{StaticResource LmBracketGlyph}" Foreground="#1FA35A" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Grid.Column="1" Text="{Binding [livemap.PaceGreen], Source={x:Static svc:LocalizationService.Instance}}" TextWrapping="Wrap" Margin="0,2"/>
+                            <ContentControl Grid.Row="1" Template="{StaticResource LmBracketGlyph}" Foreground="#E5B21A" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding [livemap.PaceYellow], Source={x:Static svc:LocalizationService.Instance}}" TextWrapping="Wrap" Margin="0,2"/>
+                            <ContentControl Grid.Row="2" Template="{StaticResource LmBracketGlyph}" Foreground="#D93B3B" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding [livemap.PaceRed], Source={x:Static svc:LocalizationService.Instance}}" TextWrapping="Wrap" Margin="0,2"/>
+                        </Grid>
+                        <TextBlock Text="{Binding PaceSourceText}" Foreground="{StaticResource LmTitle}" FontSize="10.5" FontStyle="Italic" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Expander>
             </StackPanel>
@@ -314,18 +640,16 @@
         </Border>
 
         <!-- Right: what is on the map, and the window controls -->
-        <Border Style="{StaticResource LmPanel}" Width="264" Margin="16" HorizontalAlignment="Right" VerticalAlignment="Top">
+        <Border x:Name="RightPanel" Style="{StaticResource LmPanel}" Width="300" Margin="16,92,16,16" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <!-- Ends above POWER UP (bottom right): taller content scrolls. -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=212}">
             <StackPanel>
                 <DockPanel Margin="0,0,0,6">
-                    <Button DockPanel.Dock="Right" Command="{Binding ToggleWindowCommand}" ToolTip="{Binding ToggleWindowText}"
-                            Style="{StaticResource MaterialDesignToolButton}" Padding="2" Height="26">
-                        <materialDesign:PackIcon Kind="{Binding ToggleWindowIcon}" Width="18" Height="18" Foreground="{StaticResource LmTitle}"/>
-                    </Button>
                     <Button DockPanel.Dock="Right" Command="{Binding ReloadCommand}"
                             Style="{StaticResource MaterialDesignToolButton}" Padding="2" Height="26">
                         <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Foreground="{StaticResource LmTitle}"/>
                     </Button>
-                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource LmText}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontFamily="{StaticResource LmMono}" Foreground="{DynamicResource LmAccent}" VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- Today: Home's figures for the whole day -->
@@ -337,7 +661,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="White" CornerRadius="8" Padding="8,5" Margin="0,0,6,6">
+                                    <Border Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="8" Padding="8,5" Margin="0,0,6,6">
                                         <StackPanel>
                                             <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{StaticResource LmTitle}"/>
                                             <TextBlock Text="{Binding Value}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
@@ -347,103 +671,113 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <Grid Height="6" Margin="0,2,6,2">
-                            <Border Background="#DFE5EA" CornerRadius="3"/>
-                            <Border Background="#1F6FD1" CornerRadius="3" HorizontalAlignment="Left"
-                                    Width="{Binding Day.DoneRatio, Converter={StaticResource LmRatioToWidth}, ConverterParameter=226}"/>
+                            <Border Background="#14FFFFFF" CornerRadius="3"/>
+                            <Border Background="{DynamicResource LmAccent}" CornerRadius="3" HorizontalAlignment="Left"
+                                    Width="{Binding Day.DoneRatio, Converter={StaticResource LmRatioToWidth}, ConverterParameter=262}"/>
                         </Grid>
                         <TextBlock Text="{Binding Day.DoneText}" FontSize="11" Foreground="{StaticResource LmTitle}"/>
                     </StackPanel>
                 </Expander>
 
-                <!-- Drivers: hours, trips, miles; the bar is loaded/wait once the day is closed -->
+                <!-- Drivers: one row per driver who has reported today. A click selects the line, as a click
+                     on its vehicle does, and the row stays marked while it is selected. -->
                 <Expander Style="{StaticResource LmSection}" Header="{Binding DriversHeader}">
                     <StackPanel>
                         <TextBlock Text="{Binding NoDriversText}" FontSize="12" Foreground="{StaticResource LmTitle}" TextWrapping="Wrap"
                                    Visibility="{Binding Drivers.Count, Converter={StaticResource LmZeroToVis}}"/>
-                        <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer VerticalScrollBarVisibility="Disabled">
                             <ItemsControl ItemsSource="{Binding Drivers}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="0,0,4,8" ToolTip="{Binding ShiftStartText}">
-                                            <DockPanel>
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding MilesText}" FontWeight="SemiBold" Foreground="{StaticResource LmText}" FontSize="12"/>
-                                                <Border Width="8" Height="8" CornerRadius="2" Background="{Binding GroupBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                <TextBlock FontSize="12" Foreground="{StaticResource LmText}" TextTrimming="CharacterEllipsis">
-                                                    <Run Text="{Binding DriverName, Mode=OneWay}"/>
-                                                    <Run Text="·" Foreground="#8A96A3"/>
-                                                    <Run Text="{Binding ShiftText, Mode=OneWay}" Foreground="#5B6B7C"/>
-                                                    <Run Text="·" Foreground="#8A96A3"/>
-                                                    <Run Text="{Binding TripsText, Mode=OneWay}" Foreground="#5B6B7C"/>
-                                                </TextBlock>
-                                            </DockPanel>
-                                            <Grid Height="5" Margin="0,4,0,0">
-                                                <Border Background="#DFE5EA" CornerRadius="2.5"/>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <Border Background="#1F6FD1" CornerRadius="2.5"
-                                                            Width="{Binding LoadedShare, Converter={StaticResource LmRatioToWidth}, ConverterParameter=226}"/>
-                                                    <Border Background="#D98A12"
-                                                            Width="{Binding WaitShare, Converter={StaticResource LmRatioToWidth}, ConverterParameter=226}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                        </StackPanel>
+                                        <Border x:Name="Row" CornerRadius="6" Padding="6,4" Margin="0,0,4,2" BorderThickness="1"
+                                                Background="Transparent" BorderBrush="Transparent" Cursor="Hand"
+                                                ToolTip="{Binding ShiftStartText}" MouseLeftButtonUp="DriverRow_Click">
+                                            <StackPanel>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding MilesText}" FontFamily="{StaticResource LmMono}" FontSize="12.5" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource LmText}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" TextElement.FontSize="11" TextElement.FontFamily="{StaticResource LmMono}">
+                                                        <materialDesign:PackIcon Kind="ClockOutline" Width="11" Height="11" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                                        <TextBlock Text="{Binding ShiftText}" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center"/>
+                                                        <materialDesign:PackIcon Kind="CheckCircleOutline" Width="11" Height="11" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center" Margin="7,0,2,0"/>
+                                                        <TextBlock Text="{Binding TripsText}" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <Border Width="8" Height="8" CornerRadius="2" Background="{Binding GroupBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <TextBlock FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,6,0">
+                                                        <Run Text="{Binding DriverName, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                                        <Run Text="{Binding Name, Mode=OneWay}" Foreground="{StaticResource LmTitle}" FontSize="10.5"/>
+                                                    </TextBlock>
+                                                </DockPanel>
+                                                <Grid Height="5" Margin="14,4,0,0">
+                                                    <Border Background="#1FFFFFFF" CornerRadius="3"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Background="{DynamicResource LmAccent}" CornerRadius="3,0,0,3"
+                                                                Width="{Binding LoadedShare, Converter={StaticResource LmRatioToWidth}, ConverterParameter=246}"/>
+                                                        <Border Background="#E0A030"
+                                                                Width="{Binding WaitShare, Converter={StaticResource LmRatioToWidth}, ConverterParameter=246}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="#0FFFFFFF"/>
+                                            </Trigger>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource LmAccentDim}"/>
+                                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource LmAccent}"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
-                        <TextBlock Text="{Binding DriversLegend}" FontSize="10.5" Foreground="{StaticResource LmTitle}" TextWrapping="Wrap"/>
+
+                        <!-- How to read a row: the figures, then the bar in its two meanings. -->
+                        <Border Background="#08FFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="6" Padding="9,7" Margin="0,4,4,0"
+                                TextElement.FontSize="11" TextElement.Foreground="{StaticResource LmTitle}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [livemap.DriversKeyTitle], Source={x:Static svc:LocalizationService.Instance}}" FontFamily="{StaticResource LmMono}" FontSize="10" Foreground="{DynamicResource LmAccent}" Margin="0,0,0,5"/>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                    <materialDesign:PackIcon Kind="ClockOutline" Width="12" Height="12" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding [livemap.DriversKeyHours], Source={x:Static svc:LocalizationService.Instance}}" TextWrapping="Wrap"/>
+                                    <materialDesign:PackIcon Grid.Row="1" Kind="CheckCircleOutline" Width="12" Height="12" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding [livemap.DriversKeyTrips], Source={x:Static svc:LocalizationService.Instance}}" TextWrapping="Wrap"/>
+                                    <TextBlock Grid.Row="2" Text="mi" FontFamily="{StaticResource LmMono}" FontSize="10" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding [livemap.DriversKeyMiles], Source={x:Static svc:LocalizationService.Instance}}" TextWrapping="Wrap"/>
+                                </Grid>
+                                <TextBlock Text="{Binding [livemap.DriversKeyBarOpen], Source={x:Static svc:LocalizationService.Instance}}" Foreground="{StaticResource LmText}" Margin="0,0,0,3"/>
+                                <WrapPanel Margin="0,0,0,6">
+                                    <Border Width="14" Height="6" CornerRadius="3" Background="{DynamicResource LmAccent}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding [livemap.DriversKeyDone], Source={x:Static svc:LocalizationService.Instance}}" Margin="0,0,12,0"/>
+                                    <Border Width="14" Height="6" CornerRadius="3" Background="#1FFFFFFF" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding [livemap.DriversKeyLeft], Source={x:Static svc:LocalizationService.Instance}}"/>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding [livemap.DriversKeyBarClosed], Source={x:Static svc:LocalizationService.Instance}}" Foreground="{StaticResource LmText}" Margin="0,0,0,3" TextWrapping="Wrap"/>
+                                <WrapPanel Margin="0,0,0,6">
+                                    <Border Width="14" Height="6" CornerRadius="3" Background="{DynamicResource LmAccent}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding [livemap.DriversKeyLoaded], Source={x:Static svc:LocalizationService.Instance}}" Margin="0,0,12,0"/>
+                                    <Border Width="14" Height="6" CornerRadius="3" Background="#E0A030" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding [livemap.DriversKeyWait], Source={x:Static svc:LocalizationService.Instance}}" Margin="0,0,12,0"/>
+                                    <Border Width="14" Height="6" CornerRadius="3" Background="#1FFFFFFF" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding [livemap.DriversKeyRest], Source={x:Static svc:LocalizationService.Instance}}"/>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding [livemap.DriversKeyHint], Source={x:Static svc:LocalizationService.Instance}}" FontStyle="Italic" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Expander>
 
-                <Expander Style="{StaticResource LmSection}" Header="{Binding FleetHeader}" IsExpanded="False">
-                    <ItemsControl ItemsSource="{Binding Summary}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <DockPanel Margin="0,3">
-                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
-                                    <TextBlock Text="{Binding Label}" Foreground="{StaticResource LmTitle}" FontSize="12.5"/>
-                                </DockPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Expander>
 
                 <TextBlock Text="{Binding ErrorText}" Foreground="#C2410C" TextWrapping="Wrap" FontSize="12"/>
             </StackPanel>
+            </ScrollViewer>
         </Border>
 
-        <!-- Bottom right: map controls. Map / Satellite, labels on or off on both. -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,18">
-            <Border Style="{StaticResource LmPanel}" Padding="3" CornerRadius="10" VerticalAlignment="Bottom" Margin="0,0,8,0">
-                <StackPanel Orientation="Horizontal">
-                    <Button x:Name="RoadMode" Tag="On" Click="Road_Click"
-                            Content="{Binding MapRoadText}" Style="{StaticResource LmSegment}"/>
-                    <Button x:Name="SatelliteMode" Click="Satellite_Click"
-                            Content="{Binding MapSatelliteText}" Style="{StaticResource LmSegment}"/>
-                    <CheckBox x:Name="LabelsToggle" IsChecked="True" Checked="MapType_Changed" Unchecked="MapType_Changed"
-                              Content="{Binding MapLabelsText}" Margin="8,0,6,0" VerticalAlignment="Center"
-                              Foreground="{StaticResource LmText}" FontSize="12"
-                              Visibility="Visible"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource LmPanel}" Padding="3" CornerRadius="10">
-                <StackPanel>
-                    <Button Click="ZoomIn_Click" ToolTip="{Binding ZoomInText}" Style="{StaticResource MaterialDesignToolButton}" Height="30" Width="30" Padding="0">
-                        <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" Foreground="{StaticResource LmText}"/>
-                    </Button>
-                    <Rectangle Height="1" Fill="{StaticResource LmDivider}" Margin="4,0"/>
-                    <Button Click="ZoomOut_Click" ToolTip="{Binding ZoomOutText}" Style="{StaticResource MaterialDesignToolButton}" Height="30" Width="30" Padding="0">
-                        <materialDesign:PackIcon Kind="Minus" Width="18" Height="18" Foreground="{StaticResource LmText}"/>
-                    </Button>
-                    <Rectangle Height="1" Fill="{StaticResource LmDivider}" Margin="4,0"/>
-                    <Button Click="Fit_Click" ToolTip="{Binding FitText}" Style="{StaticResource MaterialDesignToolButton}" Height="30" Width="30" Padding="0">
-                        <materialDesign:PackIcon Kind="FitToScreenOutline" Width="18" Height="18" Foreground="{StaticResource LmText}"/>
-                    </Button>
-                </StackPanel>
-            </Border>
-        </StackPanel>
-
-        <!-- Bottom: is it live, how many, how fresh -->
-        <Border Style="{StaticResource LmPanel}" Padding="14,6" Margin="0,0,0,18" HorizontalAlignment="Center" VerticalAlignment="Bottom" CornerRadius="10">
+        <!-- Top left: is it live, how fresh. The bottom centre is the dock's, the top right the active style's. -->
+        <Border x:Name="LivePill" Style="{StaticResource LmPanel}" Padding="14,6" Margin="16,16,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="10">
             <StackPanel Orientation="Horizontal">
                 <Ellipse x:Name="LiveDot" Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
                     <Ellipse.Style>
@@ -457,7 +791,7 @@
                         </Style>
                     </Ellipse.Style>
                 </Ellipse>
-                <TextBlock Text="{Binding LastFixText}" FontSize="12" Foreground="{StaticResource LmText}"/>
+                <TextBlock Text="{Binding LastFixText}" FontSize="11" FontFamily="{StaticResource LmMono}" Foreground="{StaticResource LmText}"/>
             </StackPanel>
         </Border>
 
@@ -466,19 +800,40 @@
         <!-- ===== Selection bar (RE-080): a click on a vehicle selects it =====
              Its route is drawn whatever the layers say; the switch picks the trip in progress or the
              whole day; Details opens the card. A double click goes straight to the card. -->
-        <Border Style="{StaticResource LmPanel}" Padding="10,6" CornerRadius="12" Margin="0,16,0,0"
+        <Border x:Name="SelectionBar" Style="{StaticResource LmPanel}" Padding="10,6" CornerRadius="12" Margin="0,64,0,0"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="{Binding SelectionVisibility}">
             <StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Border Width="12" Height="12" CornerRadius="6" Background="{Binding Selected.RouteBrush}" BorderBrush="White" BorderThickness="2" Margin="2,0,8,0" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding SelectionTitle}" FontWeight="SemiBold" Foreground="{StaticResource LmText}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                <Border Background="#E9EDF1" CornerRadius="8" Padding="2">
+                <Border Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="5" Padding="2">
                     <StackPanel Orientation="Horizontal">
                         <Button Content="{Binding SelTripText}" Command="{Binding ShowTripOnlyCommand}" Tag="{Binding TripModeTag}" Style="{StaticResource LmSegment}"/>
                         <Button Content="{Binding SelDayText}" Command="{Binding ShowDayCommand}" Tag="{Binding DayModeTag}" Style="{StaticResource LmSegment}"/>
                     </StackPanel>
                 </Border>
-                <Button Command="{Binding OpenDetailsCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Height="28" Padding="10,0" Margin="10,0,0,0">
+                <!-- Follow: the camera stays on this vehicle while it moves; dragging the map or Esc lets go. -->
+                <ToggleButton IsChecked="{Binding IsFollowing}" Style="{x:Null}" Cursor="Hand" Height="28" Margin="10,0,0,0" Padding="10,0"
+                              Background="Transparent" BorderThickness="1" ToolTip="{Binding SelFollowText}">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bd" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource LmAccent}" Background="Transparent" Padding="10,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon x:Name="Ic" Kind="CrosshairsGps" Width="14" Height="14" Foreground="{DynamicResource LmAccent}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock x:Name="Tx" Text="{Binding SelFollowText}" Foreground="{DynamicResource LmAccent}" FontFamily="{StaticResource LmMono}" FontSize="11" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource LmAccent}"/>
+                                    <Setter TargetName="Ic" Property="Foreground" Value="#0C0C14"/>
+                                    <Setter TargetName="Tx" Property="Foreground" Value="#0C0C14"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
+                <Button Command="{Binding OpenDetailsCommand}" Style="{StaticResource LmOutlined}" Height="28" Padding="10,0" Margin="10,0,0,0">
                     <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="CardAccountDetailsOutline" Margin="0,0,6,0"/><TextBlock Text="{Binding SelDetailsText}"/></StackPanel>
                 </Button>
                 <Button Command="{Binding ClearSelectionCommand}" ToolTip="{Binding SelCloseText}" Style="{StaticResource MaterialDesignToolButton}" Height="28" Width="28" Padding="0" Margin="4,0,0,0">
@@ -527,11 +882,11 @@
         <!-- ===== Route card (RE-080): Details or a double click; centred on the screen =====
              About the line, never a patient. Esc, the X or a click outside closes it. -->
         <Grid DataContext="{Binding RouteCard}" Visibility="{Binding IsOpenVisibility}">
-            <Border Background="#400F1E2E" MouseLeftButtonDown="CardBackdrop_MouseDown"/>
-            <Border Width="500" Background="White" CornerRadius="16" Padding="22,18" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    BorderBrush="#260F1E2E" BorderThickness="1">
+            <Border Background="#73000000" MouseLeftButtonDown="CardBackdrop_MouseDown"/>
+            <Border Width="500" CornerRadius="10" Padding="22,18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{StaticResource LmPanelBg}" BorderBrush="{StaticResource LmPanelBorder}" BorderThickness="1">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="30" ShadowDepth="4" Opacity="0.25" Color="#0F1E2E"/>
+                    <DropShadowEffect BlurRadius="72" ShadowDepth="22" Direction="270" Opacity="0.72" Color="Black"/>
                 </Border.Effect>
                 <StackPanel TextElement.Foreground="{StaticResource LmText}" TextElement.FontSize="12.5">
 
@@ -541,7 +896,7 @@
                                 Style="{StaticResource MaterialDesignToolButton}" Padding="2" Height="28" Width="28">
                             <materialDesign:PackIcon Kind="Close" Width="18" Height="18" Foreground="{StaticResource LmTitle}"/>
                         </Button>
-                        <Grid Width="104" Height="58" Margin="0,0,14,0" VerticalAlignment="Center">
+                        <Grid Width="132" Height="74" Margin="0,0,14,0" VerticalAlignment="Center">
                             <ContentControl Content="{Binding Kind}">
                                 <ContentControl.Style>
                                     <Style TargetType="ContentControl">
@@ -559,14 +914,19 @@
                             </ContentControl>
                         </Grid>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" FontFamily="{StaticResource LmMono}"/>
                             <TextBlock Text="{Binding VehicleLine}" Foreground="{StaticResource LmTitle}" TextTrimming="CharacterEllipsis"/>
+                            <!-- The driver, always in the header: who is at the wheel is the first question. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <materialDesign:PackIcon Kind="CardAccountDetailsOutline" Width="14" Height="14" Foreground="{DynamicResource LmAccent}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding DriverName}" FontWeight="SemiBold" Foreground="{StaticResource LmText}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                 <Border CornerRadius="9" Padding="8,2" Background="{Binding GroupBrush}">
                                     <TextBlock Text="{Binding GroupName}" Foreground="White" FontSize="11"/>
                                 </Border>
-                                <Border CornerRadius="9" Padding="8,2" Margin="6,0,0,0" Background="#F1F3F5">
-                                    <TextBlock Text="{Binding CapacityText}" Foreground="#444441" FontSize="11"/>
+                                <Border CornerRadius="9" Padding="8,2" Margin="6,0,0,0" Background="#14FFFFFF">
+                                    <TextBlock Text="{Binding CapacityText}" Foreground="{StaticResource LmText}" FontSize="11"/>
                                 </Border>
                             </StackPanel>
                         </StackPanel>
@@ -575,7 +935,7 @@
 
                     <!-- Booking's pieces (RE-080): TripProgressBar and LiveEta (lg), the same markup and CSS as
                          Booking, rendered by Assets/live-eta.html in a small WebView. -->
-                    <wv2:WebView2CompositionControl x:Name="EtaView" Height="232" Margin="0,14,0,0" DefaultBackgroundColor="White"
+                    <wv2:WebView2CompositionControl x:Name="EtaView" Height="232" Margin="0,14,0,0" DefaultBackgroundColor="Transparent"
                                                     Visibility="{Binding ProgressVisibility}"/>
 
                     <ProgressBar IsIndeterminate="True" Height="2" Margin="0,10,0,0"
@@ -583,7 +943,7 @@
                     <TextBlock Text="{Binding ErrorText}" Foreground="#C2410C" Margin="0,8,0,0" TextWrapping="Wrap"/>
 
                     <!-- Facts, two columns -->
-                    <Rectangle Height="1" Fill="#E5E8EB" Margin="0,12,0,10"/>
+                    <Rectangle Height="1" Fill="{DynamicResource LmDivider}" Margin="0,12,0,10"/>
                     <UniformGrid Columns="2">
                         <StackPanel Margin="0,0,10,10">
                             <TextBlock Text="{Binding LabelDriver}" FontSize="11" Foreground="{StaticResource LmTitle}"/>
@@ -605,7 +965,7 @@
                             <TextBlock Text="{Binding LabelShift}" FontSize="11" Foreground="{StaticResource LmTitle}"/>
                             <TextBlock TextWrapping="Wrap">
                                 <Run Text="{Binding Vehicle.ShiftText, Mode=OneWay}"/>
-                                <Run Text="·" Foreground="#8A96A3"/>
+                                <Run Text="·" Foreground="#4DE8EAED"/>
                                 <Run Text="{Binding Vehicle.MilesText, Mode=OneWay}"/>
                             </TextBlock>
                         </StackPanel>
@@ -627,20 +987,20 @@
 
                     <!-- Links -->
                     <WrapPanel Margin="0,12,0,0">
-                        <Button Command="{Binding OpenRouteCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,6,6" Height="30" Padding="10,0">
+                        <Button Command="{Binding OpenRouteCommand}" Style="{StaticResource LmOutlined}" Margin="0,0,6,6" Height="30" Padding="10,0">
                             <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="TableClock" Margin="0,0,6,0"/><TextBlock Text="{Binding LinkRoute}"/></StackPanel>
                         </Button>
-                        <Button Command="{Binding OpenTripCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,6,6" Height="30" Padding="10,0"
+                        <Button Command="{Binding OpenTripCommand}" Style="{StaticResource LmOutlined}" Margin="0,0,6,6" Height="30" Padding="10,0"
                                 Visibility="{Binding HasCurrentTrip, Converter={StaticResource LmBoolToVis}}">
                             <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="HomeOutline" Margin="0,0,6,0"/><TextBlock Text="{Binding LinkTrip}"/></StackPanel>
                         </Button>
-                        <Button Command="{Binding OpenVehicleDocsCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,6,6" Height="30" Padding="10,0">
+                        <Button Command="{Binding OpenVehicleDocsCommand}" Style="{StaticResource LmOutlined}" Margin="0,0,6,6" Height="30" Padding="10,0">
                             <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="FileCertificateOutline" Margin="0,0,6,0"/><TextBlock Text="{Binding LinkVehicle}"/></StackPanel>
                         </Button>
-                        <Button Command="{Binding OpenDriverDocsCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,6,6" Height="30" Padding="10,0">
+                        <Button Command="{Binding OpenDriverDocsCommand}" Style="{StaticResource LmOutlined}" Margin="0,0,6,6" Height="30" Padding="10,0">
                             <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="AccountCardOutline" Margin="0,0,6,0"/><TextBlock Text="{Binding LinkDriver}"/></StackPanel>
                         </Button>
-                        <Button Command="{Binding CopyPhoneCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,6,6" Height="30" Padding="10,0"
+                        <Button Command="{Binding CopyPhoneCommand}" Style="{StaticResource LmOutlined}" Margin="0,0,6,6" Height="30" Padding="10,0"
                                 Visibility="{Binding HasPhone, Converter={StaticResource LmBoolToVis}}">
                             <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="ContentCopy" Margin="0,0,6,0"/><TextBlock Text="{Binding LinkCopyPhone}"/></StackPanel>
                         </Button>

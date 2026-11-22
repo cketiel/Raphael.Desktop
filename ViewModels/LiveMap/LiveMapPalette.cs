@@ -25,6 +25,38 @@ namespace Raphael.Desktop.ViewModels.LiveMap
 
         public static readonly Brush SpeedingRing = Frozen("#D93B3B");
 
+        // ---- Pace (decided 2026-11-22): one of three colours for a line's road and its vehicle's ring.
+        public const string PaceGreen = "#1FA35A";
+        public const string PaceYellow = "#E5B21A";
+        public const string PaceRed = "#D93B3B";
+
+        /// <summary>Free source (default): minutes late against the promised time, from the live ETA.</summary>
+        public const int LateYellowMinutes = 5;    // more than 5 min late: yellow
+        public const int LateRedMinutes = 15;      // more than 15 min late: red
+
+        /// <summary>Google source (delays layer): minutes the traffic adds, and how much longer it makes the drive.</summary>
+        public const int TrafficYellowMinutes = 3;     // 3 min or more and at least 15 % longer: yellow
+        public const double TrafficYellowRatio = 1.15;
+        public const int TrafficRedMinutes = 10;       // 10 min or more, or 50 % longer with at least 5 min: red
+        public const double TrafficRedRatio = 1.5;
+        public const int TrafficRedRatioMinutes = 5;
+
+        public static string PaceFromLateness(int? lateMinutes) =>
+            lateMinutes is not int late ? PaceGreen
+            : late > LateRedMinutes ? PaceRed
+            : late > LateYellowMinutes ? PaceYellow
+            : PaceGreen;
+
+        public static string PaceFromTraffic(LiveMapRouteTrafficDto t)
+        {
+            if (t is null || t.DurationSeconds <= 0) return PaceGreen;
+            var delay = t.DelaySeconds / 60.0;
+            var ratio = (double)t.DurationInTrafficSeconds / t.DurationSeconds;
+            if (delay >= TrafficRedMinutes || (ratio >= TrafficRedRatio && delay >= TrafficRedRatioMinutes)) return PaceRed;
+            if (delay >= TrafficYellowMinutes && ratio >= TrafficYellowRatio) return PaceYellow;
+            return PaceGreen;
+        }
+
         /// <summary>
         /// One colour per line for its route (RE-080), so ten lines on the map are ten roads you can
         /// tell apart. No purples, reds or greens: those are the Dispatch stop colours (purple arrived,

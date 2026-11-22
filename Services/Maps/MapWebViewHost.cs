@@ -95,6 +95,35 @@ namespace Raphael.Desktop.Services.Maps
         /// panels can sit on top of the map. The classic control is a window of its own and covers
         /// anything drawn over it.
         /// </summary>
+        private static CoreWebView2Controller _warmController;
+        private static System.Windows.Interop.HwndSource _warmHost;
+
+        /// <summary>
+        /// Starts the WebView2 browser process when the main window opens, so the live map does not
+        /// pay for it (1.8 to 2.7 s measured) when its tab is opened. One hidden controller on a hidden
+        /// 1x1 window keeps the process alive; it loads no page, so Google Maps is not loaded and
+        /// nothing is billed. Same default environment as the map controls, so they join this process.
+        /// </summary>
+        public static async Task PrewarmAsync()
+        {
+            if (_warmController is not null) return;
+            try
+            {
+                _warmHost = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("RaphaelWebViewWarmup")
+                {
+                    Width = 1, Height = 1, WindowStyle = unchecked((int)0x80000000)   // WS_POPUP, never shown
+                });
+                var environment = await CoreWebView2Environment.CreateAsync();
+                _warmController = await environment.CreateCoreWebView2ControllerAsync(_warmHost.Handle);
+                _warmController.IsVisible = false;
+            }
+            catch (Exception ex)
+            {
+                // Only a head start: the map still starts the process itself if this failed.
+                FileLogger.Log($"WebView2 prewarm failed ({ex.GetType().Name}).");
+            }
+        }
+
         public static async Task InitializeAsync(WebView2CompositionControl webView, CoreWebView2Environment environment = null)
         {
             await webView.EnsureCoreWebView2Async(environment);

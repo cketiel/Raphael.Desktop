@@ -357,6 +357,17 @@ namespace Raphael.Desktop.DTOs
     /// RE-080: the traffic on a line's road right now, from its vehicle to the stop it is heading
     /// for: Google's speed per stretch and the delay it adds. For the live map's delays layer.
     /// </summary>
+    /// <summary>Copy of Raphael.Shared's LiveMapPunctualityDto: how late a line on route is running.</summary>
+    public class LiveMapPunctualityDto
+    {
+        public int VehicleRouteId { get; set; }
+        public string Phase { get; set; } = "Pickup";
+        public TimeSpan? Eta { get; set; }
+        public TimeSpan? Promised { get; set; }
+        public int? LateMinutes { get; set; }
+        public DateTime AtUtc { get; set; }
+    }
+
     public class LiveMapRouteTrafficDto
     {
         public int VehicleRouteId { get; set; }

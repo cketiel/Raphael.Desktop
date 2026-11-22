@@ -44,9 +44,15 @@ namespace Raphael.Desktop
             // App.Configuration from a window constructor -- a field initialiser or a static
             // that did would have read null, in a way that looks like a corrupt settings file
             // rather than an ordering mistake.
+            var userSettingsDir = System.IO.Path.GetDirectoryName(Services.Maps.ProviderKeyStore.UserSettingsPath)!;
+            System.IO.Directory.CreateDirectory(userSettingsDir);
+
             var builder = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                // The live map's provider keys (POWER UP), per Windows user: see ProviderKeyStore.
+                .AddJsonFile(new Microsoft.Extensions.FileProviders.PhysicalFileProvider(userSettingsDir),
+                    "appsettings.json", optional: true, reloadOnChange: true);
 
             Configuration = builder.Build();
 

@@ -1,0 +1,37 @@
+/*
+ * RE-080 live map: the Search tray's line and trip finders. Built from God's Eye View's own pieces
+ * (the search box, the pills, the popover glass) so they read as part of the same tray.
+ */
+#command-dock .lm-search-row { position: relative; margin: 0 0 0.35rem; }
+#command-dock .lm-search-row .lm-search-wrap { flex: 1 1 auto; width: 100%; min-width: 0; padding-right: 0; border-right: 0; }
+#command-dock .lm-search-row .search-toggle-btn { cursor: default; }
+#command-dock .lm-search-input { width: 100%; min-width: 0; height: 1.75rem; padding: 0.3rem 0.45rem; border: none; background: none; outline: none;
+    color: var(--text-primary); font-family: var(--font-sans); font-size: 0.62rem; letter-spacing: 0.3px; caret-color: var(--accent); }
+#command-dock .lm-search-input::placeholder { color: var(--text-dim); font-style: italic; }
+#command-dock .lm-search-row + .lm-search-row,
+#command-dock .lm-search-row:last-of-type { }
+#command-dock .lm-search-row::after { content: ""; display: block; height: 1px; margin-top: 0.35rem;
+    background: linear-gradient(90deg, rgba(0, 212, 255, 0.28), rgba(0, 212, 255, 0.18) 58%, transparent); }
+
+/* Suggestions: a list under the box, in the popover's glass. */
+#command-dock .lm-suggest { display: none; max-height: 11.5rem; overflow-y: auto; margin-top: 0.3rem; padding: 0.25rem;
+    background: rgba(8, 20, 30, 0.96); border: 1px solid rgba(123, 189, 211, 0.32); border-radius: 0.42rem;
+    box-shadow: rgba(0, 0, 0, 0.58) 0px 0.9rem 2.4rem, rgba(0, 212, 255, 0.08) 0px 0px 1.5rem;
+    scrollbar-width: thin; scrollbar-color: rgba(0, 212, 255, 0.5) rgba(255, 255, 255, 0.04); }
+#command-dock .lm-suggest.open { display: block; }
+#command-dock .lm-suggest::-webkit-scrollbar { width: 6px; }
+#command-dock .lm-suggest::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.04); border-radius: 999px; }
+#command-dock .lm-suggest::-webkit-scrollbar-thumb { background: linear-gradient(rgba(0, 212, 255, 0.65), rgba(0, 212, 255, 0.2)); border-radius: 999px; }
+#command-dock .lm-suggest-item { display: flex; align-items: baseline; gap: 0.45rem; width: 100%; padding: 0.38rem 0.5rem; border: 1px solid transparent;
+    border-radius: 0.2rem; background: transparent; color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.55rem;
+    letter-spacing: 0.3px; text-align: left; cursor: pointer; transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); }
+#command-dock .lm-suggest-item:hover, #command-dock .lm-suggest-item.active { background: var(--accent-dim); border-color: rgba(0, 212, 255, 0.45); color: var(--text-primary); }
+#command-dock .lm-suggest-main { color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#command-dock .lm-suggest-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#command-dock .lm-suggest-tag { margin-left: auto; padding: 0.05rem 0.3rem; border: 1px solid rgba(0, 212, 255, 0.34); border-radius: 0.18rem;
+    color: rgba(190, 221, 230, 0.72); font-size: 0.45rem; letter-spacing: 0.06rem; text-transform: uppercase; white-space: nowrap; }
+#command-dock .lm-suggest-tag.live { border-color: rgba(51, 255, 120, 0.55); color: #7dffb0; }
+#command-dock .lm-suggest-empty { padding: 0.45rem 0.5rem; color: var(--text-dim); font-family: var(--font-mono); font-size: 0.52rem; letter-spacing: 0.4px; }
+
+/* God's Eye sets Inter on its body; this page does not, so the copied pieces take it here. */
+#command-dock, #key-setup, #key-setup-chip, #style-indicator { font-family: var(--font-sans); }

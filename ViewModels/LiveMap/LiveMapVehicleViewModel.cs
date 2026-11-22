@@ -47,6 +47,9 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         [ObservableProperty] private string _vehicleName;
         [ObservableProperty] private int _tripsToday;
 
+        /// <summary>The line selected on the map: its row in Drivers is marked.</summary>
+        [ObservableProperty] private bool _isSelected;
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(GroupBrush), nameof(GroupName), nameof(ToolTipText))]
         private string _group;
@@ -81,10 +84,22 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         [NotifyPropertyChangedFor(nameof(RouteBrush))]
         private string _routeColor = "#2563EB";
 
-        public Brush RouteBrush => new SolidColorBrush((Color)ColorConverter.ConvertFromString(RouteColor));
+        /// <summary>The line's road as the map draws it: in its pace (green / yellow / red) since 2026-11-22.</summary>
+        public Brush RouteBrush => new SolidColorBrush((Color)ColorConverter.ConvertFromString(Pace));
 
         /// <summary>Minutes the traffic adds to the road ahead (delays layer); 0 when none or unknown.</summary>
         [ObservableProperty] private int _delayMinutes;
+
+        /// <summary>
+        /// Green, yellow or red (LiveMapPalette.Pace*): the colour of the line's road and of its
+        /// vehicle's ring. From punctuality by default, from Google's traffic with the delays layer.
+        /// </summary>
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(RouteBrush))]
+        private string _pace = LiveMapPalette.PaceGreen;
+
+        /// <summary>Minutes late against the promised time (free source); null when unknown.</summary>
+        [ObservableProperty] private int? _lateMinutes;
 
         /// <summary>A live fix was applied: the map page glides the vehicle to it.</summary>
         public event EventHandler Moved;
