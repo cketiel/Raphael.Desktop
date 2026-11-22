@@ -52,7 +52,11 @@ namespace Raphael.Desktop.ViewModels.LiveMap
             OnPropertyChanged(nameof(DoneText));
         }
 
+        /// <summary>
+        /// Exactly as Home's summary prints the same figure (HomeViewModel.Money): cents included.
+        /// It was rounded to whole dollars here, so Home said $1,559.52 and the map $1,560 for one sum.
+        /// </summary>
         private static string Money(double amount) =>
-            "$" + amount.ToString("N0", CultureInfo.InvariantCulture);
+            "$" + amount.ToString("N2", CultureInfo.InvariantCulture);
     }
 }

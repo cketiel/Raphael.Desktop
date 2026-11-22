@@ -19,6 +19,9 @@ namespace Raphael.Desktop.Services
 
         /// <summary>RE-080: the traffic from the line's vehicle to its next stop. Null when there is nothing to show.</summary>
         Task<LiveMapRouteTrafficDto> GetRouteTrafficAsync(int vehicleRouteId, CancellationToken ct = default);
+
+        /// <summary>RE-080: how late each line with a trip under way is running (no Google).</summary>
+        Task<List<LiveMapPunctualityDto>> GetPunctualityAsync(CancellationToken ct = default);
     }
 
     /// <summary>Reads the live map's opening snapshot (<c>GET api/live-map</c>).</summary>
@@ -51,6 +54,13 @@ namespace Raphael.Desktop.Services
             response.EnsureSuccessStatusCode();
 
             return await response.Content.ReadFromJsonAsync<LiveMapRouteLegsDto>(cancellationToken: ct);
+        }
+
+        public async Task<List<LiveMapPunctualityDto>> GetPunctualityAsync(CancellationToken ct = default)
+        {
+            var response = await _httpClient.GetAsync("live-map/punctuality", ct);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<LiveMapPunctualityDto>>(cancellationToken: ct) ?? new();
         }
 
         public async Task<LiveMapRouteTrafficDto> GetRouteTrafficAsync(int vehicleRouteId, CancellationToken ct = default)

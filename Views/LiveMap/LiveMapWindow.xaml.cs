@@ -21,6 +21,7 @@ namespace Raphael.Desktop.Views.LiveMap
             Content = view;
             Owner = owner;
 
+            Closing += (_, _) => view.ReleaseWebViews();   // never move a live web view to the tab (see MainWindow)
             Closed += (_, _) =>
             {
                 // A UserControl cannot have two parents.

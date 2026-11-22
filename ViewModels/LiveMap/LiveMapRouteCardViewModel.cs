@@ -39,7 +39,7 @@ namespace Raphael.Desktop.ViewModels.LiveMap
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasDetail), nameof(Title), nameof(VehicleLine), nameof(CapacityText),
-            nameof(Kind), nameof(DriverLine), nameof(TripsLine), nameof(ChargesLine), nameof(NextStopLine),
+            nameof(Kind), nameof(DriverName), nameof(DriverLine), nameof(TripsLine), nameof(ChargesLine), nameof(NextStopLine),
             nameof(VehicleComplianceLine), nameof(DriverComplianceLine), nameof(HasCurrentTrip), nameof(GroupName),
             nameof(GroupBrush), nameof(CurrentTripLine), nameof(HasPhone),
             nameof(HasProgress), nameof(ProgressVisibility), nameof(EtaMinutesText), nameof(EtaMilesText), nameof(EtaPhaseText),
@@ -74,6 +74,9 @@ namespace Raphael.Desktop.ViewModels.LiveMap
 
         public string CapacityText => Detail is null ? null :
             string.Join(" · ", Detail.Capacities.Select(c => $"{c.SpaceType} {c.Quantity}"));
+
+        /// <summary>The driver's name for the card's header ("—" when the line has none).</summary>
+        public string DriverName => Detail is null ? null : string.IsNullOrWhiteSpace(Detail.DriverName) ? "—" : Detail.DriverName;
 
         public string DriverLine => Detail is null ? null :
             string.IsNullOrWhiteSpace(Detail.DriverPhone) ? Detail.DriverName : $"{Detail.DriverName} · {FormatPhone(Detail.DriverPhone)}";
