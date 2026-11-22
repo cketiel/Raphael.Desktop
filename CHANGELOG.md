@@ -5,8 +5,85 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.21.2] - 2026-11-22
+
+Slices RE-078, RE-080 and RE-081. Needs Raphael.Backend 2.11.2 for the live map's punctuality colours
+and the fleet productivity report.
+
 ### Added
 
+- **Live map command dock** (RE-080), at the bottom centre, after God's Eye View: Search (a line
+  finder by line, driver, plate or vehicle; a trip finder by Trip Id or patient that picks the vehicle
+  carrying it and labels it with the Trip Id; and the place search, with one pill per city of the
+  fleet's garages), voice control and Visual Presets (seven looks, keys 1-7, plus the map source;
+  titled "Estilos visuales" in Spanish). Pinned trays stack instead of covering each other. The
+  active style shows top right in a dark box and tints the panels' accent. The panels and the route
+  card share God's Eye's dark glass and scrollbar; the live status moves to the top left.
+- **Live map actions at the top centre**, God's Eye's five glass circles: Street View (click the
+  button, then a street; the panels step aside and a labelled button leaves it), map view (a pad to
+  zoom and pan), full screen (the map in its own window over the whole screen, panels and dock
+  included; Esc leaves), fit the vehicles, own window (moved from the right panel) and hide panels
+  (only the map, for a clean view; H does the same). Hovering one
+  grows it and opens a card with its name and what it does.
+- **Delays TomTom (trial)**: a second traffic layer, the same as "Delays on each route" but from
+  TomTom's live traffic (Routing API, Calculate Route with traffic) with the user's TomTom key,
+  enabled in POWER UP and tested on save. Every 10 minutes per line on route, with a cost warning
+  first; it never runs together with the Google layer, and unticking it brings punctuality back.
+- **Route card header**: the vehicle is drawn in detail by its kind (AMB a modern MPV in light metallic
+  blue-grey with a floating dark glasshouse, roof rails and a chrome waist line; WCH high-roof van
+  with the rear ramp down and the access symbol, STR high-roof van with the rear doors open and the
+  stretcher coming out), with a lit body, livery stripe, tinted glass, seams, lights, bumpers, wheels
+  with rims and a ground shadow, instead of the flat drawings, all three in Raphael livery (the official
+  logo with its halo and RAPHAEL in red); the driver's name now heads the card.
+- **Legend**: the vehicles are the aerial van, and the pace is shown as the corner frame the map draws
+  (green, yellow, red) instead of lines. The map's frame casing is lighter.
+- **Every vehicle is always identified, in God's Eye's Street Traffic style**: corner brackets round the
+  vehicle in its pace colour (they replace the pace ring), a thin leader and a translucent dark card
+  with an accent bar, the line's name and, as a smaller field, its delay (+N') or its speed. Cards
+  try the four corners and never cover one another. The pickup and drop-off labels of a selected
+  line take the same card, drawn above the vehicles so a van at its stop never covers it.
+- **The van seen from above**, turned to the GPS heading: it points where it goes in any direction
+  (windscreen, roof with a stripe in the group's colour, mirrors, lights), in 2D and in 3D. It replaces
+  the side-on toy van, its mirroring and the small arrow.
+- **Hover card** for each vehicle in the map's dark glass (name with its pace, driver, vehicle, group
+  and trips, speed and last report, the delay and the speed tag), instead of the browser's tooltip.
+- **Vehicles always moving**: between two GPS reports (every ~30 s) a moving vehicle keeps going along
+  the road of its current leg at its reported speed, for at most 45 s, and the next report is blended
+  in over 1.5 s without a jump. Stopped or stale vehicles stay where they were reported.
+- **Follow** in the selection bar: the camera keeps the selected vehicle in view at any zoom, down to
+  street level, while it moves, with an eased camera (exponential smoothing every frame, 0.6 s) that
+  trails it at its own speed instead of catching up in jumps; a hand drag only pauses it, and nothing else moves the camera meanwhile.
+  Press Follow again, Esc or select another vehicle to let go.
+- **3D map** in Map source: Google's photorealistic 3D with the vehicles as 3D markers, loaded only
+  when chosen. The map now opens on Map · No labels.
+- **Pace colours on the live map**: each line's road and its vehicle's ring are green, yellow or red.
+  By default, every minute and at no cost, from the live ETA against the promised time (more than
+  5 min late yellow, more than 15 red). With "Delays on each route" ticked, from Google's live traffic
+  every 10 minutes instead (3+ min added yellow, 10+ or a jam red), and back to punctuality when
+  unticked. The legend says which source is in use.
+- **Speeding** is a red speed tag with a speedometer and the mph, pulsing slowly, instead of a red
+  ring (the ring is now the pace).
+- **Live map help topic** (`desktop/live-map/overview`), in Spanish and English: colours, speeding,
+  panels, buttons, dock, POWER UP and the cost of the delays layer.
+- **Drivers**: a click on a driver selects their line, as a click on the vehicle does, and the row
+  stays marked; each row is two lines (driver, line, hours, trips and miles; then the bar) and a
+  legend explains the figures and both meanings of the bar. The right panel is wider and always
+  ends clear of POWER UP, scrolling what does not fit. On the map moves to the left panel.
+- **Delays on each route** is off and disabled until the user saves a Google Maps key in POWER UP,
+  which is tested with Google before it is kept. It then calls Google Routes (Compute Routes Pro,
+  traffic aware) with that key, one request per line on route every 10 minutes (it was 3, through
+  Raphael's key), and warns of the cost in detail before it starts.
+- **Voice control of the live map**, the way God's Eye View does it: the application mints a
+  short-lived OpenAI Realtime secret with the session configured (instructions and tools), and the
+  map page talks to OpenAI over WebRTC. The assistant can select a line, find a trip by Trip Id, go
+  to a place, zoom, frame the fleet, clear the selection, report the fleet's state and change the
+  style or map type. Tool results never carry patient data. Without OPENAI_API_KEY it shows God's
+  Eye's error tray.
+- **POWER UP** (bottom right): the provider keys dialog. OpenAI (voice) and Google Maps (delays layer)
+  work; Anthropic (Claude), Grok (xAI), OpenRouter, TomTom, Mapbox, HERE and Amazon Location are
+  listed at the end, disabled, until each has its own integration. Keys are saved in the
+  `ProviderKeys` section of `%LOCALAPPDATA%\Raphael\appsettings.json` (per Windows user, layered on
+  the installation's file); the page only learns which keys exist.
 - **Live map** (RE-080), from the globe next to the bell; office roles. Every line of the fleet,
   colored by group (on route today, active without trips, suspended today, out of service, expired),
   with filters (on route today by default), a legend and a fleet summary. Vehicles move as their
@@ -33,27 +110,25 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
   pickup, the approach is a dotted line on top. The whole day reads 1 → 2 → 3, every leg with its own
   arrows, and its animation lights each stop up as the trail reaches it. Stops at one place share one
   label ("2 4 6"), drawn above the spot so a vehicle standing there never hides it.
-
-### Fixed
-
-- **Selecting a vehicle on the live map no longer undoes itself** (RE-080): the click also reached
-  the map underneath, which clears the selection.
-- **The live map moves on to the next stop within seconds of the driver performing one** (RE-080),
-  instead of up to two minutes later: the line's legs are read again when its vehicle reaches the stop
-  it was heading to and when it leaves it.
 - **Fleet productivity report** (RE-081), a new tab in Reports for office staff: paid hours and
   odometer miles per driver and day over a date range, filtered by drivers and vehicles, with the
   period's totals and a reliability mark per day. A click opens the day: the paid shift minute by
   minute and the miles (loaded, empty, GPS, planned, passenger, off-route). Saves as PDF and as an
   Excel workbook with hours as durations and formula totals. Needs the Raphael.Backend version with
   `GET api/reports/productivity`. Help topic `desktop/reports/productivity`.
+- **When the server refuses this version** (`426`), the application says so once, in the user's
+  language, and closes, instead of failing call after call (RE-078).
 
 ### Changed
 
+- **Live map first load**: the WebView2 browser process starts, idle, when the main window opens
+  (no page and no map load until the map is opened), the page reaches Google's hosts while it
+  parses and the text fonts no longer hold the first paint.
+- **Route card progress bar** takes the live card's dark colours on a transparent page, so the bar
+  and the ETA card read as one surface.
 - **Target framework `net8.0-windows10.0.19041.0`** (RE-080), minimum Windows 10 1809: the
   composition WebView2 needs the Windows SDK projection. The package carries
   `Microsoft.Windows.SDK.NET.dll` (about 25 MB).
-
 - **Schedules is labelled Dispatch** in the menu and on its tab (RE-080). The old Dispatch screen
   left the menu; its code stays as a reference. Help links and anything that still named it open
   the new Dispatch.
@@ -69,10 +144,27 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
   reconnecting after a server restart does not read at the same second. Before, changes made while
   disconnected stayed missing until the application was restarted (RE-078).
 
-### Added
+### Fixed
 
-- **When the server refuses this version** (`426`), the application says so once, in the user's
-  language, and closes, instead of failing call after call (RE-078).
+- **No vehicles on the 3D map**: the 3D markers were Google's default pins, placed only once and
+  framed on the 2D view, so most fell outside. They are now our disc and van, the fleet is framed on
+  entering 3D, and their positions follow the vehicles every second.
+- **3D map ignored Fit, the routes and the selection**: Fit frames the fleet in 3D, the selected line
+  shows its trip (driven grey, ahead in its pace) with its stops, and "Routes in progress" draws every
+  line's current leg in 3D too.
+- **Vehicles drifted off their position while the camera moved** (Follow): they were placed with
+  Google's overlay projection, refreshed only when the camera rests. They now sit in their own layer,
+  placed with the map's Web Mercator maths from the live centre and zoom.
+- **Live map "Charged" disagreed with Home** ($1,560 against $1,559.52): the same sum, rounded to
+  whole dollars on the map. It now prints cents, exactly as Home's summary.
+- **Live map froze the application when moved to its own window** (or back): the composition
+  WebView2 stalled WPF's rendering when it changed window, so nothing repainted and no button
+  answered. The map's web views are now released and created again in the new window.
+- **Selecting a vehicle on the live map no longer undoes itself** (RE-080): the click also reached
+  the map underneath, which clears the selection.
+- **The live map moves on to the next stop within seconds of the driver performing one** (RE-080),
+  instead of up to two minutes later: the line's legs are read again when its vehicle reaches the stop
+  it was heading to and when it leaves it.
 
 ## [1.20.3] - 2026-11-18
 
