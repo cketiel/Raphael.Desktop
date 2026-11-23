@@ -1,0 +1,274 @@
+<Window x:Class="Raphael.Desktop.Views.Admin.Employees.DriverPayRateView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        Title="{Binding L[pay.Title]}" Width="640" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F4F6FA">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- A step number in a purple circle -->
+        <Style x:Key="StepBadge" TargetType="Border">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="CornerRadius" Value="11"/>
+            <Setter Property="Background" Value="#673AB7"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="StepTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#1E2A36"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- One of the two exclusive ways to pay. The whole card is the radio button, and it says in
+             words which one is paid: a highlighted border alone left people unsure (RE-082). -->
+        <Style x:Key="RateCard" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Card" Background="White" BorderBrush="#DDE3EA" BorderThickness="2" CornerRadius="12" Padding="16,14">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <!-- The status line: what this card means right now -->
+                                <DockPanel Margin="0,0,0,10">
+                                    <Grid Width="20" Height="20" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <Ellipse x:Name="Ring" Stroke="#B0BAC5" StrokeThickness="2" Fill="White"/>
+                                        <Ellipse x:Name="Dot" Width="10" Height="10" Fill="#673AB7" Visibility="Collapsed"/>
+                                    </Grid>
+                                    <Border x:Name="Status" CornerRadius="10" Padding="9,3" Background="#EEF1F5" HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon x:Name="StatusIcon" Kind="CursorDefaultClickOutline" Width="13" Height="13" Foreground="#5B6B7C" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="StatusText" Text="{Binding DataContext.L[pay.TapToApply], RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       FontSize="11.5" FontWeight="SemiBold" Foreground="#5B6B7C" Margin="5,0,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DockPanel>
+                                <ContentPresenter x:Name="Body" Grid.Row="1" Opacity="0.72"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Card" Property="BorderBrush" Value="#B39DDB"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Card" Property="BorderBrush" Value="#673AB7"/>
+                                <Setter TargetName="Card" Property="Background" Value="#F7F3FE"/>
+                                <Setter TargetName="Ring" Property="Stroke" Value="#673AB7"/>
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="Status" Property="Background" Value="#673AB7"/>
+                                <Setter TargetName="StatusIcon" Property="Kind" Value="CheckCircle"/>
+                                <Setter TargetName="StatusIcon" Property="Foreground" Value="White"/>
+                                <Setter TargetName="StatusText" Property="Foreground" Value="White"/>
+                                <Setter TargetName="StatusText" Property="Text" Value="{Binding DataContext.L[pay.AppliesThis], RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Setter TargetName="Body" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- The amount: big, right-aligned, with its unit -->
+        <Style x:Key="AmountBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#1E2A36"/>
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+            <Setter Property="MinWidth" Value="110"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- F1 answers with the pay topic from anywhere in the window (topic on the content, not the root window). -->
+    <Grid helpers:HelpAssist.TopicId="desktop/admin/driver-pay">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============ Header band: who, and what is paid today ============ -->
+        <Border Grid.Row="0" Background="#4527A0" Padding="22,18">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="50" Height="50" CornerRadius="25" Background="#7E57C2" Margin="0,0,14,0">
+                    <TextBlock Text="{Binding Driver.Initials}" FontWeight="Bold" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Driver.FullName}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <materialDesign:PackIcon Kind="Steering" Width="14" Height="14" Foreground="#D1C4E9" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding L[pay.Subtitle]}" Foreground="#D1C4E9" Margin="6,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+                <Border Grid.Column="2" Background="#5E35B1" CornerRadius="10" Padding="16,8" VerticalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock Text="{Binding L[pay.InForceToday]}" Foreground="#D1C4E9" FontSize="11" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding CurrentText}" FontSize="24" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                        <TextBlock Foreground="#D1C4E9" FontSize="11" HorizontalAlignment="Right">
+                            <Run Text="{Binding CurrentKind, Mode=OneWay}"/> <Run Text="{Binding CurrentSince, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ============ Body ============ -->
+        <StackPanel Grid.Row="1" Margin="22,18,22,6">
+
+            <!-- Step 1: how the driver is paid -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                <Border Style="{StaticResource StepBadge}"><TextBlock Text="1" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <TextBlock Text="{Binding L[pay.Step1]}" Style="{StaticResource StepTitle}"/>
+            </StackPanel>
+            <TextBlock Text="{Binding L[pay.Step1Hint]}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="32,0,0,10"/>
+
+            <UniformGrid Columns="2">
+                <RadioButton Style="{StaticResource RateCard}" GroupName="Rate" IsChecked="{Binding IsHourly}" Margin="0,0,7,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="17" Background="#E0F2FE">
+                                <materialDesign:PackIcon Kind="ClockTimeFourOutline" Width="19" Height="19" Foreground="#0369A1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding L[pay.Hourly]}" FontWeight="Bold" FontSize="15" Foreground="#1E2A36"/>
+                                <TextBlock Text="{Binding L[pay.HourlyHint]}" Foreground="#7A8794" FontSize="11" TextWrapping="Wrap" MaxWidth="210"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <DockPanel Margin="0,12,0,0">
+                            <TextBlock Text="$" FontSize="22" FontWeight="SemiBold" Foreground="#5B6B7C" VerticalAlignment="Bottom" Margin="0,0,6,4"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding L[pay.PerHourUnit]}" Foreground="#5B6B7C" VerticalAlignment="Bottom" Margin="8,0,0,6"/>
+                            <TextBox Text="{Binding HourlyText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AmountBox}"
+                                     GotKeyboardFocus="Amount_GotKeyboardFocus"/>
+                        </DockPanel>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RateCard}" GroupName="Rate" IsChecked="{Binding IsPerMile}" Margin="7,0,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="34" Height="34" CornerRadius="17" Background="#EDE7F6">
+                                <materialDesign:PackIcon Kind="RoadVariant" Width="19" Height="19" Foreground="#4527A0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding L[pay.PerMile]}" FontWeight="Bold" FontSize="15" Foreground="#1E2A36"/>
+                                <TextBlock Text="{Binding L[pay.PerMileHint]}" Foreground="#7A8794" FontSize="11" TextWrapping="Wrap" MaxWidth="210"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <DockPanel Margin="0,12,0,0">
+                            <TextBlock Text="$" FontSize="22" FontWeight="SemiBold" Foreground="#5B6B7C" VerticalAlignment="Bottom" Margin="0,0,6,4"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding L[pay.PerMileUnit]}" Foreground="#5B6B7C" VerticalAlignment="Bottom" Margin="8,0,0,6"/>
+                            <TextBox Text="{Binding PerMileText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource AmountBox}"
+                                     GotKeyboardFocus="Amount_GotKeyboardFocus"/>
+                        </DockPanel>
+                    </StackPanel>
+                </RadioButton>
+            </UniformGrid>
+            <TextBlock Text="{Binding L[pay.BothKept]}" Foreground="#7A8794" FontSize="11" TextWrapping="Wrap" Margin="2,8,0,0"/>
+
+            <!-- Step 2: from when -->
+            <StackPanel Orientation="Horizontal" Margin="0,18,0,8">
+                <Border Style="{StaticResource StepBadge}"><TextBlock Text="2" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <TextBlock Text="{Binding L[pay.Step2]}" Style="{StaticResource StepTitle}"/>
+            </StackPanel>
+            <Grid Margin="32,0,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <DatePicker SelectedDate="{Binding EffectiveFrom}" materialDesign:HintAssist.Hint="{Binding L[pay.EffectiveFrom]}"
+                            Style="{StaticResource MaterialDesignFloatingHintDatePicker}" Margin="0,0,14,0"/>
+                <TextBox Grid.Column="1" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                         materialDesign:HintAssist.Hint="{Binding L[pay.Note]}" Style="{StaticResource MaterialDesignFloatingHintTextBox}"/>
+            </Grid>
+
+            <!-- What saving will do, said before it is done -->
+            <Border Background="#EEF2FF" BorderBrush="#C7D2FE" BorderThickness="1" CornerRadius="10" Padding="14,11" Margin="0,16,0,0">
+                <DockPanel>
+                    <materialDesign:PackIcon Kind="InformationOutline" Width="18" Height="18" Foreground="#3730A3" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                    <TextBlock Text="{Binding Preview}" Foreground="#312E81" TextWrapping="Wrap"/>
+                </DockPanel>
+            </Border>
+
+            <!-- History: closed until asked for, read ten at a time, and never taller than its box -->
+            <Button Command="{Binding ToggleHistoryCommand}" Style="{StaticResource MaterialDesignFlatButton}"
+                    HorizontalAlignment="Left" Margin="-8,12,0,0" Padding="8,4" Foreground="#4527A0">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="History" Width="18" Height="18" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding HistoryToggleText}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Border Visibility="{Binding IsHistoryOpen, Converter={StaticResource BoolToVis}}"
+                    Background="White" CornerRadius="10" BorderBrush="#E3E8EF" BorderThickness="1" Margin="0,4,0,0">
+                <Grid>
+                    <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding History}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="#EEF1F5" BorderThickness="0,0,0,1" Padding="14,9">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Since}" FontWeight="SemiBold" Foreground="#1E2A36" VerticalAlignment="Center"/>
+                                                <materialDesign:PackIcon Grid.Column="1" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <materialDesign:PackIcon.Style>
+                                                        <Style TargetType="materialDesign:PackIcon">
+                                                            <Setter Property="Kind" Value="ClockTimeFourOutline"/><Setter Property="Foreground" Value="#0369A1"/>
+                                                            <Style.Triggers><DataTrigger Binding="{Binding IsPerMile}" Value="True"><Setter Property="Kind" Value="RoadVariant"/><Setter Property="Foreground" Value="#4527A0"/></DataTrigger></Style.Triggers>
+                                                        </Style>
+                                                    </materialDesign:PackIcon.Style>
+                                                </materialDesign:PackIcon>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock>
+                                                        <Run Text="{Binding Label, Mode=OneWay}" FontWeight="Bold" Foreground="#1E2A36"/>
+                                                        <Run Text="{Binding Other, Mode=OneWay}" Foreground="#7A8794" FontSize="11"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding Note}" Foreground="#5B6B7C" FontSize="11" FontStyle="Italic" TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding Note}" Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}"/>
+                                                    <TextBlock Text="{Binding Who}" Foreground="#9AA5B1" FontSize="10.5"/>
+                                                </StackPanel>
+                                                <Border Grid.Column="3" CornerRadius="9" Padding="8,2" VerticalAlignment="Center" Background="#DCF2E3"
+                                                        Visibility="{Binding HasState, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding State}" FontSize="11" FontWeight="SemiBold" Foreground="#1B7F3B"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Command="{Binding LoadMoreCommand}" Content="{Binding L[pay.LoadMore]}" Style="{StaticResource MaterialDesignFlatButton}"
+                                    HorizontalAlignment="Center" Margin="0,4" Visibility="{Binding CanLoadMore, Converter={StaticResource BoolToVis}}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <TextBlock Text="{Binding L[pay.HistoryEmpty]}" Foreground="#9AA5B1" Margin="14,10" Visibility="{Binding HistoryIsEmpty, Converter={StaticResource BoolToVis}}"/>
+                    <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" Visibility="{Binding IsHistoryLoading, Converter={StaticResource BoolToVis}}"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <!-- ============ Footer: always in view ============ -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E3E8EF" BorderThickness="0,1,0,0" Padding="22,12" Margin="0,12,0,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="{Binding L[pay.Cancel]}" Style="{StaticResource MaterialDesignFlatButton}" Margin="0,0,8,0"
+                            Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    <Button Background="#673AB7" BorderBrush="#673AB7" Height="38" Padding="18,0"
+                            Command="{Binding SaveCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding L[pay.Save]}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ErrorText}" Foreground="#C62828" TextWrapping="Wrap"/>
+                    <TextBlock Foreground="#7A8794" FontSize="11">
+                        <Run Text="F1"/> <Run Text="{Binding L[pay.F1Hint], Mode=OneWay}"/>
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

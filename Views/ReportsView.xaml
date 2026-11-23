@@ -188,7 +188,22 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
+
+                        <!-- RE-082: the grand total under the list, where the eye ends; administrators only -->
+                        <Border Grid.Row="2" Background="#4527A0" CornerRadius="5" Padding="16,10" Margin="0,10,0,0"
+                                Visibility="{Binding HasPay, Converter={StaticResource StandardBoolToVis}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="CashMultiple" Width="20" Height="20" Foreground="White" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding GrandTotalText}" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Totals.AmountSub}" Foreground="#D1C4E9" Margin="14,1,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding Totals.AmountText}" Foreground="White" FontSize="20" FontWeight="Bold"/>
+                            </Grid>
+                        </Border>
 
                         <!-- The period at a glance: icon, figure and what it means per driver-day -->
                         <UniformGrid Rows="1" Margin="0,0,0,12" Visibility="{Binding HasRows, Converter={StaticResource StandardBoolToVis}}">
@@ -255,7 +270,7 @@
                                     </StackPanel>
                                 </Grid>
                             </Border>
-                            <Border Style="{StaticResource ProdTile}" Margin="0">
+                            <Border Style="{StaticResource ProdTile}">
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Border Width="40" Height="40" CornerRadius="20" Background="#E0E7FF" VerticalAlignment="Top" Margin="0,2,12,0">
@@ -265,6 +280,20 @@
                                         <TextBlock Text="{Binding TotalTripsText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
                                         <TextBlock Text="{Binding Totals.Trips}" FontSize="22" FontWeight="Bold" Foreground="#1E2A36" Margin="0,1,0,0"/>
                                         <TextBlock Text="{Binding Totals.TripsSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <!-- RE-082: what the period costs in pay; administrators only -->
+                            <Border Style="{StaticResource ProdTile}" Margin="0" BorderBrush="#B39DDB" Visibility="{Binding HasPay, Converter={StaticResource StandardBoolToVis}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border Width="40" Height="40" CornerRadius="20" Background="#EDE7F6" VerticalAlignment="Top" Margin="0,2,12,0">
+                                        <materialDesign:PackIcon Kind="CashMultiple" Width="22" Height="22" Foreground="#673AB7" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding TotalAmountText}" Foreground="#5B6B7C" FontSize="11.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Totals.AmountText}" FontSize="22" FontWeight="Bold" Foreground="#4527A0" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding Totals.AmountSub}" Foreground="#7A8794" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -280,8 +309,9 @@
                                 <!-- Exactly the Home trips grid: same base style, centred headers, banded rows, accent
                                      bar on hover and selection. Named one by one, as Home does: MaterialDesign sets
                                      these on the element, so a derived style's setters would not apply. -->
-                                <DataGrid ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True"
+                                <DataGrid ItemsSource="{Binding RowsView}" AutoGenerateColumns="False" IsReadOnly="True"
                                           SelectionMode="Single" SelectionUnit="FullRow" AlternationCount="2" Cursor="Hand"
+                                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                                           Style="{StaticResource CustomDataGridStyle}"
                                           ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
                                           RowStyle="{StaticResource ContentRowStyle}"
@@ -305,6 +335,19 @@
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColLoaded, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
                                         <DataGridTextColumn Binding="{Binding Trips}" Width="60">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColTrips, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <!-- RE-082: the rate in force that day and what the day pays; administrators only -->
+                                        <DataGridTextColumn Binding="{Binding RateText}" Width="90"
+                                                            Visibility="{Binding Data.HasPay, Source={StaticResource ProdProxy}, Converter={StaticResource StandardBoolToVis}}">
+                                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColRate, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                                        <DataGridTemplateColumn Width="100" SortMemberPath="Data.PayAmount"
+                                                                Visibility="{Binding Data.HasPay, Source={StaticResource ProdProxy}, Converter={StaticResource StandardBoolToVis}}">
+                                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColAmount, Source={StaticResource ProdProxy}}"/></DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding AmountText}" FontWeight="SemiBold" Foreground="#4527A0" ToolTip="{Binding PayTip}" HorizontalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
                                         <DataGridTemplateColumn Width="90">
                                             <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColReliability, Source={StaticResource ProdProxy}}"/></DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
@@ -332,6 +375,34 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                     </DataGrid.Columns>
+
+                                    <!-- RE-082: one block per driver; its header carries the subtotal -->
+                                    <DataGrid.GroupStyle>
+                                        <GroupStyle>
+                                            <GroupStyle.HeaderTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#F6F2FD" BorderBrush="#D1C4E9" BorderThickness="0,0,0,1" Padding="12,7" Cursor="Arrow">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                            <Border Width="26" Height="26" CornerRadius="13" Background="#EDE7F6" Margin="0,0,10,0">
+                                                                <materialDesign:PackIcon Kind="Steering" Width="15" Height="15" Foreground="#673AB7" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name.Title}" FontWeight="Bold" FontSize="13" Foreground="#311B92"/>
+                                                                <TextBlock Text="{Binding Name.Line}" Foreground="#5B6B7C" Margin="12,1,0,0"/>
+                                                                <TextBlock Text="{Binding Name.RateText}" Foreground="#673AB7" Margin="12,1,0,0"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                                                        Visibility="{Binding Name.HasPay, Converter={StaticResource StandardBoolToVis}}">
+                                                                <TextBlock Text="{Binding Name.SubtotalLabel}" Foreground="#5B6B7C" Margin="0,1,8,0"/>
+                                                                <TextBlock Text="{Binding Name.AmountText}" FontWeight="Bold" FontSize="14" Foreground="#4527A0"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </GroupStyle.HeaderTemplate>
+                                        </GroupStyle>
+                                    </DataGrid.GroupStyle>
 
                                     <DataGrid.RowDetailsTemplate>
                                         <DataTemplate>

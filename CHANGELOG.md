@@ -5,6 +5,29 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-11-22
+
+Slice RE-082. Needs Raphael.Backend 2.12.0 for pay rates and pay in the productivity report.
+
+### Added
+- Users screen redesigned (RE-082): tabs All / Drivers / Office / External with counts, search as you
+  type, Active only on by default, Provider filter, a "more" menu per row and status pills.
+- Driver pay rate window: hourly or per passenger mile, effective date, note and history.
+- Fleet productivity: rate and amount per day, rows grouped by driver with subtotals, a Total pay
+  tile and the grand total, in the screen, the PDF and the Excel (amounts as formulas).
+  Administrators only. Needs the next Raphael.Backend.
+
+### Changed
+- Admin builds each tab the first time it is opened and keeps it (`Helpers/LazyTab`): opening Admin
+  no longer loads all eight tabs at once. The Users list shows in under a second instead of ~2.5 s.
+- Pay rate window redesigned: header with what the driver is paid today, numbered steps, cards that
+  say in words which one is paid (clicking an amount marks its card), history on demand ten at a
+  time in a fixed-height list, footer always in view, F1 to its own help topic.
+
+### Fixed
+- Fleet productivity: generating the report a second time left the grouped grid with 20-pixel
+  columns and no headers. Each report now gets a fresh grouped view.
+
 ## [1.21.2] - 2026-11-22
 
 Slices RE-078, RE-080 and RE-081. Needs Raphael.Backend 2.11.2 for the live map's punctuality colours

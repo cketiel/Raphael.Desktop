@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.21.2"
+    "Raphael.Desktop": "1.22.0"
   },
-  "builtUtc": "2026-11-22T10:53:41.562Z",
-  "sourceCommit": "1c7be21",
+  "builtUtc": "2026-11-23T03:16:47.032Z",
+  "sourceCommit": "2848343",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.21.2",
+      "lastReviewed": "1.22.0",
       "roles": [
         "admin",
         "dispatcher",
@@ -569,7 +569,7 @@
       "id": "desktop/reports/productivity",
       "mode": "how-to",
       "since": "1.21.2",
-      "lastReviewed": "1.21.2",
+      "lastReviewed": "1.22.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -613,7 +613,7 @@
       "id": "desktop/admin/employees",
       "mode": "reference",
       "since": "1.5.0",
-      "lastReviewed": "1.18.1",
+      "lastReviewed": "1.22.0",
       "roles": [
         "admin"
       ],
@@ -621,6 +621,20 @@
       "title": {
         "es": "Admin — Employees",
         "en": "Admin — Employees"
+      }
+    },
+    {
+      "id": "desktop/admin/driver-pay",
+      "mode": "how-to",
+      "since": "1.22.0",
+      "lastReviewed": "1.22.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Employees",
+      "title": {
+        "es": "Tarifa de pago de un Driver — por hora o por milla",
+        "en": "A driver's pay rate — hourly or per mile"
       }
     },
     {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Raphael.Desktop.DTOs
 {
@@ -65,5 +65,12 @@ namespace Raphael.Desktop.DTOs
 
         public int AlgorithmVersion { get; set; }
         public DateTime ComputedAtUtc { get; set; }
+
+        // ---- RE-082: pay. Null for a caller who is not an administrator, or with no rate that day. ----
+        public DriverPayRateType? PayRateType { get; set; }
+        public decimal? PayRate { get; set; }
+        /// <summary>Paid hours or passenger miles (two patients on board count two).</summary>
+        public decimal? PayUnits { get; set; }
+        public decimal? PayAmount { get; set; }
     }
 }
