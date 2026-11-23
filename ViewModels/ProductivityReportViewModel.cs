@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuestPDF.Fluent;
 using Raphael.Desktop.DTOs;
@@ -9,6 +9,8 @@ using Raphael.Desktop.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -37,6 +39,28 @@ namespace Raphael.Desktop.ViewModels
             StartDate = today.AddDays(-7);
             EndDate = today.AddDays(-1);
             LocalizationService.Instance.PropertyChanged += (_, _) => OnPropertyChanged(string.Empty);
+
+            _rowsView = Grouped(Rows);
+        }
+
+        /// <summary>
+        /// The rows grouped by driver (the order is already driver, then day). A new view per
+        /// report, never a Clear() and refill of the old one: a grouped DataGrid that receives
+        /// a Reset followed by one Add per row loses its column widths and headers (RE-082,
+        /// every second report came out as a strip of 20-pixel columns).
+        /// </summary>
+        public ICollectionView RowsView
+        {
+            get => _rowsView;
+            private set => SetProperty(ref _rowsView, value);
+        }
+        private ICollectionView _rowsView;
+
+        private static ICollectionView Grouped(System.Collections.IList rows)
+        {
+            var view = new ListCollectionView(rows);
+            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ProductivityRow.Group)));
+            return view;
         }
 
         private static string T(string key) => LocalizationService.Instance[key];
@@ -67,6 +91,13 @@ namespace Raphael.Desktop.ViewModels
         public string TotalDaysText => T("productivity.TotalDays");
         public string HoursBreakdownText => T("productivity.HoursBreakdown");
         public string MilesBreakdownText => T("productivity.MilesBreakdown");
+        public string ColRate => T("productivity.ColRate");
+        public string ColAmount => T("productivity.ColAmount");
+        public string TotalAmountText => T("productivity.TotalAmount");
+        public string GrandTotalText => T("productivity.GrandTotal");
+
+        /// <summary>RE-082: amounts came back (the caller is an administrator and somebody had a rate).</summary>
+        public bool HasPay => Totals.HasPay;
         public string EmptyText => HasRun ? T("productivity.NoRows") : T("productivity.NotRun");
 
         // ------------------------------------------------------------------ filters
@@ -95,7 +126,7 @@ namespace Raphael.Desktop.ViewModels
         }
 
         // ------------------------------------------------------------------ result
-        public ObservableCollection<ProductivityRow> Rows { get; } = new();
+        public ObservableCollection<ProductivityRow> Rows { get; private set; } = new();
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasRows), nameof(EmptyText))]
@@ -122,10 +153,11 @@ namespace Raphael.Desktop.ViewModels
             try
             {
                 var data = await _service.GetAsync(StartDate, EndDate, Selected(Drivers), Selected(Vehicles));
-                Rows.Clear();
-                foreach (var d in data) Rows.Add(new ProductivityRow(d));
+                Rows = new ObservableCollection<ProductivityRow>(ProductivityRow.Grouped(data));
+                RowsView = Grouped(Rows);
                 Totals = ProductivityTotals.Of(data);
                 OnPropertyChanged(nameof(Totals));
+                OnPropertyChanged(nameof(HasPay));
                 OnPropertyChanged(nameof(HasRows));
                 HasRun = true;
                 OnPropertyChanged(nameof(EmptyText));
@@ -185,9 +217,38 @@ namespace Raphael.Desktop.ViewModels
     /// <summary>One driver's day, ready to show: the figures and their wording.</summary>
     public class ProductivityRow
     {
-        public ProductivityRow(ProductivityReportRowDto data) => Data = data;
+        public ProductivityRow(ProductivityReportRowDto data, DriverGroup? group = null)
+        {
+            Data = data;
+            Group = group ?? new DriverGroup(data.DriverId, data.DriverName ?? "—", new[] { data });
+        }
 
         public ProductivityReportRowDto Data { get; }
+
+        /// <summary>The driver's block this day belongs to: the grid groups by it and shows its subtotal.</summary>
+        public DriverGroup Group { get; }
+
+        /// <summary>Driver by name, then day: the order of the grid, the PDF and the workbook.</summary>
+        public static List<ProductivityRow> Grouped(IEnumerable<ProductivityReportRowDto> data)
+        {
+            var list = new List<ProductivityRow>();
+            foreach (var g in data.GroupBy(d => (d.DriverId, Name: d.DriverName ?? "—")).OrderBy(g => g.Key.Name, StringComparer.CurrentCultureIgnoreCase))
+            {
+                var days = g.OrderBy(d => d.OperatingDate).ThenBy(d => d.RouteName).ToList();
+                var group = new DriverGroup(g.Key.DriverId, g.Key.Name, days);
+                list.AddRange(days.Select(d => new ProductivityRow(d, group)));
+            }
+            return list;
+        }
+
+        // ---- RE-082: pay ----
+        public bool HasPay => Data.PayAmount is not null;
+        public string RateText => ProductivityFormat.Rate(Data.PayRateType, Data.PayRate);
+        public string AmountText => ProductivityFormat.Money(Data.PayAmount);
+        public string PayTip => Data.PayRateType is null ? T("productivity.NoRateTip")
+            : Data.PayRateType == DriverPayRateType.Hourly
+                ? $"{ProductivityFormat.Hours(Data.PaidMinutes)} h × {ProductivityFormat.Money(Data.PayRate)} = {AmountText}"
+                : $"{Data.PayUnits:N1} mi × {ProductivityFormat.Money(Data.PayRate)} = {AmountText}";
 
         private static string T(string key) => LocalizationService.Instance[key];
 
@@ -348,8 +409,45 @@ namespace Raphael.Desktop.ViewModels
     /// <summary>One segment of a breakdown bar and its legend line.</summary>
     public record DaySegment(string Label, string Value, string Share, Brush Color, double Width);
 
+    /// <summary>RE-082: one driver's block in the report, and its subtotal.</summary>
+    public class DriverGroup
+    {
+        public DriverGroup(int? driverId, string title, IReadOnlyCollection<ProductivityReportRowDto> days)
+        {
+            DriverId = driverId;
+            Title = title;
+            Days = days.Count;
+            PaidMinutes = days.Sum(d => d.PaidMinutes);
+            PassengerMiles = days.Sum(d => d.PassengerMiles ?? 0);
+            HasPay = days.Any(d => d.PayAmount is not null);
+            Amount = days.Sum(d => d.PayAmount ?? 0);
+            RateText = string.Join(" · ", days.Where(d => d.PayRateType != null)
+                .Select(d => ProductivityFormat.Rate(d.PayRateType, d.PayRate)).Distinct());
+        }
+
+        public int? DriverId { get; }
+        public string Title { get; }
+        public int Days { get; }
+        public int PaidMinutes { get; }
+        public double PassengerMiles { get; }
+        public bool HasPay { get; }
+        public decimal Amount { get; }
+
+        /// <summary>The rate or rates the block was paid at ("$15.00/h", or two when it changed mid-range).</summary>
+        public string RateText { get; }
+        public string AmountText => ProductivityFormat.Money(Amount);
+        public string Line => string.Format(LocalizationService.Instance["productivity.GroupLine"], Days, ProductivityFormat.Hours(PaidMinutes), $"{PassengerMiles:N1}");
+        public string SubtotalLabel => LocalizationService.Instance["productivity.Subtotal"];
+
+        public override string ToString() => Title;
+    }
+
     public static class ProductivityFormat
     {
+        private static readonly System.Globalization.CultureInfo Usd = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+        public static string Money(decimal? amount) => amount is { } a ? a.ToString("C2", Usd) : "—";
+        public static string Rate(DriverPayRateType? type, decimal? rate) => type is null || rate is null ? "—"
+            : type == DriverPayRateType.Hourly ? $"{Money(rate)}/h" : $"{Money(rate)}/mi";
         public static string Hours(int minutes) => $"{minutes / 60}:{minutes % 60:00}";
         public static string Miles(double? miles) => miles is { } m ? $"{m:N1} mi" : "—";
     }
@@ -365,6 +463,13 @@ namespace Raphael.Desktop.ViewModels
         public double DeadheadMiles { get; init; }
         public double PassengerMiles { get; init; }
         public int Trips { get; init; }
+        public bool HasPay { get; init; }
+        public decimal Amount { get; init; }
+        public decimal HourlyAmount { get; init; }
+        public decimal PerMileAmount { get; init; }
+
+        public string AmountText => ProductivityFormat.Money(Amount);
+        public string AmountSub => string.Format(LocalizationService.Instance["productivity.SubAmount"], ProductivityFormat.Money(HourlyAmount), ProductivityFormat.Money(PerMileAmount));
 
         public string PaidText => ProductivityFormat.Hours(PaidMinutes);
         public string MilesText => $"{VehicleMiles:N1} mi";
@@ -386,7 +491,11 @@ namespace Raphael.Desktop.ViewModels
             LoadedMiles = rows.Sum(r => r.LoadedMiles ?? 0),
             DeadheadMiles = rows.Sum(r => r.DeadheadMiles ?? 0),
             PassengerMiles = rows.Sum(r => r.PassengerMiles ?? 0),
-            Trips = rows.Sum(r => r.TripsCompleted)
+            Trips = rows.Sum(r => r.TripsCompleted),
+            HasPay = rows.Any(r => r.PayAmount is not null),
+            Amount = rows.Sum(r => r.PayAmount ?? 0),
+            HourlyAmount = rows.Where(r => r.PayRateType == DriverPayRateType.Hourly).Sum(r => r.PayAmount ?? 0),
+            PerMileAmount = rows.Where(r => r.PayRateType == DriverPayRateType.PerMile).Sum(r => r.PayAmount ?? 0)
         };
     }
 }

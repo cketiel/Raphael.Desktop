@@ -1,4 +1,4 @@
-<UserControl x:Class="Raphael.Desktop.Views.AdminView"
+﻿<UserControl x:Class="Raphael.Desktop.Views.AdminView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -79,16 +79,16 @@
                     for the menu, so F1 never lands nowhere.
                 -->
                 <TabItem Header="{Binding Employees}">
-                    <views:EmployeesView helpers:HelpAssist.TopicId="desktop/admin/employees" />
+                    <helpers:LazyTab.View><DataTemplate><views:EmployeesView helpers:HelpAssist.TopicId="desktop/admin/employees" /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
 
                 <TabItem Header="{Binding Billing}">
-                    <views:BillingView helpers:HelpAssist.TopicId="desktop/admin/billing" />
+                    <helpers:LazyTab.View><DataTemplate><views:BillingView helpers:HelpAssist.TopicId="desktop/admin/billing" /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
                 <TabItem Header="{Binding Profile}">
-                    <views:ProfileView helpers:HelpAssist.TopicId="desktop/admin/profile" />
+                    <helpers:LazyTab.View><DataTemplate><views:ProfileView helpers:HelpAssist.TopicId="desktop/admin/profile" /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
                 <!-- RE-049: for a client company's admin, AdminView.xaml.cs removes Providers and
@@ -96,12 +96,12 @@
                      Catalog with its Integrators tab only. -->
                 <TabItem x:Name="IntegratorsTab" Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[admin.IntegratorsTab]}">
-                    <views:IntegratorsView helpers:HelpAssist.TopicId="desktop/admin/integrators" />
+                    <helpers:LazyTab.View><DataTemplate><views:IntegratorsView helpers:HelpAssist.TopicId="desktop/admin/integrators" /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
                 <TabItem x:Name="ProvidersTab" Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[admin.ProvidersTab]}">
-                    <views:ProvidersView helpers:HelpAssist.TopicId="desktop/admin/providers" />
+                    <helpers:LazyTab.View><DataTemplate><views:ProvidersView helpers:HelpAssist.TopicId="desktop/admin/providers" /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
                 <!-- The entities we could work with, as opposed to the two tabs above, which
@@ -109,7 +109,7 @@
                      declares its own, same as the Google Maps panel. -->
                 <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[catalog.Tab]}">
-                    <catalog:CatalogView />
+                    <helpers:LazyTab.View><DataTemplate><catalog:CatalogView /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
                 <!-- ⚠️ No TopicId on this one on purpose. The subtree walk takes the shallowest
@@ -118,7 +118,7 @@
                      GoogleMapsAdminView declares one per sub-tab. -->
                 <TabItem x:Name="GoogleMapsTab" Header="{Binding Source={x:Static services:LocalizationService.Instance},
                                           Path=[gmaps.Tab]}">
-                    <views:GoogleMapsAdminView />
+                    <helpers:LazyTab.View><DataTemplate><views:GoogleMapsAdminView /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
             </TabControl>
