@@ -55,6 +55,8 @@ namespace Raphael.Desktop.ViewModels
         public void RefreshLocalizedText()
         {
             Columns?.RefreshTexts();
+            // RE-091: who cancelled and why are words on each row.
+            if (TripsByDate?.Count > 0) { Filters.Rebuild(TripsByDate); Filters.WatchOptions(); RefreshTripsView(); }
             OnPropertyChanged(string.Empty);
 
             // The chips are strings already built, so no notification reaches inside them.
@@ -2928,15 +2930,11 @@ namespace Raphael.Desktop.ViewModels
             using var correction = TripGuard.Enter(tripToCancel.Date, tripToCancel.Status, LocalizationService.Instance["lock.OpCancel"]);
             if (correction == null) return;
 
-            var confirmationText = $"Are you sure you want to cancel trip '{tripToCancel.Id}'?";
-            var confirmationTitle = "Confirm Cancellation";
-
-            if (MessageBox.Show(confirmationText, confirmationTitle, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            if (Raphael.Desktop.Views.CancelTripDialog.Ask(tripToCancel.CustomerName, tripToCancel.Date, tripToCancel.FromTime) is { } why)
             {
                 try
                 {
-                    await _tripService.CancelTripAsync(tripToCancel.Id);
-                    MessageBox.Show("Trip canceled successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    await _tripService.CancelTripAsync(tripToCancel.Id, why.Code, why.Text);
                   
                     await LoadTripsAsync();
                 }

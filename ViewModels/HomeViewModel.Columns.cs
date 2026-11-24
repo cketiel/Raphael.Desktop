@@ -19,6 +19,9 @@ namespace Raphael.Desktop.ViewModels
         /// <summary>RE-050: for Raphael's admin only, who may hide it like any other.</summary>
         public Visibility ProviderColumnVisibility => IsPlatformAdmin && Columns?.IsShown("ProviderName") == true ? Visibility.Visible : Visibility.Collapsed;
 
+        public string CancelledByHeader => LocalizationService.Instance["cancel.ColBy"];
+        public string CancellationHeader => LocalizationService.Instance["cancel.ColReason"];
+
         /// <summary>The default order, and what shows before anybody chooses.</summary>
         private IReadOnlyList<(string Key, string Header, bool Visible)> DefaultColumns()
         {
@@ -37,6 +40,7 @@ namespace Raphael.Desktop.ViewModels
                 ("PickupPhone", PickupPhoneText, true), ("DropoffPhone", DropoffPhoneText, true), ("TripId", TripIdText, true),
                 ("Authorization", AuthorizationText, true), ("FundingSourceName", FundingSourceText, true),
                 ("Distance", DistanceText, true), ("PickupCity", PickupCityText, true), ("DropoffCity", DropoffCityText, true),
+                ("CancelledByText", CancelledByHeader, true), ("CancellationText", CancellationHeader, true),
                 ("DriverNoShowReason", DriverNoShowReasonText, true)
             });
             return list;

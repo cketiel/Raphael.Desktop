@@ -3508,15 +3508,11 @@ namespace Raphael.Desktop.ViewModels
             using var correction = Helpers.TripGuard.Enter(tripToCancel.Date, null, LocalizationService.Instance["lock.OpCancel"]);
             if (correction == null) return;
 
-            var confirmationText = $"Are you sure you want to cancel trip '{tripToCancel.Id}'?";
-            var confirmationTitle = "Confirm Cancellation";
-
-            if (MessageBox.Show(confirmationText, confirmationTitle, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            if (Raphael.Desktop.Views.CancelTripDialog.Ask(tripToCancel.CustomerName, tripToCancel.Date, tripToCancel.FromTime) is { } why)
             {
                 try
                 {
-                    await _tripService.CancelTripAsync(tripToCancel.Id);
-                    MessageBox.Show("Trip canceled successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    await _tripService.CancelTripAsync(tripToCancel.Id, why.Code, why.Text);
 
                     // Reload the list so that the grid is updated with the new state
                     await LoadSchedulesAndTripsAsync();

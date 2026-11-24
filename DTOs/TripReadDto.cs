@@ -52,6 +52,19 @@ namespace Raphael.Desktop.DTOs
         public bool WillCall { get; set; }
         public string Status { get; set; }
         public string? DriverNoShowReason { get; set; }
+
+        // RE-091: who cancelled it, when (UTC) and why. Null on trips cancelled before.
+        public string? CancelledBy { get; set; }
+        public string? CancelledByName { get; set; }
+        public DateTime? CancelledAtUtc { get; set; }
+        public string? CancellationReasonCode { get; set; }
+        public string? CancellationReason { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore] public string? CancelActor => Raphael.Desktop.Helpers.Cancellations.ActorOf(this);
+        [System.Text.Json.Serialization.JsonIgnore] public string CancelledByText => Raphael.Desktop.Helpers.Cancellations.ByText(this);
+        [System.Text.Json.Serialization.JsonIgnore] public string CancellationText => Raphael.Desktop.Helpers.Cancellations.ReasonText(this);
+        [System.Text.Json.Serialization.JsonIgnore] public string? CancelToolTip => Raphael.Desktop.Helpers.Cancellations.ToolTip(this);
+        [System.Text.Json.Serialization.JsonIgnore] public string CancelIcon => Raphael.Desktop.Helpers.Cancellations.Icon(CancelActor);
         [Required]
         public DateTime Created { get; set; }
         public int? FundingSourceId { get; set; }

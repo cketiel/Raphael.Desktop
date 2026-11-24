@@ -5,7 +5,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 to RE-086 and RE-088 to RE-090. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
+Slices RE-083 to RE-086 and RE-088 to RE-091. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
@@ -33,6 +33,8 @@ and simply have no kinds and no warnings.
 - Live map help (RE-086): nine topics, one per area, in both languages; F1 opens the one under the mouse,
   also inside the map page.
 
+- Cancellations (RE-091): cancelling asks why (a list, words only for "Other"); Home shows who cancelled each
+  trip and the reason, in two columns, the tooltip, a filter and the Excel export.
 - Home and Dispatch live (RE-090): a trip created, imported, edited, brought back or deleted, and every stop
   saved, reach the open screens without emptying them or losing the selection. An amber icon says when the
   live channel is down.

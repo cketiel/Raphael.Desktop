@@ -100,7 +100,8 @@ namespace Raphael.Desktop.Services
                 "Pickup Address", "Pickup City", "Dropoff Address", "Dropoff City",
                 "Space Type", "Funding Source", "Type", "Will Call", "Status", "Run",
                 "Distance", "Charge", "Paid", "Authorization",
-                "Pickup Phone", "Dropoff Phone", "Pickup Comment", "Dropoff Comment"
+                "Pickup Phone", "Dropoff Phone", "Pickup Comment", "Dropoff Comment",
+                "Cancelled By", "Cancellation Reason"
             };
 
             for (var i = 0; i < headers.Length; i++)
@@ -147,6 +148,8 @@ namespace Raphael.Desktop.Services
                 sheet.Cell(row, col++).Value = trip.DropoffPhone;
                 sheet.Cell(row, col++).Value = trip.PickupComment;
                 sheet.Cell(row, col++).Value = trip.DropoffComment;
+                sheet.Cell(row, col++).Value = trip.CancelledByText;
+                sheet.Cell(row, col++).Value = trip.CancellationText;
 
                 row++;
             }

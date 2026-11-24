@@ -150,7 +150,7 @@
 
                 <DataTrigger Binding="{Binding Status}" Value="Canceled">
                     <Setter Property="Foreground" Value="Red" />
-                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByDriverToolTip, Source={StaticResource vmProxy}}" />
+                    <Setter Property="ToolTip" Value="{Binding CancelToolTip}" />
                 </DataTrigger>
 
                 <!-- ⚠️ Hover and selection have to be declared here, not left to the row
@@ -173,7 +173,7 @@
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Foreground" Value="Gray" />
                     <Setter Property="FontStyle" Value="Italic" />
-                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByOfficeToolTip, Source={StaticResource vmProxy}}" />
+                    <Setter Property="ToolTip" Value="{Binding CancelToolTip}" />
                 </MultiDataTrigger>
 
                 <MultiDataTrigger>
@@ -182,7 +182,7 @@
                         <Condition Binding="{Binding DriverNoShowReason}" Value="" />
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Foreground" Value="Gray" />
-                    <Setter Property="ToolTip" Value="{Binding Data.CanceledByOfficeToolTip, Source={StaticResource vmProxy}}" />
+                    <Setter Property="ToolTip" Value="{Binding CancelToolTip}" />
                 </MultiDataTrigger>
             </Style.Triggers>
         </Style>
@@ -2368,6 +2368,28 @@
                                         Binding="{Binding DropoffCity}"
                                         Header="{Binding Data.DropoffCityText, Source={StaticResource vmProxy}}"/>
 
+                        <!-- RE-091: who cancelled, as an icon and a name. Not a colour per actor: seven of them
+                             cannot be told apart, and the row already says it is cancelled. -->
+                        <DataGridTemplateColumn Visibility="{Binding Data.ColumnVisibility[CancelledByText], Source={StaticResource vmProxy}}"
+                                        SortMemberPath="CancelledByText"
+                                        Header="{Binding Data.CancelledByHeader, Source={StaticResource vmProxy}}">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon x:Name="Who" Kind="{Binding CancelIcon}" Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <TextBlock Text="{Binding CancelledByText}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding CancelActor}" Value="{x:Null}"><Setter TargetName="Who" Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[CancellationText], Source={StaticResource vmProxy}}"
+                                        Binding="{Binding CancellationText, Mode=OneWay}"
+                                        Header="{Binding Data.CancellationHeader, Source={StaticResource vmProxy}}"/>
+
                         <DataGridTextColumn Visibility="{Binding Data.ColumnVisibility[DriverNoShowReason], Source={StaticResource vmProxy}}"
                                         Binding="{Binding DriverNoShowReason}"
                                         Header="{Binding Data.DriverNoShowReasonText, Source={StaticResource vmProxy}}"/>
@@ -2884,6 +2906,25 @@
                                                 </StackPanel>
                                             </Expander.Header>
                                             <ItemsControl ItemsSource="{Binding Filters.Statuses}" Margin="26,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"
+                                                                  Style="{StaticResource FilterOptionCheckBox}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </Border>
+
+                                    <Border Style="{StaticResource FilterSectionCard}" Visibility="{Binding Filters.HasCancelled, Converter={StaticResource BoolToVisibility}}">
+                                        <Expander IsExpanded="False" Background="Transparent" BorderThickness="0">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CalendarRemove" Style="{StaticResource FilterSectionIcon}"/>
+                                                    <TextBlock Text="{Binding CancelledByHeader}" Style="{StaticResource FilterSectionHeader}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                            <ItemsControl ItemsSource="{Binding Filters.CancelledBy}" Margin="26,2,0,4">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <CheckBox Content="{Binding Display}" IsChecked="{Binding IsChecked}"

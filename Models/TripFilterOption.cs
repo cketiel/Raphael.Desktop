@@ -15,14 +15,14 @@ namespace Raphael.Desktop.Models
         public TripFilterOption(string value, string label)
         {
             Value = value;
-            Label = label;
+            _label = label;
         }
 
         /// <summary>What the trip's own field has to equal. Never shown.</summary>
         public string Value { get; }
 
         /// <summary>What the dispatcher reads.</summary>
-        public string Label { get; }
+        [ObservableProperty] [NotifyPropertyChangedFor(nameof(Display))] private string _label;
 
         [ObservableProperty] private bool _isChecked;
 

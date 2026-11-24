@@ -42,6 +42,10 @@ namespace Raphael.Desktop.ViewModels
         public ObservableCollection<TripFilterOption> FundingSources { get; } = new();
         public ObservableCollection<TripFilterOption> Statuses { get; } = new();
         public ObservableCollection<TripFilterOption> Cities { get; } = new();
+
+        /// <summary>RE-091: who cancelled.</summary>
+        public ObservableCollection<TripFilterOption> CancelledBy { get; } = new();
+        public bool HasCancelled => CancelledBy.Count > 0;
         public ObservableCollection<TripFilterOption> Types { get; } = new();
 
         [ObservableProperty] private TripPlaceScope _cityScope = TripPlaceScope.Both;
@@ -77,6 +81,7 @@ namespace Raphael.Desktop.ViewModels
             if (!Allows(FundingSources, trip.FundingSourceName)) return false;
             if (!Allows(Statuses, trip.Status)) return false;
             if (!Allows(Types, trip.Type)) return false;
+            if (!Allows(CancelledBy, trip.CancelActor)) return false;
 
             if (Part is TripPart part && TripFigures.PartOf(trip) != part) return false;
 
@@ -164,12 +169,14 @@ namespace Raphael.Desktop.ViewModels
             Fill(FundingSources, all.Select(t => t.FundingSourceName));
             Fill(Statuses, all.Select(t => t.Status));
             Fill(Types, all.Select(t => t.Type));
+            Fill(CancelledBy, all.Select(t => t.CancelActor), Helpers.Cancellations.ActorLabel);
+            OnPropertyChanged(nameof(HasCancelled));
             Fill(Cities, all.SelectMany(t => new[] { t.PickupCity, t.DropoffCity }));
 
             RaiseChipsChanged();
         }
 
-        private static void Fill(ObservableCollection<TripFilterOption> options, IEnumerable<string> values)
+        private static void Fill(ObservableCollection<TripFilterOption> options, IEnumerable<string> values, Func<string, string> label = null)
         {
             var counted = values
                 .Select(v => string.IsNullOrWhiteSpace(v) ? null : v.Trim())
@@ -183,14 +190,17 @@ namespace Raphael.Desktop.ViewModels
                 options.Remove(stale);
 
             foreach (var option in options)
+            {
+                if (label != null) option.Label = label(option.Value);   // the language may have changed
                 option.Count = counted.TryGetValue(option.Value, out var n) ? n : 0;
+            }
 
             foreach (var pair in counted.OrderBy(p => p.Key, StringComparer.CurrentCultureIgnoreCase))
             {
                 if (options.Any(o => string.Equals(o.Value, pair.Key, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
-                options.Add(new TripFilterOption(pair.Key, pair.Key) { Count = pair.Value });
+                options.Add(new TripFilterOption(pair.Key, label is null ? pair.Key : label(pair.Key)) { Count = pair.Value });
             }
         }
 
@@ -212,7 +222,7 @@ namespace Raphael.Desktop.ViewModels
         }
 
         private IEnumerable<TripFilterOption> AllOptions() =>
-            SpaceTypes.Concat(FundingSources).Concat(Statuses).Concat(Cities).Concat(Types);
+            SpaceTypes.Concat(FundingSources).Concat(Statuses).Concat(Cities).Concat(Types).Concat(CancelledBy);
 
         #endregion
 

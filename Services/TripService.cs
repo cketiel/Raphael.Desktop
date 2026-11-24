@@ -240,13 +240,16 @@ namespace Raphael.Desktop.Services
             return result ?? new List<TripReadDto>();*/
         }
 
-        public async Task CancelTripAsync(int tripId)
+        public async Task CancelTripAsync(int tripId, string? reasonCode = null, string? reason = null)
         {
-            var response = await _httpClient.PostAsync($"{EndPoint}/{tripId}/cancel", null);
+            // RE-091: the reason in the body, never in the URL: it may name the patient.
+            var response = await _httpClient.PostAsJsonAsync($"{EndPoint}/{tripId}/cancel", new { ReasonCode = reasonCode, Reason = reason });
             response.EnsureSuccessStatusCode();
 
             // --- HISTORY RECORD ---
-            await _historyService.SaveHistoryAsync(tripId, "IsCanceled", "False", "True");
+            var why = reasonCode is null ? string.Empty
+                : $" ({Raphael.Desktop.Helpers.Cancellations.ReasonLabel(reasonCode)}{(reason is null ? string.Empty : ": " + reason)})";
+            await _historyService.SaveHistoryAsync(tripId, "IsCanceled", "False", "True" + why);
             //await _historyService.SaveHistoryAsync(tripId, "Status", "Active", "Cancelled");
         }
 
