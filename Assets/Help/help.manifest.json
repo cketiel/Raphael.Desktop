@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.22.0"
+    "Raphael.Desktop": "1.23.0"
   },
-  "builtUtc": "2026-11-23T03:16:47.032Z",
-  "sourceCommit": "2848343",
+  "builtUtc": "2026-11-24T04:17:37.265Z",
+  "sourceCommit": "e87f4b5",
   "languages": [
     "es",
     "en"
@@ -57,7 +57,7 @@
       "id": "desktop/whats-new/overview",
       "mode": "reference",
       "since": "1.4.0",
-      "lastReviewed": "1.22.0",
+      "lastReviewed": "1.23.0",
       "roles": [
         "admin",
         "dispatcher",
@@ -384,6 +384,50 @@
       }
     },
     {
+      "id": "desktop/data/vehicles",
+      "mode": "how-to",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Vehículos — la lista y qué transporta cada uno",
+        "en": "Vehicles — the list and what each one carries"
+      }
+    },
+    {
+      "id": "desktop/data/space-types",
+      "mode": "how-to",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Tipos de espacio — qué vehículo necesita cada uno",
+        "en": "Space types — what vehicle each one needs"
+      }
+    },
+    {
+      "id": "desktop/data/vehicle-configurations",
+      "mode": "how-to",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Configuraciones de vehículo y clases de plaza",
+        "en": "Vehicle configurations and classes of seat"
+      }
+    },
+    {
       "id": "desktop/data/out-of-service",
       "mode": "how-to",
       "since": "1.13.0",
@@ -417,7 +461,7 @@
       "id": "desktop/schedules/routing",
       "mode": "how-to",
       "since": "1.6.0",
-      "lastReviewed": "1.13.0",
+      "lastReviewed": "1.23.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -426,6 +470,21 @@
       "title": {
         "es": "Rutear un viaje",
         "en": "Route a trip"
+      }
+    },
+    {
+      "id": "desktop/schedules/vehicle-warning",
+      "mode": "how-to",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Schedules",
+      "title": {
+        "es": "El aviso de que un viaje no cabe en la línea",
+        "en": "The warning that a trip does not fit the line"
       }
     },
     {

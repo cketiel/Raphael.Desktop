@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Raphael.Desktop.Views.Data.Scheduling"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              xmlns:views="clr-namespace:Raphael.Desktop.Views.Data.Scheduling.Vehicles"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
@@ -20,16 +21,16 @@
                      VerticalContentAlignment="Stretch">
 
                 <TabItem Header="{Binding Vehicles}">
-                    <views:VehiclesView />
+                    <helpers:LazyTab.View><DataTemplate><views:VehiclesView /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
 
                 <TabItem Header="{Binding SpaceTypes}">
-                    <views:SpaceTypesView />
+                    <helpers:LazyTab.View><DataTemplate><views:SpaceTypesView /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
-                <TabItem Header="{Binding Capacities}" Visibility="Collapsed">
-                    <views:CapacitiesView />
+                <TabItem Header="{Binding Configurations}" Visibility="{Binding ConfigurationsVisibility, Mode=OneTime}">
+                    <helpers:LazyTab.View><DataTemplate><views:CapacitiesView /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
                 <TabItem Header="{Binding Speeds}" Visibility="Collapsed">
@@ -37,7 +38,7 @@
                 </TabItem>
 
                 <TabItem Header="{Binding Groups}">
-                    <views:GroupsView />
+                    <helpers:LazyTab.View><DataTemplate><views:GroupsView /></DataTemplate></helpers:LazyTab.View>
                 </TabItem>
 
             </TabControl>

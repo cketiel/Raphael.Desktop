@@ -1,132 +1,108 @@
-﻿<UserControl x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.SpaceTypesView"
+<UserControl x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.SpaceTypesView"
              x:Name="Root"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:local="clr-namespace:Raphael.Desktop.Views.Data.Scheduling.Vehicles"
-             xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
-             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"           
-
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="1000">
 
     <UserControl.Resources>
-        <!-- vmProxy “captures” the current DataContext (SpaceTypesViewModel) -->
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
-
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
 
+    <Border BorderThickness="1" BorderBrush="#2196f3" Background="White" helpers:HelpAssist.TopicId="desktop/data/space-types">
+        <Grid Margin="12">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
-    <Border BorderThickness="1,1,1,1"
-            BorderBrush="#2196f3"
-            Background="White">
+            <DockPanel Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Command="{Binding AddSpaceTypeCommand}" ToolTip="{Binding AddSpaceTypeToolTip}" Background="#673AB7" BorderBrush="#673AB7" Height="36">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding AddSpaceTypeToolTip}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Border Width="320" HorizontalAlignment="Left" Background="#F5F7FA" CornerRadius="18" BorderBrush="#E3E8EF" BorderThickness="1" Padding="12,0" Height="36">
+                    <DockPanel>
+                        <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Foreground="#7A8794" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                        <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged, Delay=150}" Margin="8,0,4,0" VerticalAlignment="Center"
+                                 BorderThickness="0" materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
+                                 materialDesign:HintAssist.Hint="{Binding L[spacetypes.SearchHint]}" materialDesign:HintAssist.IsFloating="False"/>
+                    </DockPanel>
+                </Border>
+            </DockPanel>
 
-        <Grid Margin="4"
-              VerticalAlignment="Stretch"
-              HorizontalAlignment="Stretch">
+            <!-- Only while some type's class is missing or does not look right -->
+            <Border Grid.Row="1" Background="#FFF8E1" BorderBrush="#F5C27A" BorderThickness="1" CornerRadius="8" Padding="12,7" Margin="0,0,0,8"
+                    Visibility="{Binding HasWarnings, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <materialDesign:PackIcon Kind="AlertOutline" Foreground="#B26A00" Width="18" Height="18" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding WarningsText}" Foreground="#8A4B00" TextWrapping="Wrap"/>
+                </DockPanel>
+            </Border>
 
-            <!-- DATAGRID -->
-            <DataGrid 
-                x:Name="SpaceTypesDataGrid"                    
-                ItemsSource="{Binding SpaceTypes}"
-                SelectedItem="{Binding SelectedSpaceType, Mode=TwoWay}"
-                SelectionMode="Single"
-                AutoGenerateColumns="False"
-                IsReadOnly="True"
-                AlternationCount="2"
-                AlternatingRowBackground="White"                                    
-                Style="{StaticResource CustomDataGridStyle}"
-                ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
-                RowStyle="{StaticResource CustomRowStyle}"
-                CellStyle="{StaticResource CustomCellStyle}"
-                SelectionUnit="FullRow">
-
+            <DataGrid Grid.Row="2" x:Name="SpaceTypesDataGrid" ItemsSource="{Binding SpaceTypesListView}"
+                      SelectedItem="{Binding SelectedSpaceType, Mode=TwoWay}"
+                      SelectionMode="Single" SelectionUnit="FullRow" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2"
+                      Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                      RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}" Cursor="Hand">
                 <DataGrid.Columns>
-
                     <DataGridTemplateColumn Width="Auto">
-
-                        <!-- Header with Add icon -->
-                        <DataGridTemplateColumn.HeaderTemplate>
-                            <DataTemplate>
-                                <Button Command="{Binding Data.AddSpaceTypeCommand, Source={StaticResource vmProxy}}"
-                                        Style="{StaticResource MaterialDesignToolButton}"
-                                        ToolTip="{Binding Data.AddSpaceTypeToolTip, Source={StaticResource vmProxy}}">
-                                    <materialDesign:PackIcon Kind="PlusCircle" Width="20" Height="20" Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
-                                </Button>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.HeaderTemplate>
-
-                        <!-- Cells with delete icon -->
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Command="{Binding Data.DeleteSpaceTypeCommand, Source={StaticResource vmProxy}}"
-                                        Style="{StaticResource MaterialDesignToolButton}"
-                                        VerticalAlignment="Center"
-                                        ToolTip="{Binding Data.DeleteSpaceTypeToolTip, Source={StaticResource vmProxy}}">
+                                <Button Command="{Binding Data.DeleteSpaceTypeCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                        Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.DeleteSpaceTypeToolTip, Source={StaticResource vmProxy}}">
                                     <materialDesign:PackIcon Kind="DeleteForever" Width="20" Height="20" Foreground="Red"/>
                                 </Button>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
-
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn 
-                        Binding="{Binding Name}"
-                        Header="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}"/>
+                    <DataGridTemplateColumn Width="*" SortMemberPath="Name">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.SpaceTypeNameText, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Binding="{Binding Description}" Width="2*">
+                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.DescriptionText, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                    </DataGridTextColumn>
 
-                    <DataGridTextColumn 
-                        Binding="{Binding Description}"
-                        Header="{Binding Data.DescriptionText, Source={StaticResource vmProxy}}"/>
-
-                    <DataGridTextColumn 
-                        Binding="{Binding LoadTime, Converter={StaticResource MinutesConverter}}"
-                        Header="{Binding Data.LoadTimeText, Source={StaticResource vmProxy}}"/>
-
-                    <DataGridTextColumn 
-                        Binding="{Binding UnloadTime, Converter={StaticResource MinutesConverter}}"
-                        Header="{Binding Data.UnloadTimeText, Source={StaticResource vmProxy}}"/>
-
-                    
-                    <!--<DataGridTextColumn 
-                        Binding="{Binding LoadTime}"
-                        Header="{Binding Data.LoadTimeText, Source={StaticResource vmProxy}}"/>
-
-                    <DataGridTextColumn 
-                        Binding="{Binding UnloadTime}"
-                        Header="{Binding Data.UnloadTimeText, Source={StaticResource vmProxy}}"/>-->
-
-                    <DataGridTextColumn 
-                        Binding="{Binding CapacityType.Name}"
-                        Header="{Binding Data.CapacityTypeText, Source={StaticResource vmProxy}}"/>
-
-                    <DataGridCheckBoxColumn 
-                        Binding="{Binding IsActive}"
-                        Header="{Binding Data.InactiveText, Source={StaticResource vmProxy}}"                       
-                        IsReadOnly="False"/>
-
-                    <!--<DataGridTextColumn Binding="{Binding IsActive}"
-                    Header="{Binding Data.InactiveText, Source={StaticResource vmProxy}}"/>
-                    
-                    <DataGridTemplateColumn Header="{Binding Data.InactiveText, Source={StaticResource vmProxy}}">
+                    <!-- RE-083: the vehicle a trip of this type needs, through its class -->
+                    <DataGridTemplateColumn Width="Auto" MinWidth="130" SortMemberPath="Level">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[spacetypes.ColNeeds], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate><ContentControl Content="{Binding}" ContentTemplate="{StaticResource VehicleKindPill}" Focusable="False"/></DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="170" SortMemberPath="ClassId">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[vehcfg.ColClass], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <CheckBox
-                                    IsChecked="{Binding IsActive}"
-                                    IsEnabled="True"
-                                    HorizontalAlignment="Center"/>  
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <ComboBox ItemsSource="{Binding Data.Classes, Source={StaticResource vmProxy}}" DisplayMemberPath="Name" SelectedValuePath="Id"
+                                              SelectedValue="{Binding ClassId, Mode=OneWay}" IsEnabled="{Binding CanEditClass}" Width="100"
+                                              DropDownClosed="Class_DropDownClosed"/>
+                                    <materialDesign:PackIcon Kind="AlertOutline" Foreground="#B26A00" Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="{Binding ClassWarning}"
+                                                             Visibility="{Binding HasClassWarning, Converter={StaticResource BoolToVis}}"/>
+                                </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>-->
+                    </DataGridTemplateColumn>
 
+                    <DataGridTextColumn Binding="{Binding LoadTime, Converter={StaticResource MinutesConverter}}" Width="Auto">
+                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.LoadTimeText, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding UnloadTime, Converter={StaticResource MinutesConverter}}" Width="Auto">
+                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.UnloadTimeText, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                    </DataGridTextColumn>
+                    <!-- The header said "Inactive" over IsActive: it read backwards -->
+                    <DataGridCheckBoxColumn Binding="{Binding IsActive}" Width="Auto">
+                        <DataGridCheckBoxColumn.Header><TextBlock Text="{Binding Data.L[ColumnHeaderActive], Source={StaticResource vmProxy}}"/></DataGridCheckBoxColumn.Header>
+                    </DataGridCheckBoxColumn>
                 </DataGrid.Columns>
-                               
             </DataGrid>
-
         </Grid>
-        
     </Border>
-
 </UserControl>

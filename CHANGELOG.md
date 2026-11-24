@@ -5,6 +5,31 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
+Slice RE-083. Needs the next Raphael.Backend (`api/vehicle-capability`); without it the screens open
+and simply have no kinds and no warnings.
+
+### Added
+- Vehicle kinds (RE-083): the vehicle form asks what it carries with three cards (AMB, WCH, STR) and
+  the live map drawing; the card assigns a configuration of that kind.
+- Vehicles: search, tabs All / AMB / WCH / STR / Not configured with counts, group, Provider and
+  Active only filters, kind pill with the drawing in its tooltip, a "more" menu per row.
+- Configurations tab (administrators): seats per configuration, and the level and "travels alone" of
+  each class. It replaces the hidden, empty Capacities tab.
+- Space types: the vehicle each one needs, its class (administrators change it), a warning for a type
+  with no class or hanging from another class, and a search box.
+- Schedule: an amber, non-blocking strip when the line's vehicle cannot carry the selected trip, kept
+  after it is routed anyway. Answered from memory, no call to the server.
+- Help: vehicles, vehicle configurations, space types and the routing warning, in both languages.
+
+### Changed
+- The vehicle drawings moved from the live map to `Styles/VehicleArt.xaml`, shared with the form.
+- Manage vehicles builds each tab the first time it is opened; the Vehicles list reads everything at once.
+- Excel export of vehicles: "Capacity Type" is now "Configuration", plus a "Carries" column.
+
+### Fixed
+- Space types: the Active column was headed "Inactive", so it read backwards.
+- Space types: the delete icon deletes its own row, not the one selected.
+
 ## [1.22.0] - 2026-11-22
 
 Slice RE-082. Needs Raphael.Backend 2.12.0 for pay rates and pay in the productivity report.

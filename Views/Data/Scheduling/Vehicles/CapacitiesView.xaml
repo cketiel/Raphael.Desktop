@@ -1,12 +1,125 @@
-﻿<UserControl x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.CapacitiesView"
+<UserControl x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.CapacitiesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Raphael.Desktop.Views.Data.Scheduling.Vehicles"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
-    </Grid>
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="1100">
+
+    <UserControl.Resources>
+        <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Border BorderThickness="1" BorderBrush="#2196f3" Background="White" helpers:HelpAssist.TopicId="desktop/data/vehicle-configurations">
+        <Grid Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.25*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ============ Configurations ============ -->
+            <DockPanel Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding RefreshCommand}" ToolTip="{Binding L[users.Refresh]}" Margin="0,0,6,0">
+                        <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20" Foreground="#5B6B7C"/>
+                    </Button>
+                    <Button Command="{Binding AddCommand}" Background="#673AB7" BorderBrush="#673AB7" Height="36">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding L[vehcfg.New]}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="{Binding L[vehcfg.Title]}" FontSize="16" FontWeight="SemiBold" Foreground="#1E2A36"/>
+                    <TextBlock Text="{Binding L[vehcfg.Hint]}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="0,2,12,0"/>
+                </StackPanel>
+            </DockPanel>
+
+            <DataGrid Grid.Row="1" ItemsSource="{Binding Configurations}" SelectedItem="{Binding Selected}"
+                      SelectionMode="Single" SelectionUnit="FullRow" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2"
+                      Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                      RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}" Cursor="Hand">
+                <DataGrid.InputBindings><MouseBinding MouseAction="LeftDoubleClick" Command="{Binding EditCommand}"/></DataGrid.InputBindings>
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding Data.EditCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                        Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.L[vehcfg.Edit], Source={StaticResource vmProxy}}">
+                                    <materialDesign:PackIcon Kind="Pencil" Foreground="Orange"/>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="*" SortMemberPath="Name">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[Name], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold" ToolTip="{Binding Description}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="Auto" MinWidth="140" SortMemberPath="Level">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[vehicles.ColKind], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate><ContentControl Content="{Binding}" ContentTemplate="{StaticResource VehicleKindPill}" Focusable="False"/></DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Binding="{Binding SeatsText, Mode=OneWay}" Width="2*">
+                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[vehcfg.Seats], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Vehicles}" Width="Auto">
+                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[Vehicles], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- ============ Classes of seat ============ -->
+            <StackPanel Grid.Column="2" Margin="0,0,0,8">
+                <TextBlock Text="{Binding L[vehcfg.Classes]}" FontSize="16" FontWeight="SemiBold" Foreground="#1E2A36"/>
+                <TextBlock Text="{Binding L[vehcfg.ClassesHint]}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="1" Grid.Column="2" ItemsSource="{Binding Classes}"
+                      SelectionMode="Single" SelectionUnit="FullRow" AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2"
+                      Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                      RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="*" SortMemberPath="Name">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[vehcfg.ColClass], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold" ToolTip="{Binding Description}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="160" SortMemberPath="Level">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[vehcfg.ColNeeds], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding Data.Levels, Source={StaticResource vmProxy}}" DisplayMemberPath="Name" SelectedValuePath="Level"
+                                          SelectedValue="{Binding Level, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" Width="80"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="Auto" SortMemberPath="TravelsAlone">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.L[vehcfg.ColAlone], Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate><CheckBox IsChecked="{Binding TravelsAlone, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" HorizontalAlignment="Center"/></DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="110">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding Data.SaveClassCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                        Content="{Binding Data.L[vehicle.Save], Source={StaticResource vmProxy}}" Height="24" Padding="10,0"
+                                        Background="#673AB7" BorderBrush="#673AB7"
+                                        Visibility="{Binding IsDirty, Converter={StaticResource BoolToVis}}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </Border>
 </UserControl>

@@ -13,7 +13,11 @@ namespace Raphael.Desktop.ViewModels
 
         public string Vehicles => LocalizationService.Instance["Vehicles"];
         public string SpaceTypes => LocalizationService.Instance["SpaceTypes"];
-        public string Capacities => LocalizationService.Instance["Capacities"];
+        public string Configurations => LocalizationService.Instance["vehcfg.Tab"];
+
+        /// <summary>RE-083: only an administrator changes what a configuration carries (the API agrees).</summary>
+        public System.Windows.Visibility ConfigurationsVisibility =>
+            Helpers.TripGuard.IsAdmin ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         public string Speeds => LocalizationService.Instance["Speeds"];
         public string Groups => LocalizationService.Instance["Groups"];
 

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.ComponentModel;
+using System.Windows.Data;
 using Raphael.Desktop.Models;
 using Raphael.Desktop.Services;
 using Raphael.Desktop.Helpers;
@@ -16,6 +18,14 @@ using Raphael.Desktop.Commands;
 
 namespace Raphael.Desktop.ViewModels
 {
+    /// <summary>Which vehicles the list shows. Pending: no configuration that carries anything.</summary>
+    public enum VehicleTab { All, Amb, Wch, Str, Pending }
+
+    /// <summary>
+    /// Data → Scheduling → Vehicles. RE-083: one list filtered in memory — tab by what the vehicle
+    /// carries, search, active only (on by default), group and company — so a filter never costs a
+    /// trip to the server.
+    /// </summary>
     public class VehiclesViewModel : BaseViewModel
     {
         
@@ -26,6 +36,11 @@ namespace Raphael.Desktop.ViewModels
         public string DeleteVehicleToolTip => LocalizationService.Instance["DeleteVehicleToolTip"];
         public string ExcelExportToolTip => LocalizationService.Instance["ExcelExportToolTip"];
 
+        public string ColumnHeaderKind => LocalizationService.Instance["vehicles.ColKind"];
+        public string ColumnHeaderConfiguration => LocalizationService.Instance["vehicles.ColConfiguration"];
+        public string ColumnHeaderVehicle => LocalizationService.Instance["vehicles.ColVehicle"];
+        public string ColumnHeaderProvider => LocalizationService.Instance["users.ColProvider"];
+        public string ColumnHeaderActive => LocalizationService.Instance["ColumnHeaderActive"];
         public string ColumnHeaderName => LocalizationService.Instance["Name"];
         public string ColumnHeaderCapacity => LocalizationService.Instance["CapacityType"]; // Capacity Type
         public string ColumnHeaderVIN => LocalizationService.Instance["VIN"]; // VIN
@@ -58,13 +73,11 @@ namespace Raphael.Desktop.ViewModels
         #endregion
 
         #region Properties
-        private ObservableCollection<Vehicle> _allVehicles; 
-        private ObservableCollection<Vehicle> _vehicles; 
-        public ObservableCollection<Vehicle> Vehicles
-        {
-            get => _vehicles;
-            set => SetProperty(ref _vehicles, value);
-        }
+        private static string T(string key) => LocalizationService.Instance[key];
+        public LocalizationService L => LocalizationService.Instance;
+
+        private readonly ObservableCollection<Vehicle> _allVehicles = new();
+        public ICollectionView VehiclesListView { get; }
 
         private Vehicle _selectedVehicle;
         public Vehicle SelectedVehicle
@@ -73,29 +86,95 @@ namespace Raphael.Desktop.ViewModels
             set => SetProperty(ref _selectedVehicle, value);
         }
 
+        // ---------------------------------------------------------------- filters
+
+        private VehicleTab _tab = VehicleTab.All;
+        public VehicleTab Tab
+        {
+            get => _tab;
+            set
+            {
+                if (!SetProperty(ref _tab, value)) return;
+                foreach (var n in new[] { nameof(IsTabAll), nameof(IsTabAmb), nameof(IsTabWch), nameof(IsTabStr), nameof(IsTabPending) }) OnPropertyChanged(n);
+                FilterVehicles();
+            }
+        }
+
+        public bool IsTabAll { get => Tab == VehicleTab.All; set { if (value) Tab = VehicleTab.All; } }
+        public bool IsTabAmb { get => Tab == VehicleTab.Amb; set { if (value) Tab = VehicleTab.Amb; } }
+        public bool IsTabWch { get => Tab == VehicleTab.Wch; set { if (value) Tab = VehicleTab.Wch; } }
+        public bool IsTabStr { get => Tab == VehicleTab.Str; set { if (value) Tab = VehicleTab.Str; } }
+        public bool IsTabPending { get => Tab == VehicleTab.Pending; set { if (value) Tab = VehicleTab.Pending; } }
+
+        private string _search = string.Empty;
+        public string Search
+        {
+            get => _search;
+            set { if (SetProperty(ref _search, value ?? string.Empty)) FilterVehicles(); }
+        }
+
+        private bool _activeOnly = true;
+        public bool ActiveOnly
+        {
+            get => _activeOnly;
+            set { if (SetProperty(ref _activeOnly, value)) FilterVehicles(); }
+        }
+
         public ObservableCollection<VehicleGroup> Groups { get; set; }
 
         private VehicleGroup _selectedGroup;
         public VehicleGroup SelectedGroup
         {
             get => _selectedGroup;
-            set
-            {
-                if (SetProperty(ref _selectedGroup, value))
-                    FilterVehicles();
-            }
+            set { if (SetProperty(ref _selectedGroup, value)) FilterVehicles(); }
         }
 
-        private bool _showInactive = false;
-        public bool ShowInactive
+        /// <summary>The companies that own a vehicle of the list; offered only when there is more than one.</summary>
+        public ObservableCollection<ProviderOption> Providers { get; } = new();
+        public bool ShowProviderFilter => SessionManager.IsMilanesTransport && Providers.Count > 2;
+
+        // "All" and the platform's own fleet both have no id: the two are told apart by the instance.
+        private ProviderOption? _provider;
+        public ProviderOption? Provider
         {
-            get => _showInactive;
-            set
-            {
-                if (SetProperty(ref _showInactive, value))
-                    FilterVehicles();
-            }
+            get => _provider;
+            set { if (SetProperty(ref _provider, value)) FilterVehicles(); }
         }
+
+        // Counters on the tabs: what each would show with the other filters as they are.
+        private string TabText(string key, int min, int max) =>
+            $"{T(key)}  {_allVehicles.Count(v => PassesCommon(v) && v.Level >= min && v.Level <= max)}";
+        public string TabAllText => TabText("vehicles.TabAll", 0, 3);
+        public string TabAmbText => TabText("vehicles.TabAmb", 1, 1);
+        public string TabWchText => TabText("vehicles.TabWch", 2, 2);
+        public string TabStrText => TabText("vehicles.TabStr", 3, 3);
+        public string TabPendingText => TabText("vehicles.TabPending", 0, 0);
+
+        public int ShownCount => VehiclesListView.Cast<object>().Count();
+        public string ShownText => string.Format(T("vehicles.Shown"), ShownCount, _allVehicles.Count);
+        public bool IsEmpty => ShownCount == 0;
+        public string EmptyText => IsLoading ? T("vehicles.Loading") : T("vehicles.NoMatch");
+
+        private bool PassesCommon(Vehicle v)
+        {
+            if (ActiveOnly && v.IsInactive) return false;
+            if (SelectedGroup != null && v.GroupId != SelectedGroup.Id) return false;
+            if (Provider is not null && Providers.Count > 0 && !ReferenceEquals(Provider, Providers[0]) && v.OwnerProviderId != Provider.Id) return false;
+            var q = Search.Trim();
+            return q.Length == 0 || Has(v.Name, q) || Has(v.Plate, q) || Has(v.VIN, q) || Has(v.Make, q) || Has(v.Model, q)
+                   || Has(v.Color, q) || Has(v.Year?.ToString(), q) || Has(v.VehicleGroup?.Name, q) || Has(v.CapacityDetailType?.Name, q);
+        }
+
+        private static bool Has(string? text, string q) => text?.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
+
+        private bool Filter(object o) => o is Vehicle v && PassesCommon(v) && Tab switch
+        {
+            VehicleTab.Amb => v.Level == 1,
+            VehicleTab.Wch => v.Level == 2,
+            VehicleTab.Str => v.Level >= 3,
+            VehicleTab.Pending => v.Level <= 0,
+            _ => true
+        };
 
         public ObservableCollection<VehicleGroup> AllGroups { get; set; }
         public ObservableCollection<CapacityDetailType> AllCapacityTypes { get; set; }
@@ -114,6 +193,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 _isLoading = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(EmptyText));
             }
         }
 
@@ -132,6 +212,8 @@ namespace Raphael.Desktop.ViewModels
         public ICommand EditVehicleCommand { get; }
         public ICommand DeleteVehicleCommand { get; }
         public ICommand ExportToExcelCommand { get; }
+        public ICommand ClearFiltersCommand { get; }
+        public ICommand RefreshCommand { get; }
 
         #endregion
 
@@ -140,18 +222,23 @@ namespace Raphael.Desktop.ViewModels
         public VehiclesViewModel()
         {
             // 1. Initialize everything that is synchronous and safe
-            _allVehicles = new ObservableCollection<Vehicle>();
-            Vehicles = new ObservableCollection<Vehicle>();
+            VehiclesListView = CollectionViewSource.GetDefaultView(_allVehicles);
+            VehiclesListView.Filter = Filter;
+            VehiclesListView.SortDescriptions.Add(new SortDescription(nameof(Vehicle.Name), ListSortDirection.Ascending));
             Groups = new ObservableCollection<VehicleGroup>();
             AllCapacityTypes = new ObservableCollection<CapacityDetailType>();
             AllVehicleTypes = new ObservableCollection<VehicleType>();
 
             AddVehicleCommand = new RelayCommandObject(param => OpenVehiclePopup(null), param => !IsLoading);
-            EditVehicleCommand = new RelayCommandObject(param => OpenVehiclePopup(param as Vehicle), param => !IsLoading && param is Vehicle);
+            // The row's own vehicle when a row button passes it; otherwise the selected one (double click).
+            EditVehicleCommand = new RelayCommandObject(param => OpenVehiclePopup(param as Vehicle ?? SelectedVehicle), param => !IsLoading && (param as Vehicle ?? SelectedVehicle) is not null);
             DeleteVehicleCommand = new RelayCommandObject(param => DeleteVehicleAsync(param as Vehicle), param => !IsLoading && param is Vehicle);
             ExportToExcelCommand = new RelayCommandObject(async param => await ExportToExcelAsync(), param => !IsExporting && !IsLoading);
+            ClearFiltersCommand = new RelayCommandObject(_ => ClearFilters());
+            RefreshCommand = new RelayCommandObject(_ => Initialization = InitializeAsync(), _ => !IsLoading);
             InitOutOfService();
             WatchFleet();
+            WeakEventManager<VehicleCapabilityStore, EventArgs>.AddHandler(VehicleCapabilityStore.Instance, nameof(VehicleCapabilityStore.Changed), OnCapabilityChanged);
 
             // 2. Launch asynchronous initialization
             Initialization = InitializeAsync();
@@ -177,13 +264,21 @@ namespace Raphael.Desktop.ViewModels
                 var vehicleTypesTask = _vehicleTypeService.GetVehicleTypesAsync();
 
                 // Wait for all lookup tasks to finish
-                await Task.WhenAll(groupsTask, capacityTypesTask, vehicleTypesTask);
+                // Everything the screen needs goes out together, not one after another.
+                var vehiclesTask = _vehicleService.GetVehiclesAsync();
+                var docsTask = Helpers.ComplianceUi.SummariesAsync("VEHICLE");
+                var capabilityTask = VehicleCapabilityStore.Instance.RefreshAsync();
+                var providersTask = ProviderNamesAsync();
+                await Task.WhenAll(groupsTask, capacityTypesTask, vehicleTypesTask, vehiclesTask, docsTask, capabilityTask, providersTask);
 
                 // Now that we are back in the UI thread, it can be modified
                 // collections directly, without the need for Dispatcher.
                 var groupsResult = await groupsTask;
+                var keepGroup = SelectedGroup?.Id;
                 Groups.Clear();
                 foreach (var group in groupsResult) Groups.Add(group);
+                _selectedGroup = Groups.FirstOrDefault(g => g.Id == keepGroup);
+                OnPropertyChanged(nameof(SelectedGroup));
                 AllGroups = Groups;
 
                 var capacityTypesResult = await capacityTypesTask;
@@ -194,12 +289,15 @@ namespace Raphael.Desktop.ViewModels
                 AllVehicleTypes.Clear();
                 foreach (var type in vehicleTypesResult) AllVehicleTypes.Add(type);
                 
-                var vehiclesList = await _vehicleService.GetVehiclesAsync();
+                var vehiclesList = await vehiclesTask;
                 await MarkOutOfServiceAsync(vehiclesList);
-                var docs = await Helpers.ComplianceUi.SummariesAsync("VEHICLE");
+                var docs = await docsTask;
                 if (docs != null) foreach (var v in vehiclesList) v.DocsSummary = docs.GetValueOrDefault(v.Id);
-                _allVehicles = new ObservableCollection<Vehicle>(vehiclesList);
+                MarkCapability(vehiclesList);
+                FillProviders(vehiclesList, await providersTask);
 
+                _allVehicles.Clear();
+                foreach (var v in vehiclesList) _allVehicles.Add(v);
                 FilterVehicles();
             }
             catch (Exception ex)
@@ -288,19 +386,68 @@ namespace Raphael.Desktop.ViewModels
 
         private void FilterVehicles()
         {
-            IEnumerable<Vehicle> filtered = _allVehicles;
+            VehiclesListView.Refresh();
+            foreach (var p in new[] { nameof(TabAllText), nameof(TabAmbText), nameof(TabWchText), nameof(TabStrText), nameof(TabPendingText),
+                                      nameof(ShownText), nameof(IsEmpty), nameof(EmptyText) })
+                OnPropertyChanged(p);
+        }
 
-            if (SelectedGroup != null)
+        private void ClearFilters()
+        {
+            _search = string.Empty; _selectedGroup = null; _provider = Providers.FirstOrDefault(); _activeOnly = true;
+            foreach (var p in new[] { nameof(Search), nameof(SelectedGroup), nameof(Provider), nameof(ActiveOnly) }) OnPropertyChanged(p);
+            FilterVehicles();
+        }
+
+        // ---- RE-083: what each vehicle carries ----
+
+        private static void MarkCapability(IEnumerable<Vehicle> vehicles)
+        {
+            var store = VehicleCapabilityStore.Instance;
+            var configs = store.Current?.Configurations.ToDictionary(c => c.Id);
+            foreach (var v in vehicles)
             {
-                filtered = filtered.Where(v => v.GroupId == SelectedGroup.Id);
+                var config = configs?.GetValueOrDefault(v.CapacityDetailTypeId);
+                // By configuration, not by vehicle: a vehicle added a second ago is in no snapshot yet.
+                v.Level = config?.Level ?? 0;
+                v.SeatsText = config?.SeatsText;
             }
+        }
 
-            if (!ShowInactive)
+        private void OnCapabilityChanged(object? sender, EventArgs e)
+        {
+            if (IsLoading) return;
+            MarkCapability(_allVehicles);
+            FilterVehicles();
+        }
+
+        /// <summary>Names for the owners of the vehicles; only the platform's own staff sees more than one.</summary>
+        private static async Task<Dictionary<int, string>> ProviderNamesAsync()
+        {
+            if (!SessionManager.IsMilanesTransport) return new();
+            try
             {
-                filtered = filtered.Where(v => !v.IsInactive);
+                return (await new ProviderService().GetProvidersAsync()).ToDictionary(p => p.Id, p => p.Name);
             }
+            catch (Exception ex)
+            {
+                Helpers.FileLogger.Log($"Vehicles: could not read the companies. {ex.Message}");
+                return new();
+            }
+        }
 
-            Vehicles = new ObservableCollection<Vehicle>(filtered.OrderBy(v => v.Name));
+        private void FillProviders(IEnumerable<Vehicle> vehicles, Dictionary<int, string> names)
+        {
+            var keep = Provider is null || Providers.Count == 0 || ReferenceEquals(Provider, Providers[0]) ? null : Provider;
+            foreach (var v in vehicles)
+                v.ProviderName = v.OwnerProviderId is int id ? names.GetValueOrDefault(id, $"#{id}") : T("vehicles.OwnFleet");
+            Providers.Clear();
+            Providers.Add(new ProviderOption(null, T("users.AllProviders")));
+            foreach (var g in vehicles.GroupBy(v => v.OwnerProviderId).Select(g => new ProviderOption(g.Key, g.First().ProviderName!)).OrderBy(p => p.Id.HasValue).ThenBy(p => p.Name))
+                Providers.Add(g);
+            _provider = keep is null ? Providers[0] : Providers.Skip(1).FirstOrDefault(p => p.Id == keep.Id) ?? Providers[0];
+            OnPropertyChanged(nameof(Provider));
+            OnPropertyChanged(nameof(ShowProviderFilter));
         }
 
         private async void OpenVehiclePopup(Vehicle vehicle)
@@ -309,7 +456,7 @@ namespace Raphael.Desktop.ViewModels
             var vehicleToEdit = isNew ? new Vehicle() : (Vehicle)vehicle.Clone();
 
             var vm = new VehicleEditViewModel(vehicleToEdit, AllGroups, AllCapacityTypes, AllVehicleTypes);
-            var view = new VehicleEditView { DataContext = vm};
+            var view = new VehicleEditView { DataContext = vm, Owner = Application.Current.MainWindow };
 
             //var view = new VehicleEditView { DataContext = vm, Owner = Application.Current.MainWindow };          
 
@@ -472,7 +619,8 @@ namespace Raphael.Desktop.ViewModels
                         worksheet.Cell(1, col++).Value = "Expiration Date";
                         worksheet.Cell(1, col++).Value = "Is Inactive";
                         worksheet.Cell(1, col++).Value = "Group";
-                        worksheet.Cell(1, col++).Value = "Capacity Type";
+                        worksheet.Cell(1, col++).Value = "Configuration";
+                        worksheet.Cell(1, col++).Value = "Carries";
                         worksheet.Cell(1, col++).Value = "Vehicle Type";
 
 
@@ -509,6 +657,7 @@ namespace Raphael.Desktop.ViewModels
                             // Null handling for related objects
                             worksheet.Cell(currentRow, col++).Value = vehicle.VehicleGroup?.Name;
                             worksheet.Cell(currentRow, col++).Value = vehicle.CapacityDetailType?.Name;
+                            worksheet.Cell(currentRow, col++).Value = vehicle.Kind ?? "";
                             worksheet.Cell(currentRow, col++).Value = vehicle.VehicleType?.Name;
                             currentRow++;
                         }
