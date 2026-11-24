@@ -606,7 +606,7 @@ namespace Raphael.Desktop.Views
             if (ViewModel == null || FullNameTextBox == null) return;
 
             ViewModel.ReportCustomerFields(new HomeViewModel.CustomerFields(
-                FullNameTextBox.Text, ClientCodeTextBox.Text, PhoneTextBox.Text, MobilePhoneTextBox.Text,
+                FullNameTextBox.Text, PhoneTextBox.Text, MobilePhoneTextBox.Text,
                 GooglePlacesInput.Text, City.Text, State.Text, Zip.Text,
                 DOBDatePicker.SelectedDate, MaleRadioButton.IsChecked == true));
         }
@@ -629,7 +629,6 @@ namespace Raphael.Desktop.Views
             if (was == null) return;
 
             FullNameTextBox.Text = was.FullName ?? string.Empty;
-            ClientCodeTextBox.Text = was.ClientCode ?? string.Empty;
             PhoneTextBox.Text = was.Phone ?? string.Empty;
             MobilePhoneTextBox.Text = was.MobilePhone ?? string.Empty;
             GooglePlacesInput.Text = was.Address ?? string.Empty;
@@ -868,7 +867,8 @@ namespace Raphael.Desktop.Views
             var customer = new CustomerCreateDto
             {
                 FullName = FullNameTextBox.Text,
-                ClientCode = ClientCodeTextBox.Text,
+                // Not on this form any more (RE-084); whatever the record has is kept.
+                ClientCode = ViewModel?.SelectedCustomer?.ClientCode,
                 Phone = PhoneTextBox.Text,
                 MobilePhone = MobilePhoneTextBox.Text,
 
@@ -1056,7 +1056,7 @@ namespace Raphael.Desktop.Views
                 // from it. Posted because the bindings fill the boxes after this returns.
                 Dispatcher.BeginInvoke(new Action(() =>
                     vm.BaselineCustomer(new HomeViewModel.CustomerFields(
-                        customer?.FullName, customer?.ClientCode, customer?.Phone, customer?.MobilePhone,
+                        customer?.FullName, customer?.Phone, customer?.MobilePhone,
                         customer?.Address, customer?.City, customer?.State, customer?.Zip,
                         customer?.DOB, customer?.Gender == Gender.Male))));
 
