@@ -863,6 +863,7 @@ namespace Raphael.Desktop.ViewModels
             }).ToList();
 
             await LoadOutOfServiceAsync();
+            StartCapability();
 
             // Llenamos la colección observable que ve la UI por primera vez
             //ApplyVehicleRouteFilter();
@@ -1365,7 +1366,7 @@ namespace Raphael.Desktop.ViewModels
                 };
 
                 await _scheduleService.RouteTripsAsync(request);
-              
+                NoteCapabilityAfterRouting(vehicleRoute, tripToSchedule); // RE-083
 
                 BusyMessage = "Route updated. Finalizing calculations...";
 
@@ -1711,6 +1712,11 @@ namespace Raphael.Desktop.ViewModels
             // RE-053: the banner and the routing button follow the route on screen.
             RaiseOutOfService();
 
+            // RE-083: the warning is of the line on screen; the last routing's belonged to another.
+            _capabilityNotice = null;
+            _ = VehicleCapabilityStore.Instance.EnsureAsync();
+            RaiseCapability();
+
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
             {
@@ -1869,6 +1875,7 @@ namespace Raphael.Desktop.ViewModels
 
         partial void OnSelectedUnscheduledTripChanged(UnscheduledTripDto value)
         {          
+            RaiseCapability();
             /*foreach (var schedule in Schedules)
             {
                 schedule.IsSelectedForMap = false;

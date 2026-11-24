@@ -1,0 +1,76 @@
+<Window x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.VehicleConfigurationEditView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        Title="{Binding Title}" Width="620" SizeToContent="Height" MaxHeight="760"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F4F6FA">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+    </Window.Resources>
+
+    <Grid helpers:HelpAssist.TopicId="desktop/data/vehicle-configurations">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <Border Background="#4527A0" Padding="22,14">
+            <DockPanel>
+                <Border DockPanel.Dock="Right" Background="#F4F6FA" CornerRadius="10" Padding="8,2" Width="124" Height="66">
+                    <ContentControl Content="{Binding Kind}" Style="{StaticResource VehicleArtByKind}"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                    <TextBlock Text="{Binding Carries}" Foreground="#D1C4E9" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding UsedBy}" Foreground="#D1C4E9" FontSize="11"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="22,14,22,8" IsEnabled="{Binding CanEdit}">
+                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="{Binding L[Name]}"
+                         Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
+                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="{Binding L[Description]}"
+                         Text="{Binding Description}" Margin="0,10,0,0"/>
+                <TextBlock Text="{Binding L[vehcfg.SeatsHint]}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="0,14,0,6"/>
+
+                <ItemsControl ItemsSource="{Binding Seats}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="10" Padding="12,4" Margin="0,0,0,6">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignToolButton}" CommandParameter="{Binding}"
+                                            Command="{Binding Data.RemoveCommand, Source={StaticResource vmProxy}}" ToolTip="{Binding Data.L[vehcfg.Remove], Source={StaticResource vmProxy}}">
+                                        <materialDesign:PackIcon Kind="DeleteOutline" Foreground="#C62828"/>
+                                    </Button>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                                        <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding LessCommand}"><materialDesign:PackIcon Kind="MinusCircleOutline"/></Button>
+                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="36" TextAlignment="Center" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                        <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding MoreCommand}"><materialDesign:PackIcon Kind="PlusCircleOutline"/></Button>
+                                    </StackPanel>
+                                    <ComboBox ItemsSource="{Binding Data.SpaceTypes, Source={StaticResource vmProxy}}" SelectedItem="{Binding SpaceType}" DisplayMemberPath="Name"
+                                              VerticalAlignment="Center" materialDesign:HintAssist.Hint="{Binding Data.L[vehcfg.SpaceType], Source={StaticResource vmProxy}}"/>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Command="{Binding AddCommand}" Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Left" Foreground="#4527A0">
+                    <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center"/><TextBlock Text="{Binding L[vehcfg.AddSeat]}" Margin="6,0,0,0"/></StackPanel>
+                </Button>
+                <TextBlock Text="{Binding Error}" Foreground="#C62828" TextWrapping="Wrap"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#E3E8EF" BorderThickness="0,1,0,0" Padding="22,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="{Binding L[vehicle.Cancel]}" Style="{StaticResource MaterialDesignFlatButton}" IsCancel="True" Margin="0,0,8,0"/>
+                    <Button Content="{Binding L[vehicle.Save]}" Command="{Binding SaveCommand}" IsDefault="True" Background="#673AB7" BorderBrush="#673AB7"/>
+                </StackPanel>
+                <TextBlock Text="{Binding L[vehcfg.ReadOnly]}" Foreground="#8A4B00" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Visibility="{Binding IsReadOnly, Converter={StaticResource BoolToVis}}"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

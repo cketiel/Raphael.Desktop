@@ -26,5 +26,12 @@ namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
             InitializeComponent();
             DataContext = new SpaceTypesViewModel();
         }
+
+        /// <summary>A class chosen by a person: the ViewModel confirms and saves it.</summary>
+        private async void Class_DropDownClosed(object sender, System.EventArgs e)
+        {
+            if (sender is ComboBox { DataContext: Models.SpaceType type, SelectedItem: DTOs.CapacityClassDto to } && DataContext is SpaceTypesViewModel vm && to.Id != type.ClassId)
+                await vm.ChangeClassAsync(type, to);
+        }
     }
 }

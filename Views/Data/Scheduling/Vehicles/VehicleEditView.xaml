@@ -1,131 +1,160 @@
-﻿<Window x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.VehicleEditView"
+<Window x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.VehicleEditView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        mc:Ignorable="d"
-        Title="{Binding Title}" Height="Auto" Width="700"
-        SizeToContent="Height"
-        WindowStartupLocation="CenterOwner"
-        WindowStyle="ToolWindow"
-        ResizeMode="NoResize">
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        Title="{Binding Title}" Width="860" Height="720"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#F4F6FA">
 
-    <Grid Margin="16">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <Style x:Key="StepBadge" TargetType="Border">
+            <Setter Property="Width" Value="22"/><Setter Property="Height" Value="22"/>
+            <Setter Property="CornerRadius" Value="11"/><Setter Property="Background" Value="#673AB7"/>
+            <Setter Property="Margin" Value="0,0,10,0"/><Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="StepTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/><Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#1E2A36"/><Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignFloatingHintTextBox}"><Setter Property="Margin" Value="0,4,0,8"/></Style>
+        <Style x:Key="FieldCombo" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignFloatingHintComboBox}"><Setter Property="Margin" Value="0,4,0,8"/></Style>
+
+        <!-- What it carries: the whole card is the radio button -->
+        <Style x:Key="KindCard" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Card" Background="White" BorderBrush="#DDE3EA" BorderThickness="2" CornerRadius="12" Padding="12,8,12,10">
+                            <Grid>
+                                <ContentPresenter x:Name="Body"/>
+                                <materialDesign:PackIcon x:Name="Check" Kind="CheckCircle" Width="22" Height="22" Foreground="#673AB7"
+                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="#B39DDB"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="#B39DDB"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Card" Property="BorderBrush" Value="#673AB7"/>
+                                <Setter TargetName="Card" Property="Background" Value="#F7F3FE"/>
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Body" Property="Opacity" Value="0.45"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Topic on the content, not on the root window, so F1 answers from anywhere inside. -->
+    <Grid helpers:HelpAssist.TopicId="desktop/data/vehicles">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Form in 2 columns -->
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="20"/>                <!-- Column spacing -->
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <Border Background="#4527A0" Padding="22,14">
+            <DockPanel>
+                <Border DockPanel.Dock="Right" Background="#F4F6FA" CornerRadius="10" Padding="8,2" Width="124" Height="66">
+                    <ContentControl Content="{Binding SelectedKind}" Style="{StaticResource VehicleArtByKind}"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding HeaderText}" FontSize="18" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding CarriesSummary}" Foreground="#D1C4E9" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
-            <!-- Left Column -->
-            <StackPanel Grid.Column="0">
-                <TextBox
-                    materialDesign:HintAssist.Hint="Name"
-                    Text="{Binding Vehicle.Name, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,5"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="22,16,22,6">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <Border Style="{StaticResource StepBadge}"><TextBlock Text="1" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="{Binding L[vehicle.Step1]}" Style="{StaticResource StepTitle}"/>
+                </StackPanel>
+                <UniformGrid Columns="3">
+                    <TextBox Style="{StaticResource Field}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[vehicle.Name]}"
+                             Text="{Binding Vehicle.Name, UpdateSourceTrigger=PropertyChanged}"/>
+                    <ComboBox Style="{StaticResource FieldCombo}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[vehicle.Group]}"
+                              ItemsSource="{Binding AllGroups}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding Vehicle.GroupId}"/>
+                    <ComboBox Style="{StaticResource FieldCombo}" materialDesign:HintAssist.Hint="{Binding L[vehicle.Body]}" ToolTip="{Binding L[vehicle.BodyTip]}"
+                              ItemsSource="{Binding AllVehicleTypes}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding Vehicle.VehicleTypeId}"/>
+                </UniformGrid>
 
-                <ComboBox
-                    materialDesign:HintAssist.Hint="Group"
-                    ItemsSource="{Binding AllGroups}"
-                    DisplayMemberPath="Name"
-                    SelectedValuePath="Id"
-                    SelectedValue="{Binding Vehicle.GroupId, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                    Style="{StaticResource MaterialDesignFloatingHintComboBox}"
-                    Margin="0,15,0,5"/>
+                <!-- ============ What it carries ============ -->
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                    <Border Style="{StaticResource StepBadge}"><TextBlock Text="2" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="{Binding L[vehicle.Step2]}" Style="{StaticResource StepTitle}"/>
+                </StackPanel>
+                <TextBlock Text="{Binding L[vehicle.Step2Hint]}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="32,0,0,8"/>
 
-                <ComboBox
-                    materialDesign:HintAssist.Hint="Capacity Type"
-                    ItemsSource="{Binding AllCapacityTypes}"
-                    DisplayMemberPath="Name"
-                    SelectedValuePath="Id"
-                    SelectedValue="{Binding Vehicle.CapacityDetailTypeId, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                    Style="{StaticResource MaterialDesignFloatingHintComboBox}"
-                    Margin="0,15,0,5"/>
+                <ItemsControl ItemsSource="{Binding Cards}" Visibility="{Binding HasCards, Converter={StaticResource BoolToVis}}" Focusable="False">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <RadioButton Style="{StaticResource KindCard}" GroupName="VehicleKind" Margin="0,0,10,0"
+                                         IsChecked="{Binding IsSelected}" IsEnabled="{Binding HasConfigurations}" AutomationProperties.Name="{Binding Title}">
+                                <StackPanel>
+                                    <ContentControl Content="{Binding Kind}" Style="{StaticResource VehicleArtByKind}" Height="84"/>
+                                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="15" Foreground="#1E2A36" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Carries}" Foreground="#3B4856" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{Binding Limits}" Foreground="#7A8794" FontSize="11" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-                <ComboBox
-                    materialDesign:HintAssist.Hint="Vehicle Type"
-                    ItemsSource="{Binding AllVehicleTypes}"
-                    DisplayMemberPath="Name"
-                    SelectedValuePath="Id"
-                    SelectedValue="{Binding Vehicle.VehicleTypeId, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                    Style="{StaticResource MaterialDesignFloatingHintComboBox}"
-                    Margin="0,15,0,5"/>
+                <ComboBox Style="{StaticResource FieldCombo}" Margin="0,8,0,4" Width="380" HorizontalAlignment="Left"
+                          Visibility="{Binding ShowConfigurations, Converter={StaticResource BoolToVis}}"
+                          materialDesign:HintAssist.Hint="{Binding L[vehicle.Configuration]}"
+                          ItemsSource="{Binding Configurations}" SelectedItem="{Binding Configuration}" DisplayMemberPath="Name"/>
 
-                <DatePicker
-                    materialDesign:HintAssist.Hint="Expiration Date"
-                    SelectedDate="{Binding Vehicle.ExpirationDate}"
-                    Style="{StaticResource MaterialDesignFloatingHintDatePicker}"
-                    Margin="0,15,0,5"/>
+                <!-- A server older than the feature: the plain list, as before -->
+                <ComboBox Style="{StaticResource FieldCombo}" Width="380" HorizontalAlignment="Left"
+                          Visibility="{Binding ShowPlainList, Converter={StaticResource BoolToVis}}"
+                          materialDesign:HintAssist.Hint="{Binding L[vehicle.Configuration]}"
+                          ItemsSource="{Binding AllCapacityTypes}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding Vehicle.CapacityDetailTypeId}"/>
 
-                <CheckBox
-                    Content="Is Inactive"
-                    IsChecked="{Binding Vehicle.IsInactive}"
-                    Margin="0,20,0,5"/>
+                <Border Background="#FFF8E1" BorderBrush="#F5C27A" BorderThickness="1" CornerRadius="8" Padding="12,7" Margin="0,8,10,0"
+                        Visibility="{Binding ShowNotConfigured, Converter={StaticResource BoolToVis}}">
+                    <DockPanel>
+                        <materialDesign:PackIcon Kind="AlertOutline" Foreground="#B26A00" Width="18" Height="18" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding L[vehicle.NotConfigured]}" Foreground="#8A4B00" TextWrapping="Wrap"/>
+                    </DockPanel>
+                </Border>
+
+                <!-- ============ The vehicle itself ============ -->
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,4">
+                    <Border Style="{StaticResource StepBadge}"><TextBlock Text="3" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                    <TextBlock Text="{Binding L[vehicle.Step3]}" Style="{StaticResource StepTitle}"/>
+                </StackPanel>
+                <UniformGrid Columns="4">
+                    <TextBox Style="{StaticResource Field}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[vehicle.Plate]}" Text="{Binding Vehicle.Plate}"/>
+                    <TextBox Style="{StaticResource Field}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="VIN" Text="{Binding Vehicle.VIN}"/>
+                    <TextBox Style="{StaticResource Field}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[Make]}" Text="{Binding Vehicle.Make}"/>
+                    <TextBox Style="{StaticResource Field}" materialDesign:HintAssist.Hint="{Binding L[Model]}" Text="{Binding Vehicle.Model}"/>
+                    <TextBox Style="{StaticResource Field}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[Color]}" Text="{Binding Vehicle.Color}"/>
+                    <TextBox Style="{StaticResource Field}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[Year]}" Text="{Binding Vehicle.Year, TargetNullValue=''}"/>
+                    <DatePicker Style="{StaticResource MaterialDesignFloatingHintDatePicker}" Margin="0,4,12,8" materialDesign:HintAssist.Hint="{Binding L[vehicle.Expiration]}"
+                                SelectedDate="{Binding Vehicle.ExpirationDate}"/>
+                    <CheckBox Content="{Binding L[vehicle.Inactive]}" IsChecked="{Binding Vehicle.IsInactive}" VerticalAlignment="Center"/>
+                </UniformGrid>
             </StackPanel>
+        </ScrollViewer>
 
-            <!-- Right Column -->
-            <StackPanel Grid.Column="2">
-                <TextBox
-                    materialDesign:HintAssist.Hint="VIN"
-                    Text="{Binding Vehicle.VIN}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,5"/>
-
-                <TextBox
-                    materialDesign:HintAssist.Hint="Plate"
-                    Text="{Binding Vehicle.Plate}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,15,0,5"/>
-
-                <TextBox
-                    materialDesign:HintAssist.Hint="Make"
-                    Text="{Binding Vehicle.Make}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,15,0,5"/>
-
-                <TextBox
-                    materialDesign:HintAssist.Hint="Model"
-                    Text="{Binding Vehicle.Model}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,15,0,5"/>
-
-                <TextBox
-                    materialDesign:HintAssist.Hint="Color"
-                    Text="{Binding Vehicle.Color}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,15,0,5"/>
-
-                <TextBox
-                    materialDesign:HintAssist.Hint="Year"
-                    Text="{Binding Vehicle.Year}"
-                    Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                    Margin="0,15,0,5"
-                    materialDesign:TextFieldAssist.SuffixText="e.g., 2023"/>
-            </StackPanel>
-        </Grid>
-
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button
-                Content="Save"
-                Command="{Binding SaveCommand}"
-                Style="{StaticResource MaterialDesignFlatButton}"
-                IsDefault="True"
-                Margin="0,0,8,0"/>
-            <Button
-                Content="Cancel"
-                Command="{Binding CancelCommand}"
-                Style="{StaticResource MaterialDesignFlatButton}"
-                IsCancel="True"/>
-        </StackPanel>
+        <Border Grid.Row="2" Background="White" BorderBrush="#E3E8EF" BorderThickness="0,1,0,0" Padding="22,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="{Binding L[vehicle.Cancel]}" Command="{Binding CancelCommand}" Style="{StaticResource MaterialDesignFlatButton}" IsCancel="True" Margin="0,0,8,0"/>
+                    <Button Content="{Binding L[vehicle.Save]}" Command="{Binding SaveCommand}" IsDefault="True" Background="#673AB7" BorderBrush="#673AB7"/>
+                </StackPanel>
+                <TextBlock Text="{Binding L[vehicle.F1Hint]}" Foreground="#7A8794" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

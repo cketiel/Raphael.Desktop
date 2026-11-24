@@ -16,13 +16,14 @@ using System.Windows.Shapes;
 namespace Raphael.Desktop.Views.Data.Scheduling.Vehicles
 {
     /// <summary>
-    /// Lógica de interacción para CapacitiesView.xaml
+    /// RE-083: vehicle configurations and classes of seat, administrators only.
     /// </summary>
     public partial class CapacitiesView : UserControl
     {
         public CapacitiesView()
         {
             InitializeComponent();
+            DataContext = new Raphael.Desktop.ViewModels.VehicleConfigurationsViewModel();
         }
     }
 }

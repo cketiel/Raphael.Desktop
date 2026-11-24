@@ -432,6 +432,25 @@
                                 </DockPanel>
                             </Border>
 
+                            <!-- RE-083: the line's vehicle cannot carry the selected trip, or the one just
+                                 routed. Amber and never in the way: routing goes on as always. -->
+                            <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#FFA000"
+                                    BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
+                                    helpers:HelpAssist.TopicId="desktop/schedules/vehicle-warning"
+                                    Visibility="{Binding HasCapabilityText, Converter={StaticResource BoolToVis}}">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="AlertOutline"
+                                                             Width="20" Height="20" Foreground="#E65100"
+                                                             VerticalAlignment="Top" Margin="0,1,8,0"/>
+                                    <Button DockPanel.Dock="Right" Command="{Binding DismissCapabilityCommand}"
+                                            Content="{Binding CapabilityDismissText}"
+                                            Visibility="{Binding CanDismissCapability, Converter={StaticResource BoolToVis}}"
+                                            Style="{StaticResource MaterialDesignFlatButton}" Foreground="#E65100"
+                                            Padding="8,0" Height="22" MinWidth="0" VerticalAlignment="Top" Cursor="Hand"/>
+                                    <TextBlock Text="{Binding CapabilityText}" TextWrapping="Wrap" Foreground="#8A4B00" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Border>
+
                             <!-- RE-051: the trip Home could not edit because it is on this route. Its
                                  two stops are framed below; the way to unlock its fields is to take it
                                  back to the open list from here. -->

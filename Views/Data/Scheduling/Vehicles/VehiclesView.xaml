@@ -1,302 +1,329 @@
-﻿<UserControl x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.VehiclesView"
+<UserControl x:Class="Raphael.Desktop.Views.Data.Scheduling.Vehicles.VehiclesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
-             mc:Ignorable="d" 
-             
-             d:DesignHeight="600" d:DesignWidth="1000">
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="1100">
 
     <UserControl.Resources>
+        <!-- A DataGrid column is not in the visual tree: headers and column visibility reach the ViewModel through it. -->
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <helpers:StringToBrushConverter x:Key="StringToBrushConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <helpers:BooleanOrMultiConverter x:Key="BooleanOrMultiConverter"/>
     </UserControl.Resources>
 
-    <Border BorderThickness="1" BorderBrush="#2196f3" Background="White">
-        <Grid Margin="10">
+    <Border BorderThickness="1" BorderBrush="#2196f3" Background="White" helpers:HelpAssist.TopicId="desktop/data/vehicles">
+        <Grid Margin="12">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Filters and Actions -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                <Button Command="{Binding AddVehicleCommand}"
-                        Style="{StaticResource MaterialDesignFloatingActionMiniButton}"
-                        ToolTip="{Binding AddVehicleToolTip}"
-                        Margin="0,0,20,0">
-                    <materialDesign:PackIcon Kind="Add" Height="24" Width="24" />
-                </Button>
+            <!-- ============ Toolbar: search, filters, count, actions ============ -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="320"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <CheckBox
-                    Content="Show Inactive"
-                    IsChecked="{Binding ShowInactive, Mode=TwoWay}"
-                    VerticalAlignment="Center"
-                    Margin="20,0,0,0"/>
-                
-                <ComboBox
-                    materialDesign:HintAssist.Hint="{Binding SelectVehicleGroupHint}"
-                    materialDesign:TextFieldAssist.HasClearButton="True"
-                    ItemsSource="{Binding Groups}" 
-                    SelectedItem="{Binding SelectedGroup, Mode=TwoWay}" 
-                    DisplayMemberPath="Name"
-                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                    VerticalAlignment="Center"
-                    Margin="20,0,0,0"
-                    Width="300"/>
+                <Border Background="#F5F7FA" CornerRadius="18" BorderBrush="#E3E8EF" BorderThickness="1" Padding="12,0,4,0" Height="36">
+                    <DockPanel>
+                        <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Foreground="#7A8794" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignToolButton}" Padding="4" Height="28"
+                                Command="{Binding ClearFiltersCommand}" ToolTip="{Binding L[users.ClearFilters]}">
+                            <materialDesign:PackIcon Kind="FilterRemoveOutline" Width="16" Height="16" Foreground="#7A8794"/>
+                        </Button>
+                        <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged, Delay=150}" Margin="8,0,4,0" VerticalAlignment="Center"
+                                 BorderThickness="0" materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
+                                 materialDesign:HintAssist.Hint="{Binding L[vehicles.SearchHint]}"
+                                 materialDesign:HintAssist.IsFloating="False"/>
+                    </DockPanel>
+                </Border>
 
-                
-            </StackPanel>
+                <ComboBox Grid.Column="1" Width="170" Margin="14,0,0,0" VerticalAlignment="Center"
+                          ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" DisplayMemberPath="Name"
+                          materialDesign:HintAssist.Hint="{Binding SelectVehicleGroupHint}" materialDesign:HintAssist.IsFloating="False"
+                          materialDesign:TextFieldAssist.HasClearButton="True"/>
 
+                <ComboBox Grid.Column="2" Width="180" Margin="14,0,0,0" VerticalAlignment="Center"
+                          ItemsSource="{Binding Providers}" SelectedItem="{Binding Provider}" DisplayMemberPath="Name"
+                          Visibility="{Binding ShowProviderFilter, Converter={StaticResource BoolToVis}}"
+                          materialDesign:HintAssist.Hint="{Binding L[users.ColProvider]}"/>
 
-            <Grid Grid.Row="1">
-                <DataGrid 
-                    ItemsSource="{Binding Vehicles}"
-                    SelectedItem="{Binding SelectedVehicle, Mode=TwoWay}"
-                    SelectionMode="Single"
-                    AutoGenerateColumns="False"
-                    IsReadOnly="True"
-                    AlternationCount="2"
-                    AlternatingRowBackground="White"                                    
-                    Style="{StaticResource CustomDataGridStyle}"
-                    ColumnHeaderStyle="{StaticResource CustomColumnHeaderStyle}"
-                    RowStyle="{StaticResource CustomRowStyle}"
-                    CellStyle="{StaticResource CustomCellStyle}"
-                    SelectionUnit="FullRow">
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
+                    <ToggleButton IsChecked="{Binding ActiveOnly}" Style="{StaticResource MaterialDesignSwitchToggleButton}"/>
+                    <TextBlock Text="{Binding L[users.ActiveOnly]}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#3B4856"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="4" Text="{Binding ShownText}" Foreground="#7A8794" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,14,0" TextTrimming="CharacterEllipsis"/>
+
+                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding ExportToExcelCommand}" ToolTip="{Binding ExcelExportToolTip}" Margin="0,0,2,0">
+                        <materialDesign:PackIcon Kind="MicrosoftExcel" Width="20" Height="20" Foreground="Green"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding RefreshCommand}" ToolTip="{Binding L[users.Refresh]}" Margin="0,0,6,0">
+                        <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20" Foreground="#5B6B7C"/>
+                    </Button>
+                    <Button Command="{Binding AddVehicleCommand}" ToolTip="{Binding AddVehicleToolTip}" Background="#673AB7" BorderBrush="#673AB7" Height="36">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding L[vehicles.New]}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ============ Tabs by what it carries ============ -->
+            <Border Grid.Row="1" BorderBrush="#E3E8EF" BorderThickness="0,0,0,1" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource VehicleTabButton}" GroupName="VehicleTabs" Tag="Garage"
+                                 IsChecked="{Binding IsTabAll}" Content="{Binding TabAllText}"/>
+                    <RadioButton Style="{StaticResource VehicleTabButton}" GroupName="VehicleTabs" Tag="CarSide"
+                                 IsChecked="{Binding IsTabAmb}" Content="{Binding TabAmbText}" ToolTip="{Binding L[vehicles.TabAmbTip]}"/>
+                    <RadioButton Style="{StaticResource VehicleTabButton}" GroupName="VehicleTabs" Tag="WheelchairAccessibility"
+                                 IsChecked="{Binding IsTabWch}" Content="{Binding TabWchText}" ToolTip="{Binding L[vehicles.TabWchTip]}"/>
+                    <RadioButton Style="{StaticResource VehicleTabButton}" GroupName="VehicleTabs" Tag="BedEmpty"
+                                 IsChecked="{Binding IsTabStr}" Content="{Binding TabStrText}" ToolTip="{Binding L[vehicles.TabStrTip]}"/>
+                    <RadioButton Style="{StaticResource VehicleTabButton}" GroupName="VehicleTabs" Tag="AlertOutline"
+                                 IsChecked="{Binding IsTabPending}" Content="{Binding TabPendingText}" ToolTip="{Binding L[vehicles.TabPendingTip]}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ============ The list: exactly the Home trips grid ============ -->
+            <Grid Grid.Row="2">
+                <DataGrid ItemsSource="{Binding VehiclesListView}"
+                          SelectedItem="{Binding SelectedVehicle, Mode=TwoWay}"
+                          SelectionMode="Single" SelectionUnit="FullRow"
+                          AutoGenerateColumns="False" IsReadOnly="True" AlternationCount="2"
+                          EnableRowVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                          Style="{StaticResource CustomDataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                          RowStyle="{StaticResource ContentRowStyle}"
+                          CellStyle="{StaticResource TripSelectionCellStyle}"
+                          Cursor="Hand">
+                    <DataGrid.InputBindings>
+                        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding EditVehicleCommand}"/>
+                    </DataGrid.InputBindings>
 
                     <DataGrid.Columns>
-                    <!-- Action Buttons Column -->
-                    <DataGridTemplateColumn Width="Auto">
-                        <DataGridTemplateColumn.Header>
-                            <Button Command="{Binding Data.ExportToExcelCommand, Source={StaticResource vmProxy}}"
-                                    Style="{StaticResource MaterialDesignToolButton}"
-                                    ToolTip="{Binding Data.ExcelExportToolTip, Source={StaticResource vmProxy}}">
-                                <materialDesign:PackIcon Kind="MicrosoftExcel" Foreground="Green"/>
-                            </Button>
-                        </DataGridTemplateColumn.Header>
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Command="{Binding DataContext.EditVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="{Binding Data.EditVehicleToolTip, Source={StaticResource vmProxy}}">
-                                        <materialDesign:PackIcon Kind="Pencil" Foreground="Orange"/>
-                                    </Button>
-                                    <Button Command="{Binding DataContext.DeleteVehicleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="{Binding Data.DeleteVehicleToolTip, Source={StaticResource vmProxy}}">
-                                        <materialDesign:PackIcon Kind="DeleteForever" Foreground="Red"/>
-                                    </Button>
-                                    <!-- RE-053: Out of Service, or back in service when it already is. -->
-                                    <!-- RE-065: the documents of this one, in Docs. -->
-                                    <Button Command="{Binding Data.OpenDocumentsCommand, Source={StaticResource vmProxy}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}">
-                                        <materialDesign:PackIcon Kind="FileDocumentMultipleOutline" Foreground="#2196F3"/>
-                                    </Button>
-                                    <Button Command="{Binding Data.OutOfServiceCommand, Source={StaticResource vmProxy}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="{Binding Data.OutOfServiceToolTip, Source={StaticResource vmProxy}}">
-                                        <materialDesign:PackIcon Kind="CarOff" Foreground="#C62828"/>
-                                    </Button>
-                                    <Button Command="{Binding Data.ReturnToServiceCommand, Source={StaticResource vmProxy}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{StaticResource MaterialDesignToolButton}"
-                                            ToolTip="{Binding Data.ReturnToServiceToolTip, Source={StaticResource vmProxy}}">
-                                        <materialDesign:PackIcon Kind="Restore" Foreground="#2E7D32"/>
-                                    </Button>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+                        <!-- Edit, and everything else behind "more" so the row stays readable -->
+                        <DataGridTemplateColumn Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Command="{Binding Data.EditVehicleCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                                Style="{StaticResource TripActionButtonStyle}"
+                                                ToolTip="{Binding Data.EditVehicleToolTip, Source={StaticResource vmProxy}}">
+                                            <materialDesign:PackIcon Kind="Pencil" Foreground="Orange"/>
+                                        </Button>
+                                        <materialDesign:PopupBox PlacementMode="BottomAndAlignLeftEdges" StaysOpen="False" Padding="0" Focusable="False">
+                                            <materialDesign:PopupBox.ToggleContent>
+                                                <materialDesign:PackIcon Kind="DotsVertical" Width="20" Height="20" Foreground="#5B6B7C" Margin="2,0"/>
+                                            </materialDesign:PopupBox.ToggleContent>
+                                            <StackPanel MinWidth="220" Margin="0,4">
+                                                <!-- RE-065: the documents of this one, in Docs. -->
+                                                <Button Style="{StaticResource VehicleMenuAction}" CommandParameter="{Binding}"
+                                                        Command="{Binding Data.OpenDocumentsCommand, Source={StaticResource vmProxy}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="FileDocumentMultipleOutline" Foreground="#2196F3" Margin="0,0,10,0"/>
+                                                        <TextBlock Text="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <!-- RE-053: only one of the two applies at a time; the other collapses -->
+                                                <Button Style="{StaticResource VehicleMenuAction}" CommandParameter="{Binding}"
+                                                        Command="{Binding Data.OutOfServiceCommand, Source={StaticResource vmProxy}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="CarOff" Foreground="#C62828" Margin="0,0,10,0"/>
+                                                        <TextBlock Text="{Binding Data.OutOfServiceToolTip, Source={StaticResource vmProxy}}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource VehicleMenuAction}" CommandParameter="{Binding}"
+                                                        Command="{Binding Data.ReturnToServiceCommand, Source={StaticResource vmProxy}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="Restore" Foreground="#2E7D32" Margin="0,0,10,0"/>
+                                                        <TextBlock Text="{Binding Data.ReturnToServiceToolTip, Source={StaticResource vmProxy}}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Separator Margin="0,4"/>
+                                                <Button Style="{StaticResource VehicleMenuAction}" CommandParameter="{Binding}"
+                                                        Command="{Binding Data.DeleteVehicleCommand, Source={StaticResource vmProxy}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="DeleteForever" Foreground="#C62828" Margin="0,0,10,0"/>
+                                                        <TextBlock Text="{Binding Data.DeleteVehicleToolTip, Source={StaticResource vmProxy}}" Foreground="#C62828"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </materialDesign:PopupBox>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                    <!-- Data Columns -->
-                    <!-- RE-065: where its documents stand; a click opens Docs on it. -->
-                    <DataGridTemplateColumn Header="{Binding Data.ColumnHeaderDocuments, Source={StaticResource vmProxy}}" SortMemberPath="DocsState">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border CornerRadius="3" Padding="6,1" BorderThickness="1" HorizontalAlignment="Left" Cursor="Hand"
-                                        ToolTip="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}">
-                                    <Border.InputBindings>
-                                        <MouseBinding MouseAction="LeftClick" Command="{Binding Data.OpenDocumentsCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"/>
-                                    </Border.InputBindings>
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#F5F5F5"/>
-                                            <Setter Property="BorderBrush" Value="#BDBDBD"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DocsState}" Value="ok"><Setter Property="Background" Value="#E8F5E9"/><Setter Property="BorderBrush" Value="#2E7D32"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding DocsState}" Value="warn"><Setter Property="Background" Value="#FFF4E0"/><Setter Property="BorderBrush" Value="#B26A00"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding DocsState}" Value="danger"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#C62828"/></DataTrigger>
-                                                <DataTrigger Binding="{Binding DocsState}" Value="info"><Setter Property="Background" Value="#E3F2FD"/><Setter Property="BorderBrush" Value="#1565C0"/></DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Text="{Binding DocsText}" FontWeight="SemiBold"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <!-- RE-053: a red badge, with since when and why in its tooltip. Empty while in service. -->
-                    <DataGridTemplateColumn Header="{Binding Data.ColumnHeaderOutOfService, Source={StaticResource vmProxy}}" SortMemberPath="IsOutOfService">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Background="#FFEBEE" BorderBrush="#C62828" BorderThickness="1" CornerRadius="3"
-                                        Padding="6,1" ToolTip="{Binding OutOfServiceText}"
-                                        Visibility="{Binding IsOutOfService, Converter={StaticResource BoolToVis}}">
-                                    <TextBlock Text="{Binding Data.OutOfServiceBadge, Source={StaticResource vmProxy}}" Foreground="#B71C1C" FontWeight="SemiBold"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn 
-                        Binding="{Binding Name}"
-                        Header="{Binding Data.ColumnHeaderName, Source={StaticResource vmProxy}}" />
-                                          
-                    <DataGridTextColumn 
-                        Binding="{Binding CapacityDetailType.Name}" 
-                        Header="{Binding Data.ColumnHeaderCapacity, Source={StaticResource vmProxy}}" Width="Auto"/>
-                        
-                    <DataGridTextColumn 
-                        Binding="{Binding VIN}" 
-                        Header="{Binding Data.ColumnHeaderVIN, Source={StaticResource vmProxy}}" />
-                        
-                    <DataGridTextColumn 
-                        Binding="{Binding Plate}"
-                        Header="{Binding Data.ColumnHeaderPlate, Source={StaticResource vmProxy}}" Width="Auto"/>
-                        
-                    <DataGridCheckBoxColumn 
-                        Binding="{Binding IsInactive}" 
-                        Header="{Binding Data.ColumnHeaderInactive, Source={StaticResource vmProxy}}" Width="Auto"/>
+                        <DataGridTemplateColumn Width="1.3*" MinWidth="110" SortMemberPath="Name">
+                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderName, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Header="{Binding Data.ColumnHeaderGroup, Source={StaticResource vmProxy}}"  SortMemberPath="VehicleGroup.Name">
-                        <DataGridTemplateColumn.CellTemplate >
-                               
-                            <DataTemplate>
-                                                                    
-                                <Border Background="{Binding VehicleGroup.Color, Converter={StaticResource StringToBrushConverter}}"
-                                        CornerRadius="2"
-                                        Padding="8,2"
-                                        Margin="2">
-                                    <TextBlock Text="{Binding VehicleGroup.Name}" 
-                                               VerticalAlignment="Center" 
-                                               HorizontalAlignment="Center"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>                    
-                    
-                    <DataGridTextColumn 
-                        Binding="{Binding Make}" 
-                        Header="{Binding Data.ColumnHeaderMake, Source={StaticResource vmProxy}}" Width="Auto"/>
-                        
-                    <DataGridTextColumn 
-                        Binding="{Binding Model}" 
-                        Header="{Binding Data.ColumnHeaderModel, Source={StaticResource vmProxy}}" Width="Auto"/>
-                        
-                    <DataGridTextColumn 
-                        Binding="{Binding Color}" 
-                        Header="{Binding Data.ColumnHeaderColor, Source={StaticResource vmProxy}}" Width="Auto"/>
-                        
-                    <DataGridTextColumn 
-                        Binding="{Binding Year}"
-                        Header="{Binding Data.ColumnHeaderYear, Source={StaticResource vmProxy}}" Width="Auto"/>
-                        
-                </DataGrid.Columns>
-            </DataGrid>
+                        <!-- RE-083: what it carries. The drawing is built only when its tooltip opens. -->
+                        <DataGridTemplateColumn Width="Auto" MinWidth="140" SortMemberPath="Level">
+                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderKind, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource VehicleKindPill}" Focusable="False">
+                                        <ContentControl.ToolTip>
+                                            <ToolTip>
+                                                <StackPanel>
+                                                    <ContentControl Content="{Binding Kind}" Style="{StaticResource VehicleArtByKind}" Width="160" Height="90"/>
+                                                    <TextBlock Text="{Binding SeatsText}" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </ToolTip>
+                                        </ContentControl.ToolTip>
+                                    </ContentControl>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                
-                <!--<Border Background="#80FFFFFF">
-                    
-                    <Border.Visibility>
-                        <MultiBinding Converter="{StaticResource BooleanOrMultiConverter}">
-                            <Binding Path="IsLoading"/>
-                            <Binding Path="IsExporting"/>
-                        </MultiBinding>
-                    </Border.Visibility>
+                        <DataGridTextColumn Binding="{Binding CapacityDetailType.Name}" Width="*" MinWidth="95">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderConfiguration, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
 
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <materialDesign:Card Padding="20" UniformCornerRadius="10">
-                            
-                            <StackPanel Orientation="Horizontal">
-                                <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" 
-                                             IsIndeterminate="True" 
-                                             Value="0"
-                                             Margin="0,0,15,0"/>
+                        <DataGridTemplateColumn Width="Auto" MinWidth="80" SortMemberPath="VehicleGroup.Name">
+                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderGroup, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="{Binding VehicleGroup.Color, Converter={StaticResource StringToBrushConverter}}" CornerRadius="9" Padding="9,1" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding VehicleGroup.Name}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                                
-                                <TextBlock VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignHeadline6TextBlock}">
-                                           
-                                            <Setter Property="Text" Value="Loading data..."/>
+                        <DataGridTextColumn Binding="{Binding Plate}" Width="Auto" MinWidth="80">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderPlate, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding VIN}" Width="1.2*" MinWidth="130">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderVIN, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Make}" Width="Auto">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderMake, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Model}" Width="Auto">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderModel, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Color}" Width="Auto">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderColor, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Year}" Width="Auto">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderYear, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
 
-                                            
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsExporting}" Value="True">
-                                                    <Setter Property="Text" Value="Exporting data..."/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                
+                        <DataGridTextColumn Binding="{Binding ProviderName}" Width="Auto"
+                                            Visibility="{Binding Data.ShowProviderFilter, Source={StaticResource vmProxy}, Converter={StaticResource BoolToVis}}">
+                            <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderProvider, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
+                        </DataGridTextColumn>
 
-                            </StackPanel>
-                        </materialDesign:Card>
-                    </StackPanel>
-                </Border>-->
+                        <!-- RE-065: where its documents stand; a click opens Docs on it. -->
+                        <DataGridTemplateColumn Width="Auto" MinWidth="125" SortMemberPath="DocsState">
+                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderDocuments, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Cursor="Hand" ToolTip="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick" Command="{Binding Data.OpenDocumentsCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"/>
+                                        </Border.InputBindings>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource VehiclePill}">
+                                                <Setter Property="Background" Value="#F5F5F5"/>
+                                                <Setter Property="BorderBrush" Value="#BDBDBD"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DocsState}" Value="ok"><Setter Property="Background" Value="#E8F5E9"/><Setter Property="BorderBrush" Value="#81C784"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding DocsState}" Value="warn"><Setter Property="Background" Value="#FFF4E0"/><Setter Property="BorderBrush" Value="#F5C27A"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding DocsState}" Value="danger"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#EF9A9A"/></DataTrigger>
+                                                    <DataTrigger Binding="{Binding DocsState}" Value="info"><Setter Property="Background" Value="#E3F2FD"/><Setter Property="BorderBrush" Value="#90CAF9"/></DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding DocsText}" FontWeight="SemiBold"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-        
-                <!-- Semi-transparent white background -->
-                <Border Background="#80FFFFFF" 
-                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <materialDesign:Card Padding="20" UniformCornerRadius="10">
-                            <StackPanel Orientation="Horizontal">
-                                
-                                <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" 
-                                             IsIndeterminate="True" 
-                                             Value="0"
-                                             Margin="0,0,15,0"/>
-                                <TextBlock Text="Loading data..." 
-                                           VerticalAlignment="Center"
-                                           Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
-                            </StackPanel>
-                        </materialDesign:Card>
-                    </StackPanel>
+                        <!-- RE-053: in service, or out with since when and why in the tooltip. -->
+                        <DataGridTemplateColumn Width="Auto" MinWidth="125" SortMemberPath="IsOutOfService">
+                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderOutOfService, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Border Style="{StaticResource VehiclePill}" Background="#FFEBEE" BorderBrush="#EF9A9A" ToolTip="{Binding OutOfServiceText}"
+                                                Visibility="{Binding IsOutOfService, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding Data.OutOfServiceBadge, Source={StaticResource vmProxy}}" Foreground="#B71C1C" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Data.L[users.InService], Source={StaticResource vmProxy}}" Foreground="#2E7D32" HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsOutOfService}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsInactive}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Active as a word, not a checkbox that looks editable -->
+                        <DataGridTemplateColumn Width="Auto" MinWidth="85" SortMemberPath="IsInactive">
+                            <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColumnHeaderActive, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource VehiclePill}">
+                                                <Setter Property="Background" Value="#ECEFF3"/><Setter Property="BorderBrush" Value="#CFD6DE"/>
+                                                <Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True"><Setter Property="Background" Value="#DCF2E3"/><Setter Property="BorderBrush" Value="#9AD3AE"/></DataTrigger></Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock FontWeight="SemiBold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding Data.L[users.Inactive], Source={StaticResource vmProxy}}"/>
+                                                    <Setter Property="Foreground" Value="#5B6B7C"/>
+                                                    <Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                        <Setter Property="Text" Value="{Binding Data.L[users.Active], Source={StaticResource vmProxy}}"/><Setter Property="Foreground" Value="#1B7F3B"/>
+                                                    </DataTrigger></Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- Over the grid's empty body, never catching the pointer -->
+                <TextBlock Text="{Binding EmptyText}" Foreground="#9E9E9E" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           IsHitTestVisible="False" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}"/>
+
+                <Border Background="#80FFFFFF" Visibility="{Binding IsExporting, Converter={StaticResource BoolToVis}}">
+                    <materialDesign:Card Padding="20" UniformCornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" IsIndeterminate="True" Value="0" Margin="0,0,15,0"/>
+                            <TextBlock Text="{Binding ExportingDataMessage}" VerticalAlignment="Center" Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
+                        </StackPanel>
+                    </materialDesign:Card>
                 </Border>
-
-                <Border Background="#80FFFFFF" 
-                Visibility="{Binding IsExporting, Converter={StaticResource BoolToVis}}">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <materialDesign:Card Padding="20" UniformCornerRadius="10">
-                            <StackPanel Orientation="Horizontal">
-
-                                <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" 
-                             IsIndeterminate="True" 
-                             Value="0"
-                             Margin="0,0,15,0"/>
-                                <TextBlock Text="Exporting data..." 
-                           VerticalAlignment="Center"
-                           Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
-                            </StackPanel>
-                        </materialDesign:Card>
-                    </StackPanel>
-                </Border>
-
             </Grid>
-        
         </Grid>
     </Border>
 </UserControl>

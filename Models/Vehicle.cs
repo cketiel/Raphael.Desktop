@@ -30,6 +30,30 @@ namespace Raphael.Desktop.Models
         [System.Text.Json.Serialization.JsonIgnore]
         public string DocsState => Helpers.ComplianceUi.StateOf(DocsSummary);
 
+        /// <summary>RE-083: what it can carry (0 not configured, 1 AMB, 2 WCH, 3 STR), set by the screen. Never sent to the server.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public int Level { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? Kind => Helpers.VehicleCapabilityUi.Kind(Level);
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string KindText => Helpers.VehicleCapabilityUi.KindText(Level);
+
+        /// <summary>The seats of its configuration, for the tooltip of its kind.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? SeatsText { get; set; }
+
+        /// <summary>The company it belongs to, set by the screen from <see cref="OwnerProviderId"/>.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? ProviderName { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsActive => !IsInactive;
+
+        /// <summary>Null for the platform's own fleet. Read only: the server sets it and ignores it on save.</summary>
+        public int? OwnerProviderId { get; set; }
+
         public int Id { get; set; }
         [Required]
         public string Name { get; set; }

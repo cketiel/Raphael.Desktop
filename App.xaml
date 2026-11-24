@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="Styles/Colors.xaml"/>
                 <ResourceDictionary Source="Styles/CustomDataGridStyles.xaml"/>
                 <ResourceDictionary Source="Styles/Icons.xaml"/>
+                <ResourceDictionary Source="Styles/VehicleArt.xaml"/>
 
                 
 
