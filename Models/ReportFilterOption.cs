@@ -21,6 +21,15 @@ namespace Raphael.Desktop.Models
 
         public string Name { get; }
 
+        private bool _hasData = true;
+
+        /// <summary>False when the report on screen has nothing of this one in its dates (RE-088).</summary>
+        public bool HasData
+        {
+            get => _hasData;
+            set { _hasData = value; OnPropertyChanged(); }
+        }
+
         private bool _isSelected;
         public bool IsSelected
         {

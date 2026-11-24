@@ -123,7 +123,9 @@ namespace Raphael.Desktop.ViewModels
         }
         public string GenerateButtonText { get; set; } = "Generate Production Report";
         private bool _isGeneratingGps;
-        public string GenerateGpsButtonText { get; set; } = "Generate GPS Report";
+        private bool _gpsBusyText;
+        public string GenerateGpsButtonText => Tr(_gpsBusyText ? "reports.Generating" : "reports.GenerateGps");
+        private static string Tr(string key) => LocalizationService.Instance[key];
         private bool _isGeneratingTrip2;
         public string GenerateTrip2ButtonText { get; set; } = "Generate Trip2 PDF";
 
@@ -259,7 +261,7 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || !reportData.Any())
                 {
-                    MessageBox.Show("No data found for the selected filters.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Tr("reports.MsgNoData"), Tr("reports.Info"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -515,7 +517,7 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || !reportData.Any())
                 {
-                    MessageBox.Show("No data found for the Manifest Report with the selected filters.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Tr("reports.MsgNoManifest"), Tr("reports.Info"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -580,7 +582,7 @@ namespace Raphael.Desktop.ViewModels
             if (string.IsNullOrEmpty(Trip2PreviewFilePath)) return;
             SaveFileDialog sfd = new SaveFileDialog
             {
-                Filter = "PDF Document|*.pdf",
+                Filter = Tr("reports.PdfFilter"),
                 FileName = $"Manifest_{Trip2StartDate:MM-dd-yyyy}_{Trip2EndDate:MM-dd-yyyy}.pdf"
             };
 
@@ -588,7 +590,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 string localPath = new Uri(Trip2PreviewFilePath).LocalPath;
                 System.IO.File.Copy(localPath, sfd.FileName, true);
-                MessageBox.Show("Manifest Report saved!");
+                MessageBox.Show(Tr("reports.MsgManifestSaved"));
             }
         }
 
@@ -607,7 +609,7 @@ namespace Raphael.Desktop.ViewModels
                 var driverIds = SelectedIds(FacilityDrivers);
                 if (FacilityDrivers.Any() && driverIds.Count == 0)
                 {
-                    MessageBox.Show("Select at least one driver.", "Facility Report", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Tr("reports.MsgPickDriver"), Tr("reports.TabFacility"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
                 if (IsAllFacilityDriversSelected) driverIds = null;
@@ -616,7 +618,7 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || !reportData.Any())
                 {
-                    MessageBox.Show("No data found for the selected filters.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Tr("reports.MsgNoData"), Tr("reports.NoData"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -633,7 +635,7 @@ namespace Raphael.Desktop.ViewModels
             }
             catch (Exception ex)
             {
-                Helpers.UiError.Show($"Error generating report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show(string.Format(Tr("reports.ErrReport"), ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -649,7 +651,7 @@ namespace Raphael.Desktop.ViewModels
             if (string.IsNullOrEmpty(AviataPreviewFilePath)) return;
             SaveFileDialog sfd = new SaveFileDialog 
             {
-                Filter = "PDF Document|*.pdf",
+                Filter = Tr("reports.PdfFilter"),
                 FileName = $"Facility_{StartDate:MM-dd-yyyy}_{EndDate:MM-dd-yyyy}.pdf"
             };
 
@@ -657,7 +659,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 string localPath = new Uri(AviataPreviewFilePath).LocalPath;
                 System.IO.File.Copy(localPath, sfd.FileName, true);
-                MessageBox.Show("Report saved!");
+                MessageBox.Show(Tr("reports.MsgSaved"));
             }
         }
 
@@ -686,15 +688,15 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || reportData.Count == 0)
                 {
-                    MessageBox.Show("No production data found for the selected date range and filters.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Tr("reports.MsgNoProduction"), Tr("reports.NoData"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 // 4. Configurar el diálogo para guardar el archivo Excel
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Filter = "Excel Workbook|*.xlsx",
-                    Title = "Save Production Report",
+                    Filter = Tr("reports.ExcelFilter"),
+                    Title = Tr("reports.SaveProductionTitle"),
                     FileName = $"ProductionReport_{StartDate:yyyyMMdd}_to_{EndDate:yyyyMMdd}.xlsx"
                 };
 
@@ -809,13 +811,13 @@ namespace Raphael.Desktop.ViewModels
 
                         // 7. Guardar el archivo
                         workbook.SaveAs(saveFileDialog.FileName);
-                        MessageBox.Show("Production Report generated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(Tr("reports.MsgProductionDone"), Tr("reports.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Helpers.UiError.Show($"An error occurred while generating the Excel report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show(string.Format(Tr("reports.ErrExcel"), ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -843,13 +845,13 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || reportData.Count == 0)
                 {
-                    MessageBox.Show("No production data found.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No production data found.", Tr("reports.NoData"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Filter = "Excel Workbook|*.xlsx",
+                    Filter = Tr("reports.ExcelFilter"),
                     FileName = $"ProductionReport_{SelectedDate:yyyyMMdd}.xlsx"
                 };
 
@@ -934,7 +936,7 @@ namespace Raphael.Desktop.ViewModels
 
                         worksheet.Columns().AdjustToContents();
                         workbook.SaveAs(saveFileDialog.FileName);
-                        MessageBox.Show("Report generated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Report generated successfully!", Tr("reports.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
@@ -970,15 +972,15 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || reportData.Count == 0)
                 {
-                    MessageBox.Show("No production data found for the selected date.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No production data found for the selected date.", Tr("reports.NoData"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 // Show SaveFileDialog to the user
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Filter = "Excel Workbook|*.xlsx",
-                    Title = "Save Production Report",
+                    Filter = Tr("reports.ExcelFilter"),
+                    Title = Tr("reports.SaveProductionTitle"),
                     FileName = $"ProductionReport_{SelectedDate:yyyyMMdd}.xlsx"
                 };
 
@@ -1020,7 +1022,7 @@ namespace Raphael.Desktop.ViewModels
                         worksheet.Columns().AdjustToContents();
                         workbook.SaveAs(saveFileDialog.FileName);
 
-                        MessageBox.Show("Report generated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Report generated successfully!", Tr("reports.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
@@ -1040,12 +1042,12 @@ namespace Raphael.Desktop.ViewModels
         {
             if (SelectedVehicleRoute == null)
             {
-                MessageBox.Show("Please select a vehicle route.", "Input Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Tr("reports.MsgPickRoute"), Tr("reports.InputRequired"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             _isGeneratingGps = true;
-            GenerateGpsButtonText = "Generating...";
+            _gpsBusyText = true;
             CommandManager.InvalidateRequerySuggested();
 
             try
@@ -1055,15 +1057,15 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || reportData.Count == 0)
                 {
-                    MessageBox.Show("No GPS data found for the selected date and route.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Tr("reports.MsgNoGps"), Tr("reports.NoData"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 // 2. Show SaveFileDialog
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Filter = "Excel Workbook|*.xlsx",
-                    Title = "Save GPS Report",
+                    Filter = Tr("reports.ExcelFilter"),
+                    Title = Tr("reports.SaveGpsTitle"),
                     FileName = $"GpsReport_{SelectedVehicleRoute.Name.Replace(" ", "")}_{SelectedDate:yyyyMMdd}.xlsx"
                 };
 
@@ -1095,18 +1097,18 @@ namespace Raphael.Desktop.ViewModels
                         worksheet.Columns().AdjustToContents();
                         workbook.SaveAs(saveFileDialog.FileName);
 
-                        MessageBox.Show("GPS report generated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(Tr("reports.MsgGpsDone"), Tr("reports.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Helpers.UiError.Show($"An error occurred while generating the GPS report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Helpers.UiError.Show(string.Format(Tr("reports.ErrGps"), ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
                 _isGeneratingGps = false;
-                GenerateGpsButtonText = "Generate GPS Report";
+                _gpsBusyText = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -1126,7 +1128,7 @@ namespace Raphael.Desktop.ViewModels
 
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Filter = "PDF Document|*.pdf",
+                    Filter = Tr("reports.PdfFilter"),
                     FileName = $"Aviata_{StartDate:MM-dd-yyyy}_{EndDate:MM-dd-yyyy}.pdf"
                 };
 
@@ -1159,13 +1161,13 @@ namespace Raphael.Desktop.ViewModels
 
                 if (reportData == null || !reportData.Any())
                 {
-                    MessageBox.Show("No data found for this date.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No data found for this date.", Tr("reports.Info"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Filter = "PDF Document|*.pdf",
+                    Filter = Tr("reports.PdfFilter"),
                     FileName = $"Trip2_{SelectedDate:MM-dd-yyyy}.pdf"
                 };
 
@@ -1179,7 +1181,7 @@ namespace Raphael.Desktop.ViewModels
                     var document = new Trip2Document(groupedByDriver, SelectedDate);
                     document.GeneratePdf(saveFileDialog.FileName);
 
-                    MessageBox.Show("PDF Report generated successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("PDF Report generated successfully!", Tr("reports.Success"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)

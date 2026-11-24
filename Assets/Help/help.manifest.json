@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.23.0"
   },
-  "builtUtc": "2026-11-24T06:43:45.367Z",
-  "sourceCommit": "321c86d",
+  "builtUtc": "2026-11-24T18:20:12.204Z",
+  "sourceCommit": "a83ef95",
   "languages": [
     "es",
     "en"

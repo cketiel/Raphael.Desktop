@@ -5,7 +5,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 to RE-086. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
+Slices RE-083 to RE-086 and RE-088. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
@@ -33,7 +33,12 @@ and simply have no kinds and no warnings.
 - Live map help (RE-086): nine topics, one per area, in both languages; F1 opens the one under the mouse,
   also inside the map page.
 
+- Compliance (RE-088): select all in the header of the ticks and a count, in Staff and Expiring; Staff hides the
+  inactive people unless asked.
+
 ### Changed
+- Fleet productivity (RE-088): the filters say what is ticked, have a clear button, answer at once and put
+  first whoever has data in the dates.
 - Home figures (RE-084): the band and the plates are the sum total = done + in progress + not started +
   canceled + without a run, each trip in one part. "Without a run" no longer counts canceled trips. The
   day's money is no longer on either; the footer plates replace the text that repeated the band.
@@ -48,6 +53,11 @@ and simply have no kinds and no warnings.
   for every patient. Data > Customers keeps it.
 
 ### Fixed
+- Reports (RE-088): the five reports follow the language at once; four were English only and the opened
+  days of Fleet productivity kept the old one.
+- Reports (RE-088): on a small screen the filters scroll and the buttons stay in sight; they were cut off.
+- Compliance (RE-088): approving, rejecting or uploading lost the drivers ticked to notify.
+- Fleet productivity (RE-088): the columns could come out squeezed, with no headers.
 - Live map voice (RE-086): the hint said to hold Space; Space turns the voice on and off.
 - Live map (RE-085): the next stop could be a cancelled trip's.
 - Space types: the Active column was headed "Inactive", so it read backwards.

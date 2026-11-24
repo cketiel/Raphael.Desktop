@@ -115,6 +115,69 @@ namespace Raphael.Desktop.ViewModels
         partial void OnExpiringDaysChanged(int value) => _ = Run(LoadExpiringCoreAsync);
         [ObservableProperty] private int _expiringCount;
 
+        // ---- Who gets the notice (RE-088) ----
+        // "All" means the drivers on screen: what the search and the filters left out is not ticked.
+        private bool _tickingAll;
+        private IEnumerable<ComplianceSummaryRow> Tickable => People.Where(r => r.CanNotify);
+        private IEnumerable<ComplianceListRow> TickableExpiring => Expiring.Where(r => r.Doc.Subject == "USER");
+
+        public bool AllPeopleChecked
+        {
+            get => Tickable.Any() && Tickable.All(r => r.IsChecked);
+            set => TickAll(() => { foreach (var r in Tickable) r.IsChecked = value; });
+        }
+
+        public bool AllExpiringChecked
+        {
+            get => TickableExpiring.Any() && TickableExpiring.All(r => r.IsChecked);
+            set => TickAll(() => { foreach (var r in TickableExpiring) r.IsChecked = value; });
+        }
+
+        public string PeopleCheckedText => CheckedText(_allPeople.Count(r => r.IsChecked && r.CanNotify));
+        public string ExpiringCheckedText => CheckedText(TickableExpiring.Count(r => r.IsChecked));
+        private static string CheckedText(int n) => n == 0 ? string.Empty : string.Format(T("compliance.SelectedCount"), n);
+
+        private void TickAll(Action tick)
+        {
+            _tickingAll = true;
+            try { tick(); }
+            finally { _tickingAll = false; }
+            RaiseTicks();
+        }
+
+        private void RaiseTicks()
+        {
+            OnPropertyChanged(nameof(AllPeopleChecked));
+            OnPropertyChanged(nameof(AllExpiringChecked));
+            OnPropertyChanged(nameof(PeopleCheckedText));
+            OnPropertyChanged(nameof(ExpiringCheckedText));
+        }
+
+        private void OnRowChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "IsChecked" && !_tickingAll) RaiseTicks();
+        }
+
+        /// <summary>The people read again, with the ticks they had: no reload may lose a selection.</summary>
+        private async Task LoadPeopleAsync()
+        {
+            var overview = await _service.GetOverviewAsync("USER");
+            // Read after the call: a tick made while it was on its way counts too.
+            var ticked = _allPeople.Where(r => r.IsChecked).Select(r => r.Summary.SubjectId).ToHashSet();
+            _allPeople = overview.Select(s => new ComplianceSummaryRow { Summary = s, IsChecked = ticked.Contains(s.SubjectId) }).ToList();
+            foreach (var r in _allPeople) r.PropertyChanged += OnRowChanged;
+        }
+
+        /// <summary>Who left the company is not looked at every day; hiding one lets its tick go.</summary>
+        [ObservableProperty] private bool _hideInactive = true;
+        partial void OnHideInactiveChanged(bool value)
+        {
+            if (value) TickAll(() => { foreach (var r in _allPeople.Where(r => !r.Summary.IsActive)) r.IsChecked = false; });
+            var keep = SelectedPerson?.Summary.SubjectId;
+            FilterPeople();
+            Reselect(() => SelectedPerson = People.FirstOrDefault(p => p.Summary.SubjectId == keep));
+        }
+
         // ---- People / Vehicles ----
         private List<ComplianceSummaryRow> _allPeople = new();
         private List<ComplianceSummaryRow> _allVehicles = new();
@@ -203,17 +266,14 @@ namespace Raphael.Desktop.ViewModels
 
             try
             {
-                var tickedDocs = Pending.Concat(Expiring).Where(r => r.IsChecked).Select(r => r.Doc.Id).ToHashSet();
                 await LoadPendingAsync();
                 await LoadExpiringCoreAsync();
-                foreach (var r in Pending.Concat(Expiring)) r.IsChecked = tickedDocs.Contains(r.Doc.Id);
 
                 bool Touches(string subject, int id) => everything || subjects.Contains((subject, id));
 
                 if (everything || subjects.Any(s => s.Subject == "USER"))
                 {
-                    var ticked = _allPeople.Where(r => r.IsChecked).Select(r => r.Summary.SubjectId).ToHashSet();
-                    _allPeople = (await _service.GetOverviewAsync("USER")).Select(s => new ComplianceSummaryRow { Summary = s, IsChecked = ticked.Contains(s.SubjectId) }).ToList();
+                    await LoadPeopleAsync();
                     var keep = SelectedPerson?.Summary.SubjectId;
                     FilterPeople();
                     Reselect(() => SelectedPerson = People.FirstOrDefault(p => p.Summary.SubjectId == keep));
@@ -253,7 +313,7 @@ namespace Raphael.Desktop.ViewModels
             {
                 await LoadPendingAsync();
                 await LoadExpiringCoreAsync();
-                _allPeople = (await _service.GetOverviewAsync("USER")).Select(s => new ComplianceSummaryRow { Summary = s }).ToList();
+                await LoadPeopleAsync();
                 _allVehicles = (await _service.GetOverviewAsync("VEHICLE")).Select(s => new ComplianceSummaryRow { Summary = s }).ToList();
                 FilterPeople();
                 Filter(_allVehicles, Vehicles, VehicleSearch, _ => true);
@@ -265,7 +325,13 @@ namespace Raphael.Desktop.ViewModels
             if (_focus is { } f && keepPerson is null && keepVehicle is null)
             {
                 if (f.Subject == "VEHICLE") { SelectedTab = TabVehicles; SelectedVehicle = Vehicles.FirstOrDefault(v => v.Summary.SubjectId == f.Id); }
-                else { SelectedTab = TabPeople; SelectedPerson = People.FirstOrDefault(p => p.Summary.SubjectId == f.Id); }
+                else
+                {
+                    // Users or a notice may point at somebody who is no longer active.
+                    if (_allPeople.Any(p => p.Summary.SubjectId == f.Id && !p.Summary.IsActive)) HideInactive = false;
+                    SelectedTab = TabPeople;
+                    SelectedPerson = People.FirstOrDefault(p => p.Summary.SubjectId == f.Id);
+                }
                 return;
             }
             if (keepPerson != null) SelectedPerson = People.FirstOrDefault(p => p.Summary.SubjectId == keepPerson);
@@ -275,17 +341,25 @@ namespace Raphael.Desktop.ViewModels
         private async Task LoadPendingAsync()
         {
             var docs = await _service.GetPendingAsync();
+            var ticked = Pending.Where(r => r.IsChecked).Select(r => r.Doc.Id).ToHashSet();
             Pending.Clear();
-            foreach (var d in docs) Pending.Add(new ComplianceListRow { Doc = d });
+            foreach (var d in docs) Pending.Add(new ComplianceListRow { Doc = d, IsChecked = ticked.Contains(d.Id) });
             PendingCount = Pending.Count;
         }
 
         private async Task LoadExpiringCoreAsync()
         {
             var docs = await _service.GetExpiringAsync(ExpiringDays);
+            var ticked = Expiring.Where(r => r.IsChecked).Select(r => r.Doc.Id).ToHashSet();
             Expiring.Clear();
-            foreach (var d in docs.OrderBy(d => d.DaysToExpiry)) Expiring.Add(new ComplianceListRow { Doc = d });
+            foreach (var d in docs.OrderBy(d => d.DaysToExpiry))
+            {
+                var row = new ComplianceListRow { Doc = d, IsChecked = ticked.Contains(d.Id) };
+                row.PropertyChanged += OnRowChanged;
+                Expiring.Add(row);
+            }
             ExpiringCount = Expiring.Count;
+            RaiseTicks();
         }
 
         private async Task LoadPanelCoreAsync(ObservableCollection<ComplianceDocRow> panel, string subject, int id)
@@ -313,8 +387,12 @@ namespace Raphael.Desktop.ViewModels
             }
         }
 
-        private void FilterPeople() => Filter(_allPeople, People, PeopleSearch,
-            r => RoleFilter == 0 || (RoleFilter == 1 ? r.Summary.Role == "DRIVER" : r.Summary.Role == "DISPATCHER"));
+        private void FilterPeople()
+        {
+            Filter(_allPeople, People, PeopleSearch, r => (!HideInactive || r.Summary.IsActive)
+                && (RoleFilter == 0 || (RoleFilter == 1 ? r.Summary.Role == "DRIVER" : r.Summary.Role == "DISPATCHER")));
+            RaiseTicks();
+        }
 
         private static void Filter(List<ComplianceSummaryRow> all, ObservableCollection<ComplianceSummaryRow> shown, string text, Func<ComplianceSummaryRow, bool> keep)
         {

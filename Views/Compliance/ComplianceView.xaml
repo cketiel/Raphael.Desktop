@@ -15,6 +15,8 @@
     -->
 
     <UserControl.Resources>
+        <!-- A DataGrid column is not in the visual tree: its header reaches the ViewModel through a proxy. -->
+        <helpers:BindingProxy x:Key="ComplianceProxy" Data="{Binding}"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
         <SolidColorBrush x:Key="OkBrush" Color="#2E7D32"/>
@@ -301,6 +303,7 @@
                                     ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.NotifySelected]}">
                                 <materialDesign:PackIcon Kind="BellRingOutline" Width="22" Height="22"/>
                             </Button>
+                            <TextBlock Text="{Binding ExpiringCheckedText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0"/>
                             <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Within]}" VerticalAlignment="Center"/>
                             <ComboBox ItemsSource="{Binding DayOptions}" SelectedItem="{Binding ExpiringDays}" Width="60" Margin="8,0"/>
                             <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.DaysSuffix]}" VerticalAlignment="Center"/>
@@ -310,6 +313,10 @@
                       ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}" IsReadOnly="False">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="40">
+                                    <DataGridTemplateColumn.Header>
+                                        <CheckBox IsChecked="{Binding Data.AllExpiringChecked, Source={StaticResource ComplianceProxy}}" HorizontalAlignment="Center"
+                                                  ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.SelectAll]}"/>
+                                    </DataGridTemplateColumn.Header>
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center"/>
@@ -367,15 +374,22 @@
                                     ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.NotifySelected]}">
                                 <materialDesign:PackIcon Kind="BellRingOutline" Width="22" Height="22"/>
                             </Button>
+                            <TextBlock Text="{Binding PeopleCheckedText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0"/>
                             <TextBox Text="{Binding PeopleSearch, UpdateSourceTrigger=PropertyChanged}" Width="240" VerticalAlignment="Center"
                                      materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.Search]}"/>
                             <ComboBox ItemsSource="{Binding RoleFilters}" SelectedIndex="{Binding RoleFilter}" Width="150" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                            <CheckBox IsChecked="{Binding HideInactive}" VerticalAlignment="Center" Margin="16,0,0,0"
+                                      Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.HideInactive]}"/>
                             <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.PeopleHint]}" Opacity="0.6" Margin="20,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <DataGrid Grid.Row="1" ItemsSource="{Binding People}" SelectedItem="{Binding SelectedPerson}" Style="{StaticResource Grid}"
                       ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}" IsReadOnly="False">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="40">
+                                    <DataGridTemplateColumn.Header>
+                                        <CheckBox IsChecked="{Binding Data.AllPeopleChecked, Source={StaticResource ComplianceProxy}}" HorizontalAlignment="Center"
+                                                  ToolTip="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[compliance.SelectAll]}"/>
+                                    </DataGridTemplateColumn.Header>
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center"

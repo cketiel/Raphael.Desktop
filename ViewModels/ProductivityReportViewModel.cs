@@ -38,7 +38,12 @@ namespace Raphael.Desktop.ViewModels
             var today = DateTime.Today;
             StartDate = today.AddDays(-7);
             EndDate = today.AddDays(-1);
-            LocalizationService.Instance.PropertyChanged += (_, _) => OnPropertyChanged(string.Empty);
+            LocalizationService.Instance.PropertyChanged += (_, _) =>
+            {
+                OnPropertyChanged(string.Empty);
+                // A row's words are made once: they follow the language only if the rows are made again.
+                if (Rows.Count > 0) Show(Rows.Select(r => r.Data).ToList());
+            };
 
             _rowsView = Grouped(Rows);
         }
@@ -98,7 +103,43 @@ namespace Raphael.Desktop.ViewModels
 
         /// <summary>RE-082: amounts came back (the caller is an administrator and somebody had a rate).</summary>
         public bool HasPay => Totals.HasPay;
-        public string EmptyText => HasRun ? T("productivity.NoRows") : T("productivity.NotRun");
+        public string EmptyText => !HasRun ? T("productivity.NotRun")
+            : _all.Count > 0 ? string.Format(T("productivity.NoRowsTicked"), string.Join(" · ", new[] { DriversTickedText, VehiclesTickedText }.Where(t => t.Length > 0)))
+            : T("productivity.NoRows");
+
+        // What is ticked, in words: a closed list shows nothing, and a forgotten tick empties the report.
+        public string ClearTicksText => T("productivity.ClearTicks");
+        public bool HasDriversTicked => Drivers.Any(o => o.IsSelected);
+        public bool HasVehiclesTicked => Vehicles.Any(o => o.IsSelected);
+        public string DriversTickedText => Ticked(Drivers);
+        public string VehiclesTickedText => Ticked(Vehicles);
+        private static string Ticked(IEnumerable<ReportFilterOption> options) => string.Join(", ", options.Where(o => o.IsSelected).Select(o => o.Name));
+
+        [RelayCommand] private void ClearDrivers() => Clear(Drivers);
+        [RelayCommand] private void ClearVehicles() => Clear(Vehicles);
+
+        private bool _clearing;
+        private void Clear(IEnumerable<ReportFilterOption> options)
+        {
+            _clearing = true;
+            try { foreach (var o in options) o.IsSelected = false; }
+            finally { _clearing = false; }
+            OnTicksChanged();
+        }
+
+        private void OnOptionChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ReportFilterOption.IsSelected) && !_clearing) OnTicksChanged();
+        }
+
+        private void OnTicksChanged()
+        {
+            OnPropertyChanged(nameof(HasDriversTicked));
+            OnPropertyChanged(nameof(HasVehiclesTicked));
+            OnPropertyChanged(nameof(DriversTickedText));
+            OnPropertyChanged(nameof(VehiclesTickedText));
+            if (HasRun) Show(Filtered());
+        }
 
         // ------------------------------------------------------------------ filters
         [ObservableProperty] private DateTime _startDate;
@@ -118,6 +159,7 @@ namespace Raphael.Desktop.ViewModels
                     Drivers.Add(new ReportFilterOption(u.Id, u.FullName));
                 foreach (var v in (await _vehicles.GetVehiclesAsync()).OrderBy(v => v.Name))
                     Vehicles.Add(new ReportFilterOption(v.Id, v.Name));
+                foreach (var o in Drivers.Concat(Vehicles)) o.PropertyChanged += OnOptionChanged;
             }
             catch (Exception ex)
             {
@@ -152,17 +194,13 @@ namespace Raphael.Desktop.ViewModels
             IsBusy = true;
             try
             {
-                var data = await _service.GetAsync(StartDate, EndDate, Selected(Drivers), Selected(Vehicles));
-                Rows = new ObservableCollection<ProductivityRow>(ProductivityRow.Grouped(data));
-                RowsView = Grouped(Rows);
-                Totals = ProductivityTotals.Of(data);
-                OnPropertyChanged(nameof(Totals));
-                OnPropertyChanged(nameof(HasPay));
-                OnPropertyChanged(nameof(HasRows));
+                // Every driver and vehicle of the range, filtered here: a tick answers at once, and the
+                // lists can say who has nothing in these dates.
+                _all = await _service.GetAsync(StartDate, EndDate, Array.Empty<int>(), Array.Empty<int>());
+                MarkData(Drivers, _all.Select(r => r.DriverId));
+                MarkData(Vehicles, _all.Select(r => r.VehicleId));
                 HasRun = true;
-                OnPropertyChanged(nameof(EmptyText));
-                SavePdfCommand.NotifyCanExecuteChanged();
-                SaveExcelCommand.NotifyCanExecuteChanged();
+                Show(Filtered());
             }
             catch (Exception ex)
             {
@@ -170,6 +208,38 @@ namespace Raphael.Desktop.ViewModels
                 ErrorText = T("productivity.LoadError");
             }
             finally { IsBusy = false; }
+        }
+
+        private List<ProductivityReportRowDto> _all = new();
+
+        private List<ProductivityReportRowDto> Filtered()
+        {
+            var drivers = Selected(Drivers);
+            var vehicles = Selected(Vehicles);
+            return _all.Where(r => (drivers.Count == 0 || (r.DriverId is { } d && drivers.Contains(d)))
+                                && (vehicles.Count == 0 || (r.VehicleId is { } v && vehicles.Contains(v)))).ToList();
+        }
+
+        /// <summary>Who has days in the range goes first; the rest stays below, dimmed.</summary>
+        private static void MarkData(ObservableCollection<ReportFilterOption> options, IEnumerable<int?> withData)
+        {
+            var ids = withData.OfType<int>().ToHashSet();
+            foreach (var o in options) o.HasData = ids.Contains(o.Id);
+            var ordered = options.OrderByDescending(o => o.HasData).ThenBy(o => o.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+            for (var i = 0; i < ordered.Count; i++) options.Move(options.IndexOf(ordered[i]), i);
+        }
+
+        private void Show(List<ProductivityReportRowDto> data)
+        {
+            Rows = new ObservableCollection<ProductivityRow>(ProductivityRow.Grouped(data));
+            RowsView = Grouped(Rows);
+            Totals = ProductivityTotals.Of(data);
+            OnPropertyChanged(nameof(Totals));
+            OnPropertyChanged(nameof(HasPay));
+            OnPropertyChanged(nameof(HasRows));
+            OnPropertyChanged(nameof(EmptyText));
+            SavePdfCommand.NotifyCanExecuteChanged();
+            SaveExcelCommand.NotifyCanExecuteChanged();
         }
 
         private bool CanGenerate() => !IsBusy;

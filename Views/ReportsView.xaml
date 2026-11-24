@@ -7,6 +7,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
+             xmlns:services="clr-namespace:Raphael.Desktop.Services"
              xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              helpers:HelpAssist.TopicId="desktop/reports/overview"
              mc:Ignorable="d" 
@@ -32,6 +33,13 @@
             </Setter>
         </Style>
 
+        <!-- RE-088: the same tick list, dimming what has nothing in the dates of the report. -->
+        <Style x:Key="ProductivityFilterItemStyle" TargetType="ComboBoxItem" BasedOn="{StaticResource MultiSelectComboBoxItemStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasData}" Value="False"><Setter Property="Opacity" Value="0.45"/></DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="GenerateButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#007ACC"/>
             <Setter Property="Foreground" Value="White"/>
@@ -43,7 +51,7 @@
     <Grid Margin="15">
         <TabControl>
             <!-- Production Report Tab -->
-            <TabItem Header="Production Report">
+            <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.TabProduction]}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -52,79 +60,85 @@
 
                     <!-- FILTROS LATERALES (SIDEBAR) -->
                     <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="Production Report Filters" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
+                        <DockPanel>
+                            <!-- RE-088: on a small screen the filters scroll and the buttons stay in sight. -->
+                            <StackPanel DockPanel.Dock="Bottom">
+                            <Separator Margin="0,10"/>
+
+                            <Button Command="{Binding PreviewProductionReportCommand}"
+                        Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Preview]}" 
+                        Style="{StaticResource GenerateButtonStyle}" 
+                        Background="#673AB7"/>
+
+                            <Button Command="{Binding GenerateProductionReportCommand}" 
+                        Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.SaveExcel]}" 
+                        Style="{StaticResource GenerateButtonStyle}" 
+                        Background="#2E7D32" Margin="0,10,0,0"/>
+
+                            <ProgressBar IsIndeterminate="True" Margin="0,10" 
+                             Visibility="{Binding IsGenerating, Converter={StaticResource StandardBoolToVis}}"/>
+                            </StackPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.ProductionFilters]}" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
 
                             <CheckBox Content="{Binding TextShowCancelled}" IsChecked="{Binding ShowCancelled}" Margin="0,0,0,14"/>
 
-                            <TextBlock Text="Date Range" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                            <DatePicker SelectedDate="{Binding StartDate}" materialDesign:HintAssist.Hint="Start Date" Margin="0,5"/>
-                            <DatePicker SelectedDate="{Binding EndDate}" materialDesign:HintAssist.Hint="End Date" Margin="0,5"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.DateRange]}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <DatePicker SelectedDate="{Binding StartDate}" materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.StartDate]}" Margin="0,5"/>
+                            <DatePicker SelectedDate="{Binding EndDate}" materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.EndDate]}" Margin="0,5"/>
 
-                            <TextBlock Text="Funding Sources" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FundingSources]}" FontWeight="SemiBold" Margin="0,15,0,5"/>
 
                             <!-- Master CheckBox -->
-                            <CheckBox Content="[ SELECT ALL SOURCES ]" 
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllSources]}" 
                           IsChecked="{Binding IsAllSelected}" 
                           FontWeight="Bold" Margin="2,0,0,5"/>
 
                             <!-- Multi-selection ComboBox -->
                             <ComboBox ItemsSource="{Binding AllFundingSources}" 
                           ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                          materialDesign:HintAssist.Hint="Filter by item..."
+                          materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterItem]}"
                           SelectedItem="{Binding SelectedFundingSource}"/>
 
                             <!-- Debajo del ComboBox de Funding Sources -->
-                            <TextBlock Text="Vehicle Routes" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Routes]}" FontWeight="SemiBold" Margin="0,15,0,5"/>
 
                             <!-- Master CheckBox para Rutas -->
-                            <CheckBox Content="[ SELECT ALL ROUTES ]" 
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllRoutes]}" 
                               IsChecked="{Binding IsAllRoutesSelected}" 
                               FontWeight="Bold" Margin="2,0,0,5"/>
 
                             <!-- Multi-selection ComboBox para Rutas -->
                             <ComboBox ItemsSource="{Binding AllVehicleRoutes}" 
                                 ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                                materialDesign:HintAssist.Hint="Filter by route..."
+                                materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterRoute]}"
                                 SelectedItem="{Binding SelectedVehicleRoute}"/>
 
-                            <TextBlock Text="Drivers" FontWeight="SemiBold" Margin="0,15,0,5"/>
-                            <CheckBox Content="[ SELECT ALL DRIVERS ]"
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Drivers]}" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllDrivers]}"
                               IsChecked="{Binding IsAllDriversSelected}"
                               FontWeight="Bold" Margin="2,0,0,5"/>
                             <ComboBox ItemsSource="{Binding AllDrivers}"
                                 ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                                materialDesign:HintAssist.Hint="Filter by driver..."
+                                materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterDriver]}"
                                 SelectedItem="{Binding SelectedDriver}"/>
 
-                            <TextBlock Text="Vehicles" FontWeight="SemiBold" Margin="0,15,0,5"/>
-                            <CheckBox Content="[ SELECT ALL VEHICLES ]"
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Vehicles]}" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllVehicles]}"
                               IsChecked="{Binding IsAllVehiclesSelected}"
                               FontWeight="Bold" Margin="2,0,0,5"/>
                             <ComboBox ItemsSource="{Binding AllVehicles}"
                                 ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                                materialDesign:HintAssist.Hint="Filter by vehicle..."
+                                materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterVehicle]}"
                                 SelectedItem="{Binding SelectedVehicle}"/>
 
-                            <TextBlock Text="Trip Id (optional)" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.TripId]}" FontWeight="SemiBold" Margin="0,15,0,5"/>
                             <TextBox Text="{Binding TripIdFilter, UpdateSourceTrigger=PropertyChanged}"
-                                     materialDesign:HintAssist.Hint="External trip id..."/>
-
-                            <Separator Margin="0,20"/>
-
-                            <Button Command="{Binding PreviewProductionReportCommand}"
-                        Content="GENERATE PREVIEW" 
-                        Style="{StaticResource GenerateButtonStyle}" 
-                        Background="#673AB7"/>
-
-                            <Button Command="{Binding GenerateProductionReportCommand}" 
-                        Content="SAVE AS EXCEL" 
-                        Style="{StaticResource GenerateButtonStyle}" 
-                        Background="#2E7D32" Margin="0,10,0,0"/>
-
-                            <ProgressBar IsIndeterminate="True" Margin="0,10" 
-                             Visibility="{Binding IsGenerating, Converter={StaticResource StandardBoolToVis}}"/>
-                        </StackPanel>
+                                     materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.TripIdHint]}"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Border>
 
                     <!-- AREA DE PREVISUALIZACIÓN (PREVIEW) -->
@@ -133,7 +147,7 @@
                             <!-- Placeholder si no hay reporte listo -->
                             <StackPanel VerticalAlignment="Center" Visibility="{Binding IsPreviewReady, Converter={StaticResource AviataInverseVisibilityConverter}}">
                                 <materialDesign:PackIcon Kind="FileDocument" Width="60" Height="60" HorizontalAlignment="Center" Foreground="#BDBDBD"/>
-                                <TextBlock Text="Click 'Generate Preview' to see the Production report." HorizontalAlignment="Center" Foreground="#9E9E9E"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.EmptyProduction]}" HorizontalAlignment="Center" Foreground="#9E9E9E"/>
                             </StackPanel>
 
                             <!-- WebView2 para mostrar el PDF generado (Opcional si quieres previsualizar antes de Excel) -->
@@ -159,7 +173,18 @@
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
-                        <StackPanel>
+                        <DockPanel>
+                            <!-- RE-088: on a small screen the filters scroll and the buttons stay in sight. -->
+                            <StackPanel DockPanel.Dock="Bottom">
+                            <Separator Margin="0,10"/>
+                            <Button Command="{Binding GenerateCommand}" Content="{Binding GenerateText}" Style="{StaticResource GenerateButtonStyle}" Background="#673AB7"/>
+                            <Button Command="{Binding SavePdfCommand}" Content="{Binding PdfText}" Style="{StaticResource GenerateButtonStyle}" Background="#1E3A8A" Margin="0,10,0,0"/>
+                            <Button Command="{Binding SaveExcelCommand}" Content="{Binding ExcelText}" Style="{StaticResource GenerateButtonStyle}" Background="#2E7D32" Margin="0,10,0,0"/>
+                            <ProgressBar IsIndeterminate="True" Margin="0,10" Visibility="{Binding IsBusy, Converter={StaticResource StandardBoolToVis}}"/>
+                            <TextBlock Text="{Binding ErrorText}" Foreground="#C62828" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,0,10,0">
                             <TextBlock Text="{Binding TitleText}" FontSize="18" FontWeight="Bold" Foreground="#007ACC"/>
                             <TextBlock Text="{Binding IntroText}" TextWrapping="Wrap" Foreground="#5B6B7C" Margin="0,4,0,16"/>
 
@@ -168,20 +193,29 @@
                             <DatePicker SelectedDate="{Binding EndDate}" Margin="0,5"/>
 
                             <TextBlock Text="{Binding DriversText}" FontWeight="SemiBold" Margin="0,15,0,0"/>
-                            <ComboBox ItemsSource="{Binding Drivers}" ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                            <ComboBox ItemsSource="{Binding Drivers}" ItemContainerStyle="{StaticResource ProductivityFilterItemStyle}"
                                       materialDesign:HintAssist.Hint="{Binding AllHintText}" Margin="0,4,0,0"/>
+                            <DockPanel Margin="0,4,0,0" Visibility="{Binding HasDriversTicked, Converter={StaticResource StandardBoolToVis}}">
+                                <Button DockPanel.Dock="Right" Command="{Binding ClearDriversCommand}" ToolTip="{Binding ClearTicksText}"
+                                        Style="{StaticResource MaterialDesignIconButton}" Width="24" Height="24" VerticalAlignment="Top">
+                                    <materialDesign:PackIcon Kind="CloseCircleOutline" Foreground="#673AB7" Width="16" Height="16"/>
+                                </Button>
+                                <TextBlock Text="{Binding DriversTickedText}" TextWrapping="Wrap" Foreground="#673AB7" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </DockPanel>
 
                             <TextBlock Text="{Binding VehiclesText}" FontWeight="SemiBold" Margin="0,15,0,0"/>
-                            <ComboBox ItemsSource="{Binding Vehicles}" ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                            <ComboBox ItemsSource="{Binding Vehicles}" ItemContainerStyle="{StaticResource ProductivityFilterItemStyle}"
                                       materialDesign:HintAssist.Hint="{Binding AllHintText}" Margin="0,4,0,0"/>
-
-                            <Separator Margin="0,20"/>
-                            <Button Command="{Binding GenerateCommand}" Content="{Binding GenerateText}" Style="{StaticResource GenerateButtonStyle}" Background="#673AB7"/>
-                            <Button Command="{Binding SavePdfCommand}" Content="{Binding PdfText}" Style="{StaticResource GenerateButtonStyle}" Background="#1E3A8A" Margin="0,10,0,0"/>
-                            <Button Command="{Binding SaveExcelCommand}" Content="{Binding ExcelText}" Style="{StaticResource GenerateButtonStyle}" Background="#2E7D32" Margin="0,10,0,0"/>
-                            <ProgressBar IsIndeterminate="True" Margin="0,10" Visibility="{Binding IsBusy, Converter={StaticResource StandardBoolToVis}}"/>
-                            <TextBlock Text="{Binding ErrorText}" Foreground="#C62828" TextWrapping="Wrap"/>
-                        </StackPanel>
+                            <DockPanel Margin="0,4,0,0" Visibility="{Binding HasVehiclesTicked, Converter={StaticResource StandardBoolToVis}}">
+                                <Button DockPanel.Dock="Right" Command="{Binding ClearVehiclesCommand}" ToolTip="{Binding ClearTicksText}"
+                                        Style="{StaticResource MaterialDesignIconButton}" Width="24" Height="24" VerticalAlignment="Top">
+                                    <materialDesign:PackIcon Kind="CloseCircleOutline" Foreground="#673AB7" Width="16" Height="16"/>
+                                </Button>
+                                <TextBlock Text="{Binding VehiclesTickedText}" TextWrapping="Wrap" Foreground="#673AB7" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Border>
 
                     <Grid Grid.Column="1">
@@ -301,45 +335,43 @@
 
                         <Border Grid.Row="1" Background="White" CornerRadius="5" BorderBrush="#E0E0E0" BorderThickness="1">
                             <Grid>
-                                <TextBlock Text="{Binding EmptyText}" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" Foreground="#9E9E9E"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Visibility="{Binding HasRows, Converter={StaticResource AviataInverseVisibilityConverter}}"/>
 
                                 <!-- One line per driver and day; a click opens its breakdown -->
                                 <!-- Exactly the Home trips grid: same base style, centred headers, banded rows, accent
                                      bar on hover and selection. Named one by one, as Home does: MaterialDesign sets
                                      these on the element, so a derived style's setters would not apply. -->
-                                <DataGrid ItemsSource="{Binding RowsView}" AutoGenerateColumns="False" IsReadOnly="True"
+                                <DataGrid x:Name="ProductivityGrid" ItemsSource="{Binding RowsView}" AutoGenerateColumns="False" IsReadOnly="True"
                                           SelectionMode="Single" SelectionUnit="FullRow" AlternationCount="2" Cursor="Hand"
                                           VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                                           Style="{StaticResource CustomDataGridStyle}"
                                           ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
                                           RowStyle="{StaticResource ContentRowStyle}"
                                           CellStyle="{StaticResource TripSelectionCellStyle}"
-                                          RowDetailsVisibilityMode="VisibleWhenSelected"
-                                          Visibility="{Binding HasRows, Converter={StaticResource StandardBoolToVis}}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Binding="{Binding Date, StringFormat=MM/dd/yyyy}" Width="112">
+                                          RowDetailsVisibilityMode="VisibleWhenSelected">
+                                    <!-- MinWidth on every one (RE-088): a grouped grid can be measured with no room yet, and columns
+                                             without a floor then stay at 20 pixels, with no headers. -->
+                                        <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Date, StringFormat=MM/dd/yyyy}" Width="112" MinWidth="112">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColDate, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Driver}" Width="*">
+                                        <DataGridTextColumn Binding="{Binding Driver}" Width="*" MinWidth="140">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColDriver, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Vehicle}" Width="*">
+                                        <DataGridTextColumn Binding="{Binding Vehicle}" Width="*" MinWidth="140">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColVehicle, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding ShiftText}" Width="110">
+                                        <DataGridTextColumn Binding="{Binding ShiftText}" Width="110" MinWidth="110">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColShift, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding PaidText}" Width="70">
+                                        <DataGridTextColumn Binding="{Binding PaidText}" Width="70" MinWidth="70">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColPaid, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding MilesText}" Width="90">
+                                        <DataGridTextColumn Binding="{Binding MilesText}" Width="90" MinWidth="90">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColMiles, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding LoadedText}" Width="90">
+                                        <DataGridTextColumn Binding="{Binding LoadedText}" Width="90" MinWidth="90">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColLoaded, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Trips}" Width="60">
+                                        <DataGridTextColumn Binding="{Binding Trips}" Width="60" MinWidth="60">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColTrips, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
                                         <!-- RE-082: the rate in force that day and what the day pays; administrators only -->
-                                        <DataGridTextColumn Binding="{Binding RateText}" Width="90"
+                                        <DataGridTextColumn Binding="{Binding RateText}" Width="90" MinWidth="90"
                                                             Visibility="{Binding Data.HasPay, Source={StaticResource ProdProxy}, Converter={StaticResource StandardBoolToVis}}">
                                             <DataGridTextColumn.Header><TextBlock Text="{Binding Data.ColRate, Source={StaticResource ProdProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
-                                        <DataGridTemplateColumn Width="100" SortMemberPath="Data.PayAmount"
+                                        <DataGridTemplateColumn Width="100" MinWidth="100" SortMemberPath="Data.PayAmount"
                                                                 Visibility="{Binding Data.HasPay, Source={StaticResource ProdProxy}, Converter={StaticResource StandardBoolToVis}}">
                                             <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColAmount, Source={StaticResource ProdProxy}}"/></DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
@@ -348,7 +380,7 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTemplateColumn Width="90">
+                                        <DataGridTemplateColumn Width="90" MinWidth="90">
                                             <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.ColReliability, Source={StaticResource ProdProxy}}"/></DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -542,6 +574,12 @@
                                         </DataTemplate>
                                     </DataGrid.RowDetailsTemplate>
                                 </DataGrid>
+                                <!-- RE-088: over the grid, never instead of it. A grouped grid that is born collapsed
+                                     gets its columns at the 20-pixel minimum, with no headers, now and then. -->
+                                <Border Background="White" CornerRadius="5" Visibility="{Binding HasRows, Converter={StaticResource AviataInverseVisibilityConverter}}">
+                                    <TextBlock Text="{Binding EmptyText}" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" Foreground="#9E9E9E"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
                             </Grid>
                         </Border>
                     </Grid>
@@ -549,7 +587,7 @@
             </TabItem>
 
             <!-- GPS Report Tab -->
-            <TabItem Header="GPS Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+            <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.TabGps]}" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -559,13 +597,13 @@
                     <!-- Section for Report Parameters/Filters -->
                     <Border Grid.Row="0" Background="#F7F7F7" CornerRadius="5" Padding="15" BorderBrush="#E0E0E0" BorderThickness="1">
                         <StackPanel>
-                            <TextBlock Text="Report Options" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,0,0,10"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Options]}" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,0,0,10"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Text="Select Report Date:" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.PickDate]}" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
                                 <DatePicker SelectedDate="{Binding SelectedDate}" Width="150" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Select Vehicle Route:" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.PickRoute]}" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
                                 <ComboBox ItemsSource="{Binding AllVehicleRoutes}" 
                                           SelectedItem="{Binding SelectedVehicleRoute}"
                                           DisplayMemberPath="Name"
@@ -581,7 +619,7 @@
                                 Style="{StaticResource GenerateButtonStyle}">
                             <TextBlock Text="{Binding GenerateGpsButtonText}"/>
                         </Button>
-                        <TextBlock Text="Select a date and route, then click to export the GPS Report." 
+                        <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.GpsHint]}" 
                                    Foreground="Gray" 
                                    Margin="0,10,0,0"/>
                     </StackPanel>
@@ -600,7 +638,7 @@
                         <StackPanel>
                             <TextBlock Text="Trip2 PDF Generation" FontSize="16" FontWeight="SemiBold" Foreground="#333" Margin="0,0,0,10"/>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Select Report Date:" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.PickDate]}" VerticalAlignment="Center" Margin="0,0,10,0" Width="120"/>
                                 <DatePicker SelectedDate="{Binding SelectedDate}" Width="150" VerticalAlignment="Center"/>
                             </StackPanel>
                         </StackPanel>
@@ -620,7 +658,7 @@
             </TabItem>-->
 
             <!-- Manifest Report Tab (formerly Trip2 PDF Report) -->
-            <TabItem Header="Manifest Report" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+            <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.TabManifest]}" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -629,42 +667,48 @@
 
                     <!-- FILTERS SIDEBAR -->
                     <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="Manifest Report Filters" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
-
-                            <TextBlock Text="Date Range" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                            <DatePicker SelectedDate="{Binding Trip2StartDate}" materialDesign:HintAssist.Hint="Start Date" Margin="0,5"/>
-                            <DatePicker SelectedDate="{Binding Trip2EndDate}" materialDesign:HintAssist.Hint="End Date" Margin="0,5"/>
-
-                            <TextBlock Text="Funding Sources" FontWeight="SemiBold" Margin="0,15,0,5"/>
-
-                            <!-- Master CheckBox -->
-                            <CheckBox Content="[ SELECT ALL SOURCES ]" 
-                          IsChecked="{Binding IsTrip2AllSelected}" 
-                          FontWeight="Bold" Margin="2,0,0,5"/>
-
-                            <!-- Multi-selection ComboBox -->
-                            <ComboBox ItemsSource="{Binding AllFundingSources}" 
-                          ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                          materialDesign:HintAssist.Hint="Filter by item..."
-                          SelectedItem="{Binding SelectedFundingSource}"/>
-
-                            <Separator Margin="0,20"/>
+                        <DockPanel>
+                            <!-- RE-088: on a small screen the filters scroll and the buttons stay in sight. -->
+                            <StackPanel DockPanel.Dock="Bottom">
+                            <Separator Margin="0,10"/>
 
                             <Button Command="{Binding PreviewTrip2ReportCommand}" 
-                        Content="GENERATE PREVIEW" 
+                        Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Preview]}" 
                         Style="{StaticResource GenerateButtonStyle}" 
                         Background="#673AB7"/>
 
                             <Button Command="{Binding SaveTrip2ReportCommand}" 
-                        Content="SAVE AS PDF" 
+                        Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.SavePdf]}" 
                         IsEnabled="{Binding IsTrip2PreviewReady}" 
                         Style="{StaticResource GenerateButtonStyle}" 
                         Background="#2E7D32" Margin="0,10,0,0"/>
 
                             <ProgressBar IsIndeterminate="True" Margin="0,10" 
                              Visibility="{Binding IsGeneratingTrip2Preview, Converter={StaticResource StandardBoolToVis}}"/>
-                        </StackPanel>
+                            </StackPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.ManifestFilters]}" FontSize="18" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,20"/>
+
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.DateRange]}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                            <DatePicker SelectedDate="{Binding Trip2StartDate}" materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.StartDate]}" Margin="0,5"/>
+                            <DatePicker SelectedDate="{Binding Trip2EndDate}" materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.EndDate]}" Margin="0,5"/>
+
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FundingSources]}" FontWeight="SemiBold" Margin="0,15,0,5"/>
+
+                            <!-- Master CheckBox -->
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllSources]}" 
+                          IsChecked="{Binding IsTrip2AllSelected}" 
+                          FontWeight="Bold" Margin="2,0,0,5"/>
+
+                            <!-- Multi-selection ComboBox -->
+                            <ComboBox ItemsSource="{Binding AllFundingSources}" 
+                          ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
+                          materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterItem]}"
+                          SelectedItem="{Binding SelectedFundingSource}"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Border>
 
                     <!-- PREVIEW AREA -->
@@ -673,7 +717,7 @@
                             <!-- Placeholder -->
                             <StackPanel VerticalAlignment="Center" Visibility="{Binding IsTrip2PreviewReady, Converter={StaticResource AviataInverseVisibilityConverter}}">
                                 <materialDesign:PackIcon Kind="FilePdfBox" Width="60" Height="60" HorizontalAlignment="Center" Foreground="#BDBDBD"/>
-                                <TextBlock Text="Click 'Generate Preview' to see the Manifest report." HorizontalAlignment="Center" Foreground="#9E9E9E"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.EmptyManifest]}" HorizontalAlignment="Center" Foreground="#9E9E9E"/>
                             </StackPanel>
 
                             <!-- WebView2 Preview -->
@@ -686,7 +730,7 @@
             </TabItem>
 
             <!-- Facility Report (formerly Aviata Report) -->
-            <TabItem Header="Facility Report"  Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+            <TabItem Header="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.TabFacility]}"  Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
                 <Grid Margin="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="320"/>
@@ -695,43 +739,49 @@
 
                     <!-- FILTROS -->
                     <Border Grid.Column="0" Background="White" CornerRadius="5" Padding="15" Margin="0,0,10,0" BorderBrush="#DDD" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="Facility Report Filters" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+                        <DockPanel>
+                            <!-- RE-088: on a small screen the filters scroll and the buttons stay in sight. -->
+                            <StackPanel DockPanel.Dock="Bottom">
+                            <Separator Margin="0,10"/>
+                            <Button Command="{Binding PreviewAviataReportCommand}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Preview]}" Style="{StaticResource GenerateButtonStyle}" Background="#673AB7"/>
+                            <Button Command="{Binding SaveAviataReportCommand}" Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.SavePdf]}" IsEnabled="{Binding IsPreviewReady}" Style="{StaticResource GenerateButtonStyle}" Background="#2E7D32" Margin="0,10,0,0"/>
 
-                            <TextBlock Text="Start Date:" Margin="0,10,0,5"/>
+                            <ProgressBar IsIndeterminate="True" Margin="0,10" Visibility="{Binding IsGeneratingAviata, Converter={StaticResource StandardBoolToVis}}"/>
+                            </StackPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,0,10,0">
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FacilityFilters]}" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.StartDateLabel]}" Margin="0,10,0,5"/>
                             <DatePicker SelectedDate="{Binding StartDate}"/>
 
-                            <TextBlock Text="End Date:" Margin="0,15,0,5"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.EndDateLabel]}" Margin="0,15,0,5"/>
                             <DatePicker SelectedDate="{Binding EndDate}"/>
 
-                            <TextBlock Text="Funding Sources:" Margin="0,15,0,5"/>
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FundingSourcesLabel]}" Margin="0,15,0,5"/>
 
                             <!-- Master CheckBox (Select All) placed above the ComboBox -->
-                            <CheckBox Content="[ SELECT ALL SOURCES ]" 
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllSources]}" 
                                       IsChecked="{Binding IsAllSelected}" 
                                       FontWeight="Bold" Margin="2,0,0,5"/>
 
                             <!-- Multi-selection ComboBox -->
                             <ComboBox ItemsSource="{Binding AllFundingSources}" 
                                       ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                                      materialDesign:HintAssist.Hint="Filter by item..."
+                                      materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterItem]}"
                                       SelectedItem="{Binding SelectedFundingSource}"/>
 
-                            <TextBlock Text="Drivers:" Margin="0,15,0,5"/>
-                            <CheckBox Content="[ SELECT ALL DRIVERS ]"
+                            <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.DriversLabel]}" Margin="0,15,0,5"/>
+                            <CheckBox Content="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.AllDrivers]}"
                                       IsChecked="{Binding IsAllFacilityDriversSelected}"
                                       FontWeight="Bold" Margin="2,0,0,5"/>
                             <ComboBox ItemsSource="{Binding FacilityDrivers}"
                                       ItemContainerStyle="{StaticResource MultiSelectComboBoxItemStyle}"
-                                      materialDesign:HintAssist.Hint="Filter by driver..."
+                                      materialDesign:HintAssist.Hint="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.FilterDriver]}"
                                       SelectedItem="{Binding SelectedFacilityDriver}"/>
-
-                            <Separator Margin="0,20"/>
-                            <Button Command="{Binding PreviewAviataReportCommand}" Content="GENERATE PREVIEW" Style="{StaticResource GenerateButtonStyle}" Background="#673AB7"/>
-                            <Button Command="{Binding SaveAviataReportCommand}" Content="SAVE AS PDF" IsEnabled="{Binding IsPreviewReady}" Style="{StaticResource GenerateButtonStyle}" Background="#2E7D32" Margin="0,10,0,0"/>
-
-                            <ProgressBar IsIndeterminate="True" Margin="0,10" Visibility="{Binding IsGeneratingAviata, Converter={StaticResource StandardBoolToVis}}"/>
-                        </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Border>
 
                     <!-- PREVIEW -->
@@ -739,7 +789,7 @@
                         <Grid>
                             <StackPanel VerticalAlignment="Center" Visibility="{Binding IsPreviewReadyAviata, Converter={StaticResource AviataInverseVisibilityConverter}}">
                                 <materialDesign:PackIcon Kind="FilePdfBox" Width="60" Height="60" HorizontalAlignment="Center" Foreground="#BDBDBD"/>
-                                <TextBlock Text="Click 'Generate Preview' to see the report." HorizontalAlignment="Center" Foreground="#9E9E9E"/>
+                                <TextBlock Text="{Binding Source={x:Static services:LocalizationService.Instance}, Path=[reports.Empty]}" HorizontalAlignment="Center" Foreground="#9E9E9E"/>
                             </StackPanel>
                             <wv2:WebView2 x:Name="PdfWebView" 
                                   Source="{Binding AviataPreviewFilePath}"
