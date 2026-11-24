@@ -5,7 +5,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083, RE-084 and RE-085. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
+Slices RE-083 to RE-086. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
@@ -26,6 +26,13 @@ and simply have no kinds and no warnings.
   after it is routed anyway. Answered from memory, no call to the server.
 - Help: vehicles, vehicle configurations, space types and the routing warning, in both languages.
 
+- Live map voice (RE-086): the assistant knows every element of the screen and can press them (search
+  boxes, follow, road view, details and its links, filters, layers, Today, lists, windows), answers about
+  a line and the day, and reads or opens the help. No patient name is sent to it, and it cannot turn on
+  the layers that cost money.
+- Live map help (RE-086): nine topics, one per area, in both languages; F1 opens the one under the mouse,
+  also inside the map page.
+
 ### Changed
 - Home figures (RE-084): the band and the plates are the sum total = done + in progress + not started +
   canceled + without a run, each trip in one part. "Without a run" no longer counts canceled trips. The
@@ -41,6 +48,7 @@ and simply have no kinds and no warnings.
   for every patient. Data > Customers keeps it.
 
 ### Fixed
+- Live map voice (RE-086): the hint said to hold Space; Space turns the voice on and off.
 - Live map (RE-085): the next stop could be a cancelled trip's.
 - Space types: the Active column was headed "Inactive", so it read backwards.
 - Space types: the delete icon deletes its own row, not the one selected.

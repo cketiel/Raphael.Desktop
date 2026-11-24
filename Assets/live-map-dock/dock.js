@@ -47,9 +47,9 @@
         "VOICE CONTROL": "CONTROL POR VOZ",
         "VOICE SYSTEM ERROR": "ERROR DEL SISTEMA DE VOZ",
         "DISMISS": "CERRAR",
-        "Hold Space to speak · tap Space to activate focused controls": "Mantén Espacio para hablar · pulsa Espacio para activar el control enfocado",
+        "Space turns the voice on and off": "Espacio enciende y apaga la voz",
         "Check microphone permission and network access, then try again.": "Revisa el permiso del micrófono y la conexión, y vuelve a intentarlo.",
-        "Voice control — activate to toggle voice; hold Space to speak": "Control por voz: actívalo para encender la voz; mantén Espacio para hablar",
+        "Voice control — press to turn it on or off; Space does the same": "Control por voz: púlsalo para encender o apagar; Espacio hace lo mismo",
         "Estimated session cost": "Coste estimado de la sesión",
         "OFF": "APAGADO",
         "CONNECTING": "CONECTANDO",
@@ -625,6 +625,12 @@
             var m = e.data;
             if (!m || !m.type) return;
             if (m.type === 'cities') setCities(m.items);
+            if (m.type === 'openSearch') {
+                var bar = $('location-bar'), box = { lines: 'line-search', trips: 'trip-search', places: 'location-search' }[m.box];
+                bar.classList.remove('collapsed'); bar.querySelector('.dock-tray-toggle, .panel-collapse-btn').setAttribute('aria-expanded', 'true'); stack();
+                if (m.box === 'places') $('location-search').classList.add('expanded');
+                if (box) setTimeout(function () { $(box).focus(); }, 120);
+            }
             if (m.type === 'keysStatus') { keyStatus = m.keys || {}; renderKeys(); }
             if (m.type === 'keysSaved') {
                 if (m.ok) dialog.querySelectorAll('input[data-env-var]').forEach(function (i) { i.value = ''; });

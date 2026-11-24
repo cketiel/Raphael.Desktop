@@ -200,6 +200,10 @@ namespace Raphael.Desktop.Views.LiveMap
                         if (_beforeFullScreen is not null) SetFullScreen(false);
                         break;
 
+                    case "help":
+                        OpenHelp(root.TryGetProperty("topic", out var helpTopic) ? helpTopic.GetString() : null);
+                        break;
+
                     case "fullScreen":
                         ToggleFullScreen();
                         break;
@@ -924,10 +928,7 @@ namespace Raphael.Desktop.Views.LiveMap
                     case "select_line":
                     {
                         var q = Arg("query").Trim();
-                        bool Has(string? f) => !string.IsNullOrEmpty(f) && f.Contains(q, StringComparison.OrdinalIgnoreCase);
-                        var line = ViewModel.Vehicles.FirstOrDefault(v => string.Equals(v.Name, q, StringComparison.OrdinalIgnoreCase))
-                                ?? ViewModel.Vehicles.FirstOrDefault(v => Has(v.Name) || Has(v.DriverName) || Has(v.VehicleName)
-                                    || (_plates.TryGetValue(v.VehicleRouteId, out var plate) && Has(plate)));
+                        var line = FindLine(q);
                         if (q.Length == 0 || line is null) { output = new { ok = false, error = $"No line matches {q}" }; break; }
                         Post(new { type = "tripFocus", id = (int?)null });
                         ViewModel.Select(line);
@@ -999,12 +1000,12 @@ namespace Raphael.Desktop.Views.LiveMap
                         {
                             ok = true,
                             byState = ViewModel.Vehicles.GroupBy(v => v.GroupName).ToDictionary(g => g.Key ?? "", g => g.Count()),
-                            lines = ViewModel.Vehicles.Select(v => new { line = v.Name, driver = v.DriverName, state = v.GroupName }).ToList()
+                            lines = ViewModel.Vehicles.Select(v => new { line = v.Name, driver = v.DriverName, state = v.GroupName, speedMph = Math.Round(v.SpeedMph), moving = v.IsMoving, speeding = v.IsSpeeding, oldPosition = v.IsStale, lateMinutes = v.LateMinutes, trips = v.TripsText }).ToList()
                         };
                         break;
 
                     default:
-                        output = new { ok = false, error = $"Unknown tool {name}" };
+                        output = await RunScreenToolAsync(name, a) ?? new { ok = false, error = $"Unknown tool {name}" };
                         break;
                 }
             }

@@ -242,7 +242,7 @@
         </Border>
 
         <!-- Left: filters and legend -->
-        <Border x:Name="LeftPanel" Style="{StaticResource LmPanel}" Width="276" Margin="16,60,16,16" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Border x:Name="LeftPanel" helpers:HelpAssist.TopicId="desktop/live-map/filters-layers" Style="{StaticResource LmPanel}" Width="276" Margin="16,60,16,16" HorizontalAlignment="Left" VerticalAlignment="Top">
             <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=170}">
             <StackPanel>
                 <Expander Style="{StaticResource LmSection}" Header="{Binding FiltersHeader}">
@@ -410,7 +410,7 @@
         </Border>
 
         <!-- Right: what is on the map, and the window controls -->
-        <Border x:Name="RightPanel" Style="{StaticResource LmPanel}" Width="300" Margin="16,92,16,16" HorizontalAlignment="Right" VerticalAlignment="Top">
+        <Border x:Name="RightPanel" helpers:HelpAssist.TopicId="desktop/live-map/today" Style="{StaticResource LmPanel}" Width="300" Margin="16,92,16,16" HorizontalAlignment="Right" VerticalAlignment="Top">
             <!-- Ends above POWER UP (bottom right): taller content scrolls. -->
             <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=212}">
             <StackPanel>
@@ -570,7 +570,7 @@
         </Border>
 
         <!-- RE-085: the trips in progress, opened from Today. A click selects the vehicle, as in Drivers. -->
-        <Border x:Name="InProgressPanel" Style="{StaticResource LmPanel}" Width="300" Margin="0,92,332,16" HorizontalAlignment="Right" VerticalAlignment="Top"
+        <Border x:Name="InProgressPanel" helpers:HelpAssist.TopicId="desktop/live-map/today" Style="{StaticResource LmPanel}" Width="300" Margin="0,92,332,16" HorizontalAlignment="Right" VerticalAlignment="Top"
                 Visibility="{Binding IsInProgressOpen, Converter={StaticResource LmBoolToVis}}">
             <DockPanel MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=212}">
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
@@ -634,7 +634,7 @@
         <!-- ===== Selection bar (RE-080): a click on a vehicle selects it =====
              Its route is drawn whatever the layers say; the switch picks the trip in progress or the
              whole day; Details opens the card. A double click goes straight to the card. -->
-        <Border x:Name="SelectionBar" Style="{StaticResource LmPanel}" Padding="10,6" CornerRadius="12" Margin="0,64,0,0"
+        <Border x:Name="SelectionBar" helpers:HelpAssist.TopicId="desktop/live-map/selection" Style="{StaticResource LmPanel}" Padding="10,6" CornerRadius="12" Margin="0,64,0,0"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="{Binding SelectionVisibility}">
             <StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -715,7 +715,7 @@
 
         <!-- ===== Route card (RE-080): Details or a double click; centred on the screen =====
              About the line, never a patient. Esc, the X or a click outside closes it. -->
-        <Grid DataContext="{Binding RouteCard}" Visibility="{Binding IsOpenVisibility}">
+        <Grid DataContext="{Binding RouteCard}" helpers:HelpAssist.TopicId="desktop/live-map/selection" Visibility="{Binding IsOpenVisibility}">
             <Border Background="#73000000" MouseLeftButtonDown="CardBackdrop_MouseDown"/>
             <Border Width="500" CornerRadius="10" Padding="22,18" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Background="{StaticResource LmPanelBg}" BorderBrush="{StaticResource LmPanelBorder}" BorderThickness="1">

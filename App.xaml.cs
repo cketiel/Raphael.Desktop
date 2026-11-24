@@ -149,6 +149,10 @@ namespace Raphael.Desktop
 
             try
             {
+                // The live map has almost nothing that takes the focus: there F1 answers for what is
+                // under the mouse (RE-086).
+                if (Raphael.Desktop.Views.LiveMap.LiveMapView.OpenHelpUnderMouse()) return;
+
                 // Fully qualified: inside Application, a bare "MainWindow" binds to
                 // Application.MainWindow, the instance property, not to our window type.
                 HelpService.Instance.OpenContextual(Raphael.Desktop.MainWindow.CurrentMenu);

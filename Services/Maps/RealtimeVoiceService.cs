@@ -50,7 +50,7 @@ namespace Raphael.Desktop.Services.Maps
                     {
                         ["type"] = "retention_ratio",
                         ["retention_ratio"] = 0.5,
-                        ["token_limits"] = new JsonObject { ["post_instructions"] = 3000 }
+                        ["token_limits"] = new JsonObject { ["post_instructions"] = 4000 }   // room for a section of the help (RE-086)
                     },
                     ["audio"] = new JsonObject
                     {

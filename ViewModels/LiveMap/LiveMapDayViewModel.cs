@@ -93,15 +93,21 @@ namespace Raphael.Desktop.ViewModels.LiveMap
         /// <summary>Raised when the In progress row is pressed: the list is the map's, next to its vehicles.</summary>
         public event Action? InProgressRequested;
 
+        public void AskInProgress() => InProgressRequested?.Invoke();
+
         [RelayCommand]
         private void Open(LiveMapDayPart? row)
         {
-            if (row is null) return;
-            switch (row.Part)
+            if (row is not null) OpenPart(row.Part);
+        }
+
+        public void OpenPart(TripPart part)
+        {
+            switch (part)
             {
                 case TripPart.InProgress: InProgressRequested?.Invoke(); break;
                 case TripPart.NoRun: AppNavigation.ShowUnscheduled(Date, Array.Empty<int>()); break;
-                default: AppNavigation.ShowPartInHome(Date, row.Part); break;
+                default: AppNavigation.ShowPartInHome(Date, part); break;
             }
         }
 

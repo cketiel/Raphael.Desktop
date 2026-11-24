@@ -894,6 +894,17 @@
         anim.frame = requestAnimationFrame(frame);
     }
 
+    // F1: the help of the part of the page under the mouse, else of the tray that is open.
+    function postHelp() {
+        var over = function (sel) { return !!document.querySelector(sel + ':hover'); };
+        var open = function (sel) { var p = document.querySelector(sel); return p && !p.classList.contains('collapsed') && !p.hidden; };
+        var topic = open('#key-setup') || over('#key-setup-chip') ? 'power-up' : over('#gev-voice-control') ? 'voice'
+            : over('#location-bar') ? 'search' : over('#control-panel') || over('#style-indicator') ? 'view'
+            : open('#location-bar') ? 'search' : open('#control-panel') ? 'view' : 'overview';
+        RM.post({ type: 'help', topic: topic });
+    }
+
+    var hostActions = null;   // set by initActions
     var rightPad = 360;       // what the panels on the right cover; more while the In progress list is open
 
     function fitRoute(id) {
@@ -1105,6 +1116,11 @@
         if (t.window && t.window.icon) actions.querySelector('[data-k="window"] .material-symbols-outlined').textContent = t.window.icon;
     };
     setupStreetView();
+    // What the voice assistant may press here (RE-086).
+    hostActions = {
+        clean: function (on) { if (clean !== on) setClean(on); },
+        streetView: function (on) { if (!on && pano.getVisible()) pano.setVisible(false); else if (picking !== on) pickStreetView(on); }
+    };
     }
 
     // ------------------------------------------------------------------ 3D (Maps JavaScript, maps3d)
@@ -1278,6 +1294,10 @@
             case 'vehicles': upsertVehicles(m.items || []); break;
             case 'move': move(m); break;
             case 'rightPad': rightPad = m.px; break;
+            case 'pan': map.panBy(m.direction === 'left' ? -240 : m.direction === 'right' ? 240 : 0, m.direction === 'up' ? -180 : m.direction === 'down' ? 180 : 0); break;
+            case 'streetViewPick': if (hostActions) hostActions.streetView(!!m.on); break;
+            case 'helpHere': postHelp(); break;
+            case 'setClean': if (hostActions) hostActions.clean(!!m.on); break;
             case 'legs':
                 if (routes[m.id]) clear(routes[m.id].drawn);
                 routes[m.id] = { legs: m.legs || [], stops: m.stops || [], drawn: [] };
@@ -1351,6 +1371,12 @@
         initActions();
         // Esc reaches the page, not the window: the host uses it to leave full screen.
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { stopFollow(); RM.post({ type: 'escapeKey' }); } });
+        // F1 here never reaches WPF: the host opens the help of the part of the page that has the focus.
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'F1') return;
+            e.preventDefault();
+            postHelp();
+        });
         map.addListener('dragstart', function () { dragging = true; });
         map.addListener('dragend', function () { dragging = false; });
         defineLayer();

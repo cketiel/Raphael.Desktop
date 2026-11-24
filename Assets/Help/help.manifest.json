@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.23.0"
   },
-  "builtUtc": "2026-11-24T06:23:20.298Z",
-  "sourceCommit": "e3912e5",
+  "builtUtc": "2026-11-24T06:43:45.367Z",
+  "sourceCommit": "321c86d",
   "languages": [
     "es",
     "en"
@@ -581,7 +581,7 @@
       "id": "desktop/live-map/overview",
       "mode": "reference",
       "since": "1.21.2",
-      "lastReviewed": "1.21.2",
+      "lastReviewed": "1.23.0",
       "roles": [
         "admin",
         "dispatcher"
@@ -589,7 +589,127 @@
       "menu": null,
       "title": {
         "es": "Mapa en vivo — la flota del día",
-        "en": "Live map — the day's fleet"
+        "en": "Live map — the fleet of the day"
+      }
+    },
+    {
+      "id": "desktop/live-map/vehicles",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Los vehículos en el mapa y el ritmo",
+        "en": "The vehicles on the map and the pace"
+      }
+    },
+    {
+      "id": "desktop/live-map/filters-layers",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Filtros, recuento, capas y simbología",
+        "en": "Filters, counts, layers and legend"
+      }
+    },
+    {
+      "id": "desktop/live-map/today",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Hoy, la lista En progreso y Drivers",
+        "en": "Today, the In progress list and Drivers"
+      }
+    },
+    {
+      "id": "desktop/live-map/selection",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "La línea seleccionada: camino, Seguir y Detalles",
+        "en": "The selected line: road, Follow and Details"
+      }
+    },
+    {
+      "id": "desktop/live-map/search",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Búsqueda: líneas, viajes y lugares",
+        "en": "Search: lines, trips and places"
+      }
+    },
+    {
+      "id": "desktop/live-map/view",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "La vista: botones, ventanas, estilos y 3D",
+        "en": "The view: buttons, windows, styles and 3D"
+      }
+    },
+    {
+      "id": "desktop/live-map/voice",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Voz: hablar con el mapa",
+        "en": "Voice: talking to the map"
+      }
+    },
+    {
+      "id": "desktop/live-map/power-up",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "POWER UP: claves y costes",
+        "en": "POWER UP: keys and costs"
       }
     },
     {
