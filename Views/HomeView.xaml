@@ -414,20 +414,27 @@
         </DrawingBrush>
 
         <!-- ===== The figures under the list, on number plates =====
-             A dispatcher's day is measured in vehicles, so the three counts are set the way a
+             A dispatcher's day is measured in vehicles, so the counts are set the way a
              registration plate is set: the number large because that is the information, the
              fleet name and the strapline tiny because they are furniture. It is the one place on
              this screen where the decoration says what the company does.
 
-             Fixed width on all three, like real plates, so they line up as a set rather than as
-             three labels of different lengths.
+             Fixed width on all of them, like real plates, so they line up as a set rather than as
+             labels of different lengths.
 
              Tag carries the count and Content the word, because the plate prints them at two
              different sizes and one string could only ever be one size. The spaced-out letters
              are the poor-man's letter-spacing: WPF has no such property on TextBlock. -->
+        <Style x:Key="PlateSign" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}" />
+        </Style>
+
         <Style x:Key="NumberPlate" TargetType="ContentControl">
-            <Setter Property="Width" Value="126" />
-            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Width" Value="118" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContentControl">
@@ -441,7 +448,7 @@
                                                Foreground="{DynamicResource MaterialDesign.Brush.Primary}" />
 
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="{TemplateBinding Tag}"
+                                        <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
                                                    FontSize="16" FontWeight="Bold"
                                                    LineHeight="17" LineStackingStrategy="BlockLineHeight"
                                                    VerticalAlignment="Center" />
@@ -737,10 +744,6 @@
                                                                                     <TextBlock Text="{Binding PhoneTextBoxHint}" Margin="0 0 8 0" FontWeight="Bold"/>
                                                                                     <TextBlock Text="{Binding Phone}"/>
                                                                                 </StackPanel>
-                                                                                <StackPanel Margin="5 0 0 0" Orientation="Horizontal">
-                                                                                    <TextBlock Text="{Binding ClientCodeTextBoxHint}" Margin="0 0 8 0" FontWeight="Bold"/>
-                                                                                    <TextBlock Text="{Binding ClientCode}"/>
-                                                                                </StackPanel>
                                                                             </StackPanel>
                                                                         </Border>
                                                                     </DataTemplate>
@@ -885,13 +888,6 @@
                                                     </TextBox.Text>-->
                                                         
                                                     </TextBox>
-                                                    <TextBox TextChanged="CustomerField_Changed" x:Name="ClientCodeTextBox"
-                                                             Text="{Binding SelectedCustomer.ClientCode}" 
-                                                             materialDesign:HintAssist.Hint="{Binding ClientCodeTextBoxHint}" 
-                                                             materialDesign:TextFieldAssist.HasClearButton="True"
-                                                             materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                                                             materialDesign:TextFieldAssist.LeadingIcon="Barcode"
-                                                             Style="{StaticResource MaterialDesignFilledTextBox}" Margin="0,0,0,2"/>
                                                     <TextBox TextChanged="CustomerField_Changed" x:Name="PhoneTextBox"
                                                                 Text="{Binding SelectedCustomer.Phone}" 
                                                                  materialDesign:HintAssist.Hint="{Binding PhoneTextBoxHint}" 
@@ -918,6 +914,18 @@
                                                                 materialDesign:TextFieldAssist.LeadingIcon="HumanWheelchair"
                                                                 Margin="0,0,0,2"
                                                                 materialDesign:HintAssist.Hint="{Binding SpaceTypeComboBoxHint}" />
+
+                                                    <ComboBox   x:Name="FundingSourceComboBox"
+                                                                ItemsSource="{Binding FundingSources}"
+                                                                SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}"
+                                                                DisplayMemberPath="Name"
+                                                                SelectedValuePath="Id"
+                                                                Style="{StaticResource MaterialDesignFilledComboBox}"
+                                                                materialDesign:TextFieldAssist.HasClearButton="True"
+                                                                materialDesign:TextFieldAssist.HasLeadingIcon="True"
+                                                                materialDesign:TextFieldAssist.LeadingIcon="Finance"
+                                                                Margin="0,0,0,2"
+                                                                materialDesign:HintAssist.Hint="{Binding FundingSourceComboBoxHint}" />
 
                                                 </StackPanel>
 
@@ -978,73 +986,46 @@
 
                                             </Grid>
 
-                                            <!-- Funding Source, Provider and gender share one row, so the Provider combo does
-                                                 not make the form taller and push the filter row under the divider. Everybody
-                                                 else keeps the old halves: Funding Source on the left, gender centred on the
-                                                 right. Raphael's admin gets Funding Source and Provider in equal halves of what
-                                                 the radios, packed to the right, leave free. -->
+                                            <!-- Provider and gender share the last row, in the same two halves as the rows
+                                                 above. Only Raphael's admin has Provider: for everybody else the radios take
+                                                 the whole row, centred, so it has no empty half. -->
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition>
-                                                        <ColumnDefinition.Style>
-                                                            <Style TargetType="ColumnDefinition">
-                                                                <Setter Property="Width" Value="0"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
-                                                                        <Setter Property="Width" Value="*"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </ColumnDefinition.Style>
-                                                    </ColumnDefinition>
-                                                    <ColumnDefinition>
-                                                        <ColumnDefinition.Style>
-                                                            <Style TargetType="ColumnDefinition">
-                                                                <Setter Property="Width" Value="*"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
-                                                                        <Setter Property="Width" Value="Auto"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </ColumnDefinition.Style>
-                                                    </ColumnDefinition>
+                                                    <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
 
-                                                <ComboBox x:Name="FundingSourceComboBox" Grid.Column="0"
-                                                        ItemsSource="{Binding FundingSources}" 
-                                                        SelectedItem="{Binding SelectedFundingSource, Mode=TwoWay}" 
-                                                        DisplayMemberPath="Name" 
-                                                        SelectedValuePath="Id"
-                                                        Style="{StaticResource MaterialDesignFilledComboBox}"
-                                                        materialDesign:TextFieldAssist.HasClearButton="True"
-                                                        materialDesign:TextFieldAssist.HasLeadingIcon="True"
-                                                        materialDesign:TextFieldAssist.LeadingIcon="Finance"
-                                                        Margin="0,0,4,2"
-                                                        materialDesign:HintAssist.Hint="{Binding FundingSourceComboBoxHint}" />
-
-                                                <!-- RE-050: give the trip to a Provider, or back to Raphael. Raphael's admin only. -->
-                                                <ComboBox x:Name="ProviderComboBox" Grid.Column="1"
-                                                        Visibility="{Binding IsPlatformAdmin, Converter={StaticResource BoolToVisibility}}"
+                                                <!-- RE-050: give the trip to a Provider, or back to Raphael. Raphael's admin only.
+                                                     Hidden and not Collapsed: it keeps the row's height for everybody else. -->
+                                                <ComboBox x:Name="ProviderComboBox" Grid.Column="0"
                                                         ItemsSource="{Binding ProviderOptions}"
                                                         SelectedItem="{Binding SelectedProviderOption, Mode=TwoWay}"
                                                         DisplayMemberPath="Name"
-                                                        Style="{StaticResource MaterialDesignFilledComboBox}"
                                                         materialDesign:TextFieldAssist.HasLeadingIcon="True"
                                                         materialDesign:TextFieldAssist.LeadingIcon="DomainSwitch"
-                                                        Margin="4,0,4,2"
-                                                        materialDesign:HintAssist.Hint="{Binding ProviderText}" />
-
-                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <StackPanel.Style>
-                                                        <Style TargetType="StackPanel">
-                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
-                                                            <Setter Property="Margin" Value="4,0,0,0"/>
+                                                        Margin="0,0,4,2"
+                                                        materialDesign:HintAssist.Hint="{Binding ProviderText}">
+                                                    <ComboBox.Style>
+                                                        <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignFilledComboBox}">
+                                                            <Setter Property="Visibility" Value="Hidden"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
-                                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                                                    <Setter Property="Margin" Value="4,0,4,0"/>
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ComboBox.Style>
+                                                </ComboBox>
+
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="Grid.Column" Value="0"/>
+                                                            <Setter Property="Grid.ColumnSpan" Value="2"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsPlatformAdmin}" Value="True">
+                                                                    <Setter Property="Grid.Column" Value="1"/>
+                                                                    <Setter Property="Grid.ColumnSpan" Value="1"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -1052,11 +1033,11 @@
 
                                                     <RadioButton x:Name="MaleRadioButton" Content="{Binding MaleRadioButtonContent}"
                                                                      GroupName="GenderRadioButtonGroup"
-                                                                     IsChecked="{Binding GenderMale}" 
-                                                                     Style="{StaticResource MaterialDesignRadioButton}" Margin="0,0,10,0"/>
+                                                                     IsChecked="{Binding GenderMale}"
+                                                                     Style="{StaticResource MaterialDesignRadioButton}" Margin="0,0,24,0"/>
                                                     <RadioButton x:Name="FemaleRadioButton" Content="{Binding FemaleRadioButtonContent}"
                                                                      GroupName="GenderRadioButtonGroup"
-                                                                     IsChecked="{Binding GenderFemale}" 
+                                                                     IsChecked="{Binding GenderFemale}"
                                                                      Style="{StaticResource MaterialDesignRadioButton}"/>
                                                 </StackPanel>
 
@@ -2402,10 +2383,8 @@
                      here. A tint keeps dark text and coloured icons both legible, and still gives
                      the bar the body it was missing.
 
-                     The middle is a trial, not a decision: the same express bar that sits above
-                     the list, and the same figures that ride the road. Seeing all of it at once is
-                     the only way to judge where each belongs. Recommendation and reasoning are in
-                     the slice note. -->
+                     The figures are the plates and only the plates (RE-084): the sum in words rides the
+                     road above, and saying it twice on one bar left no room for either. -->
                 <Border Grid.Row="1" BorderThickness="0,1,0,0" BorderBrush="{StaticResource MainBorderBrush}"
                         Background="#1F673AB7" Padding="8,4,8,4">
                     <Grid>
@@ -2416,31 +2395,30 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <ContentControl Style="{StaticResource NumberPlate}"
-                                            Tag="{Binding PlateTripsCount}" Content="{Binding PlateTripsLabel}" />
-                            <ContentControl Style="{StaticResource NumberPlate}"
-                                            Tag="{Binding PlateCanceledCount}" Content="{Binding PlateCanceledLabel}" />
-                            <ContentControl Style="{StaticResource NumberPlate}"
-                                            Tag="{Binding PlateNoRunCount}" Content="{Binding PlateNoRunLabel}" />
+                            <!-- RE-084: the plates ARE the sum, signs and all. Each trip is on one of the five. -->
+                            <ContentControl Style="{StaticResource NumberPlate}" ToolTip="{Binding PlateTotalToolTip}"
+                                            Tag="{Binding Figures.Total}" Content="{Binding PlateTotalLabel}" />
+                            <TextBlock Style="{StaticResource PlateSign}" Text="=" />
+                            <ContentControl Style="{StaticResource NumberPlate}" ToolTip="{Binding PlateDoneToolTip}"
+                                            Tag="{Binding Figures.Done}" Content="{Binding PlateDoneLabel}" />
+                            <TextBlock Style="{StaticResource PlateSign}" Text="+" />
+                            <ContentControl Style="{StaticResource NumberPlate}" ToolTip="{Binding PlateInProgressToolTip}"
+                                            Tag="{Binding Figures.InProgress}" Content="{Binding PlateInProgressLabel}" />
+                            <TextBlock Style="{StaticResource PlateSign}" Text="+" />
+                            <ContentControl Style="{StaticResource NumberPlate}" ToolTip="{Binding PlateNotStartedToolTip}"
+                                            Tag="{Binding Figures.NotStarted}" Content="{Binding PlateNotStartedLabel}" />
+                            <TextBlock Style="{StaticResource PlateSign}" Text="+" />
+                            <ContentControl Style="{StaticResource NumberPlate}" ToolTip="{Binding PlateCanceledToolTip}"
+                                            Tag="{Binding Figures.Canceled}" Content="{Binding PlateCanceledLabel}" />
+                            <TextBlock Style="{StaticResource PlateSign}" Text="+" />
+                            <ContentControl Style="{StaticResource NumberPlate}" ToolTip="{Binding PlateNoRunToolTip}"
+                                            Tag="{Binding Figures.NoRun}" Content="{Binding PlateNoRunLabel}" />
                         </StackPanel>
 
                         <Grid Grid.Column="1" Margin="16,0,16,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <ContentControl Grid.Column="0" Content="{Binding}"
+                            <ContentControl Content="{Binding}"
                                             ContentTemplate="{StaticResource ExpressFilterBar}" />
 
-                            <!-- The same plate as the one on the road, deliberately identical, so
-                                 the two candidates are being compared and not two designs. -->
-                            <Border Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                                    Height="18" CornerRadius="9" Padding="12,0,12,0"
-                                    Background="{DynamicResource MaterialDesign.Brush.Primary}">
-                                <TextBlock Text="{Binding DividerSummary}" VerticalAlignment="Center"
-                                           Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                            </Border>
                         </Grid>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">

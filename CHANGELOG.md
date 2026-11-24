@@ -5,7 +5,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slice RE-083. Needs the next Raphael.Backend (`api/vehicle-capability`); without it the screens open
+Slices RE-083 and RE-084. RE-083 needs Raphael.Backend 2.13.0 (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
@@ -22,9 +22,18 @@ and simply have no kinds and no warnings.
 - Help: vehicles, vehicle configurations, space types and the routing warning, in both languages.
 
 ### Changed
+- Home figures (RE-084): the band and the plates are the sum total = done + in progress + not started +
+  canceled + without a run, each trip in one part. "Without a run" no longer counts canceled trips. The
+  day's money is no longer on either; the footer plates replace the text that repeated the band.
+- Home form (RE-084): the left column moves up one place; Funding Source is a full field and Provider
+  shares the last row with the gender.
 - The vehicle drawings moved from the live map to `Styles/VehicleArt.xaml`, shared with the form.
 - Manage vehicles builds each tab the first time it is opened; the Vehicles list reads everything at once.
 - Excel export of vehicles: "Capacity Type" is now "Configuration", plus a "Carries" column.
+
+### Removed
+- Client Code from Home (RE-084): the form, the patient search and the duplicate warning. It is empty
+  for every patient. Data > Customers keeps it.
 
 ### Fixed
 - Space types: the Active column was headed "Inactive", so it read backwards.

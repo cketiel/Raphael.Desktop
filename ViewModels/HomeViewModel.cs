@@ -421,12 +421,11 @@ namespace Raphael.Desktop.ViewModels
         #region Translation
 
         // Client AutoSuggestBox
-        public string AutoSuggestBoxHint => LocalizationService.Instance["AutoSuggestBoxHint"];// "Name, Client Code, or Phone Number"
+        public string AutoSuggestBoxHint => LocalizationService.Instance["AutoSuggestBoxHint"];// "Name or Phone Number"
         public string SaveCustomerToolTip => LocalizationService.Instance["SaveCustomerToolTip"]; // "Save customer information"
         public string NewCustomerToolTip => LocalizationService.Instance["NewCustomerToolTip"]; // "New customer"
 
         public string FullNameTextBoxHint => LocalizationService.Instance["FullNameTextBoxHint"];// "Full Name"
-        public string ClientCodeTextBoxHint => LocalizationService.Instance["ClientCodeTextBoxHint"]; // "Client Code"
         public string PhoneTextBoxHint => LocalizationService.Instance["PhoneTextBoxHint"]; // "Phone"
         public string MobilePhoneTextBoxHint => LocalizationService.Instance["MobilePhoneTextBoxHint"]; // "Mobile Phone"
         public string SpaceTypeComboBoxHint => LocalizationService.Instance["SpaceTypeComboBoxHint"]; // "Select Space Type"
@@ -719,88 +718,44 @@ namespace Raphael.Desktop.ViewModels
         #region Trip
 
         /// <summary>
-        /// The day's figures, on the band between the form and the list.
+        /// The day's figures, on the band between the form and the list, as the sum they are:
+        /// total = done + in progress + not started + canceled + without a run.
         /// </summary>
         /// <remarks>
-        /// Counted over the rows the filters are letting through, so the money always answers for
-        /// the list underneath it rather than for the day the server sent.
-        ///
-        /// ⚠️ The currency is formatted invariant on purpose. These are US dollars whatever the
-        /// machine's regional settings say, and a Spanish-locale machine would otherwise print
-        /// 396,06 — which is the same digits meaning a different number to anyone reading it.
+        /// No money on purpose (RE-084): what the day bills is not for everyone who looks at Home.
         /// </remarks>
-        public string DividerSummary
-        {
-            get
-            {
-                var shown = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
-
-                return string.Format(
-                    LocalizationService.Instance["home.DividerSummary"],
-                    shown.Count,
-                    // Cancelled trips never add to the day's money, whatever a funding source's
-                    // cancellation fee is: the figure is what the day bills for trips done.
-                    Money(shown.Where(t => !IsCanceled(t)).Sum(t => t.Charge ?? 0)),
-                    Money(shown.Sum(t => t.Paid ?? 0)));
-            }
-        }
-
-        private static string Money(double amount) =>
-            "$" + amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
+        public string DividerSummary => string.Format(
+            LocalizationService.Instance["home.DividerSummary"],
+            Figures.Total, Figures.Done, Figures.InProgress, Figures.NotStarted, Figures.Canceled, Figures.NoRun);
 
         /// <summary>
-        /// The three numbers under the grid.
+        /// The rows the grid is showing, each counted once, so the five parts always add up to
+        /// <see cref="TripFigures.Total"/>. Counted over what is shown and not what was loaded: a
+        /// total that ignores the filters contradicts the list it sits under.
         /// </summary>
-        /// <remarks>
-        /// Counted over what is shown, not over what was loaded: a total that ignores the filters
-        /// contradicts the list it sits under, and the dispatcher believes the number.
-        /// </remarks>
-        /// <summary>
-        /// The rows the grid is actually showing. Every figure under the list counts these, not
-        /// the loaded set: what is on screen is what the numbers have to describe.
-        /// </summary>
-        private List<TripReadDto> ShownTrips =>
-            TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
+        public TripFigures Figures { get; private set; } = TripFigures.Empty;
 
-        /// <summary>
-        /// The three figures on the status bar, split into a count and a word.
-        /// </summary>
-        /// <remarks>
-        /// Split because the status bar prints them as number plates, and a plate puts the
-        /// registration large and everything else small. One string would have had to be
-        /// rendered at one size.
-        /// </remarks>
-        public string PlateTripsCount => ShownTrips.Count.ToString();
-        public string PlateCanceledCount => ShownTrips.Count(IsCanceled).ToString();
-        public string PlateNoRunCount =>
-            ShownTrips.Count(t => string.IsNullOrWhiteSpace(t.RunName)).ToString();
-
-        public string PlateTripsLabel => LocalizationService.Instance["home.PlateTrips"];
+        public string PlateTotalLabel => LocalizationService.Instance["home.PlateTrips"];
+        public string PlateDoneLabel => LocalizationService.Instance["home.PlateDone"];
+        public string PlateInProgressLabel => LocalizationService.Instance["home.PlateInProgress"];
+        public string PlateNotStartedLabel => LocalizationService.Instance["home.PlateNotStarted"];
         public string PlateCanceledLabel => LocalizationService.Instance["home.PlateCanceled"];
         public string PlateNoRunLabel => LocalizationService.Instance["home.PlateNoRun"];
 
-        /// <summary>Everything under the list is counted from the same set, so it is raised
-        /// together or it disagrees with itself.</summary>
+        public string PlateTotalToolTip => LocalizationService.Instance["home.PlateTripsTip"];
+        public string PlateDoneToolTip => LocalizationService.Instance["home.PlateDoneTip"];
+        public string PlateInProgressToolTip => LocalizationService.Instance["home.PlateInProgressTip"];
+        public string PlateNotStartedToolTip => LocalizationService.Instance["home.PlateNotStartedTip"];
+        public string PlateCanceledToolTip => LocalizationService.Instance["home.PlateCanceledTip"];
+        public string PlateNoRunToolTip => LocalizationService.Instance["home.PlateNoRunTip"];
+
+        /// <summary>Counted once for everything under and over the list, in one pass: the plates
+        /// and the band cannot disagree, and a refilter does not walk the rows six times.</summary>
         private void RaiseFooterFigures()
         {
-            OnPropertyChanged(nameof(GridTotals));
-            OnPropertyChanged(nameof(PlateTripsCount));
-            OnPropertyChanged(nameof(PlateCanceledCount));
-            OnPropertyChanged(nameof(PlateNoRunCount));
-        }
-
-        public string GridTotals
-        {
-            get
-            {
-                var shown = TripsView?.Cast<TripReadDto>().ToList() ?? new List<TripReadDto>();
-
-                return string.Format(
-                    LocalizationService.Instance["home.GridTotals"],
-                    shown.Count,
-                    shown.Count(IsCanceled),
-                    shown.Count(t => string.IsNullOrWhiteSpace(t.RunName)));
-            }
+            Figures = TripFigures.Count(TripsView?.Cast<TripReadDto>() ?? Enumerable.Empty<TripReadDto>());
+            OnPropertyChanged(nameof(Figures));
+            OnPropertyChanged(nameof(DividerSummary));
         }
 
         /// <summary>Tighter rows, for a dispatcher who would rather see more of the day at once.</summary>
@@ -937,7 +892,7 @@ namespace Raphael.Desktop.ViewModels
         /// every keystroke and this decides what it means.
         /// </remarks>
         public sealed record CustomerFields(
-            string FullName, string ClientCode, string Phone, string MobilePhone,
+            string FullName, string Phone, string MobilePhone,
             string Address, string City, string State, string Zip,
             DateTime? Dob, bool Male);
 
@@ -1064,7 +1019,7 @@ namespace Raphael.Desktop.ViewModels
 
                 return twin == null
                     ? null
-                    : string.Format(LocalizationService.Instance["home.PatientDuplicate"], twin.ClientCode);
+                    : LocalizationService.Instance["home.PatientDuplicate"];
             }
         }
 
@@ -1471,7 +1426,6 @@ namespace Raphael.Desktop.ViewModels
         {
             OnPropertyChanged(nameof(GridSummary));
             RaiseFooterFigures();
-            OnPropertyChanged(nameof(DividerSummary));
         }
 
         // ---- RE-054: notes for the driver --------------------------------------------------------
@@ -1572,7 +1526,6 @@ namespace Raphael.Desktop.ViewModels
             TripsView?.Refresh();
             OnPropertyChanged(nameof(GridSummary));
             RaiseFooterFigures();
-            OnPropertyChanged(nameof(DividerSummary));
         }
 
         private bool PassesExpressFilters(object item)
@@ -1601,9 +1554,7 @@ namespace Raphael.Desktop.ViewModels
 
         [RelayCommand] private void CloseFilterPanel() => IsFilterPanelOpen = false;
 
-        private static bool IsCanceled(TripReadDto trip) =>
-            trip.IsCancelled ||
-            string.Equals(trip.Status, TripStatus.Canceled, StringComparison.OrdinalIgnoreCase);
+        private static bool IsCanceled(TripReadDto trip) => TripFigures.IsCanceled(trip);
 
         private bool MatchesSearch(TripReadDto trip)
         {
