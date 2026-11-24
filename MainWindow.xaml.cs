@@ -166,6 +166,8 @@ namespace Raphael.Desktop
             AppNavigation.ShowRouteInScheduleRequested += OpenRouteInSchedule;
             this.Closed += (_, _) => AppNavigation.ShowRouteInScheduleRequested -= OpenRouteInSchedule;
             AppNavigation.ShowTripInHomeRequested += OpenTripInHome;
+            AppNavigation.ShowPartInHomeRequested += OpenPartInHome;
+            this.Closed += (_, _) => AppNavigation.ShowPartInHomeRequested -= OpenPartInHome;
             this.Closed += (_, _) => AppNavigation.ShowTripInHomeRequested -= OpenTripInHome;
 
             /*UpdateTheme();
@@ -582,6 +584,15 @@ namespace Raphael.Desktop
             OpenTab(LocalizationService.Instance["Home"], view, PackIconKind.HomeOutline);
             CurrentMenu = MENU.Home;
             view.ViewModel.TripSearchText = tripNumber;
+        }
+
+        /// <summary>RE-085: a Home tab of its own on one part of the day, so nobody loses their place.</summary>
+        private void OpenPartInHome(DateTime date, Models.TripPart part)
+        {
+            var view = new HomeView();
+            OpenTab(LocalizationService.Instance["Home"], view, PackIconKind.HomeOutline);
+            CurrentMenu = MENU.Home;
+            view.ViewModel.ShowPart(date, part);
         }
 
         private async void OpenCallWorkbench(CallRequestSummaryDto request)

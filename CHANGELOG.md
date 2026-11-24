@@ -5,10 +5,15 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 and RE-084. RE-083 needs Raphael.Backend 2.13.0 (`api/vehicle-capability`); without it the screens open
+Slices RE-083, RE-084 and RE-085. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
+- Live map Today (RE-085): a ring of the five parts of the day and one row per part that opens its trips
+  (Home filtered, Dispatch's open list, or the new In progress list). Figures refresh every minute.
+- Live map In progress list (RE-085): patient, phase, promised time, line and lateness; a click selects
+  the vehicle and draws its road.
+- Live map (RE-085): the drive home to Pull-in is drawn, and the next stop has its name.
 - Vehicle kinds (RE-083): the vehicle form asks what it carries with three cards (AMB, WCH, STR) and
   the live map drawing; the card assigns a configuration of that kind.
 - Vehicles: search, tabs All / AMB / WCH / STR / Not configured with counts, group, Provider and
@@ -36,6 +41,7 @@ and simply have no kinds and no warnings.
   for every patient. Data > Customers keeps it.
 
 ### Fixed
+- Live map (RE-085): the next stop could be a cancelled trip's.
 - Space types: the Active column was headed "Inactive", so it read backwards.
 - Space types: the delete icon deletes its own row, not the one selected.
 

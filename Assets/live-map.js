@@ -709,6 +709,7 @@
             line(r.drawn, parts.ahead, color, 5, 1, 10);
             var target = stopByNumber(r, current.toStop);
             if (target) finishFlag(r.drawn, { lat: target.lat, lng: target.lng }, color, v.data.name);
+            else if (current.toGarage) marker(r.drawn, { lat: current.to[0], lng: current.to[1] }, garageIcon(), 39);
             return;
         }
 
@@ -730,6 +731,14 @@
      */
     function drawTripInProgress(r, v, color, current) {
         if (!current) return;
+        // The drive home (Pull-in): no trip, the road behind in gray and the rest to the garage.
+        if (current.toGarage) {
+            var home = splitAt(decode(current), v.pos.lat, v.pos.lng);
+            lineWith(r.drawn, home.done, DRIVEN, 7, 0.95, 30, { icons: arrows(DRIVEN, '150px') });
+            lineWith(r.drawn, home.ahead, color, 8, 1, 32, { icons: arrows(color, '150px') });
+            marker(r.drawn, { lat: current.to[0], lng: current.to[1] }, garageIcon(), 39);
+            return;
+        }
         var target = stopByNumber(r, current.toStop);
         var trip = target ? target.trip : null;
         var tripStops = r.stops.filter(function (s) { return s.trip === trip; });
@@ -802,7 +811,7 @@
         r.legs.forEach(function (leg, i) {
             var path = decode(leg), z = 30 + i * 2;
             if (leg.driven) {
-                trail.push({ path: path, stop: leg.toStop, z: z });
+                trail.push({ path: path, stop: leg.toGarage ? null : leg.toStop, z: z });
             } else if (leg.current) {
                 var p = splitAt(path, v.pos.lat, v.pos.lng);
                 trail.push({ path: p.done, stop: null, z: z });
@@ -830,7 +839,9 @@
             if (hasNext) m.flag('next', true);
         });
         var first = r.legs.filter(function (l) { return l.fromGarage; })[0];
+        var home = r.legs.filter(function (l) { return l.toGarage; })[0];
         if (first) marker(r.drawn, { lat: first.from[0], lng: first.from[1] }, garageIcon(), 39);
+        else if (home) marker(r.drawn, { lat: home.to[0], lng: home.to[1] }, garageIcon(), 39);
 
         if (!animate) {
             trail.forEach(function (t) { lineWith(r.drawn, t.path, DRIVEN, 7, 0.95, t.z, { icons: legArrows(DRIVEN) }); });
@@ -883,6 +894,8 @@
         anim.frame = requestAnimationFrame(frame);
     }
 
+    var rightPad = 360;       // what the panels on the right cover; more while the In progress list is open
+
     function fitRoute(id) {
         if (follow != null) return;                       // Follow owns the camera
         if (is3d()) { frame3dRoute(id); return; }
@@ -894,9 +907,10 @@
         if (r) r.stops.forEach(function (st) {
             if (layers.wholeDay || st.trip === trip) { bounds.extend({ lat: st.lat, lng: st.lng }); n++; }
         });
+        if (current && current.toGarage) { bounds.extend({ lat: current.to[0], lng: current.to[1] }); n++; }
         if (v) { bounds.extend(new google.maps.LatLng(v.pos.lat, v.pos.lng)); n++; }
         // The camera comes closer: the selection is what the user wants to look at.
-        if (n > 1) map.fitBounds(bounds, { top: 150, bottom: 110, left: 500, right: 360 });   // clear of both side panels
+        if (n > 1) map.fitBounds(bounds, { top: 150, bottom: 110, left: 500, right: rightPad });   // clear of both side panels
         else if (v) { map.panTo(new google.maps.LatLng(v.pos.lat, v.pos.lng)); map.setZoom(15); }
     }
 
@@ -1195,6 +1209,7 @@
         var current = r ? r.legs.filter(function (l) { return l.current; })[0] : null;
         var trip = r && current ? (stopByNumber(r, current.toStop) || {}).trip : null;
         if (r) r.stops.forEach(function (st) { if (layers.wholeDay || st.trip === trip) pts.push({ lat: st.lat, lng: st.lng }); });
+        if (current && current.toGarage) pts.push({ lat: current.to[0], lng: current.to[1] });
         if (v && v.pos) pts.push(v.pos);
         frame3dPoints(pts);
     }
@@ -1228,7 +1243,7 @@
             var trip = current ? (stopByNumber(r, current.toStop) || {}).trip : null;
             r.legs.forEach(function (l) {
                 var to = stopByNumber(r, l.toStop) || {};
-                if (!layers.wholeDay && to.trip !== trip) return;
+                if (!layers.wholeDay && (l.toGarage ? !l.current : to.trip !== trip)) return;
                 if (l.current) {
                     var parts = splitAt(decode(l), v.pos.lat, v.pos.lng);
                     add(parts.done, DRIVEN, 6); add(parts.ahead, color, 9);
@@ -1262,6 +1277,7 @@
         switch (m.type) {
             case 'vehicles': upsertVehicles(m.items || []); break;
             case 'move': move(m); break;
+            case 'rightPad': rightPad = m.px; break;
             case 'legs':
                 if (routes[m.id]) clear(routes[m.id].drawn);
                 routes[m.id] = { legs: m.legs || [], stops: m.stops || [], drawn: [] };

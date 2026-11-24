@@ -71,7 +71,9 @@ namespace Raphael.Desktop.ViewModels.LiveMap
                 _byRoute[vehicleRouteId] = legs;
                 Changed?.Invoke(vehicleRouteId);   // draw now with what the cache had
 
-                var wanted = legs.Legs.Where(l => l.Visible && (l.Current || Selected == vehicleRouteId)).ToList();
+                var wanted = legs.Legs.Where(l =>
+                    // The drives from and to the garage of the line being looked at, too: planned, they were straight lines.
+                    (l.Visible && (l.Current || Selected == vehicleRouteId)) || (Selected == vehicleRouteId && (l.FromGarage || l.ToGarage))).ToList();
                 var filled = false;
                 foreach (var leg in wanted)
                     filled |= await FillShapeAsync(leg, legs.OperatingDate);

@@ -11,6 +11,12 @@ namespace Raphael.Desktop.Services
         /// <summary>RE-080: every line, its group and last position, in one call.</summary>
         Task<LiveMapSnapshotDto> GetSnapshotAsync(CancellationToken ct = default);
 
+        /// <summary>RE-085: only the day's figures. Null on a server older than the feature.</summary>
+        Task<LiveMapDaySummaryDto> GetDayAsync(CancellationToken ct = default);
+
+        /// <summary>RE-085: the trips under way now.</summary>
+        Task<List<LiveMapInProgressDto>> GetInProgressAsync(CancellationToken ct = default);
+
         /// <summary>RE-080: the route card. Null when the line is not visible to this user.</summary>
         Task<LiveMapRouteDetailDto> GetRouteDetailAsync(int vehicleRouteId, CancellationToken ct = default);
 
@@ -36,6 +42,22 @@ namespace Raphael.Desktop.Services
 
             return await response.Content.ReadFromJsonAsync<LiveMapSnapshotDto>(cancellationToken: ct)
                    ?? new LiveMapSnapshotDto();
+        }
+
+        public async Task<LiveMapDaySummaryDto> GetDayAsync(CancellationToken ct = default)
+        {
+            var response = await _httpClient.GetAsync("live-map/day", ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<LiveMapDaySummaryDto>(cancellationToken: ct);
+        }
+
+        public async Task<List<LiveMapInProgressDto>> GetInProgressAsync(CancellationToken ct = default)
+        {
+            var response = await _httpClient.GetAsync("live-map/in-progress", ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new();
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<LiveMapInProgressDto>>(cancellationToken: ct) ?? new();
         }
 
         public async Task<LiveMapRouteDetailDto> GetRouteDetailAsync(int vehicleRouteId, CancellationToken ct = default)
