@@ -470,6 +470,12 @@
                                                  Height="27"/>
                     </Button>
 
+                    <!-- RE-090: only while the live channel is down; it reconnects on its own. -->
+                    <Border Background="#F59E0B" CornerRadius="12" Padding="8,3" Margin="4,0,0,0" VerticalAlignment="Center"
+                            Visibility="{Binding LiveLostVisibility}" ToolTip="{Binding LiveLostText}">
+                        <materialDesign:PackIcon Kind="CloudOffOutline" Width="18" Height="18" Foreground="White"/>
+                    </Border>
+
                     </StackPanel>
 
 

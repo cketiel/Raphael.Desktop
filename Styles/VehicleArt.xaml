@@ -329,4 +329,32 @@
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>
+
+    <!-- The vehicle as the map draws it: a disc in the group colour, white border, and the van seen
+         from above (live-map.js, topVanSvg) with a stripe in the group colour. Tag = heading in degrees. -->
+    <ControlTemplate x:Key="LmVehicleGlyph" TargetType="ContentControl">
+        <Grid Width="22" Height="22">
+            <Ellipse Fill="{TemplateBinding Background}" Stroke="White" StrokeThickness="2"/>
+            <Viewbox Width="9" Height="16" RenderTransformOrigin="0.5,0.5">
+                <Viewbox.RenderTransform><RotateTransform Angle="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/></Viewbox.RenderTransform>
+                <Canvas Width="20" Height="36">
+                    <Path Fill="#33414D" Data="M1.2,9.6 L0.2,10.2 L0.2,11.8 L1.6,11.8 Z M18.8,9.6 L19.8,10.2 L19.8,11.8 L18.4,11.8 Z"/>
+                    <Path Stroke="#5D6B78" StrokeThickness="0.6" Data="M3.2,6.4 C3.2,3.4 6,1.6 10,1.6 C14,1.6 16.8,3.4 16.8,6.4 L16.8,32 C16.8,33.4 15.7,34.4 14.4,34.4 L5.6,34.4 C4.3,34.4 3.2,33.4 3.2,32 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#C4CCD4" Offset="0"/><GradientStop Color="#FFFFFF" Offset="0.22"/>
+                                <GradientStop Color="#FFFFFF" Offset="0.78"/><GradientStop Color="#C4CCD4" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <Path Fill="#FFF4C2" Data="M4.6,3.4 L6.4,2.5 L6.7,3.6 L4.8,4.2 Z M15.4,3.4 L13.6,2.5 L13.3,3.6 L15.2,4.2 Z"/>
+                    <Path Fill="#1F2E3C" Data="M4.4,9.2 C5.6,7.6 7.6,7 10,7 C12.4,7 14.4,7.6 15.6,9.2 L14.8,12.6 L5.2,12.6 Z"/>
+                    <Rectangle Canvas.Left="5" Canvas.Top="13.6" Width="10" Height="16.4" RadiusX="1.2" RadiusY="1.2" Fill="#F4F7FA" Stroke="#C9D1D9" StrokeThickness="0.5"/>
+                    <Rectangle Canvas.Left="8.6" Canvas.Top="13.6" Width="2.8" Height="16.4" Fill="{TemplateBinding Background}"/>
+                    <Path Fill="#1F2E3C" Data="M5.4,31 L14.6,31 L14.6,32.6 L5.4,32.6 Z"/>
+                    <Path Fill="#D43C3C" Data="M3.4,32.6 L5,32.6 L5,34 L3.6,34 Z M15,32.6 L16.6,32.6 L16.4,34 L15,34 Z"/>
+                </Canvas>
+            </Viewbox>
+        </Grid>
+    </ControlTemplate>
 </ResourceDictionary>

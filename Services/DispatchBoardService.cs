@@ -39,6 +39,9 @@ namespace Raphael.Desktop.Services
         public event EventHandler<ComplianceChangedMessage>? ComplianceChanged;
         public event EventHandler<BillingRatesChangedMessage>? BillingRatesChanged;
         public event EventHandler<TripChargesChangedMessage>? TripChargesChanged;
+        public event EventHandler<TripsChangedMessage>? TripsChanged;
+        public event EventHandler<RouteChangedMessage>? RouteStopsChanged;
+        public event EventHandler? StateChanged;
         public event EventHandler? Reconnected;
 
         public HubConnectionState State => _connection.State;
@@ -54,7 +57,7 @@ namespace Raphael.Desktop.Services
                 {
                     options.AccessTokenProvider = () => Task.FromResult(SessionManager.Token);
                 })
-                .WithAutomaticReconnect()
+                .WithAutomaticReconnect(new LiveReconnectPolicy())
                 .Build();
 
             RegisterHandlers();
@@ -67,17 +70,32 @@ namespace Raphael.Desktop.Services
                 Trace("reconnected, asking for the groups again");
                 await RestoreWatchesAsync();
                 Reconnected?.Invoke(this, EventArgs.Empty);
+                StateChanged?.Invoke(this, EventArgs.Empty);
+            };
+
+            _connection.Reconnecting += _ =>
+            {
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                return Task.CompletedTask;
             };
 
             _connection.Closed += ex =>
             {
                 Trace($"closed{(ex is null ? string.Empty : $": {ex.Message}")}");
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                // Closed for good by the server (a deploy, a recycled pool): opened again from here.
+                if (_wanted) _ = KeepConnectingAsync(missedSomething: true);
                 return Task.CompletedTask;
             };
         }
 
+        private volatile bool _wanted;
+        private int _connecting;
+
         public async Task StartAsync()
         {
+            _wanted = true;
+
             if (_connection.State != HubConnectionState.Disconnected)
             {
                 Trace($"start skipped, already {_connection.State}");
@@ -89,19 +107,43 @@ namespace Raphael.Desktop.Services
                 Trace("no session token yet — the hub would refuse the connection");
             }
 
+            // Once here; from then on in the background. Never fatal: the screen works without it.
+            if (!await TryConnectAsync()) _ = KeepConnectingAsync(missedSomething: true);
+        }
+
+        private async Task<bool> TryConnectAsync()
+        {
             try
             {
                 await _connection.StartAsync();
                 Trace($"connected ({_connection.State})");
 
                 await RestoreWatchesAsync();
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                return true;
             }
             catch (Exception ex)
             {
-                // Never fatal. The screen works without the live channel; it just stops being
-                // told what other people do, which is how it behaved before this existed.
                 Trace($"could not connect: {ex.GetType().Name}: {ex.Message}");
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                return _connection.State != HubConnectionState.Disconnected;
             }
+        }
+
+        private async Task KeepConnectingAsync(bool missedSomething)
+        {
+            if (System.Threading.Interlocked.Exchange(ref _connecting, 1) == 1) return;
+            try
+            {
+                for (long attempt = 1; _wanted && _connection.State == HubConnectionState.Disconnected; attempt++)
+                {
+                    await Task.Delay(LiveReconnectPolicy.Delay(attempt));
+                    if (!_wanted) return;
+                    if (!await TryConnectAsync()) continue;
+                    if (missedSomething) Reconnected?.Invoke(this, EventArgs.Empty);
+                }
+            }
+            finally { System.Threading.Interlocked.Exchange(ref _connecting, 0); }
         }
 
         public async Task WatchDayAsync(DateTime date)
@@ -178,6 +220,23 @@ namespace Raphael.Desktop.Services
             await SafeInvokeAsync("WatchFleet");
         }
 
+        private bool _watchingTrips;
+
+        public async Task WatchTripsAsync()
+        {
+            if (_watchingTrips) return;
+
+            _watchingTrips = true;
+
+            if (_connection.State != HubConnectionState.Connected)
+            {
+                Trace($"trips queued, connection is {_connection.State}");
+                return;
+            }
+
+            await SafeInvokeAsync("WatchTrips");
+        }
+
         private bool _watchingMap;
 
         /// <summary>RE-080: every vehicle position of the caller's scope, for the live map. Office staff only.</summary>
@@ -234,6 +293,8 @@ namespace Raphael.Desktop.Services
 
         public async Task StopAsync()
         {
+            _wanted = false;
+            _watchingTrips = false;
             _watchingBilling = false;
             _watchedDay = null;
             _watchedRouteId = null;
@@ -274,6 +335,20 @@ namespace Raphael.Desktop.Services
                 {
                     Trace($"<- RouteChanged route {m?.VehicleRouteId} on {m?.Date:yyyy-MM-dd}");
                     RouteChanged?.Invoke(this, m);
+                });
+
+            _connection.On<TripsChangedMessage>(
+                "TripsChanged", m =>
+                {
+                    Trace($"<- TripsChanged {m?.Trips?.Count ?? 0} trip(s)");
+                    TripsChanged?.Invoke(this, m);
+                });
+
+            _connection.On<RouteChangedMessage>(
+                "RouteStopsChanged", m =>
+                {
+                    Trace($"<- RouteStopsChanged route {m?.VehicleRouteId} on {m?.Date:yyyy-MM-dd}");
+                    RouteStopsChanged?.Invoke(this, m);
                 });
 
             _connection.On<VehiclePositionMessage>(
@@ -340,6 +415,9 @@ namespace Raphael.Desktop.Services
 
             if (_watchingMap)
                 await SafeInvokeAsync("WatchMap");
+
+            if (_watchingTrips)
+                await SafeInvokeAsync("WatchTrips");
 
             if (_watchingBilling)
                 await SafeInvokeAsync("WatchBilling");

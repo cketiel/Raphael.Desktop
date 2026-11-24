@@ -33,6 +33,28 @@ namespace Raphael.Desktop.DTOs
         public DateTime Date { get; set; }
     }
 
+    /// <summary>RE-090: trips created, changed or deleted, by whoever. Ids only.</summary>
+    public class TripsChangedMessage
+    {
+        public List<TripChange> Trips { get; set; } = new();
+    }
+
+    public class TripChange
+    {
+        public int TripId { get; set; }
+
+        public DateTime Date { get; set; }
+
+        /// <summary>The day it was on, when this change moved it to another one.</summary>
+        public DateTime? PreviousDate { get; set; }
+
+        public int? VehicleRouteId { get; set; }
+
+        public bool IsCancelled { get; set; }
+
+        public bool Deleted { get; set; }
+    }
+
     /// <summary>
     /// The stops of one route on one day moved. Says which route, not how: this screen reloads
     /// that route, which is a single query, and may be showing it under a different filter than

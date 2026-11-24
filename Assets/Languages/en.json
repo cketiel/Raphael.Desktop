@@ -2292,5 +2292,9 @@
     "home.columns.Drag": "Drag to move",
     "home.columns.Up": "Move up",
     "home.columns.Down": "Move down",
-    "home.columns.Summary": "{0} of {1} shown"
+    "home.columns.Summary": "{0} of {1} shown",
+    "live.Lost": "No live connection: what you see may be behind. Reconnecting…",
+    "schedule.VehicleLastReport": "Last report: {0}",
+    "schedule.VehicleSpeed": "Speed: {0} mph",
+    "schedule.VehicleAgo": "{0} min ago"
 }

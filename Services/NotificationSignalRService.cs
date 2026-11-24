@@ -63,7 +63,7 @@ namespace Raphael.Desktop.Services
                                         SessionManager.Token);
                                 };
                         })
-                    .WithAutomaticReconnect()
+                    .WithAutomaticReconnect(new LiveReconnectPolicy())
                     .Build();
 
             RegisterHandlers();
@@ -141,6 +141,8 @@ namespace Raphael.Desktop.Services
                 return;
             }
 
+            _wanted = true;
+
             if (_connection.State ==
                 HubConnectionState.Connected)
             {
@@ -170,6 +172,8 @@ namespace Raphael.Desktop.Services
                 ConnectionError?.Invoke(
                     this,
                     ex);
+
+                _ = KeepConnectingAsync();
             }
             finally
             {
@@ -179,8 +183,40 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        private volatile bool _wanted;
+        private int _connecting;
+
+        /// <summary>RE-090: the automatic reconnection does not cover a first start that failed, nor a closed one.</summary>
+        private async Task KeepConnectingAsync()
+        {
+            if (Interlocked.Exchange(ref _connecting, 1) == 1) return;
+            try
+            {
+                for (long attempt = 1; _wanted && _connection.State == HubConnectionState.Disconnected; attempt++)
+                {
+                    await Task.Delay(LiveReconnectPolicy.Delay(attempt));
+                    if (!_wanted) return;
+                    try
+                    {
+                        await _connection.StartAsync();
+                        _started = true;
+                        ConnectionStateChanged?.Invoke(this, EventArgs.Empty);
+                        // Whatever arrived meanwhile is read again, as after any reconnection.
+                        Reconnected?.Invoke(this, EventArgs.Empty);
+                    }
+                    catch (Exception)
+                    {
+                        // The next attempt says. Telling it each time would fill the log on a bad day.
+                    }
+                }
+            }
+            finally { Interlocked.Exchange(ref _connecting, 0); }
+        }
+
         public async Task StopAsync()
         {
+            _wanted = false;
+
             if (_connection.State ==
                 HubConnectionState.Disconnected)
             {
@@ -246,6 +282,8 @@ namespace Raphael.Desktop.Services
             ConnectionStateChanged?.Invoke(
                 this,
                 EventArgs.Empty);
+
+            if (_wanted) _ = KeepConnectingAsync();
 
             return Task.CompletedTask;
         }

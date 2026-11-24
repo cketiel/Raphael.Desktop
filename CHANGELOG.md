@@ -5,7 +5,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 to RE-086, RE-088 and RE-089. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
+Slices RE-083 to RE-086 and RE-088 to RE-090. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
@@ -33,6 +33,9 @@ and simply have no kinds and no warnings.
 - Live map help (RE-086): nine topics, one per area, in both languages; F1 opens the one under the mouse,
   also inside the map page.
 
+- Home and Dispatch live (RE-090): a trip created, imported, edited, brought back or deleted, and every stop
+  saved, reach the open screens without emptying them or losing the selection. An amber icon says when the
+  live channel is down.
 - Home columns (RE-089): each user chooses which ones and in what order, in a new panel or by dragging the
   headers; kept on the server (`api/user-preferences`), with a copy on the computer.
 - Compliance (RE-088): select all in the header of the ticks and a count, in Staff and Expiring; Staff hides the
@@ -41,6 +44,8 @@ and simply have no kinds and no warnings.
 ### Changed
 - Fleet productivity (RE-088): the filters say what is ticked, have a clear button, answer at once and put
   first whoever has data in the dates.
+- Dispatch map (RE-090): the vehicle is drawn as on the live map, with its name, speed, pause and age, instead of
+  an arrow.
 - Home (RE-089): Run comes after Patient and the two comment columns start hidden.
 - Home figures (RE-084): the band and the plates are the sum total = done + in progress + not started +
   canceled + without a run, each trip in one part. "Without a run" no longer counts canceled trips. The
@@ -56,6 +61,11 @@ and simply have no kinds and no warnings.
   for every patient. Data > Customers keeps it.
 
 ### Fixed
+- Dispatch map (RE-090): the vehicle did not show on opening the tab until its next report, stayed on another day's
+  plan, and one that stopped reporting looked live.
+- Live channels (RE-090): they gave up after forty seconds without network and never retried a first failure;
+  they now keep trying and read again what was missed. A change that arrived while the dispatcher was busy
+  was dropped.
 - Reports (RE-088): the five reports follow the language at once; four were English only and the opened
   days of Fleet productivity kept the old one.
 - Reports (RE-088): on a small screen the filters scroll and the buttons stay in sight; they were cut off.

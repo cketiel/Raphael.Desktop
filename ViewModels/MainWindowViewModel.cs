@@ -72,6 +72,14 @@ namespace Raphael.Desktop.ViewModels
         public string MainMenuSchedules =>
             LocalizationService.Instance["Dispatch"];
 
+        /// <summary>RE-090: shown only while the live channel is down.</summary>
+        public System.Windows.Visibility LiveLostVisibility =>
+            TripBoard.Instance.IsLost ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+
+        public string LiveLostText => LocalizationService.Instance["live.Lost"];
+
+        public void RaiseLiveLost() => OnPropertyChanged(nameof(LiveLostVisibility));
+
         /// <summary>RE-080: tooltip of the live map button, next to the bell.</summary>
         public string LiveMapTooltip =>
             LocalizationService.Instance["livemap.Title"];

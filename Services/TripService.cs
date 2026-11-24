@@ -207,6 +207,13 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        /// <summary>RE-090: some trips as the day's list gives them. Null when the server cannot say (an older one).</summary>
+        public async Task<List<TripReadDto>?> GetRowsAsync(IReadOnlyCollection<int> ids)
+        {
+            var response = await _httpClient.GetAsync($"{EndPoint}/rows?ids={string.Join(",", ids)}");
+            return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<List<TripReadDto>>() : null;
+        }
+
         public async Task<List<TripReadDto>> GetTripsByDateAsync(DateTime date)
         {
             try

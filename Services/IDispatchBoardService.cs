@@ -54,6 +54,17 @@ namespace Raphael.Desktop.Services
         /// <summary>Listen to the compliance documents (RE-069). Office staff only.</summary>
         Task WatchComplianceAsync();
 
+        /// <summary>RE-090: trips created, changed or deleted. Office staff only.</summary>
+        event EventHandler<TripsChangedMessage>? TripsChanged;
+
+        /// <summary>RE-090: a stop of the watched route was saved.</summary>
+        event EventHandler<RouteChangedMessage>? RouteStopsChanged;
+
+        /// <summary>RE-090: the channel went down or came up.</summary>
+        event EventHandler? StateChanged;
+
+        Task WatchTripsAsync();
+
         Task StopAsync();
     }
 }

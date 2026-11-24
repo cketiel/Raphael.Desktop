@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.23.0"
   },
-  "builtUtc": "2026-11-24T18:40:56.041Z",
-  "sourceCommit": "9ad891e",
+  "builtUtc": "2026-11-24T19:30:13.987Z",
+  "sourceCommit": "815c012",
   "languages": [
     "es",
     "en"
@@ -551,7 +551,7 @@
       "id": "desktop/schedules/live-board",
       "mode": "explanation",
       "since": "1.6.0",
-      "lastReviewed": "1.10.0",
+      "lastReviewed": "1.23.0",
       "roles": [
         "admin",
         "dispatcher"

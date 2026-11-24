@@ -1989,6 +1989,7 @@ namespace Raphael.Desktop.ViewModels
             Filters.Changed += RefreshTripsView;
 
             InitializeColumns();
+            InitializeLive();
             InitializeHelperCards();
             ShowTourIfNeverSeen();
 

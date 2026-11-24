@@ -195,6 +195,13 @@ namespace Raphael.Desktop
 
             UserNameTextBlock.Text = SessionManager.Username;
 
+            // RE-090: what anybody does to a trip, for Home and Dispatch.
+            if (_viewModel.IsGeneralVisible)
+            {
+                TripBoard.Instance.LostChanged += OnLiveLostChanged;
+                TripBoard.Instance.EnsureStarted();
+            }
+
             await _viewModel.StartNotificationsAsync();
 
             if (_callBoard is not null)
@@ -210,6 +217,8 @@ namespace Raphael.Desktop
                 }
             }
         }
+
+        private void OnLiveLostChanged(object? sender, EventArgs e) => _viewModel.RaiseLiveLost();
 
         private async void MainWindow_Closed(
             object? sender,
@@ -236,6 +245,8 @@ namespace Raphael.Desktop
                 if (_callBoard is not null)
                     await _callBoard.StopAsync();
 
+                TripBoard.Instance.LostChanged -= OnLiveLostChanged;
+                await TripBoard.Instance.StopAsync();
                 await FleetBoard.Instance.StopAsync();
                 await ComplianceBoard.Instance.StopAsync();
             }

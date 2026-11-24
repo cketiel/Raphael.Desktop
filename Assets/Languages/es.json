@@ -2292,5 +2292,9 @@
     "home.columns.Drag": "Arrastra para mover",
     "home.columns.Up": "Subir",
     "home.columns.Down": "Bajar",
-    "home.columns.Summary": "{0} de {1} a la vista"
+    "home.columns.Summary": "{0} de {1} a la vista",
+    "live.Lost": "Sin conexión en vivo: lo que ves puede estar atrasado. Reconectando…",
+    "schedule.VehicleLastReport": "Último reporte: {0}",
+    "schedule.VehicleSpeed": "Velocidad: {0} mph",
+    "schedule.VehicleAgo": "hace {0} min"
 }

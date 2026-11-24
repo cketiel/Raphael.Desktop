@@ -564,10 +564,12 @@ namespace Raphael.Desktop.ViewModels
                 // After the initial loading, we check if a recalculation is needed. Not when the
                 // tab was opened on a driver's route to take their call: that recalculation writes
                 // ETAs, and looking at a route must not rewrite it.
+                // The vehicle first: it used to wait for the recalculation, and in a tab opened by hand
+                // for the next report, half a minute later (RE-090).
+                _ = SeedVehiclePositionAsync();
+
                 if (!pending.HasValue)
                     await CheckForPendingRecalculation();
-                else
-                    _ = SeedVehiclePositionAsync();
 
                 if (isLiveTracking)
                 {
@@ -1685,8 +1687,13 @@ namespace Raphael.Desktop.ViewModels
             // A different day is a different trip: the guide does not follow the dispatcher there.
             ClearGuideHighlight();
 
+            // Today's vehicle does not belong on tomorrow's plan, and coming back to today should not
+            // wait for the next report (RE-090).
+            ForgetVehicle();
+
             // The board follows the screen: a dispatcher working Tuesday is not sent Wednesday.
             UpdateBoardWatches();
+            if (IsInitialized) _ = SeedVehiclePositionAsync();
 
             // RE-053: a suspension is of some days; the route list is the selected day's.
             if (IsInitialized) ApplyVehicleRouteFilter();
@@ -1703,9 +1710,7 @@ namespace Raphael.Desktop.ViewModels
         {
             // A different route means a different vehicle to follow, so the one on the map is
             // forgotten rather than left sitting where the previous one was.
-            StopVehicleAnimator();
-            HasVehiclePosition = false;
-            _lastVehicleReportUtc = null;
+            ForgetVehicle();
 
             UpdateBoardWatches();
 
@@ -3703,6 +3708,9 @@ namespace Raphael.Desktop.ViewModels
             _board.RouteChanged += OnBoardRouteChanged;
             _board.VehiclePosition += OnBoardVehiclePosition;
             _board.RouteServiceChanged += OnBoardRouteServiceChanged;
+            _board.RouteStopsChanged += OnBoardRouteChanged;
+            _board.Reconnected += OnBoardReconnected;
+            System.Windows.WeakEventManager<TripBoard, TripsChangedEventArgs>.AddHandler(TripBoard.Instance, nameof(TripBoard.Changed), OnTripsChanged);
 
             _ = _board.StartAsync();
             _ = _board.WatchFleetAsync();
@@ -3745,6 +3753,10 @@ namespace Raphael.Desktop.ViewModels
             _board.RouteChanged -= OnBoardRouteChanged;
             _board.VehiclePosition -= OnBoardVehiclePosition;
             _board.RouteServiceChanged -= OnBoardRouteServiceChanged;
+            _board.RouteStopsChanged -= OnBoardRouteChanged;
+            _board.Reconnected -= OnBoardReconnected;
+            System.Windows.WeakEventManager<TripBoard, TripsChangedEventArgs>.RemoveHandler(TripBoard.Instance, nameof(TripBoard.Changed), OnTripsChanged);
+            _liveTimer?.Stop();
 
             _ = _board.StopAsync();
             _board = null;
@@ -3772,7 +3784,7 @@ namespace Raphael.Desktop.ViewModels
 
             // It is waiting again, and this screen never had it in the backlog. The only honest
             // way to show it is to ask the server for the day's list.
-            OnUiThread(() => _ = ReloadUnscheduledTripsAsync());
+            RequestLive(backlog: true, route: false);
         }
 
         private void OnBoardRouteChanged(object sender, RouteChangedMessage message)
@@ -3793,17 +3805,8 @@ namespace Raphael.Desktop.ViewModels
                 return;
             }
 
-            // ⚠️ Not while this dispatcher is mid-operation. Reloading the route under someone
-            // who is dragging a stop would move the ground beneath them, and their own save is
-            // about to arrive anyway.
-            if (_isRecalculating || _isDataLoading || IsBusy)
-            {
-                BoardTrace("RouteChanged deferred: this dispatcher is mid-operation");
-                return;
-            }
-
-            BoardTrace($"RouteChanged applied: reloading route {message.VehicleRouteId}");
-            OnUiThread(() => _ = LoadSchedulesAsync());
+            BoardTrace($"RouteChanged queued: route {message.VehicleRouteId}");
+            RequestLive(backlog: false, route: true);
         }
 
         private void OnBoardVehiclePosition(object sender, VehiclePositionMessage message)
@@ -3849,25 +3852,151 @@ namespace Raphael.Desktop.ViewModels
             UnscheduledTrips.Remove(row);
         }
 
-        /// <summary>
-        /// Reloads only the backlog, leaving the route on screen and the map alone.
-        /// </summary>
-        private async Task ReloadUnscheduledTripsAsync()
+        #region Kept true on its own (RE-090)
+
+        // What has been said to be old. Set by a message, cleared only once it has been read again:
+        // a message that came while this dispatcher was busy used to be dropped.
+        private bool _staleBacklog;
+        private bool _staleRoute;
+        private bool _liveReading;
+        private DispatcherTimer _liveTimer;
+
+        private void RequestLive(bool backlog, bool route) => OnUiThread(() =>
         {
-            if (_isDataLoading) return;
+            _staleBacklog |= backlog;
+            _staleRoute |= route;
+
+            if (_liveTimer is null)
+            {
+                // A burst is one reading: an import of four hundred trips, or a driver's arrival, which
+                // saves the hour of every stop left.
+                _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+                _liveTimer.Tick += async (_, _) => await ReadStaleAsync();
+            }
+            _liveTimer.Stop();
+            _liveTimer.Start();
+        });
+
+        private async Task ReadStaleAsync()
+        {
+            // ⚠️ Never while this dispatcher is mid-operation: reloading under someone who is dragging
+            // a stop moves the ground beneath them. The timer keeps ticking until they are done.
+            if (_liveReading || _isRecalculating || _isDataLoading || IsBusy || Mouse.LeftButton == MouseButtonState.Pressed) return;
+
+            _liveTimer.Stop();
+            _liveReading = true;
+            try
+            {
+                if (_staleRoute) { _staleRoute = false; await ReloadRouteQuietlyAsync(); }
+                if (_staleBacklog) { _staleBacklog = false; await ReloadUnscheduledTripsAsync(); }
+            }
+            finally { _liveReading = false; }
+
+            if (_staleRoute || _staleBacklog) _liveTimer.Start();
+        }
+
+        private void OnBoardReconnected(object sender, EventArgs e)
+        {
+            RequestLive(backlog: true, route: true);
+            OnUiThread(() => _ = SeedVehiclePositionAsync());
+        }
+
+        private void OnTripsChanged(object sender, TripsChangedEventArgs e)
+        {
+            if (e.Message is null) { RequestLive(backlog: true, route: true); return; }
+
+            var day = SelectedDate.Date;
+            bool backlog = false, route = false;
+
+            foreach (var change in e.Message.Trips)
+            {
+                var row = UnscheduledTrips.FirstOrDefault(t => t.Id == change.TripId);
+                if (Schedules.Any(s => s.TripId == change.TripId)) route = true;
+
+                if (change.IsCancelled)
+                {
+                    // Said on the row before it leaves; a trip on the route is redrawn with it.
+                    if (row is not null) RetireCancelledTrip(change.TripId);
+                }
+                else if (change.Deleted || change.VehicleRouteId is not null || change.Date != day)
+                {
+                    if (row is not null) RemoveUnscheduledTrip(change.TripId);
+                }
+                else backlog = true;   // waiting for a route today: new, edited, or back
+            }
+
+            if (backlog || route) RequestLive(backlog, route);
+        }
+
+        /// <summary>The route on screen, read again without emptying it, without the overlay and keeping the selection.</summary>
+        private async Task ReloadRouteQuietlyAsync()
+        {
+            if (SelectedVehicleRoute is not { } route) return;
+            var day = SelectedDate;
 
             try
             {
-                var trips = await _scheduleService.GetUnscheduledTripsAsync(SelectedDate);
+                var schedules = await _scheduleService.GetSchedulesAsync(route.Id, day);
+
+                // Moved elsewhere, or started something, while it was on its way.
+                if (SelectedVehicleRoute?.Id != route.Id || SelectedDate != day) return;
+                if (_isRecalculating || _isDataLoading || IsBusy) { RequestLive(backlog: false, route: true); return; }
+
+                var selectedId = SelectedSchedule?.Id;
+                _masterSchedules.Clear();
+                _masterSchedules.AddRange(schedules);
+                NotePullOutEtaFromServer(schedules);
+                FilterSchedules();
+                UpdateRouteSummary();
+                if (selectedId is int id) SelectedSchedule = Schedules.FirstOrDefault(s => s.Id == id);
+            }
+            catch (Exception ex)
+            {
+                // Silent on purpose: nobody asked for it, and the next message tries again.
+                System.Diagnostics.Debug.WriteLine($"[board] route reload failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// The backlog read again and only its differences applied: the row somebody is on, the scroll
+        /// and a cancelled row on its way out stay as they are.
+        /// </summary>
+        private async Task ReloadUnscheduledTripsAsync()
+        {
+            if (_isDataLoading) { RequestLive(backlog: true, route: false); return; }
+            var day = SelectedDate;
+
+            try
+            {
+                var fresh = (await _scheduleService.GetUnscheduledTripsAsync(day)).Where(t => t.IsCanceled != true).ToList();
+                if (SelectedDate != day) return;
+                if (_isDataLoading) { RequestLive(backlog: true, route: false); return; }
+
                 var selectedId = SelectedUnscheduledTrip?.Id;
+                var ids = fresh.Select(t => t.Id).ToHashSet();
 
-                UnscheduledTrips.ReplaceAll(trips.Where(t => t.IsCanceled != true));
+                for (var i = UnscheduledTrips.Count - 1; i >= 0; i--)
+                    if (!UnscheduledTrips[i].IsDeparting && !ids.Contains(UnscheduledTrips[i].Id)) UnscheduledTrips.RemoveAt(i);
 
-                if (selectedId.HasValue)
+                var at = 0;
+                foreach (var trip in fresh)
                 {
-                    SelectedUnscheduledTrip =
-                        UnscheduledTrips.FirstOrDefault(t => t.Id == selectedId.Value);
+                    while (at < UnscheduledTrips.Count && UnscheduledTrips[at].IsDeparting && UnscheduledTrips[at].Id != trip.Id) at++;
+
+                    var from = -1;
+                    for (var i = at; i < UnscheduledTrips.Count; i++) if (UnscheduledTrips[i].Id == trip.Id) { from = i; break; }
+
+                    if (from < 0) UnscheduledTrips.Insert(Math.Min(at, UnscheduledTrips.Count), trip);
+                    else
+                    {
+                        if (from != at) UnscheduledTrips.Move(from, at);
+                        if (Fingerprint(UnscheduledTrips[at]) != Fingerprint(trip)) UnscheduledTrips[at] = trip;
+                    }
+                    at++;
                 }
+
+                if (selectedId is int id && SelectedUnscheduledTrip?.Id != id)
+                    SelectedUnscheduledTrip = UnscheduledTrips.FirstOrDefault(t => t.Id == id);
             }
             catch (Exception ex)
             {
@@ -3876,6 +4005,10 @@ namespace Raphael.Desktop.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[board] backlog reload failed: {ex.Message}");
             }
         }
+
+        private static string Fingerprint(UnscheduledTripDto trip) => System.Text.Json.JsonSerializer.Serialize(trip);
+
+        #endregion
 
         #endregion
 
@@ -3947,6 +4080,8 @@ namespace Raphael.Desktop.ViewModels
                 DateTime = message.AtUtc.ToLocalTime()
             };
 
+            RefreshVehicleState();
+
             if (!HasVehiclePosition)
             {
                 // First fix of the session: place it, do not fly it in from the middle of nowhere.
@@ -3988,6 +4123,55 @@ namespace Raphael.Desktop.ViewModels
             _vehicleAnimDuration = Clamp(gap, MinVehicleStep, MaxVehicleStep);
 
             StartVehicleAnimator();
+        }
+
+        // ===== What the marker says besides where it is, as on the live map (RE-090) =====
+
+        private const double MetersPerSecondToMph = 2.23694;
+
+        [ObservableProperty] private bool _vehicleIsStale;
+        [ObservableProperty] private bool _vehicleIsStopped;
+        [ObservableProperty] private bool _vehicleIsSpeeding;
+        [ObservableProperty] private string _vehicleSpeedText = string.Empty;
+        [ObservableProperty] private string _vehicleCalloutText = string.Empty;
+
+        public string VehicleLastReportText => DriverLastKnownLocation is null ? string.Empty
+            : string.Format(LocalizationService.Instance["schedule.VehicleLastReport"], DriverLastKnownLocation.DateTime.ToString("hh:mm:ss tt"));
+        public string VehicleSpeedLine => DriverLastKnownLocation is null ? string.Empty
+            : string.Format(LocalizationService.Instance["schedule.VehicleSpeed"], (DriverLastKnownLocation.Speed * MetersPerSecondToMph).ToString("N0"));
+
+        private DispatcherTimer _vehicleAgeTimer;
+
+        /// <summary>Also on a clock: a vehicle that stops reporting sends nothing to notice it by.</summary>
+        private void RefreshVehicleState()
+        {
+            if (_vehicleAgeTimer is null)
+            {
+                _vehicleAgeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+                _vehicleAgeTimer.Tick += (_, _) => RefreshVehicleState();
+            }
+
+            if (DriverLastKnownLocation is not { } fix) { _vehicleAgeTimer.Stop(); return; }
+            if (!_vehicleAgeTimer.IsEnabled) _vehicleAgeTimer.Start();
+
+            var age = DateTime.Now - fix.DateTime;
+            var mph = fix.Speed * MetersPerSecondToMph;
+            VehicleIsStale = age > LiveMap.LiveMapVehicleViewModel.StaleAfter;
+            VehicleIsStopped = mph < 2;
+            VehicleIsSpeeding = mph >= LiveMap.LiveMapVehicleViewModel.SpeedingMph;
+            VehicleSpeedText = $"{mph:N0} mph";
+            VehicleCalloutText = VehicleIsStale ? string.Format(LocalizationService.Instance["schedule.VehicleAgo"], (int)age.TotalMinutes)
+                : VehicleIsStopped || VehicleIsSpeeding ? string.Empty : $"{mph:N0} mph";
+            OnPropertyChanged(nameof(VehicleLastReportText));
+            OnPropertyChanged(nameof(VehicleSpeedLine));
+        }
+
+        /// <summary>Nothing on the map until there is something true to draw.</summary>
+        private void ForgetVehicle()
+        {
+            StopVehicleAnimator();
+            HasVehiclePosition = false;
+            _lastVehicleReportUtc = null;
         }
 
         private void StartVehicleAnimator()
@@ -4104,6 +4288,7 @@ namespace Raphael.Desktop.ViewModels
             // never on a tab switch.
             ReleaseBoard();
             StopVehicleAnimator();
+            _vehicleAgeTimer?.Stop();
         }
 
         private void OnNotificationReceived(object sender, NotificationDto notification)
@@ -4217,9 +4402,7 @@ namespace Raphael.Desktop.ViewModels
         private void RefreshRouteForTrip(int tripId)
         {
             if (Schedules.All(s => s.TripId != tripId)) return;
-            if (_isRecalculating || _isDataLoading || IsBusy) return;
-
-            _ = LoadSchedulesAsync();
+            RequestLive(backlog: false, route: true);
         }
 
         /// <summary>
@@ -4316,6 +4499,7 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         public void RefreshLocalizedText()
         {
+            RefreshVehicleState();
             OnPropertyChanged(string.Empty);
 
             // Sentences and captions already assembled onto the rows.
