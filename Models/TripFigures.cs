@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace Raphael.Desktop.Models
 {
+    /// <summary>The one part of the day a trip counts in.</summary>
+    public enum TripPart { Done, InProgress, NotStarted, Canceled, NoRun }
+
     /// <summary>
     /// RE-084: how many trips there are and where each one stands. Every trip falls in exactly one
     /// of the five parts, so Total = Done + InProgress + NotStarted + Canceled + NoRun.
@@ -23,13 +26,24 @@ namespace Raphael.Desktop.Models
             foreach (var t in trips)
             {
                 total++;
-                if (IsCanceled(t)) canceled++;
-                else if (Is(t, TripStatus.Finished) || Is(t, TripStatus.Billed) || Is(t, TripStatus.Payed)) done++;
-                else if (Is(t, TripStatus.Started) || Is(t, TripStatus.Arrived) || Is(t, TripStatus.InProgress)) inProgress++;
-                else if (string.IsNullOrWhiteSpace(t.RunName)) noRun++;
-                else notStarted++;
+                switch (PartOf(t))
+                {
+                    case TripPart.Canceled: canceled++; break;
+                    case TripPart.Done: done++; break;
+                    case TripPart.InProgress: inProgress++; break;
+                    case TripPart.NoRun: noRun++; break;
+                    default: notStarted++; break;
+                }
             }
             return new(total, done, inProgress, notStarted, canceled, noRun);
+        }
+
+        public static TripPart PartOf(TripReadDto t)
+        {
+            if (IsCanceled(t)) return TripPart.Canceled;
+            if (Is(t, TripStatus.Finished) || Is(t, TripStatus.Billed) || Is(t, TripStatus.Payed)) return TripPart.Done;
+            if (Is(t, TripStatus.Started) || Is(t, TripStatus.Arrived) || Is(t, TripStatus.InProgress)) return TripPart.InProgress;
+            return string.IsNullOrWhiteSpace(t.RunName) ? TripPart.NoRun : TripPart.NotStarted;
         }
 
         public static bool IsCanceled(TripReadDto trip) => trip.IsCancelled || Is(trip, TripStatus.Canceled);

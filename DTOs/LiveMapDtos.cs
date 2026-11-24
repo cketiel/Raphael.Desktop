@@ -54,13 +54,32 @@ namespace Raphael.Desktop.DTOs
         public int InProgress { get; set; }
         public int Canceled { get; set; }
 
-        /// <summary>Trips with no line, as Home's "without a run".</summary>
+        /// <summary>They have a line and the driver has not started them.</summary>
+        public int NotStarted { get; set; }
+
+        /// <summary>Left to route: no line and not cancelled, as Home's "without a run".</summary>
         public int Unrouted { get; set; }
 
         /// <summary>Sum of the charges of the trips not cancelled.</summary>
         public double Charges { get; set; }
 
         public double Paid { get; set; }
+    }
+
+    /// <summary>RE-085: a trip under way, for the live map's "In progress" list. Screen only: it names the patient.</summary>
+    public class LiveMapInProgressDto
+    {
+        public int TripId { get; set; }
+        public string? TripNumber { get; set; }
+        public string? CustomerName { get; set; }
+
+        /// <summary><c>Started</c>, <c>Arrived</c> or <c>InProgress</c>.</summary>
+        public string Status { get; set; } = string.Empty;
+
+        public string? SpaceType { get; set; }
+        public int? VehicleRouteId { get; set; }
+        public TimeSpan? FromTime { get; set; }
+        public TimeSpan? ToTime { get; set; }
     }
 
     /// <summary>
@@ -247,11 +266,16 @@ namespace Raphael.Desktop.DTOs
         public string Status { get; set; } = string.Empty;
     }
 
-    /// <summary>The next stop: kind and times, never the patient or the address.</summary>
+    /// <summary>
+    /// The next stop, named as the route names it, patient included (RE-085, the user's decision: the
+    /// office already reads that name in Dispatch). Shown on screen only: never sent to the voice assistant.
+    /// </summary>
     public class LiveMapNextStopDto
     {
-        /// <summary><c>Pickup</c> or <c>Dropoff</c>.</summary>
+        /// <summary><c>Pickup</c>, <c>Dropoff</c>, <c>PullOut</c> or <c>PullIn</c>.</summary>
         public string Kind { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>Promised pickup or appointment time, business wall clock.</summary>
         public TimeSpan? Promised { get; set; }
@@ -327,6 +351,9 @@ namespace Raphael.Desktop.DTOs
 
         /// <summary>The leg starts at the garage: the drive to the first pickup.</summary>
         public bool FromGarage { get; set; }
+
+        /// <summary>The leg ends at the garage: the drive home after the last stop (Pull-in). <see cref="ToStop"/> is 0.</summary>
+        public bool ToGarage { get; set; }
 
         /// <summary>Patients on board along this leg. 0 is driving empty.</summary>
         public int Onboard { get; set; }

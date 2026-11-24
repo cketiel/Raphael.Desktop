@@ -107,8 +107,16 @@ namespace Raphael.Desktop.ViewModels.LiveMap
             {
                 var n = Detail?.NextStop;
                 if (n is null) return L["livemap.CardNoNextStop"];
-                var kind = n.Kind == "Dropoff" ? L["livemap.CardDropoff"] : L["livemap.CardPickup"];
-                return string.Format(L["livemap.CardNextStop"], kind, Clock(n.Promised), Clock(n.Eta));
+                // The stop's own name, patient included, as Dispatch lists it; an older server sends only the kind.
+                var name = n.Kind switch
+                {
+                    "PullOut" => "Pull-out",
+                    "PullIn" => "Pull-in",
+                    _ => !string.IsNullOrWhiteSpace(n.Name) ? n.Name : n.Kind == "Dropoff" ? L["livemap.CardDropoff"] : L["livemap.CardPickup"]
+                };
+                return n.Promised is null
+                    ? string.Format(L["livemap.CardNextStopEta"], name, Clock(n.Eta))
+                    : string.Format(L["livemap.CardNextStop"], name, Clock(n.Promised), Clock(n.Eta));
             }
         }
 

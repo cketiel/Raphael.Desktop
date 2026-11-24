@@ -50,6 +50,11 @@ namespace Raphael.Desktop.ViewModels
         [ObservableProperty] private TripFlagFilter _willCall = TripFlagFilter.Any;
         [ObservableProperty] private TripFlagFilter _hasRoute = TripFlagFilter.Any;
         [ObservableProperty] private bool _onlyMissingCoordinates;
+
+        /// <summary>RE-085: one part of the day (done, in progress…), as the live map sends it here.</summary>
+        [ObservableProperty] private TripPart? _part;
+
+        partial void OnPartChanged(TripPart? value) => Raise();
         [ObservableProperty] private string _zip;
         [ObservableProperty] private string _state;
 
@@ -72,6 +77,8 @@ namespace Raphael.Desktop.ViewModels
             if (!Allows(FundingSources, trip.FundingSourceName)) return false;
             if (!Allows(Statuses, trip.Status)) return false;
             if (!Allows(Types, trip.Type)) return false;
+
+            if (Part is TripPart part && TripFigures.PartOf(trip) != part) return false;
 
             if (!AllowsCity(trip)) return false;
 
@@ -242,6 +249,7 @@ namespace Raphael.Desktop.ViewModels
             if (HasRoute != TripFlagFilter.Any)
                 ActiveChips.Add($"{Text("Run")}: {Flag(HasRoute)}");
 
+            if (Part is TripPart part) ActiveChips.Add(Text("home.Part" + part));
             if (OnlyMissingCoordinates) ActiveChips.Add(Text("home.MissingCoordinates"));
             if (!string.IsNullOrWhiteSpace(Zip)) ActiveChips.Add($"{Text("Zip")} {Zip}");
             if (!string.IsNullOrWhiteSpace(State)) ActiveChips.Add($"{Text("State")} {State}");
@@ -275,6 +283,7 @@ namespace Raphael.Desktop.ViewModels
             WillCall = TripFlagFilter.Any;
             HasRoute = TripFlagFilter.Any;
             OnlyMissingCoordinates = false;
+            Part = null;
             Zip = null;
             State = null;
 

@@ -84,6 +84,10 @@ namespace Raphael.Desktop.Views.LiveMap
             };
             viewModel.TrafficChanged += (_, _) => SendTraffic();
             viewModel.PaceChanged += (_, _) => SendVehicles();
+            viewModel.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(LiveMapViewModel.IsInProgressOpen)) Post(new { type = "rightPad", px = viewModel.IsInProgressOpen ? 690 : 360 });
+            };
             viewModel.Legs.Changed += id =>
             {
                 SendLegs(id);
@@ -360,7 +364,8 @@ namespace Raphael.Desktop.Views.LiveMap
                     current = l.Current,
                     visible = l.Visible,
                     toStop = l.ToStop,
-                    fromGarage = l.FromGarage
+                    fromGarage = l.FromGarage,
+                    toGarage = l.ToGarage
                 }).ToList(),
                 stops = legs?.Stops.Select(st => new { n = st.Number, kind = st.Kind, lat = st.Latitude, lng = st.Longitude, performed = st.Performed, arrived = st.Arrived, trip = st.TripId, time = st.Time.HasValue ? st.Time.Value.ToString(@"hh\:mm") : null }).ToList()
             });
@@ -682,6 +687,14 @@ namespace Raphael.Desktop.Views.LiveMap
             Post(new { type = "fitRoute", id = vehicle.VehicleRouteId });
         }
 
+        /// <summary>A trip of the In progress list: its vehicle, as a click on it, with the Trip Id on the map.</summary>
+        private void InProgressRow_Click(object sender, MouseButtonEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not LiveMapInProgressRow { VehicleRouteId: int routeId } row) return;
+            ViewModel.ShowGroupOf(routeId);
+            SelectTrip(row.TripId, routeId, row.TripNumber);
+        }
+
         private void ZoomIn_Click(object sender, RoutedEventArgs e) => Post(new { type = "zoom", delta = 1 });
 
         private void ZoomOut_Click(object sender, RoutedEventArgs e) => Post(new { type = "zoom", delta = -1 });
@@ -812,12 +825,13 @@ namespace Raphael.Desktop.Views.LiveMap
         }
 
         /// <summary>A trip picked in the dock: its vehicle selected, as a click would, with the Trip Id on it.</summary>
-        private void SelectTrip(int tripId, int routeId)
+        private void SelectTrip(int tripId, int routeId, string? tripNumber = null)
         {
             var vehicle = ViewModel.Vehicles.FirstOrDefault(v => v.VehicleRouteId == routeId);
             if (vehicle is null) return;
             var trip = _dayTrips?.FirstOrDefault(t => t.Id == tripId);
-            var label = "TRIP " + (string.IsNullOrWhiteSpace(trip?.TripId) ? tripId.ToString() : trip!.TripId);
+            tripNumber ??= trip?.TripId;
+            var label = "TRIP " + (string.IsNullOrWhiteSpace(tripNumber) ? tripId.ToString() : tripNumber);
             _tripFocusRoute = routeId;
             ViewModel.Select(vehicle);
             Post(new { type = "fitRoute", id = routeId });

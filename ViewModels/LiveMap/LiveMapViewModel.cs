@@ -303,6 +303,7 @@ namespace Raphael.Desktop.ViewModels.LiveMap
             _trafficTimer.Tick += async (_, _) => await RefreshTrafficAsync();
             _punctualityTimer.Tick += async (_, _) => await RefreshPunctualityAsync();
             RefreshDelaysAvailability();
+            InitDay();
 
             // Opening a card selects its vehicle too: what the card describes is what the map shows.
             RouteCard.PropertyChanged += (_, e) =>
@@ -495,6 +496,7 @@ namespace Raphael.Desktop.ViewModels.LiveMap
             _animator.Stop();
             _clock.Stop();
             _punctualityTimer.Stop();
+            _dayTimer.Stop();
             _trafficTimer.Stop();
             _reloadDebounce.Stop();
             LocalizationService.Instance.LanguageChanged -= OnLanguageChanged;
@@ -524,7 +526,9 @@ namespace Raphael.Desktop.ViewModels.LiveMap
                 var snapshot = await _service.GetSnapshotAsync();
                 _operatingDate = snapshot.OperatingDate;
                 ApplySnapshot(snapshot);
+                Day.Date = snapshot.OperatingDate;
                 Day.Apply(snapshot.Day);
+                if (IsInProgressOpen) _ = RefreshInProgressAsync();
                 RebuildDrivers();
 
                 // The legs of the lines that run today: one read each, then kept until something changes.
@@ -709,7 +713,7 @@ namespace Raphael.Desktop.ViewModels.LiveMap
                      {
                          nameof(Title), nameof(FiltersHeader), nameof(LegendHeader), nameof(FleetHeader),
                          nameof(LegendMoving), nameof(LegendStopped), nameof(LegendSpeeding), nameof(LegendStale),
-                         nameof(FitText), nameof(LayersHeader), nameof(RoutesLegend1), nameof(RoutesLegend2), nameof(RoutesLegend3), nameof(TrafficLegend), nameof(DelaysLegend), nameof(SelLegendDriven), nameof(SelLegendAhead), nameof(SelLegendPlan), nameof(SelLegendPickup), nameof(SelLegendDropoff), nameof(SelLegendArrived), nameof(SelLegendDirection), nameof(SelLegendApproach), nameof(RoutesStatus), nameof(LayerRoutesText), nameof(LayerTrafficText), nameof(LayerDelaysText), nameof(LayerDelaysHint), nameof(SelTripText), nameof(SelDayText), nameof(SelDetailsText), nameof(SelFollowText), nameof(SelCloseText), nameof(TodayHeader), nameof(DriversHeader), nameof(DriversLegend), nameof(NoDriversText), nameof(MapRoadText), nameof(MapSatelliteText), nameof(MapLabelsText), nameof(ZoomInText), nameof(ZoomOutText), nameof(ToggleWindowText), nameof(LastFixText), nameof(Summary)
+                         nameof(FitText), nameof(LayersHeader), nameof(RoutesLegend1), nameof(RoutesLegend2), nameof(RoutesLegend3), nameof(TrafficLegend), nameof(DelaysLegend), nameof(SelLegendDriven), nameof(SelLegendAhead), nameof(SelLegendPlan), nameof(SelLegendPickup), nameof(SelLegendDropoff), nameof(SelLegendArrived), nameof(SelLegendDirection), nameof(SelLegendApproach), nameof(RoutesStatus), nameof(LayerRoutesText), nameof(LayerTrafficText), nameof(LayerDelaysText), nameof(LayerDelaysHint), nameof(SelTripText), nameof(SelDayText), nameof(SelDetailsText), nameof(SelFollowText), nameof(SelCloseText), nameof(TodayHeader), nameof(InProgressTitle), nameof(InProgressEmpty), nameof(InProgressHint), nameof(DriversHeader), nameof(DriversLegend), nameof(NoDriversText), nameof(MapRoadText), nameof(MapSatelliteText), nameof(MapLabelsText), nameof(ZoomInText), nameof(ZoomOutText), nameof(ToggleWindowText), nameof(LastFixText), nameof(Summary)
                      })
                 OnPropertyChanged(name);
 

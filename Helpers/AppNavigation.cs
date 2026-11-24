@@ -39,6 +39,11 @@ namespace Raphael.Desktop.Helpers
             ShowRouteInScheduleRequested?.Invoke(date.Date, vehicleRouteId);
         }
 
+        /// <summary>RE-085: opens Home on a day, showing one part of it (done, canceled…).</summary>
+        public static event Action<DateTime, Models.TripPart> ShowPartInHomeRequested;
+
+        public static void ShowPartInHome(DateTime date, Models.TripPart part) => ShowPartInHomeRequested?.Invoke(date.Date, part);
+
         /// <summary>RE-080: opens Home searching one trip by the broker's number.</summary>
         public static event Action<string> ShowTripInHomeRequested;
 

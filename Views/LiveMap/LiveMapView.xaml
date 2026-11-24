@@ -425,27 +425,50 @@
                 <!-- Today: Home's figures for the whole day -->
                 <Expander Style="{StaticResource LmSection}" Header="{Binding TodayHeader}">
                     <StackPanel>
-                        <ItemsControl ItemsSource="{Binding Day.Tiles}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                        <!-- The ring: the five parts, with the share done in the middle -->
+                        <Grid Width="150" Height="150" HorizontalAlignment="Center" Margin="0,0,0,8" ToolTip="{Binding Day.DoneToolTip}">
+                            <Ellipse Width="136" Height="136" Stroke="#14FFFFFF" StrokeThickness="14"/>
+                            <ItemsControl ItemsSource="{Binding Day.Rows}" Focusable="False">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas Width="150" Height="150"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate><Path Data="{Binding Arc}" Stroke="{Binding Brush}" StrokeThickness="14" ToolTip="{Binding ToolTip}"/></DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock Text="{Binding Day.DoneText}" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource LmText}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding Day.TripsText}" FontSize="11" Foreground="{StaticResource LmTitle}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                        <!-- One row per part; pressing it goes to its trips -->
+                        <ItemsControl ItemsSource="{Binding Day.Rows}" Focusable="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="8" Padding="8,5" Margin="0,0,6,6">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{StaticResource LmTitle}"/>
-                                            <TextBlock Text="{Binding Value}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
-                                        </StackPanel>
-                                    </Border>
+                                    <Button Command="{Binding DataContext.Day.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                            IsEnabled="{Binding HasTrips}" ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True" Cursor="Hand" Margin="0,0,6,4" HorizontalContentAlignment="Stretch">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" Background="#0AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="8" Padding="9,5">
+                                                    <DockPanel>
+                                                        <Border Width="10" Height="10" CornerRadius="3" Background="{Binding Brush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                        <materialDesign:PackIcon x:Name="Go" DockPanel.Dock="Right" Kind="{Binding Icon}" Width="15" Height="15" Foreground="{StaticResource LmDim}" VerticalAlignment="Center" Margin="9,0,0,0"/>
+                                                        <TextBlock DockPanel.Dock="Right" Text="{Binding CountText}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource LmText}" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{StaticResource LmText}" VerticalAlignment="Center"/>
+                                                    </DockPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource LmAccentDim}"/>
+                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource LmAccent}"/>
+                                                        <Setter TargetName="Go" Property="Foreground" Value="{DynamicResource LmAccent}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.5"/></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Grid Height="6" Margin="0,2,6,2">
-                            <Border Background="#14FFFFFF" CornerRadius="3"/>
-                            <Border Background="{DynamicResource LmAccent}" CornerRadius="3" HorizontalAlignment="Left"
-                                    Width="{Binding Day.DoneRatio, Converter={StaticResource LmRatioToWidth}, ConverterParameter=262}"/>
-                        </Grid>
-                        <TextBlock Text="{Binding Day.DoneText}" FontSize="11" Foreground="{StaticResource LmTitle}"/>
                     </StackPanel>
                 </Expander>
 
@@ -544,6 +567,47 @@
                 <TextBlock Text="{Binding ErrorText}" Foreground="#C2410C" TextWrapping="Wrap" FontSize="12"/>
             </StackPanel>
             </ScrollViewer>
+        </Border>
+
+        <!-- RE-085: the trips in progress, opened from Today. A click selects the vehicle, as in Drivers. -->
+        <Border x:Name="InProgressPanel" Style="{StaticResource LmPanel}" Width="300" Margin="0,92,332,16" HorizontalAlignment="Right" VerticalAlignment="Top"
+                Visibility="{Binding IsInProgressOpen, Converter={StaticResource LmBoolToVis}}">
+            <DockPanel MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}, Converter={StaticResource LmMinus}, ConverterParameter=212}">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Button DockPanel.Dock="Right" Command="{Binding CloseInProgressCommand}" Style="{StaticResource MaterialDesignToolButton}" Padding="2" Height="26">
+                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16" Foreground="{StaticResource LmTitle}"/>
+                    </Button>
+                    <TextBlock Text="{Binding InProgressTitle}" FontSize="13" FontFamily="{StaticResource LmMono}" Foreground="{DynamicResource LmAccent}" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="{Binding InProgressHint}" FontSize="11" FontStyle="Italic" Foreground="{StaticResource LmTitle}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBlock DockPanel.Dock="Top" Text="{Binding InProgressEmpty}" FontSize="12" Foreground="{StaticResource LmTitle}"
+                           Visibility="{Binding InProgress.Count, Converter={StaticResource LmZeroToVis}}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding InProgress}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Row" CornerRadius="8" Padding="9,6" Margin="0,0,6,5" BorderThickness="1" Background="#0AFFFFFF" BorderBrush="#14FFFFFF"
+                                        Cursor="Hand" MouseLeftButtonUp="InProgressRow_Click">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding LateText}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding LateBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                            <TextBlock Text="{Binding Patient}" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource LmText}" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+                                        <TextBlock FontSize="11.5" Foreground="{StaticResource LmText}"><Run Text="{Binding Phase, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding Times, Mode=OneWay}"/></TextBlock>
+                                        <TextBlock FontSize="11" Foreground="{StaticResource LmTitle}" TextTrimming="CharacterEllipsis"><Run Text="{Binding Line, Mode=OneWay}"/><Run Text=" · #"/><Run Text="{Binding TripNumber, Mode=OneWay}"/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Row" Property="Background" Value="{DynamicResource LmAccentDim}"/>
+                                        <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource LmAccent}"/>
+                                    </Trigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
 
         <!-- Top left: is it live, how fresh. The bottom centre is the dock's, the top right the active style's. -->

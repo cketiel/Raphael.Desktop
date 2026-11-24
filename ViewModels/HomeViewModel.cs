@@ -1695,6 +1695,14 @@ namespace Raphael.Desktop.ViewModels
             IsDatePopupOpen = false;
         }
 
+        /// <summary>RE-085: shows one part of a day, as the live map's Today panel asks for it.</summary>
+        public void ShowPart(DateTime date, TripPart part)
+        {
+            if (part == TripPart.Canceled) ShowCanceled = true;
+            Filters.Part = part;
+            if (FilterDate.Date != date.Date) ApplyDateSpan(date, null);
+        }
+
         /// <summary>
         /// Moves the grid to a day or a span and reloads it once.
         /// </summary>
