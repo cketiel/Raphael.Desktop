@@ -13,6 +13,7 @@
              xmlns:converters="clr-namespace:Raphael.Desktop.Converters"
              helpers:HelpAssist.TopicId="{Binding HelpTopicId}"
              PreviewKeyDown="HomeView_PreviewKeyDown"
+             xmlns:home="clr-namespace:Raphael.Desktop.Views.Home"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
@@ -2130,6 +2131,8 @@
 
                     MouseDoubleClick="TripsGrid_MouseDoubleClick"
                     Sorting="TripsGrid_Sorting"
+                    CanUserReorderColumns="True"
+                    ColumnReordered="TripsGrid_ColumnReordered"
                     Loaded="TripsGrid_Loaded"
 
                     SelectionMode="Single"
@@ -2156,7 +2159,7 @@
 
                     <DataGrid.Columns>
 
-                        <DataGridTemplateColumn Width="Auto">
+                        <DataGridTemplateColumn Width="Auto" CanUserReorder="False">
                             <DataGridTemplateColumn.HeaderTemplate>
                                 <DataTemplate>
                                     <Button Command="{Binding DataContext.ToggleFilterPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -2427,11 +2430,17 @@
                                           Style="{StaticResource MaterialDesignSwitchToggleButton}"
                                           ToolTip="{Binding CompactGridToolTip}"/>
 
-                            <Button Style="{StaticResource TripActionButtonStyle}"
-                                    Command="{Binding ChooseColumnsCommand}"
+                            <Button x:Name="ColumnsButton" Style="{StaticResource TripActionButtonStyle}"
+                                    Command="{Binding Columns.ToggleCommand}"
                                     ToolTip="{Binding ChooseColumnsToolTip}" Padding="4,0,4,0">
                                 <materialDesign:PackIcon Kind="ViewColumnOutline" Width="18" Height="18"/>
                             </Button>
+
+                            <!-- RE-089. A popup, as the filter panel: the map is an HWND and would cover it. -->
+                            <Popup IsOpen="{Binding Columns.IsOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ColumnsButton}"
+                                   Placement="Top" StaysOpen="False" AllowsTransparency="True" PopupAnimation="None">
+                                <home:HomeColumnsPanel DataContext="{Binding Columns}"/>
+                            </Popup>
                         </StackPanel>
                     </Grid>
                 </Border>

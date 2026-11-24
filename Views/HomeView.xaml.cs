@@ -660,7 +660,42 @@ namespace Raphael.Desktop.Views
                 System.Windows.Threading.DispatcherPriority.Background);
         }
 
-        private void TripsGrid_Loaded(object sender, RoutedEventArgs e) => ViewModel.ApplySavedSort();
+        private void TripsGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.ApplySavedSort();
+            ViewModel.Columns.Changed -= ApplyColumnOrder;   // the tab is loaded again each time it is shown
+            ViewModel.Columns.Changed += ApplyColumnOrder;
+            ApplyColumnOrder();
+        }
+
+        private bool _orderingColumns;
+
+        /// <summary>RE-089: the user's order. The actions column is always the first.</summary>
+        private void ApplyColumnOrder()
+        {
+            if (_orderingColumns) return;
+            _orderingColumns = true;
+            try
+            {
+                TripsGrid.Columns[0].DisplayIndex = 0;
+                var at = 1;
+                foreach (var key in ViewModel.Columns.Order)
+                    if (TripsGrid.Columns.FirstOrDefault(c => c.SortMemberPath == key) is { } column)
+                    {
+                        if (column.DisplayIndex != at) column.DisplayIndex = at;
+                        at++;
+                    }
+            }
+            finally { _orderingColumns = false; }
+        }
+
+        /// <summary>A header dragged on the grid: the same order the panel keeps.</summary>
+        private void TripsGrid_ColumnReordered(object sender, DataGridColumnEventArgs e)
+        {
+            if (_orderingColumns) return;
+            ViewModel.Columns.TakeVisibleOrder(TripsGrid.Columns.Where(c => c.Visibility == Visibility.Visible && !string.IsNullOrEmpty(c.SortMemberPath))
+                .OrderBy(c => c.DisplayIndex).Select(c => c.SortMemberPath).ToList());
+        }
 
         private async void LoadMap()
         {

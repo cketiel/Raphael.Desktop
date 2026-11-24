@@ -665,7 +665,7 @@
     "home.TourNext": "Siguiente",
     "home.TourDone": "Entendido",
     "home.TourHelp": "Enséñame cómo se da de alta un viaje",
-    "home.ChooseColumns": "Elegir qué columnas se ven",
+    "home.ChooseColumns": "Elegir las columnas y su orden",
     "home.CompactGrid": "Filas compactas",
     "home.ZipStateWarning": "Se lee del texto de la dirección, así que es fiable en viajes importados y no en los creados con Google Places. El condado todavía no se guarda en ningún sitio.",
     "home.DividerSummary": "{0} viajes = {1} realizados + {2} en progreso + {3} sin iniciar + {4} cancelados + {5} sin ruta",
@@ -2282,5 +2282,15 @@
     "reports.ErrGps": "No se pudo generar el reporte GPS: {0}",
     "compliance.SelectAll": "Seleccionar todos",
     "compliance.HideInactive": "Ocultar inactivos",
-    "compliance.SelectedCount": "{0} seleccionados"
+    "compliance.SelectedCount": "{0} seleccionados",
+    "home.columns.Title": "Columnas",
+    "home.columns.Hint": "Arrastra por los puntos para cambiar el orden; el interruptor muestra u oculta. Se guarda solo para ti.",
+    "home.columns.Search": "Buscar una columna",
+    "home.columns.ShowAll": "Mostrar todas",
+    "home.columns.Reset": "Restablecer",
+    "home.columns.Close": "Cerrar",
+    "home.columns.Drag": "Arrastra para mover",
+    "home.columns.Up": "Subir",
+    "home.columns.Down": "Bajar",
+    "home.columns.Summary": "{0} de {1} a la vista"
 }

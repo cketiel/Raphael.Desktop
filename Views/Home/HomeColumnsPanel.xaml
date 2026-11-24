@@ -1,0 +1,121 @@
+<UserControl x:Class="Raphael.Desktop.Views.Home.HomeColumnsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+             helpers:HelpAssist.TopicId="desktop/home/columns"
+             FontFamily="Segoe UI" Width="348" Height="520">
+    <UserControl.Resources>
+        <ScaleTransform x:Key="Smaller" ScaleX="0.8" ScaleY="0.8"/>
+    </UserControl.Resources>
+
+    <!-- RE-089: which columns of Home's trips, and in what order. Every change shows on the grid at once. -->
+    <Border Background="White" CornerRadius="12" BorderBrush="#D1C4E9" BorderThickness="1" Margin="12">
+        <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.28" Color="#311B92"/></Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Background="#673AB7" CornerRadius="11,11,0,0" Padding="14,10,8,10">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Command="{Binding CloseCommand}" ToolTip="{Binding CloseText}" Foreground="White"
+                            Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28">
+                        <materialDesign:PackIcon Kind="Close" Width="18" Height="18"/>
+                    </Button>
+                    <materialDesign:PackIcon Kind="ViewColumnOutline" Width="24" Height="24" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="{Binding TitleText}" Foreground="White" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding SummaryText}" Foreground="#D1C4E9" FontSize="11.5"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <StackPanel Grid.Row="1" Margin="14,10,14,6">
+                <Border Background="#F4F1FA" CornerRadius="8" Padding="8,2">
+                    <DockPanel>
+                        <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Foreground="#7E57C2" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Background="Transparent"
+                                 materialDesign:HintAssist.Hint="{Binding SearchText}" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed"
+                                 Padding="0,5" VerticalContentAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+                <TextBlock Text="{Binding HintText}" Foreground="#7A8794" FontSize="11.5" TextWrapping="Wrap" Margin="2,7,0,0"/>
+            </StackPanel>
+
+            <ListBox x:Name="List" Grid.Row="2" ItemsSource="{Binding View}" BorderThickness="0" Background="Transparent" Padding="8,0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" Focusable="False"
+                     MouseMove="List_MouseMove" MouseLeftButtonUp="List_MouseLeftButtonUp" LostMouseCapture="List_LostMouseCapture">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Focusable" Value="False"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="Row" CornerRadius="7" Padding="4,3" Margin="0,1" Background="Transparent">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Left" Background="Transparent" Cursor="SizeNS" Padding="2,4" Margin="0,0,4,0"
+                                        ToolTip="{Binding DataContext.DragText, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        MouseLeftButtonDown="Handle_MouseLeftButtonDown">
+                                    <materialDesign:PackIcon x:Name="Grip" Kind="DragVertical" Width="18" Height="18" Foreground="#B0A4C8"/>
+                                </Border>
+                                <Border DockPanel.Dock="Left" Width="24" Height="20" CornerRadius="10" Background="#EDE7F6" Margin="0,0,9,0" x:Name="PlaceBadge">
+                                    <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="#4527A0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding IsVisible}" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                              LayoutTransform="{StaticResource Smaller}" VerticalAlignment="Center" Margin="6,0,2,0"/>
+                                <StackPanel x:Name="Arrows" DockPanel.Dock="Right" Orientation="Horizontal" Opacity="0">
+                                    <Button Style="{StaticResource MaterialDesignIconButton}" Width="22" Height="22"
+                                            Command="{Binding DataContext.UpCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"
+                                            ToolTip="{Binding DataContext.UpText, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                                        <materialDesign:PackIcon Kind="ChevronUp" Width="18" Height="18" Foreground="#673AB7"/>
+                                    </Button>
+                                    <Button Style="{StaticResource MaterialDesignIconButton}" Width="22" Height="22"
+                                            Command="{Binding DataContext.DownCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"
+                                            ToolTip="{Binding DataContext.DownText, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                                        <materialDesign:PackIcon Kind="ChevronDown" Width="18" Height="18" Foreground="#673AB7"/>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock x:Name="Name" Text="{Binding Header}" FontSize="13" Foreground="#1E2A36" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            </DockPanel>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="#F6F2FD"/>
+                                <Setter TargetName="Arrows" Property="Opacity" Value="1"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsVisible}" Value="False">
+                                <Setter TargetName="Name" Property="Foreground" Value="#A3ADB8"/>
+                                <Setter TargetName="PlaceBadge" Property="Opacity" Value="0"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsMoving}" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="#E1D5F5"/>
+                                <Setter TargetName="Grip" Property="Foreground" Value="#673AB7"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding DataContext.CanDrag, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="False">
+                                <Setter TargetName="Arrows" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="Grip" Property="Opacity" Value="0.3"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Grid.Row="3" BorderBrush="#E8E2F3" BorderThickness="0,1,0,0" Padding="10,7">
+                <DockPanel LastChildFill="False">
+                    <Button Command="{Binding ShowAllCommand}" Content="{Binding ShowAllText}" Style="{StaticResource MaterialDesignFlatButton}" Padding="10,2" Height="30" Foreground="#673AB7"/>
+                    <Button DockPanel.Dock="Right" Command="{Binding ResetCommand}" Content="{Binding ResetText}" Style="{StaticResource MaterialDesignFlatButton}" Padding="10,2" Height="30" Foreground="#673AB7"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

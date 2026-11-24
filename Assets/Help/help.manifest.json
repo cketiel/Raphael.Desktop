@@ -3,8 +3,8 @@
   "coversApp": {
     "Raphael.Desktop": "1.23.0"
   },
-  "builtUtc": "2026-11-24T18:20:12.204Z",
-  "sourceCommit": "a83ef95",
+  "builtUtc": "2026-11-24T18:40:56.041Z",
+  "sourceCommit": "9ad891e",
   "languages": [
     "es",
     "en"
@@ -291,6 +291,21 @@
       "title": {
         "es": "Home — dar de alta un viaje",
         "en": "Home — booking a trip"
+      }
+    },
+    {
+      "id": "desktop/home/columns",
+      "mode": "how-to",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": null,
+      "title": {
+        "es": "Elegir las columnas de Home y su orden",
+        "en": "Choose the columns of Home and their order"
       }
     },
     {

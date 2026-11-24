@@ -5,7 +5,7 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 to RE-086 and RE-088. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
+Slices RE-083 to RE-086, RE-088 and RE-089. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
@@ -33,12 +33,15 @@ and simply have no kinds and no warnings.
 - Live map help (RE-086): nine topics, one per area, in both languages; F1 opens the one under the mouse,
   also inside the map page.
 
+- Home columns (RE-089): each user chooses which ones and in what order, in a new panel or by dragging the
+  headers; kept on the server (`api/user-preferences`), with a copy on the computer.
 - Compliance (RE-088): select all in the header of the ticks and a count, in Staff and Expiring; Staff hides the
   inactive people unless asked.
 
 ### Changed
 - Fleet productivity (RE-088): the filters say what is ticked, have a clear button, answer at once and put
   first whoever has data in the dates.
+- Home (RE-089): Run comes after Patient and the two comment columns start hidden.
 - Home figures (RE-084): the band and the plates are the sum total = done + in progress + not started +
   canceled + without a run, each trip in one part. "Without a run" no longer counts canceled trips. The
   day's money is no longer on either; the footer plates replace the text that repeated the band.

@@ -54,6 +54,7 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         public void RefreshLocalizedText()
         {
+            Columns?.RefreshTexts();
             OnPropertyChanged(string.Empty);
 
             // The chips are strings already built, so no notification reaches inside them.
@@ -773,7 +774,6 @@ namespace Raphael.Desktop.ViewModels
         private readonly UserConfigService _config = new();
 
         private const string CompactKey = "HomeGridCompact";
-        private const string ColumnsKey = "HomeGridColumns";
 
 
         #region Guidance (2.2)
@@ -1243,77 +1243,6 @@ namespace Raphael.Desktop.ViewModels
             TripsView.SortDescriptions.Add(new SortDescription(
                 saved.Property,
                 saved.Ascending ? ListSortDirection.Ascending : ListSortDirection.Descending));
-        }
-
-        #endregion
-
-        #region Which columns are on screen
-
-        /// <summary>What each column asks before drawing itself.</summary>
-        public ColumnVisibilityMap ColumnVisibility { get; } = new();
-
-        /// <summary>
-        /// The layout behind <see cref="ColumnVisibility"/>, in the order the dialog shows it.
-        /// </summary>
-        private ObservableCollection<ColumnConfig> _columnLayout = new();
-
-        /// <summary>
-        /// Reads back the layout kept for this grid, or builds the default one.
-        /// </summary>
-        /// <remarks>
-        /// Its own key, not the Schedule tab's: the two grids show different columns, and one
-        /// layout serving both means hiding a column here hides an unrelated one there.
-        /// </remarks>
-        private void InitializeColumns()
-        {
-            var defaults = new[]
-            {
-                ("Day", DayText), ("Date", DateText), ("FromTime", FromTimeText), ("ToTime", ToTimeText),
-                ("CustomerName", CustomerNameText), ("PickupAddress", PickupAddressText),
-                ("DropoffAddress", DropoffAddressText), ("PickupCity", PickupCityText),
-                ("DropoffCity", DropoffCityText), ("SpaceTypeName", SpaceTypeNameText),
-                ("FundingSourceName", FundingSourceText), ("Type", TypeText), ("TripId", TripIdText),
-                ("RunName", RunText), ("Distance", DistanceText), ("Charge", ChargeText),
-                ("Paid", PaidText), ("Authorization", AuthorizationText), ("Pickup", PickupText),
-                ("PickupPhone", PickupPhoneText), ("PickupComment", PickupCommentText),
-                ("Dropoff", DropoffText), ("DropoffPhone", DropoffPhoneText),
-                ("DropoffComment", DropoffCommentText),
-                ("DriverNoShowReason", DriverNoShowReasonText)
-            };
-
-            var saved = _config.LoadColumnConfig(ColumnsKey);
-
-            _columnLayout = new ObservableCollection<ColumnConfig>(
-                defaults.Select(d => new ColumnConfig
-                {
-                    PropertyName = d.Item1,
-                    Header = d.Item2,
-                    IsVisible = saved?.FirstOrDefault(s => s.PropertyName == d.Item1)?.IsVisible ?? true
-                }));
-
-            ColumnVisibility.Apply(_columnLayout);
-
-            IsCompactGrid = _config.Load<bool>(CompactKey);
-        }
-
-        [RelayCommand]
-        private void ChooseColumns()
-        {
-            Action close = null;
-
-            var dialogViewModel = new ScheduleColumnSelectorViewModel(_columnLayout, () => close?.Invoke());
-            var dialog = new Views.Schedules.ColumnSelectorView { DataContext = dialogViewModel };
-
-            close = () => dialog.Close();
-
-            dialog.ShowDialog();
-
-            if (dialogViewModel.DialogResult != true) return;
-
-            _columnLayout = new ObservableCollection<ColumnConfig>(dialogViewModel.Columns);
-
-            ColumnVisibility.Apply(_columnLayout);
-            _config.SaveColumnConfig(ColumnsKey, _columnLayout);
         }
 
         #endregion
@@ -2339,7 +2268,6 @@ namespace Raphael.Desktop.ViewModels
 
         /// <summary>Raphael's admin sees every trip's Provider and gives trips to Providers.</summary>
         public bool IsPlatformAdmin => Helpers.SessionManager.IsPlatformAdmin;
-        public Visibility ProviderColumnVisibility => IsPlatformAdmin ? Visibility.Visible : Visibility.Collapsed;
         public string ProviderText => LocalizationService.Instance["home.Provider"];
 
         public ObservableCollection<ProviderOption> ProviderOptions { get; } = new();

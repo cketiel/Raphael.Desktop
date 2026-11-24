@@ -665,7 +665,7 @@
     "home.TourNext": "Next",
     "home.TourDone": "Got it",
     "home.TourHelp": "Show me how to book a trip",
-    "home.ChooseColumns": "Choose which columns to show",
+    "home.ChooseColumns": "Choose the columns and their order",
     "home.CompactGrid": "Compact rows",
     "home.ZipStateWarning": "Read out of the address text, so it is dependable on imported trips and not on ones typed through Google Places. County is not stored anywhere yet.",
     "home.DividerSummary": "{0} trips = {1} done + {2} in progress + {3} not started + {4} canceled + {5} without a run",
@@ -2282,5 +2282,15 @@
     "reports.ErrGps": "An error occurred while generating the GPS report: {0}",
     "compliance.SelectAll": "Select all",
     "compliance.HideInactive": "Hide inactive",
-    "compliance.SelectedCount": "{0} selected"
+    "compliance.SelectedCount": "{0} selected",
+    "home.columns.Title": "Columns",
+    "home.columns.Hint": "Drag by the dots to change the order; the switch shows or hides. Saved for you only.",
+    "home.columns.Search": "Find a column",
+    "home.columns.ShowAll": "Show all",
+    "home.columns.Reset": "Reset",
+    "home.columns.Close": "Close",
+    "home.columns.Drag": "Drag to move",
+    "home.columns.Up": "Move up",
+    "home.columns.Down": "Move down",
+    "home.columns.Summary": "{0} of {1} shown"
 }
