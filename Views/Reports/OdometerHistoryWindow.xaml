@@ -1,0 +1,80 @@
+<Window x:Class="Raphael.Desktop.Views.Reports.OdometerHistoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        xmlns:services="clr-namespace:Raphael.Desktop.Services"
+        Title="{Binding Title}" Width="1080" Height="660" MinWidth="760" MinHeight="420" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="#F4F5FA" TextElement.Foreground="#1E2A36" FontSize="13">
+    <!-- RE-092. Every reading of a vehicle, which ones do not fit, and who corrected what. -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Vis"/>
+    </Window.Resources>
+    <DockPanel Margin="18">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <ToggleButton IsChecked="{Binding OnlyOdd}" Style="{StaticResource MaterialDesignSwitchToggleButton}"/>
+                <TextBlock Text="{Binding Path=[odo.OnlyOdd], Source={x:Static services:LocalizationService.Instance}}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="Bold" Foreground="#4527A0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="{Binding Path=[odo.LastReading], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding LastText}" FontSize="18" FontWeight="Bold" Margin="8,0,0,0"/>
+                    <TextBlock Text="{Binding LastWhen}" Foreground="#5B6B7C" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Path=[odo.Days], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" Margin="18,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+        <Border DockPanel.Dock="Top" Background="#F1EBFA" CornerRadius="7" Padding="12,7" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="PencilOutline" Width="16" Height="16" Foreground="#673AB7" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding HintText}" Foreground="#4527A0" Margin="8,0,0,0"/>
+            </StackPanel>
+        </Border>
+        <ProgressBar DockPanel.Dock="Top" IsIndeterminate="True" Visibility="{Binding IsBusy, Converter={StaticResource Vis}}"/>
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding Message}" Foreground="#5B6B7C" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+        <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5">
+            <DataGrid ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" AlternationCount="2"
+                      Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}"
+                      RowStyle="{StaticResource ContentRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Date}" Width="104"><DataGridTextColumn.Header><TextBlock Text="{Binding Path=[odo.ColDate], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Event}" Width="120"><DataGridTextColumn.Header><TextBlock Text="{Binding Path=[odo.ColEvent], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTemplateColumn Width="120">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Path=[odo.ColReading], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Background="Transparent" Cursor="{Binding ReadingCursor}" ToolTip="{Binding ReadingTip}" MouseLeftButtonUp="OnReading">
+                                <TextBlock Text="{Binding Reading}" FontWeight="SemiBold" Foreground="#4527A0" TextDecorations="Underline"/>
+                                <materialDesign:PackIcon Kind="History" Width="16" Height="16" Foreground="#673AB7" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                         ToolTip="{Binding CorrectionsText}" Visibility="{Binding HasCorrections, Converter={StaticResource Vis}}"/>
+                            </StackPanel>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Binding="{Binding Since}" Width="150"><DataGridTextColumn.Header><TextBlock Text="{Binding Path=[odo.ColSince], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Driver}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Path=[odo.ColDriver], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding Route}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Path=[odo.ColRoute], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTemplateColumn Width="200">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Path=[odo.ColStatus], Source={x:Static services:LocalizationService.Instance}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <Border Background="{Binding StatusFill}" CornerRadius="9" Padding="8,2" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusInk}" FontSize="12" FontWeight="SemiBold"/>
+                            </Border>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <Button Click="OnCorrect" Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#673AB7" BorderBrush="#B39DDB" Height="26" Padding="9,0" Margin="4,1"
+                                    ToolTip="{Binding ReadingTip}" Visibility="{Binding CanCorrect, Converter={StaticResource Vis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="PencilOutline" Width="15" Height="15" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CorrectText}" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </DockPanel>
+</Window>

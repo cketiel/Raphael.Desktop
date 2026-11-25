@@ -1057,6 +1057,17 @@ namespace Raphael.Desktop
                         OpenAlertSettings();
                         break;
 
+                    // RE-092: the report's legend opens over whatever is there; the report, on its tab.
+                    case "raphael://open/report-warnings":
+                        Activate();
+                        Views.Reports.WarningLegendWindow.ShowLegend(null);
+                        break;
+
+                    case "raphael://open/tab/reports":
+                        OpenTab(LocalizationService.Instance["Reports"], new ReportsView(), PackIconKind.FileChart);
+                        CurrentMenu = MENU.Reports;
+                        break;
+
                     default:
                         FileLogger.Log($"The help asked for an action this build does not know: {action}");
                         break;

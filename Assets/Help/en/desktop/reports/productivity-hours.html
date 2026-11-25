@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-help-id="desktop/reports/productivity-hours">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The hours — how the paid shift is worked out · Raphael Help</title>
+<meta name="description" content="The exact rule of the hours that are paid: allowed start and end, the six groups of minutes, which figure is paid and why, with a full example.">
+<meta name="help-covers" content="Raphael.Desktop 1.22.0">
+<meta name="help-built" content="2026-11-25">
+<link rel="stylesheet" href="../../../assets/help.css">
+</head>
+<body>
+<a class="rf-skip" href="#rf-content">Skip to content</a>
+
+<div class="rf-shell">
+
+  <header class="rf-head">
+    <button class="rf-btn rf-nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="rf-nav" title="Show or hide the contents">☰</button>
+
+    <a class="rf-brand" href="../../../en/desktop/getting-started/overview.html">
+      <span class="rf-brand-mark" aria-hidden="true">R</span>
+      <span>Raphael Help</span>
+      <span class="rf-brand-sub">1.22.0</span>
+    </a>
+
+    <div class="rf-search">
+      <span class="rf-search-icon" aria-hidden="true">⌕</span>
+      <input type="search" id="rf-search-input" autocomplete="off" spellcheck="false"
+             placeholder="Search… (trip, Will Call, bell)" aria-label="Search the help"
+             aria-expanded="false" aria-controls="rf-results" role="combobox">
+      <kbd>/</kbd>
+      <div class="rf-results" id="rf-results" role="listbox" hidden></div>
+    </div>
+
+    <div class="rf-head-actions">
+      <a class="rf-btn rf-btn-lang" href="../../../es/desktop/reports/productivity-hours.html" title="View in Spanish" data-lang-switch>ES</a>
+      <button class="rf-btn" type="button" data-theme-toggle title="Switch between light and dark" aria-label="Switch between light and dark">◐</button>
+      <button class="rf-btn" type="button" data-print title="Print this topic">Print</button>
+    </div>
+  </header>
+
+  <nav class="rf-nav" id="rf-nav" aria-label="Contents">
+    <div class="rf-nav-section"><p class="rf-nav-title">Getting started</p><ul><li><a href="../../../en/desktop/getting-started/overview.html" data-roles="admin dispatcher driver">Raphael Desktop in five minutes</a></li><li><a href="../../../en/desktop/getting-started/help-itself.html" data-roles="admin dispatcher driver">How to use this help</a></li><li><a href="../../../en/desktop/whats-new/overview.html" data-roles="admin dispatcher driver">What's new</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Notifications</p><ul><li><a href="../../../en/desktop/notifications/overview.html" data-roles="admin dispatcher">What the system tells you, and why</a></li><li><a href="../../../en/desktop/notifications/bell.html" data-roles="admin dispatcher">The bell and its two marks</a></li><li><a href="../../../en/desktop/notifications/live-alerts.html" data-roles="admin dispatcher">Live alerts</a></li><li><a href="../../../en/desktop/notifications/alert-preferences.html" data-roles="admin dispatcher">Sound and silence</a></li><li><a href="../../../en/desktop/notifications/center.html" data-roles="admin dispatcher">The Notification Centre</a></li><li><a href="../../../en/desktop/notifications/call-requests.html" data-roles="admin dispatcher">Driver calls — calling back with everything in front of you</a></li><li><a href="../../../en/desktop/notifications/detail-panel.html" data-roles="admin dispatcher">The notice details</a></li><li><a href="../../../en/desktop/notifications/will-call.html" data-roles="admin dispatcher">Attending a Will Call</a></li><li><a href="../../../en/desktop/notifications/catalog.html" data-roles="admin dispatcher">The notices, one by one</a></li><li><a href="../../../en/desktop/notifications/read-state.html" data-roles="admin dispatcher">Read and unread</a></li><li><a href="../../../en/desktop/notifications/keep-cleanup.html" data-roles="admin dispatcher">Keeping a notice, and the automatic cleanup</a></li><li><a href="../../../en/desktop/notifications/admin.html" data-roles="admin">Notification administration</a></li><li><a href="../../../en/desktop/notifications/export.html" data-roles="admin dispatcher">Exporting notices to Excel</a></li><li><a href="../../../en/desktop/notifications/troubleshooting.html" data-roles="admin dispatcher">When nothing arrives</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">The tabs</p><ul><li><a href="../../../en/desktop/home/overview.html" data-roles="admin dispatcher">Home — booking a trip</a></li><li><a href="../../../en/desktop/home/columns.html" data-roles="admin dispatcher">Choose the columns of Home and their order</a></li><li><a href="../../../en/desktop/home/cancel-trip.html" data-roles="admin dispatcher">Cancel a trip and see who cancelled it</a></li><li><a href="../../../en/desktop/home/import-trips.html" data-roles="admin dispatcher">Import a broker's trips</a></li><li><a href="../../../en/desktop/home/edit-restrictions.html" data-roles="admin dispatcher">Trips you cannot edit</a></li><li><a href="../../../en/desktop/home/trip-notes.html" data-roles="admin dispatcher">Notes for the driver</a></li><li><a href="../../../en/desktop/data/overview.html" data-roles="admin dispatcher">Data — the master data</a></li><li><a href="../../../en/desktop/data/route-garage.html" data-roles="admin dispatcher">Changing a route's garage</a></li><li><a href="../../../en/desktop/data/route-driver.html" data-roles="admin dispatcher">One driver, one route a day</a></li><li><a href="../../../en/desktop/data/vehicles.html" data-roles="admin dispatcher">Vehicles — the list and what each one carries</a></li><li><a href="../../../en/desktop/data/odometer.html" data-roles="admin dispatcher">A vehicle's odometer — history and correction</a></li><li><a href="../../../en/desktop/data/space-types.html" data-roles="admin dispatcher">Space types — what vehicle each one needs</a></li><li><a href="../../../en/desktop/data/vehicle-configurations.html" data-roles="admin">Vehicle configurations and classes of seat</a></li><li><a href="../../../en/desktop/data/out-of-service.html" data-roles="admin dispatcher">Take a vehicle or a driver out of service</a></li><li><a href="../../../en/desktop/schedules/overview.html" data-roles="admin dispatcher">Schedules — planning the day</a></li><li><a href="../../../en/desktop/schedules/routing.html" data-roles="admin dispatcher">Route a trip</a></li><li><a href="../../../en/desktop/schedules/vehicle-warning.html" data-roles="admin dispatcher">The warning that a trip does not fit the line</a></li><li><a href="../../../en/desktop/schedules/stop-order.html" data-roles="admin dispatcher">Change the order of the stops</a></li><li><a href="../../../en/desktop/schedules/early-arrival.html" data-roles="admin dispatcher">How long the driver waits</a></li><li><a href="../../../en/desktop/schedules/unrouting.html" data-roles="admin dispatcher">Take a trip off a route</a></li><li><a href="../../../en/desktop/schedules/live-board.html" data-roles="admin dispatcher">Why the screen changes on its own</a></li><li><a href="../../../en/desktop/schedules/vehicle-inspection.html" data-roles="admin dispatcher">Vehicle inspection</a></li><li><a href="../../../en/desktop/dispatch/overview.html" data-roles="admin dispatcher">Dispatch — watching the routes that are running</a></li><li><a href="../../../en/desktop/live-map/overview.html" data-roles="admin dispatcher">Live map — the fleet of the day</a></li><li><a href="../../../en/desktop/live-map/vehicles.html" data-roles="admin dispatcher">The vehicles on the map and the pace</a></li><li><a href="../../../en/desktop/live-map/filters-layers.html" data-roles="admin dispatcher">Filters, counts, layers and legend</a></li><li><a href="../../../en/desktop/live-map/today.html" data-roles="admin dispatcher">Today, the In progress list and Drivers</a></li><li><a href="../../../en/desktop/live-map/selection.html" data-roles="admin dispatcher">The selected line: road, Follow and Details</a></li><li><a href="../../../en/desktop/live-map/search.html" data-roles="admin dispatcher">Search: lines, trips and places</a></li><li><a href="../../../en/desktop/live-map/view.html" data-roles="admin dispatcher">The view: buttons, windows, styles and 3D</a></li><li><a href="../../../en/desktop/live-map/voice.html" data-roles="admin dispatcher">Voice: talking to the map</a></li><li><a href="../../../en/desktop/live-map/power-up.html" data-roles="admin dispatcher">POWER UP: keys and costs</a></li><li><a href="../../../en/desktop/reports/overview.html" data-roles="admin dispatcher driver">Reports — the reports</a></li><li><a href="../../../en/desktop/reports/production.html" data-roles="admin dispatcher driver">Production Report — a period's production</a></li><li><a href="../../../en/desktop/reports/productivity.html" data-roles="admin dispatcher">Fleet productivity — the screen</a></li><li><a href="../../../en/desktop/reports/productivity-hours.html" aria-current="page" data-roles="admin dispatcher">The hours — how the paid shift is worked out</a></li><li><a href="../../../en/desktop/reports/productivity-miles.html" data-roles="admin dispatcher">The miles — odometer, with a patient, occupied and empty</a></li><li><a href="../../../en/desktop/reports/productivity-pay.html" data-roles="admin">The pay — what each driver is paid and why</a></li><li><a href="../../../en/desktop/reports/warnings.html" data-roles="admin dispatcher">The report's warnings — all thirteen</a></li><li><a href="../../../en/desktop/compliance/overview.html" data-roles="admin dispatcher">Compliance — driver, vehicle and dispatcher documents</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Admin</p><ul><li><a href="../../../en/desktop/admin/overview.html" data-roles="admin">Admin — employees, billing and integrators</a></li><li><a href="../../../en/desktop/admin/employees.html" data-roles="admin">Admin — Employees</a></li><li><a href="../../../en/desktop/admin/driver-pay.html" data-roles="admin">A driver's pay rate — hourly or per mile</a></li><li><a href="../../../en/desktop/admin/mcp-access.html" data-roles="admin">AI access (MCP)</a></li><li><a href="../../../en/desktop/admin/mcp-connect.html" data-roles="admin">Connect your AI assistant</a></li><li><a href="../../../en/desktop/admin/billing.html" data-roles="admin">Admin — Billing</a></li><li><a href="../../../en/desktop/admin/billing-rates.html" data-roles="admin">Admin — Funding source rates</a></li><li><a href="../../../en/desktop/admin/profile.html" data-roles="admin">Admin — Profile</a></li><li><a href="../../../en/desktop/admin/integrators.html" data-roles="admin">Admin — Integrators</a></li><li><a href="../../../en/desktop/admin/providers.html" data-roles="admin">Admin — Providers</a></li><li><a href="../../../en/desktop/admin/catalog-integrators.html" data-roles="admin">Catalog — Integrators</a></li><li><a href="../../../en/desktop/admin/catalog-providers.html" data-roles="admin">Catalog — Providers</a></li><li><a href="../../../en/desktop/admin/google-maps.html" data-roles="admin">Google Maps — usage, cost and savings</a></li><li><a href="../../../en/desktop/admin/google-maps/summary.html" data-roles="admin">Google Maps — Summary</a></li><li><a href="../../../en/desktop/admin/google-maps/detail.html" data-roles="admin">Google Maps — Detail</a></li><li><a href="../../../en/desktop/admin/google-maps/settings.html" data-roles="admin">Google Maps — Settings</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Glossary</p><ul><li><a href="../../../en/_shared/glossary/will-call.html">Will Call</a></li><li><a href="../../../en/_shared/glossary/no-show.html">No-show</a></li><li><a href="../../../en/_shared/glossary/run.html">Route</a></li><li><a href="../../../en/_shared/glossary/leg.html">Leg — outbound and return</a></li><li><a href="../../../en/_shared/glossary/space-type.html">Space type</a></li><li><a href="../../../en/_shared/glossary/funding-source.html">Funding source</a></li></ul></div>
+  </nav>
+
+  <main class="rf-main" id="rf-content">
+    <article class="rf-article">
+
+      <div data-stale-slot></div>
+
+      <div class="rf-crumbs"><span><a href="../../../en/desktop/getting-started/overview.html">Home</a></span><span>The tabs</span><span>The hours — how the paid shift is worked out</span></div>
+      <h1 class="rf-title">The hours — how the paid shift is worked out</h1>
+      <p class="rf-summary">The exact rule of the hours that are paid: allowed start and end, the six groups of minutes, which figure is paid and why, with a full example.</p>
+      <div class="rf-meta"><span class="rf-chip rf-chip-mode">reference</span><span class="rf-chip rf-chip-new">New in 1.23.0</span></div>
+
+      <p>A driver paid by the hour is paid the <strong>paid shift</strong>: the part of their shift the <a class="help-term" href="../../../en/_shared/glossary/run.html" data-term-title="Route" data-term-summary="A vehicle, a driver and a span of dates and hours. It is the unit trips are assigned to.">route</a> justifies. It is worked out with an exact rule, <strong>with no margin</strong>, the same for everyone.</p>
+<h2 id="the-formula">The formula<a class="help-anchor" href="#the-formula" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>Allowed start</strong> = first stop's promised hour − drive from the garage to it − preparation − inspection</p>
+<p><strong>Allowed end</strong> = last stop's Perform + drive back to the garage + inspection</p>
+<div class="help-table-scroll"><table><thead><tr><th></th><th>Paid from / until</th></tr></thead><tbody><tr><td><strong>Paid start</strong></td><td>The <strong>later</strong> of the real start and the allowed start</td></tr>
+<tr><td><strong>Paid end</strong></td><td>The <strong>earlier</strong> of the real Pull-in and the allowed end</td></tr></tbody></table></div>
+<p><strong>Paid shift = paid end − paid start</strong></p>
+<h2 id="where-each-number-comes-from">Where each number comes from<a class="help-anchor" href="#where-each-number-comes-from" aria-label="Enlace a esta sección">#</a></h2>
+<div class="help-table-scroll"><table><thead><tr><th>Number</th><th>What it is</th></tr></thead><tbody><tr><td>Promised hour</td><td>The pickup hour of the first real stop. Without one, its <a class="help-term" href="../../../en/_shared/glossary/leg.html" data-term-title="Leg — outbound and return" data-term-summary="A round journey is not one trip, it is two: Appointment and Return, each with its own number and status.">appointment</a></td></tr>
+<tr><td>Drive out</td><td>Garage → first stop, at the hour they had to leave. The server works it out</td></tr>
+<tr><td>Preparation</td><td><strong>20 minutes</strong>, fixed</td></tr>
+<tr><td>Inspection</td><td>The minutes paid for <strong>each</strong> inspection: <strong>10</strong> from the factory, and only if the Provider has the inspection on. Without it, 0</td></tr>
+<tr><td>Last stop's Perform</td><td>The real hour the last trip ended</td></tr>
+<tr><td>Drive back</td><td>Last stop → garage. The <strong>server</strong> works it out and keeps it when that Perform is done; nobody can stretch it from the phone</td></tr>
+<tr><td>Real start</td><td>The beginning of the Pull-out inspection. Without an inspection, the Pull-out</td></tr>
+<tr><td>Real end</td><td>The Pull-in</td></tr></tbody></table></div>
+<p>A cancelled trip nobody drove to is not a stop. If the driver reached the door, it is.</p>
+<h2 id="a-full-example">A full example<a class="help-anchor" href="#a-full-example" aria-label="Enlace a esta sección">#</a></h2>
+<p>The first pickup is at <strong>08:00</strong>, with a 34-minute drive and the inspection on. The driver started at <strong>06:08</strong> and their last Perform was at <strong>16:41</strong>, with a 31-minute drive back. They did the Pull-in at <strong>18:10</strong>.</p>
+<div class="help-table-scroll"><table><thead><tr><th>Step</th><th>Sum</th><th>Result</th></tr></thead><tbody><tr><td>Allowed start</td><td>08:00 − 34 − 20 − 10 min</td><td><strong>06:56</strong></td></tr>
+<tr><td>Paid start</td><td>the later of 06:08 and 06:56</td><td><strong>06:56</strong></td></tr>
+<tr><td>Not paid at the start</td><td>06:56 − 06:08</td><td>48 min</td></tr>
+<tr><td>Allowed end</td><td>16:41 + 31 + 10 min</td><td><strong>17:22</strong></td></tr>
+<tr><td>Paid end</td><td>the earlier of 18:10 and 17:22</td><td><strong>17:22</strong></td></tr>
+<tr><td>Not paid at the end</td><td>18:10 − 17:22</td><td>48 min</td></tr>
+<tr><td><strong>Paid shift</strong></td><td>17:22 − 06:56</td><td><strong>10:26</strong></td></tr>
+<tr><td>Real shift</td><td>18:10 − 06:08</td><td>12:02</td></tr></tbody></table></div>
+<p>10:26 paid + 1:36 not paid = 12:02 real. At $15.00 an hour, <strong>$156.50</strong> are paid.</p>
+<p>Had they started <strong>late</strong>, at 07:10, they would be paid from 07:10: it is paid from when they arrive.</p>
+<p>This sum, with each day's numbers, is in <strong>Calculation</strong>: three bars —real shift, not paid and paid shift— each with its total, and the sums of the start and the end below.</p>
+<h2 id="the-six-groups-where-the-shift-went">The six groups: where the shift went<a class="help-anchor" href="#the-six-groups-where-the-shift-went" aria-label="Enlace a esta sección">#</a></h2>
+<p>Each minute of the paid shift falls in <strong>one</strong> group only. If it fits two, it stays in the first of the table. The six add up to the paid shift exactly. <strong>They are only its breakdown: they are not paid separately.</strong> What is paid is the whole paid shift, wherever it went.</p>
+<div class="help-table-scroll"><table><thead><tr><th>#</th><th>Group</th><th>Which minutes</th></tr></thead><tbody><tr><td>1</td><td><strong>With patient</strong></td><td>From the pickup's Perform to the dropoff's. Two trips at once count once</td></tr>
+<tr><td>2</td><td><strong>Inspection</strong></td><td>What each inspection lasted, up to its maximum</td></tr>
+<tr><td>3</td><td><strong>Wait for the hour</strong></td><td>Arrived before the window opened: 15 min before the hour on the way out, 5 on a return</td></tr>
+<tr><td>4</td><td><strong>Wait for the patient</strong></td><td>With the window open, until Perform. At the dropoff, from arriving to Perform</td></tr>
+<tr><td>5</td><td><strong>Driving empty</strong></td><td>Driving to a stop with nobody on board, from leaving the previous one or pressing Start</td></tr>
+<tr><td>6</td><td><strong>Other</strong></td><td>The rest: free time between trips, lunch, the long part of an inspection</td></tr></tbody></table></div>
+<p>So <strong>free time between trips</strong> takes nothing off: it is inside the paid shift.</p>
+<h2 id="what-comes-apart">What comes apart<a class="help-anchor" href="#what-comes-apart" aria-label="Enlace a esta sección">#</a></h2>
+<div class="help-table-scroll"><table><thead><tr><th>Figure</th><th>What it is</th><th>Paid?</th></tr></thead><tbody><tr><td><strong>Real shift</strong></td><td>From the real start to the Pull-in</td><td>No</td></tr>
+<tr><td><strong>Not paid</strong></td><td>What is outside the allowed start and end</td><td>No</td></tr>
+<tr><td><strong>Patient-hours</strong></td><td>One hour with two patients is two. Outside the sum</td><td>No</td></tr>
+<tr><td><strong>Trips</strong></td><td>Those completed</td><td>No</td></tr></tbody></table></div>
+<h2 id="the-shift-outside-the-allowed-hours-warning">The &quot;Shift outside the allowed hours&quot; warning<a class="help-anchor" href="#the-shift-outside-the-allowed-hours-warning" aria-label="Enlace a esta sección">#</a></h2>
+<p>Unpaid minutes are left out <strong>all of them</strong>, one by one. The warning deducts nothing: it only calls your attention when they exceed its limit, 15 minutes from the factory. With 10 unpaid minutes there is no warning, and they are not paid either.</p>
+<h2 id="what-can-be-adjusted">What can be adjusted<a class="help-anchor" href="#what-can-be-adjusted" aria-label="Enlace a esta sección">#</a></h2>
+<p>The platform administrator changes the <strong>minutes paid for each inspection</strong> in <a href="#" class="help-action" data-action="raphael://open/report-warnings"><span class="help-action-icon" aria-hidden="true"></span>What do the warnings mean?</a> → <strong>Shift outside the allowed hours</strong>. It applies to the shifts worked out from then on, today's included; those already worked out do not change, not even with the 3:00 pass: each keeps the minutes it used. The 20-minute preparation does not change.</p>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">The values that set the warnings off can be edited</p><p>The platform administrator changes them in <a href="#" class="help-action" data-action="raphael://open/report-warnings"><span class="help-action-icon" aria-hidden="true"></span>What do the warnings mean?</a>: each warning has its <strong>limit</strong> there and can be turned off. How to do it: <a href="../../../en/desktop/reports/warnings.html">Changing the limits</a>.</p></aside>
+<h2 id="what-can-go-wrong">What can go wrong<a class="help-anchor" href="#what-can-go-wrong" aria-label="Enlace a esta sección">#</a></h2>
+<div class="help-table-scroll"><table><thead><tr><th>What you see</th><th>What happens</th></tr></thead><tbody><tr><td>&quot;Shift end without a limit&quot;</td><td>A stop was left without a Perform and there is no drive back: it is paid until the Pull-in</td></tr>
+<tr><td>&quot;The allowed start could not be worked out&quot;</td><td>The first stop has no hour: it is paid from the real start</td></tr>
+<tr><td>They earn less than the driver says</td><td>Open the calculation: nearly always they started before the allowed hour</td></tr>
+<tr><td>The shift ended past midnight</td><td>It is measured until the hour it ended, on the next day</td></tr></tbody></table></div>
+
+      <section class="rf-related"><h2>See also</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../en/desktop/reports/productivity.html"><strong>Fleet productivity — the screen</strong><span>What the hours and miles report is, every zone of the screen, every column, every button and what to do in each situation.</span></a><a class="rf-related-card" href="../../../en/desktop/reports/productivity-pay.html"><strong>The pay — what each driver is paid and why</strong><span>The two ways of paying, hourly or per mile, the figure each one uses, what is not paid and how the grand total is reached.</span></a><a class="rf-related-card" href="../../../en/desktop/reports/warnings.html"><strong>The report's warnings — all thirteen</strong><span>How Fleet productivity's warnings and their cases are seen, what each one means, when it goes off, whether it affects pay, what to do and how their limits are set.</span></a></div></section>
+
+      <footer class="rf-foot">
+        <span class="rf-slogan">Raphael Driving Health · The Rider’s Angel</span>
+        <span data-covers>Covers Raphael.Desktop 1.22.0</span>
+        <span>Updated 2026-11-25</span>
+        <button class="rf-btn" type="button" data-diagnostics>Copy report for support</button>
+      </footer>
+
+    </article>
+  </main>
+
+  <aside class="rf-aside" aria-label="On this page">
+    <p class="rf-aside-title">On this page</p>
+    <ul><li class="rf-lvl-2"><a href="#the-formula">The formula</a></li><li class="rf-lvl-2"><a href="#where-each-number-comes-from">Where each number comes from</a></li><li class="rf-lvl-2"><a href="#a-full-example">A full example</a></li><li class="rf-lvl-2"><a href="#the-six-groups-where-the-shift-went">The six groups: where the shift went</a></li><li class="rf-lvl-2"><a href="#what-comes-apart">What comes apart</a></li><li class="rf-lvl-2"><a href="#the-shift-outside-the-allowed-hours-warning">The &quot;Shift outside the allowed hours&quot; warning</a></li><li class="rf-lvl-2"><a href="#what-can-be-adjusted">What can be adjusted</a></li><li class="rf-lvl-2"><a href="#what-can-go-wrong">What can go wrong</a></li></ul>
+  </aside>
+
+</div>
+
+<script>window.__HELP_PAGE__ = {"id":"desktop/reports/productivity-hours","lang":"en","app":"Raphael.Desktop","appVersion":"1.22.0","built":"2026-11-25","sourceCommit":"7885f56","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Raphael Help","slogan":"Raphael Driving Health · The Rider’s Angel","skip":"Skip to content","contents":"Contents","toggleContents":"Show or hide the contents","search":"Search the help","searchPlaceholder":"Search… (trip, Will Call, bell)","searchNoResults":"Nothing matches “{0}”.","searchHint":"Try fewer words, or the name the office actually uses.","onThisPage":"On this page","seeAlso":"See also","breadcrumbHome":"Home","print":"Print","printTitle":"Print this topic","theme":"Switch between light and dark","language":"Language","languageSwitch":"View in Spanish","copyDiagnostics":"Copy report for support","copyDiagnosticsDone":"Report copied. Paste it into your email to support.","copyDiagnosticsFailed":"Could not copy. Select the footer text and copy it by hand.","newIn":"New in {0}","coversLine":"Covers {0} {1}","updatedLine":"Updated {0}","staleTitle":"This help is behind the application.","staleBody":"It covers version {0} and you are running {1}. Anything added since may be missing.","actionUnavailable":"This only works with the help open inside the application.","mode":{"how-to":"how-to","reference":"reference","explanation":"why","tutorial":"walkthrough"}}};</script>
+<script src="../../../assets/search-index.en.js"></script>
+<script src="../../../assets/help.js"></script>
+</body>
+</html>

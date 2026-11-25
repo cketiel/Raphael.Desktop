@@ -190,7 +190,7 @@ public sealed class HelpService : IHelpService
         if (active is HelpWindow)
             return HelpTopics.UsingHelp;
 
-        var topic = ResolveFocusWithin(active);
+        var topic = (active is MainWindow ? HelpAssist.ResolveFromMouse() : null) ?? ResolveFocusWithin(active);
 
         if (topic is null && active is MainWindow)
             topic = HelpAssist.ResolveInSubtree(ActiveContentProvider?.Invoke());

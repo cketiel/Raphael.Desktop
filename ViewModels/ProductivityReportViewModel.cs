@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using QuestPDF.Fluent;
 using Raphael.Desktop.DTOs;
 using Raphael.Desktop.Helpers;
@@ -26,6 +27,7 @@ namespace Raphael.Desktop.ViewModels
     public partial class ProductivityReportViewModel : ObservableObject
     {
         private readonly IProductivityReportService _service;
+        private readonly IProductivityWarningService _warnings = new ProductivityWarningService();
         private readonly UserService _users = new();
         private readonly VehicleService _vehicles = new();
         private bool _filtersLoaded;
@@ -46,6 +48,10 @@ namespace Raphael.Desktop.ViewModels
             };
 
             _rowsView = Grouped(Rows);
+
+            // RE-092: the limits were changed in the legend, which stays open beside the report.
+            WeakReferenceMessenger.Default.Register<ProductivityReportViewModel, WarningLimitsSaved>(this,
+                (vm, saved) => { if (vm.HasRun) _ = vm.LoadWarningsAsync(); });
         }
 
         /// <summary>
@@ -183,6 +189,10 @@ namespace Raphael.Desktop.ViewModels
 
         public bool HasRows => Rows.Count > 0;
 
+        /// <summary>The period at a glance: one card per figure, each with its explanation.</summary>
+        public IReadOnlyList<ReportTile> Tiles { get; private set; } = Array.Empty<ReportTile>();
+        public int TileColumns => Math.Max(1, Tiles.Count);
+
         public ProductivityTotals Totals { get; private set; } = ProductivityTotals.Of(Array.Empty<ProductivityReportRowDto>());
 
         [RelayCommand(CanExecute = nameof(CanGenerate))]
@@ -200,7 +210,9 @@ namespace Raphael.Desktop.ViewModels
                 MarkData(Drivers, _all.Select(r => r.DriverId));
                 MarkData(Vehicles, _all.Select(r => r.VehicleId));
                 HasRun = true;
+                _days = null;
                 Show(Filtered());
+                _ = LoadWarningsAsync();   // after the report is on screen, which never waits for them
             }
             catch (Exception ex)
             {
@@ -211,6 +223,91 @@ namespace Raphael.Desktop.ViewModels
         }
 
         private List<ProductivityReportRowDto> _all = new();
+
+        // ------------------------------------------------------------------ RE-092: warnings
+        private List<ProductivityDayWarningsDto>? _days;
+        private int _warningsRun;
+
+        [ObservableProperty] private string _warningsError = string.Empty;
+
+        public string LegendText => T("warn.Legend");
+
+        /// <summary>Shifts with no Pull-in: they have no row, so they go above the list.</summary>
+        public IReadOnlyList<string> OpenShifts { get; private set; } = Array.Empty<string>();
+        public bool HasOpenShifts => OpenShifts.Count > 0;
+        public string OpenShiftsTitle => OpenShifts.Count == 1 ? T("warn.OpenTitleOne") : string.Format(T("warn.OpenTitle"), OpenShifts.Count);
+        public string OpenShiftsHint => T("warn.OpenHint");
+
+        private async Task LoadWarningsAsync()
+        {
+            var run = ++_warningsRun;
+            WarningsError = string.Empty;
+            try
+            {
+                var days = await _warnings.ListAsync(StartDate, EndDate);
+                if (run != _warningsRun) return;   // another report was asked for meanwhile
+                _days = days;
+                ApplyWarnings();
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Log($"Productivity warnings: {ex.Message}");
+                if (run == _warningsRun) WarningsError = T("warn.LoadError");
+            }
+        }
+
+        private void ApplyWarnings()
+        {
+            var byDay = _days?.Where(d => !d.IsOpenShift).ToDictionary(d => (d.VehicleRouteId, d.OperatingDate.Date));
+            foreach (var row in Rows)
+                if (byDay != null)
+                {
+                    var data = row.Data;
+                    Task<ProductivityDayWarningsDto?>? detail = null;
+                    // One call per day, however many of its warnings are opened; a failed one is asked again.
+                    Task<ProductivityDayWarningsDto?> Load() => detail is null || detail.IsFaulted ? detail = _warnings.DetailAsync(data.VehicleRouteId, data.OperatingDate) : detail;
+                    var found = byDay.GetValueOrDefault((data.VehicleRouteId, data.OperatingDate.Date));
+                    row.SetWarnings((found?.Warnings ?? new()).OrderBy(w => WarningLook.Rank(w.Level))
+                        .Select(w => new ProductivityWarningItem(w, data.VehicleId, Load)).ToList(), Load);
+                }
+
+            var drivers = Selected(Drivers);
+            var vehicles = Selected(Vehicles);
+            OpenShifts = (_days ?? new()).Where(d => d.IsOpenShift
+                    && (drivers.Count == 0 || (d.DriverId is { } a && drivers.Contains(a)))
+                    && (vehicles.Count == 0 || (d.VehicleId is { } b && vehicles.Contains(b))))
+                .Select(d => string.Format(T("warn.OpenLine"), d.OperatingDate.ToString("MM/dd/yyyy"), d.DriverName ?? "—", d.VehicleName ?? d.RouteName ?? "—",
+                    WarningLook.N(d.Warnings.FirstOrDefault()?.Value))).ToList();
+            OnPropertyChanged(nameof(OpenShifts));
+            OnPropertyChanged(nameof(HasOpenShifts));
+            OnPropertyChanged(nameof(OpenShiftsTitle));
+        }
+
+        [RelayCommand]
+        private void OpenLegend(string? code) => Views.Reports.WarningLegendWindow.ShowLegend(code);
+
+        [RelayCommand]
+        private async Task CorrectOdometerAsync(ProductivityWarningItem? item)
+        {
+            if (item?.Data.CorrectScheduleId is not int id) return;
+            await item.EnsureAsync();
+            if (item.FirstCase is not { } c) { item.IsOpen = true; return; }
+            var isIn = c.Action == "Pull-in";
+            if ((isIn ? c.OdometerIn : c.OdometerOut) is not long current) return;
+
+            var row = Rows.FirstOrDefault(r => r.WarningItems.Contains(item));
+            var target = new OdometerTarget(id, $"{c.Action} · {row?.Date:MM/dd/yyyy} · {row?.Driver} · {row?.Data.VehicleName}", isIn, current,
+                isIn ? c.OdometerOut : c.OdometerIn, c.GpsMiles is > 1 ? c.GpsMiles : c.PlannedMiles is > 1 ? c.PlannedMiles : null, isIn ? null : c.PreviousReading);
+            if (Views.Reports.OdometerCorrectionWindow.Show(target)) await GenerateAsync();
+        }
+
+        [RelayCommand]
+        private async Task OpenOdometerHistoryAsync(ProductivityWarningItem? item)
+        {
+            if (item?.VehicleId is not int id) return;
+            var row = Rows.FirstOrDefault(r => r.WarningItems.Contains(item));
+            if (Views.Reports.OdometerHistoryWindow.Show(id, row?.Data.VehicleName)) await GenerateAsync();
+        }
 
         private List<ProductivityReportRowDto> Filtered()
         {
@@ -233,8 +330,12 @@ namespace Raphael.Desktop.ViewModels
         {
             Rows = new ObservableCollection<ProductivityRow>(ProductivityRow.Grouped(data));
             RowsView = Grouped(Rows);
+            ApplyWarnings();
             Totals = ProductivityTotals.Of(data);
             OnPropertyChanged(nameof(Totals));
+            Tiles = Totals.Tiles();
+            OnPropertyChanged(nameof(Tiles));
+            OnPropertyChanged(nameof(TileColumns));
             OnPropertyChanged(nameof(HasPay));
             OnPropertyChanged(nameof(HasRows));
             OnPropertyChanged(nameof(EmptyText));
@@ -251,8 +352,8 @@ namespace Raphael.Desktop.ViewModels
             var path = AskPath("pdf", T("productivity.PdfFilter"));
             if (path is null) return;
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
-            new ProductivityDocument(Rows.Select(r => r.Data).ToList(), StartDate, EndDate).GeneratePdf(path);
-            Open(path);
+            var (rows, from, to) = (Rows.Select(r => r.Data).ToList(), StartDate, EndDate);
+            Views.Reports.SaveFileOverlay.Run(path, file => new ProductivityDocument(rows, from, to).GeneratePdf(file));
         }
 
         [RelayCommand(CanExecute = nameof(CanSave))]
@@ -260,8 +361,8 @@ namespace Raphael.Desktop.ViewModels
         {
             var path = AskPath("xlsx", T("productivity.ExcelFilter"));
             if (path is null) return;
-            ProductivityWorkbook.Save(Rows.Select(r => r.Data).ToList(), StartDate, EndDate, path);
-            Open(path);
+            var (rows, from, to) = (Rows.Select(r => r.Data).ToList(), StartDate, EndDate);
+            Views.Reports.SaveFileOverlay.Run(path, file => ProductivityWorkbook.Save(rows, from, to, file));
         }
 
         private string? AskPath(string ext, string filter)
@@ -275,17 +376,11 @@ namespace Raphael.Desktop.ViewModels
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
-        private static void Open(string path)
-        {
-            try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-            catch (Exception ex) { FileLogger.Log($"Productivity report: could not open {path}. {ex.Message}"); }
-        }
-
         private static List<int> Selected(IEnumerable<ReportFilterOption> options) => options.Where(o => o.IsSelected).Select(o => o.Id).ToList();
     }
 
     /// <summary>One driver's day, ready to show: the figures and their wording.</summary>
-    public class ProductivityRow
+    public partial class ProductivityRow : ObservableObject
     {
         public ProductivityRow(ProductivityReportRowDto data, DriverGroup? group = null)
         {
@@ -334,15 +429,62 @@ namespace Raphael.Desktop.ViewModels
         public int Trips => Data.TripsCompleted;
 
         /// <summary>A traffic light that grades the figures, never changes them (spec §5.5).</summary>
-        public string Reliability => Issues.Count == 0 ? "OK" : Issues.Count == 1 ? "!" : "!!";
-        public bool IsReliable => Issues.Count == 0;
-        public string ReliabilityTip => Issues.Count == 0 ? T("productivity.ReliableTip") : string.Join("\n", Issues);
+        public string Reliability => WarningItems.Count > 0
+            ? WarningItems.Count == 1 ? T("warn.ChipOne") : string.Format(T("warn.ChipMany"), WarningItems.Count)
+            : Issues.Count == 0 ? "OK" : Issues.Count == 1 ? "!" : "!!";
+        public bool IsReliable => WarningItems.Count == 0 && Issues.Count == 0;
+        public string ReliabilityTip => IsReliable ? T("productivity.ReliableTip")
+            : string.Join("\n", WarningItems.Count > 0 ? WarningItems.Select(w => w.Badge.Length > 0 ? $"{w.Title} · {w.Badge}" : w.Title) : Issues);
+
+        /// <summary>"3 warnings · 11 cases": how many, and how many times in all.</summary>
+        public string ReliabilitySummary
+        {
+            get
+            {
+                if (WarningItems.Count == 0) return "";
+                var cases = WarningItems.Sum(w => w.Data.Count);
+                var casesText = cases == 1 ? T("warn.CaseOne") : string.Format(T("warn.CaseMany"), cases);
+                return WarningItems.Count == 1 ? string.Format(T("warn.SummaryOne"), casesText) : string.Format(T("warn.SummaryMany"), WarningItems.Count, casesText);
+            }
+        }
+
+        // RE-092: the worst of the day's warnings colours its chip.
+        private string Worst => WarningItems.Count == 0 ? (IsReliable ? "ok" : "review") : WarningItems.OrderBy(w => WarningLook.Rank(w.Data.Level)).First().Data.Level;
+        public Brush ChipFill => Worst == "ok" ? Brush("#DCF2E3") : WarningLook.Fill(Worst);
+        public Brush ChipInk => Worst == "ok" ? Brush("#1B7F3B") : WarningLook.Ink(Worst);
+        public string ChipIcon => Worst == "ok" ? "CheckCircle" : WarningLook.Icon(Worst);
+
+        private bool _fromServer;
+
+        // ---- RE-092: the day's calculations, asked for when they are opened ----
+        private Func<Task<ProductivityDayWarningsDto?>>? _load;
+        public bool CanCalculate => _load is not null;
+        public string CalcText => T("calc.Button");
+        public string ShiftCalcTip => T("calc.ShiftTip");
+        public string MilesCalcTip => T("calc.MilesTip");
+        public Task<ProductivityDayWarningsDto?> DetailAsync() => _load?.Invoke() ?? Task.FromResult<ProductivityDayWarningsDto?>(null);
+
+        [RelayCommand] private void OpenShiftCalculation() => Views.Reports.DayCalculationWindow.ShowHours(this);
+        [RelayCommand] private void OpenMilesCalculation() => Views.Reports.DayCalculationWindow.ShowMiles(this);
+
+        /// <summary>The server's warnings, with their cases. Empty until they come, and for a day with none.</summary>
+        public IReadOnlyList<ProductivityWarningItem> WarningItems { get; private set; } = Array.Empty<ProductivityWarningItem>();
+
+        public void SetWarnings(IReadOnlyList<ProductivityWarningItem> items, Func<Task<ProductivityDayWarningsDto?>> load)
+        {
+            WarningItems = items;
+            _load = load;
+            _fromServer = true;
+            OnPropertyChanged(string.Empty);
+        }
 
         private List<string> Issues
         {
             get
             {
+                // Only against a server older than RE-092, which gives no warnings of its own.
                 var list = new List<string>();
+                if (_fromServer) return list;
                 if (Data.SuspectMarks > 0) list.Add(string.Format(T("productivity.IssueMarks"), Data.SuspectMarks));
                 if (Data.StartTrimmedMinutes + Data.EndTrimmedMinutes > 0)
                     list.Add(string.Format(T("productivity.IssueTrimmed"), ProductivityFormat.Hours(Data.StartTrimmedMinutes + Data.EndTrimmedMinutes)));
@@ -411,18 +553,19 @@ namespace Raphael.Desktop.ViewModels
         {
             get
             {
-                var parts = new (string key, int minutes, string color)[]
+                var parts = new (string key, int minutes, string color, string info)[]
                 {
-                    ("productivity.HLoaded", Data.LoadedMinutes, "#673AB7"),
-                    ("productivity.HInspection", Data.InspectionMinutes, "#0EA5E9"),
-                    ("productivity.XScheduleWait", Data.ScheduleWaitMinutes, "#F59E0B"),
-                    ("productivity.XPickupWait", Data.PickupWaitMinutes, "#FB7185"),
-                    ("productivity.HDeadhead", Data.DeadheadDriveMinutes, "#64748B"),
-                    ("productivity.HOther", Data.OtherMinutes, "#CBD5E1"),
+                    ("productivity.HLoaded", Data.LoadedMinutes, "#673AB7", "h.loaded"),
+                    ("productivity.HInspection", Data.InspectionMinutes, "#0EA5E9", "h.inspection"),
+                    ("productivity.XScheduleWait", Data.ScheduleWaitMinutes, "#F59E0B", "h.hourwait"),
+                    ("productivity.XPickupWait", Data.PickupWaitMinutes, "#FB7185", "h.patientwait"),
+                    ("productivity.HDeadhead", Data.DeadheadDriveMinutes, "#64748B", "h.empty"),
+                    ("productivity.HOther", Data.OtherMinutes, "#CBD5E1", "h.other"),
                 };
                 var total = Math.Max(1, parts.Sum(x => x.minutes));
                 return parts.Select(x => new DaySegment(T(x.key), ProductivityFormat.Hours(x.minutes),
-                    $"{(double)x.minutes / total:P0}", Brush(x.color), BarWidth * x.minutes / total)).ToList();
+                    $"{(double)x.minutes / total:P0}", Brush(x.color), BarWidth * x.minutes / total, x.info,
+                    string.Format(T("info.Ex.Share"), ProductivityFormat.Hours(x.minutes), PaidText, $"{(double)x.minutes / total:P0}"))).ToList();
             }
         }
 
@@ -435,22 +578,44 @@ namespace Raphael.Desktop.ViewModels
                 if (total <= 0) return Array.Empty<DaySegment>();
                 return new[]
                 {
-                    new DaySegment(T("productivity.MLoaded"), ProductivityFormat.Miles(Data.LoadedMiles), $"{loaded / total:P0}", Brush("#673AB7"), BarWidth * loaded / total),
-                    new DaySegment(T("productivity.MDeadhead"), ProductivityFormat.Miles(Data.DeadheadMiles), $"{empty / total:P0}", Brush("#CBD5E1"), BarWidth * empty / total),
+                    new DaySegment(T("productivity.MLoaded"), ProductivityFormat.Miles(Data.LoadedMiles), $"{loaded / total:P0}", Brush("#673AB7"), BarWidth * loaded / total, "m.loaded", string.Format(T("info.Ex.Occupied"), LoadedMiles, MilesText, $"{loaded / total:P0}")),
+                    new DaySegment(T("productivity.MDeadhead"), ProductivityFormat.Miles(Data.DeadheadMiles), $"{empty / total:P0}", Brush("#CBD5E1"), BarWidth * empty / total, "m.empty", string.Format(T("info.Ex.Empty"), WarningLook.N(total), WarningLook.N(loaded), WarningLook.N(empty))),
                 };
             }
         }
 
-        /// <summary>The smaller mile figures, as chips under the bar.</summary>
+        /// <summary>The figures beside the paid shift, in the same cards as the miles'.</summary>
+        public IReadOnlyList<DetailItem> HourFacts => new[]
+        {
+            new DetailItem(T("productivity.DRealShift"), ProductivityFormat.Hours(Data.ShiftMinutes), "h.real", RealExample),
+            new DetailItem(T("productivity.XTrimmed"), Trimmed, "h.unpaid", UnpaidExample, HasTrimmed ? "#B3261E" : "#1E2A36"),
+            new DetailItem(T("productivity.XPatientHours"), PatientHours, "h.patienthours"),
+            new DetailItem(T("productivity.ColTrips"), $"{Data.TripsCompleted}", "h.trips"),
+        };
+
         public IReadOnlyList<DetailItem> MileFacts => new[]
         {
-            new DetailItem(T("productivity.XGps"), GpsMiles),
-            new DetailItem(T("productivity.XPlanned"), PlannedMiles),
-            new DetailItem(T("productivity.XPassenger"), PassengerMiles),
-            new DetailItem(T("productivity.XOffRoute"), OffRouteMiles),
+            new DetailItem(T("productivity.XPassenger"), PassengerMiles, "m.passenger", PassengerExample, "#673AB7"),
+            new DetailItem(T("productivity.XGps"), GpsMiles, "m.gps"),
+            new DetailItem(T("productivity.XPlanned"), PlannedMiles, "m.planned"),
+            new DetailItem(T("productivity.XOffRoute"), OffRouteMiles, "m.offroute"),
         };
 
         public string OdometerRange => Data.OdometerOut is { } o && Data.OdometerIn is { } i ? $"{o:N0} → {i:N0}" : T("productivity.NoOdometer");
+        // ---- RE-092: each figure's own numbers, for its explanation ----
+        public string ShiftExample => Data.PayRateType == DriverPayRateType.Hourly
+            ? string.Format(T("info.Ex.Shift"), PaidStartText, PaidEndText, PaidText) + "\n" + T("info.Ex.DayPay") + ": " + string.Format(T("info.Ex.PayHour"), PaidText, ProductivityFormat.Money(Data.PayRate), AmountText)
+            : string.Format(T("info.Ex.Shift"), PaidStartText, PaidEndText, PaidText) + (Data.PayRateType is null ? "" : "\n" + T("info.Ex.NotHour"));
+        public string RealExample => Data.ShiftStartUtc is { } rs && Data.ShiftEndUtc is { } re
+            ? string.Format(T("info.Ex.Real"), $"{Local(rs):HH:mm}", $"{Local(re):HH:mm}", ProductivityFormat.Hours(Data.ShiftMinutes)) : "";
+        public string UnpaidExample => string.Format(T("info.Ex.Unpaid"), ProductivityFormat.Hours(Data.ShiftMinutes), PaidText, Trimmed);
+        public string OdometerExample => Data.OdometerOut is { } oo && Data.OdometerIn is { } oi
+            ? string.Format(T("info.Ex.Odo"), $"{oi:N0}", $"{oo:N0}", WarningLook.N(Data.VehicleMiles)) : "";
+        public string MilesExample => Data.VehicleMiles is null ? "" : $"{MilesText} = {LoadedMiles} + {DeadheadMiles}";
+        public string PassengerExample => Data.PayRateType == DriverPayRateType.PerMile
+            ? T("info.Ex.DayPay") + ": " + string.Format(T("info.Ex.PayMile"), WarningLook.N(Data.PassengerMiles), ProductivityFormat.Money(Data.PayRate), AmountText)
+            : Data.PayRateType is null ? "" : T("info.Ex.NotMile");
+
         public string PaidStartText => Data.PaidStartUtc is { } s ? $"{Local(s):HH:mm}" : "—";
         public string PaidEndText => Data.PaidEndUtc is { } e ? $"{Local(e):HH:mm}" : "—";
         public string RealShiftLine => string.Format(T("productivity.RealShiftLine"), RealShift);
@@ -474,10 +639,13 @@ namespace Raphael.Desktop.ViewModels
         private static DateTime Local(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local);
     }
 
-    public record DetailItem(string Label, string Value);
+    public record DetailItem(string Label, string Value, string Info = "", string Example = "", string Ink = "#1E2A36");
 
     /// <summary>One segment of a breakdown bar and its legend line.</summary>
-    public record DaySegment(string Label, string Value, string Share, Brush Color, double Width);
+    public record DaySegment(string Label, string Value, string Share, Brush Color, double Width, string Info = "", string Example = "");
+
+    /// <summary>One card of the period: an icon, a figure and up to two lines under it.</summary>
+    public record ReportTile(string Key, string Icon, Brush Ink, Brush Fill, string Label, string Value, string Line1, string Line2, string Example, bool IsPay = false);
 
     /// <summary>RE-082: one driver's block in the report, and its subtotal.</summary>
     public class DriverGroup
@@ -549,8 +717,26 @@ namespace Raphael.Desktop.ViewModels
         public string DaysSub => string.Format(T("productivity.SubDays"), Drivers);
         public string PaidSub => Days > 0 ? string.Format(T("productivity.SubPerDay"), ProductivityFormat.Hours(PaidMinutes / Days)) : string.Empty;
         public string MilesSub => Days > 0 ? string.Format(T("productivity.SubPerDay"), $"{VehicleMiles / Days:N1} mi") : string.Empty;
-        public string LoadedSub => string.Format(T("productivity.SubLoaded"), $"{LoadedMiles:N0}", $"{PassengerMiles:N0}");
         public string TripsSub => Days > 0 ? string.Format(T("productivity.SubPerDay"), $"{(double)Trips / Days:N1}") : string.Empty;
+
+        public IReadOnlyList<ReportTile> Tiles()
+        {
+            string Per(string total, string per) => Days > 0 ? string.Format(T("info.Ex.PerDay"), total, Days, per) : "";
+            var tiles = new List<ReportTile>
+            {
+                new("t.days", "CalendarCheckOutline", WarningLook.Of("#673AB7"), WarningLook.Of("#EDE7F6"), T("productivity.TotalDays"), $"{Days:N0}", DaysSub, "", ""),
+                new("t.paid", "ClockTimeFourOutline", WarningLook.Of("#0284C7"), WarningLook.Of("#E0F2FE"), T("productivity.TotalPaid"), PaidText, PaidSub, "", Per(PaidText, ProductivityFormat.Hours(Days > 0 ? PaidMinutes / Days : 0))),
+                new("t.miles", "Speedometer", WarningLook.Of("#2E7D32"), WarningLook.Of("#E8F5E9"), T("productivity.TotalMiles"), MilesText, MilesSub, "", Per(MilesText, $"{(Days > 0 ? VehicleMiles / Days : 0):N1} mi")),
+                new("t.loaded", "AccountArrowRightOutline", WarningLook.Of("#C2410C"), WarningLook.Of("#FFEDD5"), T("productivity.TotalLoaded"), $"{PassengerMiles:N1} mi",
+                    string.Format(T("productivity.SubLoaded1"), LoadedText), "", VehicleMiles > 0 ? string.Format(T("info.Ex.Occupied"), $"{LoadedMiles:N1} mi", MilesText, LoadedText) : ""),
+                new("t.trips", "MapMarkerPath", WarningLook.Of("#1E3A8A"), WarningLook.Of("#E0E7FF"), T("productivity.TotalTrips"), $"{Trips:N0}", TripsSub, "", "")
+            };
+            if (HasPay)
+                tiles.Add(new("t.pay", "CashMultiple", WarningLook.Of("#673AB7"), WarningLook.Of("#EDE7F6"), T("productivity.TotalAmount"), AmountText,
+                    string.Format(T("productivity.SubAmount1"), ProductivityFormat.Money(HourlyAmount)), string.Format(T("productivity.SubAmount2"), ProductivityFormat.Money(PerMileAmount)),
+                    string.Format(T("info.Ex.Total"), ProductivityFormat.Money(HourlyAmount), ProductivityFormat.Money(PerMileAmount), AmountText), true));
+            return tiles;
+        }
 
         public static ProductivityTotals Of(IReadOnlyCollection<ProductivityReportRowDto> rows) => new()
         {

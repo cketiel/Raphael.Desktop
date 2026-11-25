@@ -1,0 +1,54 @@
+<Window x:Class="Raphael.Desktop.Views.Reports.OdometerCorrectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:services="clr-namespace:Raphael.Desktop.Services"
+        Title="{Binding Path=[odo.Title], Source={x:Static services:LocalizationService.Instance}}"
+        Width="560" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="#F4F5FA" TextElement.Foreground="#1E2A36" FontSize="13">
+    <!-- RE-092. An administrator corrects one reading. It never touches the hours nor the pay. -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Vis"/>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5B6B7C"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="0,7,14,7"/>
+        </Style>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold" Foreground="#4527A0" TextWrapping="Wrap"/>
+        <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="10" Padding="16,10" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource Lbl}" Text="{Binding Path=[odo.Current], Source={x:Static services:LocalizationService.Instance}}"/>
+                <TextBlock Grid.Column="1" Text="{Binding CurrentText}" FontSize="16" FontWeight="Bold" TextDecorations="Strikethrough" Foreground="#B3261E" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Visibility="{Binding HasOther, Converter={StaticResource Vis}}" Style="{StaticResource Lbl}" Text="{Binding Path=[odo.Other], Source={x:Static services:LocalizationService.Instance}}"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Visibility="{Binding HasOther, Converter={StaticResource Vis}}" Text="{Binding OtherText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="2" Visibility="{Binding HasExpected, Converter={StaticResource Vis}}" Style="{StaticResource Lbl}" Text="{Binding Path=[odo.Expected], Source={x:Static services:LocalizationService.Instance}}"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Visibility="{Binding HasExpected, Converter={StaticResource Vis}}" Text="{Binding ExpectedText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="3" Visibility="{Binding HasPrevious, Converter={StaticResource Vis}}" Style="{StaticResource Lbl}" Text="{Binding Path=[odo.Previous], Source={x:Static services:LocalizationService.Instance}}"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Visibility="{Binding HasPrevious, Converter={StaticResource Vis}}" Text="{Binding PreviousText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="4" Style="{StaticResource Lbl}" Text="{Binding Path=[odo.New], Source={x:Static services:LocalizationService.Instance}}"/>
+                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                    <TextBox x:Name="ReadingBox" Text="{Binding ReadingText, UpdateSourceTrigger=PropertyChanged}" Width="130" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" MaxLength="10" materialDesign:TextFieldAssist.CharacterCounterVisibility="Collapsed"/>
+                    <Button Margin="12,0,0,0" Command="{Binding UseSuggestionCommand}" Content="{Binding SuggestionText}" Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Foreground="#673AB7" BorderBrush="#673AB7" Visibility="{Binding HasSuggestion, Converter={StaticResource Vis}}"
+                            ToolTip="{Binding Path=[odo.SuggestionHint], Source={x:Static services:LocalizationService.Instance}}"/>
+                </StackPanel>
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CheckText}" Foreground="{Binding CheckInk}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,4" MinHeight="36"/>
+                <TextBlock Grid.Row="6" Style="{StaticResource Lbl}" Text="{Binding Path=[odo.Reason], Source={x:Static services:LocalizationService.Instance}}"/>
+                <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Reasons}" SelectedItem="{Binding Reason}" DisplayMemberPath="Text"/>
+                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding OtherReason, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" materialDesign:TextFieldAssist.CharacterCounterVisibility="Collapsed" Margin="0,6,0,4"
+                         materialDesign:HintAssist.Hint="{Binding Path=[odo.ReasonText], Source={x:Static services:LocalizationService.Instance}}"
+                         Visibility="{Binding IsOther, Converter={StaticResource Vis}}"/>
+            </Grid>
+        </Border>
+        <TextBlock Text="{Binding Path=[odo.Effect], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="2,12,0,0"/>
+        <TextBlock Text="{Binding Error}" Foreground="#B3261E" FontWeight="SemiBold" TextWrapping="Wrap" Margin="2,6,0,0"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Foreground="#673AB7" IsCancel="True" Content="{Binding Path=[odo.Cancel], Source={x:Static services:LocalizationService.Instance}}"/>
+            <Button Background="#673AB7" BorderBrush="#673AB7" Foreground="White" Margin="8,0,0,0" Command="{Binding SaveCommand}" Content="{Binding Path=[odo.Save], Source={x:Static services:LocalizationService.Instance}}"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

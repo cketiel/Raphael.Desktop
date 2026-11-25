@@ -5,10 +5,23 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 to RE-086 and RE-088 to RE-091. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
+Slices RE-083 to RE-086 and RE-088 to RE-092. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
 and simply have no kinds and no warnings.
 
 ### Added
+- Productivity report: the hours and the miles of a shift show their full calculation, with bars and totals.
+- Productivity report: saving the PDF or the Excel covers the screen with its progress, can be cancelled, and asks before opening the file. A second click on a row hides its details.
+- Productivity report: "miles with a patient" is miles x patients on board everywhere (screen, PDF and help); the vehicle's own distance is now "occupied miles". Figures and pay are unchanged.
+- Fleet productivity (RE-092, needs Raphael.Backend 2.14.0; without it the old marks stay): each day's warnings
+  with every case behind them, shifts with no Pull-in, a legend with a drawing per warning and, for the platform
+  administrator, their limits with a preview of the last 30 days. Loaded after the report, which opens as fast.
+- Fleet productivity: a question mark beside every figure (what it is, its formula, whether it is paid and the day's
+  own numbers), how each paid shift came out with a bar and its sums, redesigned cards, each warning's figure, its
+  numbered cases and their total. The three helps lead to each other. The minutes paid per inspection are set by
+  the platform administrator.
+- Odometer history per vehicle, and its correction by an administrator, from Vehicles and from the report.
+- Help: fleet productivity in five topics (screen, hours, miles, pay, warnings) and a vehicle's odometer, in both
+  languages; F1 opens the zone under the mouse.
 - Live map Today (RE-085): a ring of the five parts of the day and one row per part that opens its trips
   (Home filtered, Dispatch's open list, or the new In progress list). Figures refresh every minute.
 - Live map In progress list (RE-085): patient, phase, promised time, line and lateness; a click selects

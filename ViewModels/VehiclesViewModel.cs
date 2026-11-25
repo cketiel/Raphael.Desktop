@@ -316,6 +316,10 @@ namespace Raphael.Desktop.ViewModels
         // RE-065: compliance documents, managed in Docs; here only their status and the way there.
         public ICommand OpenDocumentsCommand { get; } = new RelayCommandObject(p => { if (p is Vehicle v) Helpers.ComplianceUi.Open("VEHICLE", v.Id); });
         public string OpenDocumentsToolTip => LocalizationService.Instance["compliance.OpenDocs"];
+
+        // RE-092
+        public ICommand OdometerHistoryCommand { get; } = new RelayCommandObject(p => { if (p is Vehicle v) Views.Reports.OdometerHistoryWindow.Show(v.Id, v.Name); });
+        public string OdometerHistoryText => LocalizationService.Instance["odo.History"];
         public string ColumnHeaderDocuments => LocalizationService.Instance["compliance.ColumnDocs"];
 
         public ICommand OutOfServiceCommand { get; private set; }

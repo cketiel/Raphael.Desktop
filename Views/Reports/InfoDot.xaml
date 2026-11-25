@@ -1,0 +1,87 @@
+<UserControl x:Class="Raphael.Desktop.Views.Reports.InfoDot"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             VerticalAlignment="Center" Focusable="False">
+    <!-- RE-092. The small question mark beside a figure: what it is, its formula, whether it is paid and
+         the day's own numbers in it. It leads to the help (F1) and to the warnings about that figure. -->
+    <UserControl.Resources>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#7A6AA0"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="Margin" Value="0,14,0,6"/>
+        </Style>
+        <Style x:Key="SectionText" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/><Setter Property="TextAlignment" Value="Center"/><Setter Property="LineHeight" Value="20"/>
+        </Style>
+        <Style x:Key="FootButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+            <Setter Property="Foreground" Value="#673AB7"/><Setter Property="BorderBrush" Value="#B39DDB"/><Setter Property="Height" Value="34"/><Setter Property="Padding" Value="0"/>
+            <Setter Property="Focusable" Value="False"/><Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Button x:Name="Dot" Click="OnDot" Focusable="False" Width="18" Height="18" Padding="0" Cursor="Help" Background="Transparent" BorderThickness="0">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <materialDesign:PackIcon x:Name="Icon" Kind="HelpCircleOutline" Width="14" Height="14" Foreground="#A99BC9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Icon" Property="Kind" Value="HelpCircle"/><Setter TargetName="Icon" Property="Foreground" Value="#673AB7"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Popup x:Name="Card" PlacementTarget="{Binding ElementName=Dot}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" HorizontalOffset="-24">
+            <Border Background="White" CornerRadius="12" Margin="12,4,16,16" Width="392" TextElement.FontSize="13" TextElement.FontWeight="Normal" TextElement.Foreground="#1E2A36" Cursor="Arrow">
+                <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.22" Color="#0F1E2E"/></Border.Effect>
+                <DockPanel>
+                    <!-- The band: the title in the middle, the cross at its corner -->
+                    <Border DockPanel.Dock="Top" Background="#673AB7" CornerRadius="12,12,0,0" Height="44">
+                        <Grid>
+                            <TextBlock x:Name="TitleText" FontSize="15" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40,0" TextTrimming="CharacterEllipsis"/>
+                            <Button Click="OnClose" Focusable="False" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Width="24" Height="24" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button"><Grid Background="Transparent"><materialDesign:PackIcon Kind="Close" Width="16" Height="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid></ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <!-- The way to the other two helps -->
+                    <UniformGrid x:Name="Foot" DockPanel.Dock="Bottom" Rows="1" Margin="14,0,14,16">
+                        <Button x:Name="HelpLink" Click="OnHelp" Style="{StaticResource FootButton}" Margin="6,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="BookOpenVariant" Width="17" Height="17" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="HelpText" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="WarningsLink" Click="OnWarnings" Style="{StaticResource FootButton}" Margin="6,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="ShieldAlertOutline" Width="17" Height="17" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="WarningsText" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+                    <StackPanel Margin="20,16,20,18">
+                        <Border x:Name="PayPill" CornerRadius="13" Padding="14,5" HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon x:Name="PayIcon" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PayText" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="290" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock x:Name="WhatText" Style="{StaticResource SectionText}" Margin="0,14,0,0"/>
+                        <TextBlock x:Name="FormulaLabel" Style="{StaticResource SectionLabel}"/>
+                        <Border Background="#F6F3FC" CornerRadius="8" Padding="12,9">
+                            <TextBlock x:Name="FormulaText" Style="{StaticResource SectionText}" FontWeight="SemiBold" Foreground="#4527A0"/>
+                        </Border>
+                        <StackPanel x:Name="ExampleBox">
+                            <TextBlock x:Name="ExampleLabel" Style="{StaticResource SectionLabel}"/>
+                            <Border Background="#EEF7F1" CornerRadius="8" Padding="12,9">
+                                <TextBlock x:Name="ExampleText" Style="{StaticResource SectionText}" FontWeight="SemiBold" Foreground="#14532D"/>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

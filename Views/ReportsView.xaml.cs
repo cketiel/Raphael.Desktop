@@ -24,6 +24,38 @@ namespace Raphael.Desktop.Views
         {
             InitializeComponent();
             this.DataContext = new ViewModels.ReportsViewModel();
+
+            // RE-092: a new list of rows is measured with its day open and wider than the grid, and the star
+            // columns stay at their minimum. Once it is drawn they are given their share again.
+            System.ComponentModel.DependencyPropertyDescriptor.FromProperty(ItemsControl.ItemsSourceProperty, typeof(DataGrid))
+                .AddValueChanged(ProductivityGrid, (_, _) => Dispatcher.BeginInvoke(new Action(SpreadColumns), System.Windows.Threading.DispatcherPriority.ApplicationIdle));
+        }
+
+        private void SpreadColumns()
+        {
+            foreach (var column in ProductivityGrid.Columns)
+            {
+                if (!column.Width.IsStar) continue;
+                var star = column.Width;
+                column.Width = new DataGridLength(column.MinWidth);
+                column.Width = star;
+            }
+        }
+
+        // RE-092: a click on the open row closes its details, so the whole report can be seen. A click inside
+        // the details, or on a button, is theirs.
+        private void ProductivityGrid_RowClick(object sender, MouseButtonEventArgs e)
+        {
+            for (var at = e.OriginalSource as DependencyObject; at is not null and not DataGrid;
+                 at = at is Visual ? VisualTreeHelper.GetParent(at) : LogicalTreeHelper.GetParent(at))
+            {
+                if (at is System.Windows.Controls.Primitives.DataGridDetailsPresenter or System.Windows.Controls.Primitives.ButtonBase) return;
+                if (at is not DataGridRow row) continue;
+                if (!row.IsSelected) return;
+                ProductivityGrid.SelectedItem = null;
+                e.Handled = true;
+                return;
+            }
         }
 
         // RE-081: the productivity filters are read the first time the tab is opened, not with the screen.

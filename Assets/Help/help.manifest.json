@@ -1,10 +1,10 @@
 {
   "helpVersion": "1.0.0",
   "coversApp": {
-    "Raphael.Desktop": "1.23.0"
+    "Raphael.Desktop": "1.22.0"
   },
-  "builtUtc": "2026-11-24T19:47:51.458Z",
-  "sourceCommit": "018b255",
+  "builtUtc": "2026-11-25T04:21:41.817Z",
+  "sourceCommit": "7885f56",
   "languages": [
     "es",
     "en"
@@ -429,6 +429,21 @@
       }
     },
     {
+      "id": "desktop/data/odometer",
+      "mode": "how-to",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Data",
+      "title": {
+        "es": "Odómetro de un vehículo — historial y corrección",
+        "en": "A vehicle's odometer — history and correction"
+      }
+    },
+    {
       "id": "desktop/data/space-types",
       "mode": "how-to",
       "since": "1.23.0",
@@ -776,17 +791,76 @@
     },
     {
       "id": "desktop/reports/productivity",
-      "mode": "how-to",
+      "mode": "reference",
       "since": "1.21.2",
-      "lastReviewed": "1.22.0",
+      "lastReviewed": "1.23.0",
       "roles": [
         "admin",
         "dispatcher"
       ],
       "menu": "Reports",
       "title": {
-        "es": "Productividad de la flota — horas y millas por conductor",
-        "en": "Fleet productivity — hours and miles per driver"
+        "es": "Productividad de la flota — la pantalla",
+        "en": "Fleet productivity — the screen"
+      }
+    },
+    {
+      "id": "desktop/reports/productivity-hours",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "Las horas — cómo se calcula la jornada pagable",
+        "en": "The hours — how the paid shift is worked out"
+      }
+    },
+    {
+      "id": "desktop/reports/productivity-miles",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "Las millas — odómetro, con paciente, ocupadas y vacías",
+        "en": "The miles — odometer, with a patient, occupied and empty"
+      }
+    },
+    {
+      "id": "desktop/reports/productivity-pay",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "El pago — qué se le paga a cada Driver y por qué",
+        "en": "The pay — what each driver is paid and why"
+      }
+    },
+    {
+      "id": "desktop/reports/warnings",
+      "mode": "reference",
+      "since": "1.23.0",
+      "lastReviewed": "1.23.0",
+      "roles": [
+        "admin",
+        "dispatcher"
+      ],
+      "menu": "Reports",
+      "title": {
+        "es": "Los avisos del reporte — los trece, uno a uno",
+        "en": "The report's warnings — all thirteen"
       }
     },
     {

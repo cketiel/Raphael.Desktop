@@ -1,0 +1,165 @@
+<Window x:Class="Raphael.Desktop.Views.Reports.WarningLegendWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:services="clr-namespace:Raphael.Desktop.Services"
+        xmlns:local="clr-namespace:Raphael.Desktop.Views.Reports"
+        Title="{Binding Path=[warn.LegendTitle], Source={x:Static services:LocalizationService.Instance}}"
+        Width="1040" Height="780" MinWidth="720" MinHeight="480" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="#F4F5FA" TextElement.Foreground="#1E2A36" FontSize="13">
+    <!-- RE-092. The warnings of the fleet productivity report: what each one is, why it warns and when
+         it goes off. The platform administrator sets the limits in the same place. -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Vis"/>
+        <Style x:Key="FactLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5B6B7C"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Margin" Value="0,12,0,2"/>
+        </Style>
+        <Style x:Key="FactText" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/><Setter Property="LineHeight" Value="20"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="18">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="ShieldAlertOutline" Width="24" Height="24" Foreground="#673AB7" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Path=[warn.Legend], Source={x:Static services:LocalizationService.Instance}}" FontSize="20" FontWeight="Bold" Foreground="#4527A0" Margin="9,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="{Binding Path=[warn.LegendIntro], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="10" Padding="6">
+                <ListBox ItemsSource="{Binding View}" SelectedItem="{Binding Selected}" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate><TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="#5B6B7C" Margin="10,10,0,4"/></DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Opacity="{Binding Faint}">
+                                <materialDesign:PackIcon Kind="{Binding Icon}" Foreground="{Binding Ink}" Width="18" Height="18" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Title}" Margin="9,0,0,0" TextWrapping="Wrap" MaxWidth="215" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <Border Grid.Column="2" Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="10" DataContext="{Binding Selected}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,16">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Right" Background="{Binding Fill}" CornerRadius="10" Padding="10,3" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="{Binding Icon}" Foreground="{Binding Ink}" Width="14" Height="14" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding LevelText}" Foreground="{Binding Ink}" FontSize="12" FontWeight="SemiBold" Margin="5,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="{Binding Title}" FontSize="17" FontWeight="Bold" TextWrapping="Wrap"/>
+                        </DockPanel>
+                        <Border Background="#F7F7FB" CornerRadius="8" Padding="8" Margin="0,12,0,0">
+                            <StackPanel>
+                                <local:WarningPicture Code="{Binding Code}" Visibility="{Binding IsNotShift, Converter={StaticResource Vis}}"/>
+                                <StackPanel Margin="10,6" Visibility="{Binding IsShift, Converter={StaticResource Vis}}">
+                                    <TextBlock Text="{Binding Path=[shift.Example], Source={x:Static services:LocalizationService.Instance}}" FontWeight="SemiBold" Foreground="#5B6B7C" Margin="0,0,0,6"/>
+                                    <local:ShiftPicture Shift="{Binding ShiftExample}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Style="{StaticResource FactLabel}" Text="{Binding Path=[warn.WhatLabel], Source={x:Static services:LocalizationService.Instance}}"/>
+                        <TextBlock Style="{StaticResource FactText}" Text="{Binding What}"/>
+                        <TextBlock Style="{StaticResource FactLabel}" Text="{Binding Path=[warn.WhyLabel], Source={x:Static services:LocalizationService.Instance}}"/>
+                        <TextBlock Style="{StaticResource FactText}" Text="{Binding Why}"/>
+                        <TextBlock Style="{StaticResource FactLabel}" Text="{Binding Path=[warn.HowLabel], Source={x:Static services:LocalizationService.Instance}}"/>
+                        <TextBlock Style="{StaticResource FactText}" Text="{Binding How}"/>
+                        <TextBlock Style="{StaticResource FactLabel}" Text="{Binding Path=[warn.WhenLabel], Source={x:Static services:LocalizationService.Instance}}"/>
+                        <TextBlock Style="{StaticResource FactText}" FontWeight="SemiBold" Text="{Binding When}"/>
+                        <TextBlock Style="{StaticResource FactLabel}" Text="{Binding Path=[warn.PayLabel], Source={x:Static services:LocalizationService.Instance}}"/>
+                        <TextBlock Style="{StaticResource FactText}" Text="{Binding Pay}"/>
+                        <TextBlock Style="{StaticResource FactLabel}" Text="{Binding Path=[warn.DoLabel], Source={x:Static services:LocalizationService.Instance}}"/>
+                        <TextBlock Style="{StaticResource FactText}" Text="{Binding Do}"/>
+
+                        <Border BorderBrush="#D1C4E9" BorderThickness="1" Background="#FAF7FF" CornerRadius="8" Padding="14,12" Margin="0,18,0,0"
+                                Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource Vis}}">
+                            <StackPanel>
+                                <CheckBox IsChecked="{Binding IsOn}" Content="{Binding Path=[warn.Enabled], Source={x:Static services:LocalizationService.Instance}}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding HasLimit, Converter={StaticResource Vis}}">
+                                    <TextBlock Text="{Binding Path=[warn.LimitLabel], Source={x:Static services:LocalizationService.Instance}}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBox Text="{Binding LimitText, UpdateSourceTrigger=PropertyChanged}" Width="90" Margin="10,0,8,0" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding UnitText}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ErrorText}" Foreground="#B3261E" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding FactoryText}" Foreground="#5B6B7C" FontSize="12" Margin="0,6,0,0" Visibility="{Binding HasLimit, Converter={StaticResource Vis}}"/>
+                                <TextBlock Text="{Binding Path=[warn.NoLimit], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" FontSize="12" Margin="0,6,0,0"
+                                           Visibility="{Binding HasNoLimit, Converter={StaticResource Vis}}"/>
+                                <TextBlock Text="{Binding Path=[warn.LimitNotPay], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" FontSize="12" Margin="0,4,0,0"/>
+                                <TextBlock Text="{Binding PreviewText}" Foreground="#4527A0" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding ChangedText}" Foreground="#5B6B7C" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- What can be adjusted of the calculation itself: it decides pay -->
+                        <Border BorderBrush="#F3B4AF" BorderThickness="1" Background="#FFF6F5" CornerRadius="8" Padding="14,12" Margin="0,12,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsShift}" Value="True"/>
+                                                <Condition Binding="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="CashEdit" Width="18" Height="18" Foreground="#B3261E" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Path=[warn.PayRuleTitle], Source={x:Static services:LocalizationService.Instance}}" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <TextBox Text="{Binding RuleText, UpdateSourceTrigger=PropertyChanged}" Width="70" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock Text="min" VerticalAlignment="Center" Margin="8,0,14,0"/>
+                                    <Button Command="{Binding SaveRuleCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#B3261E" BorderBrush="#E5736A" Height="30"
+                                            Content="{Binding Path=[warn.PayRuleSave], Source={x:Static services:LocalizationService.Instance}}"/>
+                                    <TextBlock Text="{Binding RuleMessage}" FontWeight="SemiBold" Foreground="#4527A0" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding RuleHint}" TextWrapping="Wrap" Foreground="#5B6B7C" FontSize="12" Margin="0,8,0,0"/>
+                                <TextBlock Text="{Binding RuleChanged}" Foreground="#5B6B7C" FontSize="12" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="True">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Foreground="#673AB7" Click="OnHelp" ToolTip="F1">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="BookOpenVariant" Width="17" Height="17" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Path=[warn.OpenHelp], Source={x:Static services:LocalizationService.Instance}}" Margin="7,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Foreground="#673AB7" Command="{Binding ResetCommand}" Visibility="{Binding CanEdit, Converter={StaticResource Vis}}"
+                        Content="{Binding Path=[warn.Reset], Source={x:Static services:LocalizationService.Instance}}"/>
+                <Button Background="#673AB7" BorderBrush="#673AB7" Foreground="White" Margin="8,0,0,0" Command="{Binding SaveCommand}" Visibility="{Binding CanEdit, Converter={StaticResource Vis}}"
+                        Content="{Binding Path=[warn.Save], Source={x:Static services:LocalizationService.Instance}}"/>
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Foreground="#673AB7" Margin="8,0,0,0" IsCancel="True" Click="OnClose"
+                        Content="{Binding Path=[warn.Close], Source={x:Static services:LocalizationService.Instance}}"/>
+            </StackPanel>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding Path=[warn.AdminOnly], Source={x:Static services:LocalizationService.Instance}}" Foreground="#5B6B7C" FontSize="12"
+                           Visibility="{Binding CannotEdit, Converter={StaticResource Vis}}"/>
+                <TextBlock Text="{Binding Message}" FontWeight="SemiBold" Foreground="#4527A0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

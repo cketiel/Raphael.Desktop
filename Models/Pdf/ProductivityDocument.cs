@@ -53,7 +53,7 @@ namespace Raphael.Desktop.Models.Pdf
                         Tile(row, T("productivity.TotalDays"), _totals.Days.ToString());
                         Tile(row, T("productivity.TotalPaid"), _totals.PaidText);
                         Tile(row, T("productivity.TotalMiles"), _totals.MilesText);
-                        Tile(row, T("productivity.TotalLoaded"), _totals.LoadedText);
+                        Tile(row, T("productivity.TotalLoaded"), $"{_totals.PassengerMiles:N1} mi");
                         Tile(row, T("productivity.TotalTrips"), _totals.Trips.ToString());
                         if (pay) Tile(row, T("productivity.TotalAmount"), _totals.AmountText);
                     });
@@ -62,7 +62,7 @@ namespace Raphael.Desktop.Models.Pdf
                 page.Content().PaddingTop(10).Table(table =>
                 {
                     var keys = new List<string> { "ColDate", "ColDriver", "ColVehicle", "ColShift", "ColPaid", "HLoaded", "HWait", "HDeadhead",
-                                                  "HInspection", "HOther", "ColMiles", "MLoaded", "MDeadhead", "ColTrips" };
+                                                  "HInspection", "HOther", "ColMiles", "XPassenger", "MDeadhead", "ColTrips" };
                     if (pay) keys.AddRange(new[] { "ColRate", "ColAmount" });
 
                     table.ColumnsDefinition(c =>
@@ -88,7 +88,7 @@ namespace Raphael.Desktop.Models.Pdf
                         C(ProductivityFormat.Hours(set.Sum(r => r.ScheduleWaitMinutes + r.PickupWaitMinutes)));
                         C(ProductivityFormat.Hours(set.Sum(r => r.DeadheadDriveMinutes))); C(ProductivityFormat.Hours(set.Sum(r => r.InspectionMinutes)));
                         C(ProductivityFormat.Hours(set.Sum(r => r.OtherMinutes)));
-                        C($"{set.Sum(r => r.VehicleMiles ?? 0):N1} mi"); C($"{set.Sum(r => r.LoadedMiles ?? 0):N1} mi");
+                        C($"{set.Sum(r => r.VehicleMiles ?? 0):N1} mi"); C($"{set.Sum(r => r.PassengerMiles ?? 0):N1} mi");
                         C($"{set.Sum(r => r.DeadheadMiles ?? 0):N1} mi"); C(set.Sum(r => r.TripsCompleted).ToString());
                         if (pay) { C(""); C(ProductivityFormat.Money(amount)); }
                     }
@@ -110,7 +110,7 @@ namespace Raphael.Desktop.Models.Pdf
                             Cell(row.PaidText, true); Cell(row.Loaded, true);
                             Cell(ProductivityFormat.Hours(r.ScheduleWaitMinutes + r.PickupWaitMinutes), true); Cell(row.DeadheadDrive, true);
                             Cell(row.Inspection, true); Cell(row.Other, true);
-                            Cell(row.MilesText, true); Cell(row.LoadedMiles, true); Cell(row.DeadheadMiles, true); Cell(r.TripsCompleted.ToString(), true);
+                            Cell(row.MilesText, true); Cell(row.PassengerMiles, true); Cell(row.DeadheadMiles, true); Cell(r.TripsCompleted.ToString(), true);
                             if (pay) { Cell(row.RateText, true); Cell(row.AmountText, true); }
                         }
                         // A subtotal only says something when there is more than one driver.

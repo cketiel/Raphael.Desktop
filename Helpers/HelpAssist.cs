@@ -38,6 +38,29 @@ public static class HelpAssist
         (string)element.GetValue(TopicIdProperty);
 
     /// <summary>
+    /// On a screen whose zones have topics of their own and nothing to focus in them (figures, bars):
+    /// F1 answers for what is under the mouse, not for what has the focus.
+    /// </summary>
+    public static readonly DependencyProperty FollowMouseProperty =
+        DependencyProperty.RegisterAttached("FollowMouse", typeof(bool), typeof(HelpAssist), new FrameworkPropertyMetadata(false));
+
+    public static void SetFollowMouse(DependencyObject element, bool value) => element.SetValue(FollowMouseProperty, value);
+
+    public static bool GetFollowMouse(DependencyObject element) => (bool)element.GetValue(FollowMouseProperty);
+
+    /// <summary>The topic under the mouse, or null outside a screen that follows it.</summary>
+    public static string ResolveFromMouse()
+    {
+        var over = Mouse.DirectlyOver as DependencyObject;
+
+        for (var current = over; current is not null; current = GetParent(current))
+            if (GetFollowMouse(current))
+                return ResolveUpwards(over);
+
+        return null;
+    }
+
+    /// <summary>
     /// Walks up from the focused element looking for the first declared topic.
     /// </summary>
     /// <returns>The topic id, or <c>null</c> when nothing on the way up declares one.</returns>

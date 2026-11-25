@@ -136,6 +136,14 @@
                                                         <TextBlock Text="{Binding Data.OpenDocumentsToolTip, Source={StaticResource vmProxy}}"/>
                                                     </StackPanel>
                                                 </Button>
+                                                <!-- RE-092: its readings, and their correction for an administrator -->
+                                                <Button Style="{StaticResource VehicleMenuAction}" CommandParameter="{Binding}"
+                                                        Command="{Binding Data.OdometerHistoryCommand, Source={StaticResource vmProxy}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="Speedometer" Foreground="#673AB7" Margin="0,0,10,0"/>
+                                                        <TextBlock Text="{Binding Data.OdometerHistoryText, Source={StaticResource vmProxy}}"/>
+                                                    </StackPanel>
+                                                </Button>
                                                 <!-- RE-053: only one of the two applies at a time; the other collapses -->
                                                 <Button Style="{StaticResource VehicleMenuAction}" CommandParameter="{Binding}"
                                                         Command="{Binding Data.OutOfServiceCommand, Source={StaticResource vmProxy}}">

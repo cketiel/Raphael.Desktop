@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es" data-help-id="desktop/reports/productivity-hours">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Las horas — cómo se calcula la jornada pagable · Ayuda de Raphael</title>
+<meta name="description" content="La regla exacta de las horas que se pagan: inicio y final permitidos, los seis grupos de minutos, cuál es la cifra que se paga y por qué, con un ejemplo completo.">
+<meta name="help-covers" content="Raphael.Desktop 1.22.0">
+<meta name="help-built" content="2026-11-25">
+<link rel="stylesheet" href="../../../assets/help.css">
+</head>
+<body>
+<a class="rf-skip" href="#rf-content">Ir al contenido</a>
+
+<div class="rf-shell">
+
+  <header class="rf-head">
+    <button class="rf-btn rf-nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="rf-nav" title="Mostrar u ocultar el contenido">☰</button>
+
+    <a class="rf-brand" href="../../../es/desktop/getting-started/overview.html">
+      <span class="rf-brand-mark" aria-hidden="true">R</span>
+      <span>Ayuda de Raphael</span>
+      <span class="rf-brand-sub">1.22.0</span>
+    </a>
+
+    <div class="rf-search">
+      <span class="rf-search-icon" aria-hidden="true">⌕</span>
+      <input type="search" id="rf-search-input" autocomplete="off" spellcheck="false"
+             placeholder="Buscar… (viaje, Will Call, campanita)" aria-label="Buscar en la ayuda"
+             aria-expanded="false" aria-controls="rf-results" role="combobox">
+      <kbd>/</kbd>
+      <div class="rf-results" id="rf-results" role="listbox" hidden></div>
+    </div>
+
+    <div class="rf-head-actions">
+      <a class="rf-btn rf-btn-lang" href="../../../en/desktop/reports/productivity-hours.html" title="Ver en inglés" data-lang-switch>EN</a>
+      <button class="rf-btn" type="button" data-theme-toggle title="Cambiar entre claro y oscuro" aria-label="Cambiar entre claro y oscuro">◐</button>
+      <button class="rf-btn" type="button" data-print title="Imprimir este tema">Imprimir</button>
+    </div>
+  </header>
+
+  <nav class="rf-nav" id="rf-nav" aria-label="Contenido">
+    <div class="rf-nav-section"><p class="rf-nav-title">Primeros pasos</p><ul><li><a href="../../../es/desktop/getting-started/overview.html" data-roles="admin dispatcher driver">Raphael Desktop en cinco minutos</a></li><li><a href="../../../es/desktop/getting-started/help-itself.html" data-roles="admin dispatcher driver">Cómo usar esta ayuda</a></li><li><a href="../../../es/desktop/whats-new/overview.html" data-roles="admin dispatcher driver">Novedades</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Notificaciones</p><ul><li><a href="../../../es/desktop/notifications/overview.html" data-roles="admin dispatcher">Qué avisa el sistema y por qué</a></li><li><a href="../../../es/desktop/notifications/bell.html" data-roles="admin dispatcher">La campanita y sus dos marcas</a></li><li><a href="../../../es/desktop/notifications/live-alerts.html" data-roles="admin dispatcher">Las alertas en vivo</a></li><li><a href="../../../es/desktop/notifications/alert-preferences.html" data-roles="admin dispatcher">Sonidos y silencio</a></li><li><a href="../../../es/desktop/notifications/center.html" data-roles="admin dispatcher">El Centro de notificaciones</a></li><li><a href="../../../es/desktop/notifications/call-requests.html" data-roles="admin dispatcher">Llamadas de conductores — devolver la llamada con todo delante</a></li><li><a href="../../../es/desktop/notifications/detail-panel.html" data-roles="admin dispatcher">La ficha del aviso</a></li><li><a href="../../../es/desktop/notifications/will-call.html" data-roles="admin dispatcher">Atender un Will Call</a></li><li><a href="../../../es/desktop/notifications/catalog.html" data-roles="admin dispatcher">Los avisos, uno por uno</a></li><li><a href="../../../es/desktop/notifications/read-state.html" data-roles="admin dispatcher">Leído y no leído</a></li><li><a href="../../../es/desktop/notifications/keep-cleanup.html" data-roles="admin dispatcher">Conservar un aviso, y la limpieza automática</a></li><li><a href="../../../es/desktop/notifications/admin.html" data-roles="admin">Administración de las notificaciones</a></li><li><a href="../../../es/desktop/notifications/export.html" data-roles="admin dispatcher">Exportar avisos a Excel</a></li><li><a href="../../../es/desktop/notifications/troubleshooting.html" data-roles="admin dispatcher">Cuando no llega nada</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Las pestañas</p><ul><li><a href="../../../es/desktop/home/overview.html" data-roles="admin dispatcher">Home — dar de alta un viaje</a></li><li><a href="../../../es/desktop/home/columns.html" data-roles="admin dispatcher">Elegir las columnas de Home y su orden</a></li><li><a href="../../../es/desktop/home/cancel-trip.html" data-roles="admin dispatcher">Cancelar un viaje y ver quién lo canceló</a></li><li><a href="../../../es/desktop/home/import-trips.html" data-roles="admin dispatcher">Importar los viajes de un broker</a></li><li><a href="../../../es/desktop/home/edit-restrictions.html" data-roles="admin dispatcher">Viajes que no se pueden editar</a></li><li><a href="../../../es/desktop/home/trip-notes.html" data-roles="admin dispatcher">Notas para el conductor</a></li><li><a href="../../../es/desktop/data/overview.html" data-roles="admin dispatcher">Data — los datos maestros</a></li><li><a href="../../../es/desktop/data/route-garage.html" data-roles="admin dispatcher">Cambiar el garaje de una ruta</a></li><li><a href="../../../es/desktop/data/route-driver.html" data-roles="admin dispatcher">Un chofer, una ruta por día</a></li><li><a href="../../../es/desktop/data/vehicles.html" data-roles="admin dispatcher">Vehículos — la lista y qué transporta cada uno</a></li><li><a href="../../../es/desktop/data/odometer.html" data-roles="admin dispatcher">Odómetro de un vehículo — historial y corrección</a></li><li><a href="../../../es/desktop/data/space-types.html" data-roles="admin dispatcher">Tipos de espacio — qué vehículo necesita cada uno</a></li><li><a href="../../../es/desktop/data/vehicle-configurations.html" data-roles="admin">Configuraciones de vehículo y clases de plaza</a></li><li><a href="../../../es/desktop/data/out-of-service.html" data-roles="admin dispatcher">Poner fuera de servicio un vehículo o un driver</a></li><li><a href="../../../es/desktop/schedules/overview.html" data-roles="admin dispatcher">Schedules — planificar el día</a></li><li><a href="../../../es/desktop/schedules/routing.html" data-roles="admin dispatcher">Rutear un viaje</a></li><li><a href="../../../es/desktop/schedules/vehicle-warning.html" data-roles="admin dispatcher">El aviso de que un viaje no cabe en la línea</a></li><li><a href="../../../es/desktop/schedules/stop-order.html" data-roles="admin dispatcher">Cambiar el orden de las paradas</a></li><li><a href="../../../es/desktop/schedules/early-arrival.html" data-roles="admin dispatcher">Cuánto espera el conductor</a></li><li><a href="../../../es/desktop/schedules/unrouting.html" data-roles="admin dispatcher">Sacar un viaje de una ruta</a></li><li><a href="../../../es/desktop/schedules/live-board.html" data-roles="admin dispatcher">Por qué la pantalla cambia sola</a></li><li><a href="../../../es/desktop/schedules/vehicle-inspection.html" data-roles="admin dispatcher">Inspección del vehículo</a></li><li><a href="../../../es/desktop/dispatch/overview.html" data-roles="admin dispatcher">Dispatch — vigilar las rutas en marcha</a></li><li><a href="../../../es/desktop/live-map/overview.html" data-roles="admin dispatcher">Mapa en vivo — la flota del día</a></li><li><a href="../../../es/desktop/live-map/vehicles.html" data-roles="admin dispatcher">Los vehículos en el mapa y el ritmo</a></li><li><a href="../../../es/desktop/live-map/filters-layers.html" data-roles="admin dispatcher">Filtros, recuento, capas y simbología</a></li><li><a href="../../../es/desktop/live-map/today.html" data-roles="admin dispatcher">Hoy, la lista En progreso y Drivers</a></li><li><a href="../../../es/desktop/live-map/selection.html" data-roles="admin dispatcher">La línea seleccionada: camino, Seguir y Detalles</a></li><li><a href="../../../es/desktop/live-map/search.html" data-roles="admin dispatcher">Búsqueda: líneas, viajes y lugares</a></li><li><a href="../../../es/desktop/live-map/view.html" data-roles="admin dispatcher">La vista: botones, ventanas, estilos y 3D</a></li><li><a href="../../../es/desktop/live-map/voice.html" data-roles="admin dispatcher">Voz: hablar con el mapa</a></li><li><a href="../../../es/desktop/live-map/power-up.html" data-roles="admin dispatcher">POWER UP: claves y costes</a></li><li><a href="../../../es/desktop/reports/overview.html" data-roles="admin dispatcher driver">Reports — los informes</a></li><li><a href="../../../es/desktop/reports/production.html" data-roles="admin dispatcher driver">Production Report — la producción de un periodo</a></li><li><a href="../../../es/desktop/reports/productivity.html" data-roles="admin dispatcher">Productividad de la flota — la pantalla</a></li><li><a href="../../../es/desktop/reports/productivity-hours.html" aria-current="page" data-roles="admin dispatcher">Las horas — cómo se calcula la jornada pagable</a></li><li><a href="../../../es/desktop/reports/productivity-miles.html" data-roles="admin dispatcher">Las millas — odómetro, con paciente, ocupadas y vacías</a></li><li><a href="../../../es/desktop/reports/productivity-pay.html" data-roles="admin">El pago — qué se le paga a cada Driver y por qué</a></li><li><a href="../../../es/desktop/reports/warnings.html" data-roles="admin dispatcher">Los avisos del reporte — los trece, uno a uno</a></li><li><a href="../../../es/desktop/compliance/overview.html" data-roles="admin dispatcher">Cumplimiento — los documentos de choferes, vehículos y dispatchers</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Admin</p><ul><li><a href="../../../es/desktop/admin/overview.html" data-roles="admin">Admin — empleados, facturación e integradores</a></li><li><a href="../../../es/desktop/admin/employees.html" data-roles="admin">Admin — Employees</a></li><li><a href="../../../es/desktop/admin/driver-pay.html" data-roles="admin">Tarifa de pago de un Driver — por hora o por milla</a></li><li><a href="../../../es/desktop/admin/mcp-access.html" data-roles="admin">Acceso de IA (MCP)</a></li><li><a href="../../../es/desktop/admin/mcp-connect.html" data-roles="admin">Conectar tu asistente de IA</a></li><li><a href="../../../es/desktop/admin/billing.html" data-roles="admin">Admin — Billing</a></li><li><a href="../../../es/desktop/admin/billing-rates.html" data-roles="admin">Admin — Tarifas de los funding sources</a></li><li><a href="../../../es/desktop/admin/profile.html" data-roles="admin">Admin — Profile</a></li><li><a href="../../../es/desktop/admin/integrators.html" data-roles="admin">Admin — Integrators</a></li><li><a href="../../../es/desktop/admin/providers.html" data-roles="admin">Admin — Providers</a></li><li><a href="../../../es/desktop/admin/catalog-integrators.html" data-roles="admin">Catálogo — Integrators</a></li><li><a href="../../../es/desktop/admin/catalog-providers.html" data-roles="admin">Catálogo — Providers</a></li><li><a href="../../../es/desktop/admin/google-maps.html" data-roles="admin">Google Maps — consumo, coste y ahorro</a></li><li><a href="../../../es/desktop/admin/google-maps/summary.html" data-roles="admin">Google Maps — Resumen</a></li><li><a href="../../../es/desktop/admin/google-maps/detail.html" data-roles="admin">Google Maps — Detalle</a></li><li><a href="../../../es/desktop/admin/google-maps/settings.html" data-roles="admin">Google Maps — Configuración</a></li></ul></div>
+<div class="rf-nav-section"><p class="rf-nav-title">Glosario</p><ul><li><a href="../../../es/_shared/glossary/will-call.html">Will Call</a></li><li><a href="../../../es/_shared/glossary/no-show.html">No-show</a></li><li><a href="../../../es/_shared/glossary/run.html">Ruta</a></li><li><a href="../../../es/_shared/glossary/leg.html">Trayecto — ida y vuelta</a></li><li><a href="../../../es/_shared/glossary/space-type.html">Tipo de espacio</a></li><li><a href="../../../es/_shared/glossary/funding-source.html">Fuente de financiación</a></li></ul></div>
+  </nav>
+
+  <main class="rf-main" id="rf-content">
+    <article class="rf-article">
+
+      <div data-stale-slot></div>
+
+      <div class="rf-crumbs"><span><a href="../../../es/desktop/getting-started/overview.html">Inicio</a></span><span>Las pestañas</span><span>Las horas — cómo se calcula la jornada pagable</span></div>
+      <h1 class="rf-title">Las horas — cómo se calcula la jornada pagable</h1>
+      <p class="rf-summary">La regla exacta de las horas que se pagan: inicio y final permitidos, los seis grupos de minutos, cuál es la cifra que se paga y por qué, con un ejemplo completo.</p>
+      <div class="rf-meta"><span class="rf-chip rf-chip-mode">referencia</span><span class="rf-chip rf-chip-new">Nuevo en 1.23.0</span></div>
+
+      <p>A un Driver por hora se le paga la <strong>jornada pagable</strong>: la parte de su jornada que la <a class="help-term" href="../../../es/_shared/glossary/run.html" data-term-title="Ruta" data-term-summary="Un vehículo, un conductor y una franja de fechas y horas. Es la unidad a la que se asignan los viajes.">ruta</a> justifica. Se calcula con una regla exacta, <strong>sin margen ni tolerancia</strong>, y es la misma para todos.</p>
+<h2 id="la-formula">La fórmula<a class="help-anchor" href="#la-formula" aria-label="Enlace a esta sección">#</a></h2>
+<p><strong>Inicio permitido</strong> = hora comprometida de la primera parada − camino del garaje a esa parada − preparación − inspección</p>
+<p><strong>Final permitido</strong> = Perform de la última parada + camino de vuelta al garaje + inspección</p>
+<div class="help-table-scroll"><table><thead><tr><th></th><th>Se paga desde / hasta</th></tr></thead><tbody><tr><td><strong>Inicio pagable</strong></td><td>Lo <strong>más tardío</strong> entre el inicio real y el inicio permitido</td></tr>
+<tr><td><strong>Final pagable</strong></td><td>Lo <strong>más temprano</strong> entre el Pull-in real y el final permitido</td></tr></tbody></table></div>
+<p><strong>Jornada pagable = final pagable − inicio pagable</strong></p>
+<h2 id="de-donde-sale-cada-numero">De dónde sale cada número<a class="help-anchor" href="#de-donde-sale-cada-numero" aria-label="Enlace a esta sección">#</a></h2>
+<div class="help-table-scroll"><table><thead><tr><th>Número</th><th>Qué es</th></tr></thead><tbody><tr><td>Hora comprometida</td><td>La hora de recogida de la primera parada real. Si no tiene, la de su cita</td></tr>
+<tr><td>Camino de ida</td><td>Garaje → primera parada, a la hora en que había que salir. Lo calcula el servidor</td></tr>
+<tr><td>Preparación</td><td><strong>20 minutos</strong>, fijos</td></tr>
+<tr><td>Inspección</td><td>Los minutos pagados por <strong>cada</strong> inspección: de fábrica <strong>10</strong>, y solo si el Provider tiene la inspección activada. Sin ella, 0</td></tr>
+<tr><td>Perform de la última parada</td><td>La hora real en que terminó el último viaje</td></tr>
+<tr><td>Camino de vuelta</td><td>Última parada → garaje. El <strong>servidor</strong> lo calcula y lo guarda al hacerse ese Perform; nadie puede alargarlo desde el teléfono</td></tr>
+<tr><td>Inicio real</td><td>El comienzo de la inspección de salida. Sin inspección, el Pull-out</td></tr>
+<tr><td>Final real</td><td>El Pull-in</td></tr></tbody></table></div>
+<p>Un viaje cancelado al que nadie fue no cuenta como parada. Si el Driver llegó a la puerta, sí.</p>
+<h2 id="un-ejemplo-completo">Un ejemplo completo<a class="help-anchor" href="#un-ejemplo-completo" aria-label="Enlace a esta sección">#</a></h2>
+<p>La primera recogida es a las <strong>08:00</strong>, con 34 minutos de camino e inspección activada. El Driver empezó a las <strong>06:08</strong> y su último Perform fue a las <strong>16:41</strong>, con 31 minutos de vuelta. Hizo el Pull-in a las <strong>18:10</strong>.</p>
+<div class="help-table-scroll"><table><thead><tr><th>Paso</th><th>Cuenta</th><th>Resultado</th></tr></thead><tbody><tr><td>Inicio permitido</td><td>08:00 − 34 − 20 − 10 min</td><td><strong>06:56</strong></td></tr>
+<tr><td>Inicio pagable</td><td>lo más tardío entre 06:08 y 06:56</td><td><strong>06:56</strong></td></tr>
+<tr><td>Sin pagar al inicio</td><td>06:56 − 06:08</td><td>48 min</td></tr>
+<tr><td>Final permitido</td><td>16:41 + 31 + 10 min</td><td><strong>17:22</strong></td></tr>
+<tr><td>Final pagable</td><td>lo más temprano entre 18:10 y 17:22</td><td><strong>17:22</strong></td></tr>
+<tr><td>Sin pagar al final</td><td>18:10 − 17:22</td><td>48 min</td></tr>
+<tr><td><strong>Jornada pagable</strong></td><td>17:22 − 06:56</td><td><strong>10:26</strong></td></tr>
+<tr><td>Jornada real</td><td>18:10 − 06:08</td><td>12:02</td></tr></tbody></table></div>
+<p>10:26 pagables + 1:36 sin pagar = 12:02 reales. A $15.00 la hora, se pagan <strong>$156.50</strong>.</p>
+<p>Si hubiera empezado <strong>tarde</strong>, a las 07:10, cobraría desde las 07:10: se paga desde que llegó.</p>
+<p>Esta cuenta, con los números de cada día, se ve en <strong>Cálculo</strong>: tres barras —jornada real, sin pagar y jornada pagable— cada una con su total, y debajo las sumas del inicio y del final.</p>
+<h2 id="los-seis-grupos-en-que-se-fue-la-jornada">Los seis grupos: en qué se fue la jornada<a class="help-anchor" href="#los-seis-grupos-en-que-se-fue-la-jornada" aria-label="Enlace a esta sección">#</a></h2>
+<p>Cada minuto de la jornada pagable cae en <strong>un solo</strong> grupo. Si encaja en dos, se queda en el primero de la tabla. Los seis suman exactamente la jornada pagable. <strong>Son solo su desglose: no se pagan por separado.</strong> Lo que se paga es la jornada pagable entera, se haya ido en lo que se haya ido.</p>
+<div class="help-table-scroll"><table><thead><tr><th>#</th><th>Grupo</th><th>Qué minutos son</th></tr></thead><tbody><tr><td>1</td><td><strong>Con paciente</strong></td><td>Del Perform de la recogida al Perform de la entrega. Dos viajes a la vez cuentan una vez</td></tr>
+<tr><td>2</td><td><strong>Inspección</strong></td><td>Lo que duró cada inspección, hasta su máximo</td></tr>
+<tr><td>3</td><td><strong>Espera por horario</strong></td><td>Llegó antes de que se abriera la ventana: 15 min antes de la hora en la ida, 5 en el regreso</td></tr>
+<tr><td>4</td><td><strong>Espera del paciente</strong></td><td>Con la ventana abierta, hasta el Perform. En la entrega, de la llegada al Perform</td></tr>
+<tr><td>5</td><td><strong>Manejo vacío</strong></td><td>Conduciendo a una parada sin nadie a bordo, desde que deja la anterior o pulsa Start</td></tr>
+<tr><td>6</td><td><strong>Otros</strong></td><td>El resto: tiempo libre entre viajes, comida, la parte larga de una inspección</td></tr></tbody></table></div>
+<p>Por eso el <strong>tiempo libre entre viajes</strong> no descuenta nada: está dentro de la jornada pagable.</p>
+<h2 id="lo-que-sale-aparte">Lo que sale aparte<a class="help-anchor" href="#lo-que-sale-aparte" aria-label="Enlace a esta sección">#</a></h2>
+<div class="help-table-scroll"><table><thead><tr><th>Dato</th><th>Qué es</th><th>¿Se paga?</th></tr></thead><tbody><tr><td><strong>Jornada real</strong></td><td>Del inicio real al Pull-in</td><td>No</td></tr>
+<tr><td><strong>Sin pagar</strong></td><td>Lo que queda fuera del inicio y el final permitidos</td><td>No</td></tr>
+<tr><td><strong>Horas-paciente</strong></td><td>Una hora con dos pacientes son dos. Fuera de la suma</td><td>No</td></tr>
+<tr><td><strong>Viajes</strong></td><td>Los completados</td><td>No</td></tr></tbody></table></div>
+<h2 id="el-aviso-jornada-fuera-del-horario-permitido">El aviso «Jornada fuera del horario permitido»<a class="help-anchor" href="#el-aviso-jornada-fuera-del-horario-permitido" aria-label="Enlace a esta sección">#</a></h2>
+<p>Los minutos sin pagar se descuentan <strong>todos</strong>, uno a uno. El aviso no descuenta nada: solo llama la atención cuando pasan de su límite, de fábrica 15 minutos. Con 10 minutos sin pagar no hay aviso, y tampoco se pagan.</p>
+<h2 id="lo-que-se-puede-ajustar">Lo que se puede ajustar<a class="help-anchor" href="#lo-que-se-puede-ajustar" aria-label="Enlace a esta sección">#</a></h2>
+<p>El administrador de la plataforma cambia los <strong>minutos pagados por cada inspección</strong> en <a href="#" class="help-action" data-action="raphael://open/report-warnings"><span class="help-action-icon" aria-hidden="true"></span>¿Qué significan los avisos?</a> → <strong>Jornada fuera del horario permitido</strong>. Vale para las jornadas que se calculen desde ese momento, incluida la de hoy; las ya calculadas no cambian, ni con el repaso de las 3:00: cada una guarda los minutos que usó. La preparación de 20 minutos no se cambia.</p>
+<aside class="help-callout help-callout-note" data-kind="note"><p class="help-callout-title">Los valores que disparan los avisos se pueden editar</p><p>El administrador de la plataforma los cambia en <a href="#" class="help-action" data-action="raphael://open/report-warnings"><span class="help-action-icon" aria-hidden="true"></span>¿Qué significan los avisos?</a>: cada aviso tiene ahí su <strong>límite</strong> y se puede apagar. Cómo se hace: <a href="../../../es/desktop/reports/warnings.html">Cambiar los límites</a>.</p></aside>
+<h2 id="que-puede-salir-mal">Qué puede salir mal<a class="help-anchor" href="#que-puede-salir-mal" aria-label="Enlace a esta sección">#</a></h2>
+<div class="help-table-scroll"><table><thead><tr><th>Lo que ves</th><th>Qué pasa</th></tr></thead><tbody><tr><td>«Final de jornada sin límite»</td><td>Quedó una parada sin Perform y no hay camino de vuelta: se paga hasta el Pull-in</td></tr>
+<tr><td>«No se pudo calcular el inicio permitido»</td><td>La primera parada no tiene hora: se paga desde el inicio real</td></tr>
+<tr><td>Cobra menos de lo que dice el Driver</td><td>Abre el cálculo: casi siempre empezó antes de lo permitido</td></tr>
+<tr><td>La jornada acabó pasada la medianoche</td><td>Se mide hasta la hora en que terminó, del día siguiente</td></tr></tbody></table></div>
+
+      <section class="rf-related"><h2>Ver también</h2><div class="rf-related-grid"><a class="rf-related-card" href="../../../es/desktop/reports/productivity.html"><strong>Productividad de la flota — la pantalla</strong><span>Qué es el reporte de horas y millas por Driver, cada zona de la pantalla, cada columna, cada botón y qué hacer en cada situación.</span></a><a class="rf-related-card" href="../../../es/desktop/reports/productivity-pay.html"><strong>El pago — qué se le paga a cada Driver y por qué</strong><span>Las dos formas de pago, por hora o por milla, qué cifra usa cada una, qué no se paga y cómo se llega al total general.</span></a><a class="rf-related-card" href="../../../es/desktop/reports/warnings.html"><strong>Los avisos del reporte — los trece, uno a uno</strong><span>Cómo se ven los avisos de Productividad de la flota y sus casos, qué significa cada uno, cuándo salta, si afecta al pago, qué hacer y cómo se ajustan sus límites.</span></a></div></section>
+
+      <footer class="rf-foot">
+        <span class="rf-slogan">Raphael Driving Health · The Rider’s Angel</span>
+        <span data-covers>Cubre Raphael.Desktop 1.22.0</span>
+        <span>Actualizado el 25/11/2026</span>
+        <button class="rf-btn" type="button" data-diagnostics>Copiar informe para soporte</button>
+      </footer>
+
+    </article>
+  </main>
+
+  <aside class="rf-aside" aria-label="En esta página">
+    <p class="rf-aside-title">En esta página</p>
+    <ul><li class="rf-lvl-2"><a href="#la-formula">La fórmula</a></li><li class="rf-lvl-2"><a href="#de-donde-sale-cada-numero">De dónde sale cada número</a></li><li class="rf-lvl-2"><a href="#un-ejemplo-completo">Un ejemplo completo</a></li><li class="rf-lvl-2"><a href="#los-seis-grupos-en-que-se-fue-la-jornada">Los seis grupos: en qué se fue la jornada</a></li><li class="rf-lvl-2"><a href="#lo-que-sale-aparte">Lo que sale aparte</a></li><li class="rf-lvl-2"><a href="#el-aviso-jornada-fuera-del-horario-permitido">El aviso «Jornada fuera del horario permitido»</a></li><li class="rf-lvl-2"><a href="#lo-que-se-puede-ajustar">Lo que se puede ajustar</a></li><li class="rf-lvl-2"><a href="#que-puede-salir-mal">Qué puede salir mal</a></li></ul>
+  </aside>
+
+</div>
+
+<script>window.__HELP_PAGE__ = {"id":"desktop/reports/productivity-hours","lang":"es","app":"Raphael.Desktop","appVersion":"1.22.0","built":"2026-11-25","sourceCommit":"7885f56","root":"../../../","home":"desktop/getting-started/overview","ui":{"brand":"Ayuda de Raphael","slogan":"Raphael Driving Health · The Rider’s Angel","skip":"Ir al contenido","contents":"Contenido","toggleContents":"Mostrar u ocultar el contenido","search":"Buscar en la ayuda","searchPlaceholder":"Buscar… (viaje, Will Call, campanita)","searchNoResults":"Nada coincide con «{0}».","searchHint":"Prueba con menos palabras, o con el nombre que le dais en la oficina.","onThisPage":"En esta página","seeAlso":"Ver también","breadcrumbHome":"Inicio","print":"Imprimir","printTitle":"Imprimir este tema","theme":"Cambiar entre claro y oscuro","language":"Idioma","languageSwitch":"Ver en inglés","copyDiagnostics":"Copiar informe para soporte","copyDiagnosticsDone":"Informe copiado. Pégalo en el correo a soporte.","copyDiagnosticsFailed":"No se pudo copiar. Selecciona el texto del pie y cópialo a mano.","newIn":"Nuevo en {0}","coversLine":"Cubre {0} {1}","updatedLine":"Actualizado el {0}","staleTitle":"Esta ayuda va por detrás de la aplicación.","staleBody":"Cubre la versión {0} y estás usando la {1}. Puede faltar lo que se añadió después.","actionUnavailable":"Esto solo funciona con la ayuda abierta dentro de la aplicación.","mode":{"how-to":"cómo se hace","reference":"referencia","explanation":"por qué","tutorial":"paso a paso"}}};</script>
+<script src="../../../assets/search-index.es.js"></script>
+<script src="../../../assets/help.js"></script>
+</body>
+</html>
