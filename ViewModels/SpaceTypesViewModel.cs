@@ -111,6 +111,27 @@ namespace Raphael.Desktop.ViewModels
             MarkClasses();
         }
 
+        /// <summary>RE-093: new minutes to board or to leave. Routes planned from now on use them.</summary>
+        public async Task ChangeTimeAsync(SpaceType type, bool load, string text)
+        {
+            var was = load ? type.LoadTime : type.UnloadTime;
+            if (!type.CanEditClass || !float.TryParse(text.Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var minutes)
+                || minutes < 0 || minutes > 120 || System.Math.Abs(minutes - was) < 0.05f) return;
+
+            if (MessageBox.Show(string.Format(L[load ? "spacetypes.ConfirmLoad" : "spacetypes.ConfirmUnload"], type.Name, was, minutes), L["SpaceTypes"],
+                    MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            try
+            {
+                await new VehicleCapabilityService().UpdateSpaceTypeTimesAsync(type.Id, load ? minutes : type.LoadTime, load ? type.UnloadTime : minutes);
+                if (load) type.LoadTime = minutes; else type.UnloadTime = minutes;
+                await VehicleCapabilityStore.Instance.RefreshAsync();
+            }
+            catch (System.Exception ex)
+            {
+                Helpers.UiError.Show(ex.Message, L["ErrorTitle"], MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void OnCapabilityChanged(object? sender, System.EventArgs e) => MarkClasses();
 
         public SpaceTypesViewModel()

@@ -87,8 +87,35 @@ namespace Raphael.Desktop.ViewModels.LiveMap
                 at += share;
             }
 
-            foreach (var n in new[] { nameof(DoneRatio), nameof(DoneText), nameof(TripsText), nameof(DoneToolTip) }) OnPropertyChanged(n);
+            foreach (var n in new[] { nameof(L), nameof(HasSplit), nameof(WillCallCount), nameof(ToRouteCount), nameof(HasHours), nameof(HoursCount), nameof(ImpossibleCount), nameof(ImpossibleDetail), nameof(LooseCount), nameof(LooseDetail), nameof(DoneRatio), nameof(DoneText), nameof(TripsText), nameof(DoneToolTip) }) OnPropertyChanged(n);
         }
+
+        public LocalizationService L => LocalizationService.Instance;
+
+        // ---- RE-094: the trips without a line, told apart, and the appointments that cannot be reached ----
+
+        /// <summary>False with a server that does not tell them apart.</summary>
+        public bool HasSplit => _day.UnroutedWillCall is not null && _day.Unrouted > 0;
+
+        /// <summary>Waiting for the patient to call: nobody routes them until then.</summary>
+        public int WillCallCount => _day.UnroutedWillCall ?? 0;
+
+        /// <summary>What the dispatcher really has left to route.</summary>
+        public int ToRouteCount => Math.Max(0, _day.Unrouted - WillCallCount);
+
+        // Known from the history of what the broker sent: an adjusted trip is still counted.
+        public int ImpossibleCount => (_day.ImpossibleAdjusted ?? 0) + (_day.ImpossibleAsReceived ?? 0);
+        public int LooseCount => (_day.LooseAdjusted ?? 0) + (_day.LooseAsReceived ?? 0);
+        public int HoursCount => ImpossibleCount + LooseCount;
+        public bool HasHours => HoursCount > 0;
+        public string ImpossibleDetail => string.Format(LocalizationService.Instance["livemap.DayHoursDetail"], _day.ImpossibleAdjusted ?? 0, _day.ImpossibleAsReceived ?? 0);
+        public string LooseDetail => string.Format(LocalizationService.Instance["livemap.DayHoursDetail"], _day.LooseAdjusted ?? 0, _day.LooseAsReceived ?? 0);
+
+        [RelayCommand]
+        private void OpenHours() => AppNavigation.ShowHoursReport(Date);
+
+        [RelayCommand]
+        private void OpenUnrouted() => OpenPart(TripPart.NoRun);
 
         /// <summary>Raised when the In progress row is pressed: the list is the map's, next to its vehicles.</summary>
         public event Action? InProgressRequested;

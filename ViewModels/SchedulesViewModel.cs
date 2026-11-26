@@ -866,6 +866,7 @@ namespace Raphael.Desktop.ViewModels
 
             await LoadOutOfServiceAsync();
             StartCapability();
+            StartAssistant(); // RE-094
 
             // Llenamos la colección observable que ve la UI por primera vez
             //ApplyVehicleRouteFilter();
@@ -1230,6 +1231,10 @@ namespace Raphael.Desktop.ViewModels
                     .OrderBy(s => s.Sequence)
                     .LastOrDefault(s => s.ETA <= tripToSchedule.FromTime && s.Name != "Pull-in");
 
+                // RE-098: the place the panel suggested, when it is what is being routed.
+                var placement = _placement is { } asked && asked.TripId == tripToSchedule.Id && asked.VehicleRouteId == vehicleRoute.Id ? asked : null;
+                if (placement is not null) previousSchedule = PlacementStop(placement.PickupAfterScheduleId);
+
                 // Si hay un previo, insertamos justo después. Si no, después del Pull-out (que es seq 0).
                 int targetSequence = (previousSchedule != null) ? (previousSchedule.Sequence ?? 0) + 1 : 1;
 
@@ -1337,7 +1342,7 @@ namespace Raphael.Desktop.ViewModels
 
                 double dDistance = dropoffLeg.DistanceMiles;
                 TimeSpan dTravelTime = TimeSpan.FromSeconds(dropoffLeg.DurationInTrafficSeconds ?? dropoffLeg.DurationSeconds);
-                TimeSpan pickupServiceTime = TimeSpan.FromMinutes(15);
+                TimeSpan pickupServiceTime = TimeSpan.FromMinutes(Services.VehicleCapabilityStore.Instance.BoardingMinutes(tripToSchedule.SpaceType));
                 TimeSpan dFinalEta = pFinalEta + pickupServiceTime + dTravelTime;
 
                 // The drive home. The Pull-in hour is built from this leg; it used to be
@@ -1364,7 +1369,9 @@ namespace Raphael.Desktop.ViewModels
                     DropoffETA = dFinalEta,
                     ReturnToGarageTravelTime = returnTravelTime,
                     VehicleRouteName = vehicleRoute.Name,
-                    TargetSequence = targetSequence
+                    TargetSequence = targetSequence,
+                    DropoffTargetSequence = placement is null || placement.DropoffAfterScheduleId == placement.PickupAfterScheduleId
+                        ? null : (PlacementStop(placement.DropoffAfterScheduleId)?.Sequence ?? targetSequence - 1) + 2
                 };
 
                 await _scheduleService.RouteTripsAsync(request);
@@ -1721,6 +1728,7 @@ namespace Raphael.Desktop.ViewModels
             _capabilityNotice = null;
             _ = VehicleCapabilityStore.Instance.EnsureAsync();
             RaiseCapability();
+            OnAssistantLineChanged(); // RE-099
 
             // Only reload if the VM has already been fully initialized.
             if (IsInitialized && CanLoadSchedulesAndTrips())
@@ -1879,7 +1887,8 @@ namespace Raphael.Desktop.ViewModels
         }
 
         partial void OnSelectedUnscheduledTripChanged(UnscheduledTripDto value)
-        {          
+        {
+            OnAssistantTripChanged(); // RE-098
             RaiseCapability();
             /*foreach (var schedule in Schedules)
             {
@@ -4269,6 +4278,7 @@ namespace Raphael.Desktop.ViewModels
         /// </remarks>
         public void ReleaseNotifications()
         {
+            StopAssistant();
             if (_notifications is not null)
             {
                 _notifications.NotificationReceived -= OnNotificationReceived;
@@ -4497,6 +4507,7 @@ namespace Raphael.Desktop.ViewModels
         {
             RefreshVehicleState();
             OnPropertyChanged(string.Empty);
+            RetranslateAssistant();
 
             // Sentences and captions already assembled onto the rows.
             ComputeBarSegments();

@@ -30,6 +30,9 @@ namespace Raphael.Desktop.DTOs
         public int? CapacityTypeId { get; set; }
         public string? CapacityType { get; set; }
         public int Level { get; set; }
+        /// <summary>RE-093: minutes to board and to leave; 0 means none declared.</summary>
+        public float LoadTime { get; set; }
+        public float UnloadTime { get; set; }
         public bool CanEdit { get; set; }
     }
 
@@ -41,6 +44,9 @@ namespace Raphael.Desktop.DTOs
         public int Level { get; set; }
         public string? Kind { get; set; }
         public int Vehicles { get; set; }
+        /// <summary>RE-093: patients on board at once, and how many of them may not be ambulatory.</summary>
+        public int MaxOnBoard { get; set; } = 2;
+        public int MaxNonAmbulatory { get; set; } = 1;
         public bool CanEdit { get; set; }
         public List<VehicleConfigurationSeatDto> Seats { get; set; } = new();
 
@@ -86,7 +92,17 @@ namespace Raphael.Desktop.DTOs
     {
         public string Name { get; set; } = "";
         public string? Description { get; set; }
+        /// <summary>RE-093: null keeps what the configuration has, as an older Desktop sends.</summary>
+        public int? MaxOnBoard { get; set; }
+        public int? MaxNonAmbulatory { get; set; }
         public List<VehicleConfigurationSeatSaveDto> Seats { get; set; } = new();
+    }
+
+    /// <summary>RE-093, admin: minutes a patient of this space type takes to board and to leave.</summary>
+    public class SpaceTypeTimesUpdateDto
+    {
+        public float LoadTime { get; set; }
+        public float UnloadTime { get; set; }
     }
 
     public class VehicleConfigurationSeatSaveDto

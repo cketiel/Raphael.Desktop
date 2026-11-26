@@ -57,5 +57,8 @@ namespace Raphael.Desktop.DTOs
         public TimeSpan ReturnToGarageTravelTime { get; set; }
 
         public int TargetSequence { get; set; }
+
+        /// <summary>RE-097: where the dropoff goes, counted with the pickup already in. Null: right after it.</summary>
+        public int? DropoffTargetSequence { get; set; }
     }
 }

@@ -15,7 +15,29 @@ namespace Raphael.Desktop.ViewModels
         public string Title { get; set; }
         public bool IsAppointmentType { get; set; }
         public bool IsReturnType { get; set; }
-        public DateTime? FromTime { get; set; }
+        private DateTime? _fromTime;
+        public DateTime? FromTime
+        {
+            get => _fromTime;
+            set { _fromTime = value; OnPropertyChanged(); HourGuide?.Changed(); }
+        }
+
+        private bool _isAppointmentChoice;
+
+        /// <summary>RE-094: the new pickup hour judged against the trip's appointment, as the import does.</summary>
+        public HourGuideModel? HourGuide { get; private set; }
+
+        private void StartHourGuide(int tripId, bool willCall, TimeSpan? toTime)
+        {
+            if (tripId <= 0 || willCall || toTime is not { } to || to == TimeSpan.Zero) return;
+            HourGuide = new HourGuideModel(
+                () => IsAppointmentType && !IsRouted && FromTime is { } f ? new FeasibilityPreviewRequestDto { TripId = tripId, Type = TripType.Appointment, FromTime = f.TimeOfDay, ToTime = to } : null,
+                h => FromTime = DateTime.Today + h, () => !IsRouted);
+            HourGuide.Changed();
+        }
+
+        /// <summary>Before closing with Save: false keeps the dialog open.</summary>
+        public bool ConfirmHours() => HourGuide?.ConfirmHourGuide() ?? true;
         public string PickupPhone { get; set; }
         public string DropoffPhone { get; set; }
 
@@ -122,6 +144,7 @@ namespace Raphael.Desktop.ViewModels
                     trip.Date.ToString("d"));
             }
 
+            StartHourGuide(trip.Id, trip.WillCall, trip.ToTime);
             ShowInScheduleCommand = new Helpers.RelayCommand(() => ShowInScheduleRequested?.Invoke());
             HideRoutedLockCommand = new Helpers.RelayCommand(() => IsRoutedLockExpanded = false);
             ShowRoutedLockCommand = new Helpers.RelayCommand(() => IsRoutedLockExpanded = true);
@@ -146,6 +169,7 @@ namespace Raphael.Desktop.ViewModels
             // An open trip is not on a route: nothing here is locked.
             _originalType = trip.Type;
             _originalFromTime = trip.FromTime;
+            StartHourGuide(trip.Id, trip.WillCall, trip.ToTime);
         }
         public TripDispatchUpdateDto GetUpdatedDto()
         {

@@ -348,6 +348,34 @@
                         <ComboBox ItemsSource="{Binding VehicleGroups}" SelectedItem="{Binding SelectedVehicleGroup}" DisplayMemberPath="Name" Width="200" Margin="5"/>-->
                         <TextBlock Text="{Binding RouteSummaryText}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="Black" FontStyle="Italic"/>
 
+                        <!-- RE-099: the trips this line could do -->
+                        <Button Command="{Binding SuggestTripsCommand}" ToolTip="{Binding SuggestTripsToolTip}" Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="18,0,0,0" Height="32" Padding="10,0" Cursor="Hand">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="LightbulbOnOutline" Width="18" Height="18" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding SuggestTripsText}"/>
+                            </StackPanel>
+                        </Button>
+                        <!-- RE-099: the trips better left for the end, only when there are -->
+                        <ToggleButton IsChecked="{Binding HideOverflow}" ToolTip="{Binding OverflowChipToolTip}" Margin="10,0,0,0" Height="30" Cursor="Hand"
+                                      Visibility="{Binding HasOverflow, Converter={StaticResource BoolToVis}}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Chip" CornerRadius="15" Padding="12,0" Height="30" Background="#FFF3E0" BorderBrush="#FFB74D" BorderThickness="1">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <materialDesign:PackIcon x:Name="ChipIcon" Kind="ArchiveArrowDownOutline" Foreground="#E65100" Width="18" Height="18" Margin="0,0,6,0"/>
+                                            <TextBlock x:Name="ChipText" Text="{Binding OverflowChipText}" Foreground="#BF360C" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Chip" Property="Background" Value="#E65100"/><Setter TargetName="ChipText" Property="Foreground" Value="White"/><Setter TargetName="ChipIcon" Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+
                         <Button Grid.Column="0"
                             Command="{Binding ManualRefreshCommand}"                                                    
                             Margin="35,0"
@@ -398,6 +426,15 @@
                                                              Width="20" Height="20" Foreground="#C62828"
                                                              VerticalAlignment="Top" Margin="0,1,8,0"/>
                                     <TextBlock Text="{Binding SelectedRouteOutOfServiceText}" TextWrapping="Wrap" Foreground="#B71C1C"/>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- RE-099: why the selected trip is better left for the end. Routing it stays free. -->
+                            <Border DockPanel.Dock="Top" Background="#FFF3E0" BorderBrush="#FFB74D" BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,4"
+                                    Visibility="{Binding HasSelectedOverflow, Converter={StaticResource BoolToVis}}" helpers:HelpAssist.TopicId="desktop/schedules/overflow">
+                                <DockPanel>
+                                    <materialDesign:PackIcon DockPanel.Dock="Left" Kind="ArchiveArrowDownOutline" Width="20" Height="20" Foreground="#E65100" VerticalAlignment="Top" Margin="0,1,8,0"/>
+                                    <TextBlock Text="{Binding SelectedOverflowText}" TextWrapping="Wrap" Foreground="#7A3600"/>
                                 </DockPanel>
                             </Border>
 
@@ -1407,7 +1444,12 @@
                         <!-- ======================================================================= -->
                         <!-- Columna 2: Map Panel  -->
                         <!-- ======================================================================= -->
-                        <Grid Grid.Column="2" Margin="5" ClipToBounds="True">
+                        <DockPanel Grid.Column="2">
+                        <!-- RE-098/099: the suggestions, beside the map that draws them. Nothing of it
+                             exists until it is opened. -->
+                        <local:RoutingSuggestionsPanel DockPanel.Dock="Left" Width="430" Margin="5,5,0,5" DataContext="{Binding Suggestions}"
+                                                       Visibility="{Binding IsOpen, Converter={StaticResource BoolToVis}}"/>
+                        <Grid Margin="5" ClipToBounds="True">
                             <gmaps:GMapControl x:Name="MapView" MinZoom="2" MaxZoom="20"
                                                Zoom="{Binding MapZoom, Mode=TwoWay}"
                                                Position="{Binding MapCenter, Mode=TwoWay}">
@@ -1684,6 +1726,7 @@
                             </Canvas>
 
                         </Grid>
+                        </DockPanel>
                     </Grid>
 
                     <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="LightGray" ShowsPreview="True"/>
@@ -1700,7 +1743,7 @@
                          the whole win — and builds a fresh container for each. -->
                     <DataGrid x:Name="UnscheduledTripsGrid" Grid.Row="4" PreviewMouseLeftButtonDown="UnscheduledTripsGrid_PreviewMouseLeftButtonDown" ItemsSource="{Binding UnscheduledTrips}" SelectedItem="{Binding SelectedUnscheduledTrip}" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Standard" SelectionMode="Single" ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" FrozenColumnCount="0" IsReadOnly="True" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" RowStyle="{StaticResource UnscheduledTripRowStyle}" CellStyle="{StaticResource TripSelectionCellStyle}" SelectionUnit="FullRow" AutoGenerateColumns="False" CanUserAddRows="False" Cursor="Hand">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Width="165">
+                            <DataGridTemplateColumn Width="195">
                                 <!-- The backlog counter lives in the header of the action column:
                                      the header stays put when the dispatcher scrolls down through
                                      four hundred trips, so the count is always in view, and it
@@ -1745,6 +1788,10 @@
                                                     </Style>
                                                 </Button.Style>
                                                 <materialDesign:PackIcon Kind="SortClockDescending" Foreground="Green"/>
+                                            </Button>
+                                            <Button Command="{Binding Data.SuggestLinesCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}"
+                                                    Style="{StaticResource TripActionButtonStyle}" ToolTip="{Binding Data.SuggestLinesToolTip, Source={StaticResource vmProxy}}">
+                                                <materialDesign:PackIcon Kind="LightbulbOnOutline" Width="20" Height="20" Foreground="#673AB7"/>
                                             </Button>
                                             <!-- ===== Will Call =====
                                                  The only door in the application to Trip.WillCall.
@@ -1907,7 +1954,20 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Binding="{Binding Date, StringFormat=\{0:MM/dd/yyyy\}}" Width="100" Header="{Binding Data.ColumnHeaderDate, Source={StaticResource vmProxy}}"/>
-                            <DataGridTextColumn Binding="{Binding FromTime, StringFormat=\{0:hh\\:mm\}}" Width="90" Header="{Binding Data.ColumnHeaderFromTime, Source={StaticResource vmProxy}}"/>
+                            <DataGridTemplateColumn Width="100" SortMemberPath="FromTime" Header="{Binding Data.ColumnHeaderFromTime, Source={StaticResource vmProxy}}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Background="Transparent" ToolTip="{Binding OverflowToolTip}">
+                                            <materialDesign:PackIcon x:Name="OverflowIcon" Kind="ArchiveArrowDownOutline" Width="16" Height="16" Margin="0,0,4,0" VerticalAlignment="Center" Foreground="#E65100" Visibility="Collapsed"/>
+                                            <TextBlock Text="{Binding FromTime, StringFormat=\{0:hh\\:mm\}}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsOverflow}" Value="True"><Setter TargetName="OverflowIcon" Property="Visibility" Value="Visible"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding IsOverflowUrgent}" Value="True"><Setter TargetName="OverflowIcon" Property="Kind" Value="AlertCircle"/><Setter TargetName="OverflowIcon" Property="Foreground" Value="#C62828"/></DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Binding="{Binding ToTime, StringFormat=\{0:hh\\:mm\}}" Width="90" Header="{Binding Data.ColumnHeaderToTime, Source={StaticResource vmProxy}}"/>
                             <DataGridTextColumn Binding="{Binding PickupCity}" Width="120" Header="{Binding Data.ColumnHeaderPickupCity, Source={StaticResource vmProxy}}"/>
                             <DataGridTextColumn Binding="{Binding CustomerName}" Width="160" Header="{Binding Data.ColumnHeaderPatient, Source={StaticResource vmProxy}}"/>

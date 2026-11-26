@@ -3086,6 +3086,49 @@
                 <Canvas x:Name="TripNoticeLayer" Grid.RowSpan="3" Panel.ZIndex="20" ClipToBounds="True"
                         Visibility="{Binding IsTripFormOpen, Converter={StaticResource BoolToVisibility}}">
 
+                    <!-- RE-094: the guide of the hours. A chip over the form, and its explanation when needed. -->
+                    <Border x:Name="HourGuideChip" CornerRadius="12" Padding="10,3" Cursor="Hand" BorderThickness="1"
+                            Visibility="{Binding HourGuide.HasHourGuide, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding HourGuide.HourGuideTitle}"
+                            MouseLeftButtonUp="HourGuideChip_Click" helpers:HelpAssist.TopicId="desktop/home/trip-hours">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#E8F5E9"/><Setter Property="BorderBrush" Value="#81C784"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="2"><Setter Property="Background" Value="#FFF8E1"/><Setter Property="BorderBrush" Value="#FFD54F"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="3"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#E57373"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="4"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#E57373"/></DataTrigger>
+                                    <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="5"><Setter Property="Background" Value="#E0F2F1"/><Setter Property="BorderBrush" Value="#4DB6AC"/></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ClockCheckOutline" Width="15" Height="15" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#37474F"/>
+                            <TextBlock Text="{Binding HourGuide.HourGuideChip}" FontSize="12" FontWeight="SemiBold" Foreground="#263238" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid x:Name="HourGuideCard" Width="400" TextOptions.TextFormattingMode="Display"
+                          Visibility="{Binding HourGuide.IsHourGuideOpen, Converter={StaticResource BoolToVisibility}}" helpers:HelpAssist.TopicId="desktop/home/trip-hours">
+                        <Border CornerRadius="6" Background="{DynamicResource MaterialDesignPaper}">
+                            <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.4"/></Border.Effect>
+                        </Border>
+                        <Border CornerRadius="6" BorderThickness="1" BorderBrush="#78909C" Background="{DynamicResource MaterialDesignPaper}" Padding="12,8">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Command="{Binding HourGuide.ToggleHourGuideCommand}" Style="{StaticResource MaterialDesignIconForegroundButton}" Width="24" Height="24" Padding="0">
+                                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16"/>
+                                    </Button>
+                                    <TextBlock Text="{Binding HourGuide.HourGuideTitle}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock Text="{Binding HourGuide.HourGuideWhy}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="{Binding HourGuide.HourGuideLimits}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#37474F"/>
+                                <TextBlock Text="{Binding HourGuide.HourGuideRoad}" TextWrapping="Wrap" Margin="0,4,0,0" FontSize="11" Foreground="#78909C"/>
+                                <Button Content="{Binding HourGuide.UseHourGuideText}" Command="{Binding HourGuide.UseHourGuideCommand}" HorizontalAlignment="Right" Margin="0,8,0,0" Height="30"
+                                        Visibility="{Binding HourGuide.CanUseHourGuide, Converter={StaticResource BoolToVisibility}}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
                     <!-- ⚠️ The shadow is a Border of its own, BEHIND the card, never an Effect on the
                          card: an Effect renders everything inside it to a bitmap without ClearType,
                          and the notice's text came out faint and blurred. -->

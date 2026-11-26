@@ -167,6 +167,8 @@ namespace Raphael.Desktop
             this.Closed += (_, _) => AppNavigation.ShowRouteInScheduleRequested -= OpenRouteInSchedule;
             AppNavigation.ShowTripInHomeRequested += OpenTripInHome;
             AppNavigation.ShowPartInHomeRequested += OpenPartInHome;
+            AppNavigation.ShowHoursReportRequested += OpenHoursReport;
+            this.Closed += (_, _) => AppNavigation.ShowHoursReportRequested -= OpenHoursReport;
             this.Closed += (_, _) => AppNavigation.ShowPartInHomeRequested -= OpenPartInHome;
             this.Closed += (_, _) => AppNavigation.ShowTripInHomeRequested -= OpenTripInHome;
 
@@ -604,6 +606,15 @@ namespace Raphael.Desktop
             OpenTab(LocalizationService.Instance["Home"], view, PackIconKind.HomeOutline);
             CurrentMenu = MENU.Home;
             view.ViewModel.ShowPart(date, part);
+        }
+
+        /// <summary>RE-096: a Reports tab on a day's impossible and loose trips.</summary>
+        private void OpenHoursReport(DateTime date)
+        {
+            var view = new ReportsView();
+            OpenTab(LocalizationService.Instance["Reports"], view, PackIconKind.FileChartOutline);
+            CurrentMenu = MENU.Reports;
+            view.ShowHours(date);
         }
 
         private async void OpenCallWorkbench(CallRequestSummaryDto request)

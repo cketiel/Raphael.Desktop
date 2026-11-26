@@ -1979,6 +1979,7 @@ namespace Raphael.Desktop.ViewModels
             ImportCommand = new Helpers.RelayCommand(ImportTrips);
             ExportCommand = new Helpers.RelayCommand(ExportTrips);
             SaveTripCommand = new Helpers.RelayCommand(SaveTrip);
+            PropertyChanged += HourGuide_InputChanged;
 
             EditTripCommand = new AsyncRelayCommand<object>(ExecuteEditTripAsync);
             CancelTripCommand = new AsyncRelayCommand<object>(ExecuteCancelTripAsync);
@@ -2560,6 +2561,8 @@ namespace Raphael.Desktop.ViewModels
                 if (SelectedSpaceType == null) { MessageBox.Show("Please select a Space Type."); return; }
                 if (SelectedFundingSource == null) { MessageBox.Show("Please select a Funding Source."); return; }
                 if (string.IsNullOrEmpty(DropoffAddress)) { MessageBox.Show("Dropoff Address is required."); return; }
+                // RE-094: an impossible or loose hour is explained and offered right; it never stops the save.
+                if (!ConfirmHourGuide()) return;
 
 
                 // We force UTC conversion not to be applied

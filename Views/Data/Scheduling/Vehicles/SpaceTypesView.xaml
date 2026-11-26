@@ -12,6 +12,7 @@
         <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}" />
         <helpers:MinutesToTimeStringConverter x:Key="MinutesConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <helpers:NotConverter x:Key="NotConverter"/>
     </UserControl.Resources>
 
     <Border BorderThickness="1" BorderBrush="#2196f3" Background="White" helpers:HelpAssist.TopicId="desktop/data/space-types">
@@ -91,12 +92,32 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Binding="{Binding LoadTime, Converter={StaticResource MinutesConverter}}" Width="Auto">
-                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.LoadTimeText, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding UnloadTime, Converter={StaticResource MinutesConverter}}" Width="Auto">
-                        <DataGridTextColumn.Header><TextBlock Text="{Binding Data.UnloadTimeText, Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header>
-                    </DataGridTextColumn>
+                    <!-- RE-093: minutes, changed by administrators where they are read -->
+                    <DataGridTemplateColumn Width="120" SortMemberPath="LoadTime">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.LoadTimeText, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBox Text="{Binding LoadTime, Mode=OneWay}" Tag="LoadTime" IsReadOnly="{Binding CanEditClass, Converter={StaticResource NotConverter}}" Width="36" TextAlignment="Center"
+                                             LostKeyboardFocus="Time_Changed" KeyDown="Time_KeyDown" FontWeight="SemiBold" Cursor="IBeam"/>
+                                    <TextBlock Text="min" Foreground="#7A8794" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <!-- RE-093: minutes, changed by administrators where they are read -->
+                    <DataGridTemplateColumn Width="120" SortMemberPath="UnloadTime">
+                        <DataGridTemplateColumn.Header><TextBlock Text="{Binding Data.UnloadTimeText, Source={StaticResource vmProxy}}"/></DataGridTemplateColumn.Header>
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBox Text="{Binding UnloadTime, Mode=OneWay}" Tag="UnloadTime" IsReadOnly="{Binding CanEditClass, Converter={StaticResource NotConverter}}" Width="36" TextAlignment="Center"
+                                             LostKeyboardFocus="Time_Changed" KeyDown="Time_KeyDown" FontWeight="SemiBold" Cursor="IBeam"/>
+                                    <TextBlock Text="min" Foreground="#7A8794" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <!-- The header said "Inactive" over IsActive: it read backwards -->
                     <DataGridCheckBoxColumn Binding="{Binding IsActive}" Width="Auto">
                         <DataGridCheckBoxColumn.Header><TextBlock Text="{Binding Data.L[ColumnHeaderActive], Source={StaticResource vmProxy}}"/></DataGridCheckBoxColumn.Header>

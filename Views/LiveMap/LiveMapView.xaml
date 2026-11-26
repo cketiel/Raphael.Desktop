@@ -441,6 +441,73 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <!-- RE-094: without a line = to route + Will Call. Only the first is work left. -->
+                        <Border BorderBrush="#F0A63A" BorderThickness="2,0,0,0" Margin="14,-2,6,6" Padding="4,0,0,0" Visibility="{Binding Day.HasSplit, Converter={StaticResource LmBoolToVis}}">
+                            <StackPanel>
+                                <Button Height="Auto" Command="{Binding Day.OpenUnroutedCommand}" ToolTip="{Binding Day.L[livemap.DayToRouteTip]}" Cursor="Hand" Margin="0,0,0,2">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="8,3">
+                                                <DockPanel>
+                                                    <materialDesign:PackIcon Kind="CallSplit" Width="13" Height="13" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Day.ToRouteCount}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                                    <TextBlock Text="{Binding Day.L[livemap.DayToRoute]}" FontSize="11.5" Foreground="{StaticResource LmText}" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource LmAccentDim}"/></Trigger></ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button Height="Auto" Command="{Binding Day.OpenUnroutedCommand}" ToolTip="{Binding Day.L[livemap.DayWillCallTip]}" Cursor="Hand" Margin="0,0,0,2">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="8,3">
+                                                <DockPanel>
+                                                    <materialDesign:PackIcon Kind="PhoneClock" Width="13" Height="13" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Day.WillCallCount}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                                    <TextBlock Text="{Binding Day.L[livemap.DayWillCall]}" FontSize="11.5" Foreground="{StaticResource LmText}" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource LmAccentDim}"/></Trigger></ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                        <!-- RE-095: not a sixth part of the ring: these trips are already in the others -->
+                        <Button Height="Auto" Command="{Binding Day.OpenHoursCommand}" ToolTip="{Binding Day.L[livemap.DayHoursTip]}" Cursor="Hand" Margin="0,2,6,4" HorizontalContentAlignment="Stretch" Visibility="{Binding Day.HasHours, Converter={StaticResource LmBoolToVis}}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="#1AFFB74D" BorderBrush="#55FFB74D" BorderThickness="1" CornerRadius="8" Padding="9,6">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <materialDesign:PackIcon Kind="ClockEditOutline" Width="16" Height="16" Foreground="#FFB74D" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <materialDesign:PackIcon DockPanel.Dock="Right" Kind="FileChartOutline" Width="15" Height="15" Foreground="{StaticResource LmTitle}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Day.HoursCount}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                                <TextBlock Text="{Binding Day.L[livemap.DayHours]}" FontSize="12" Foreground="{StaticResource LmText}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                            <DockPanel Margin="0,4,0,0">
+                                                <materialDesign:PackIcon Kind="CalendarAlert" Width="13" Height="13" Foreground="#FF8A7A" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Day.ImpossibleCount}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Day.L[livemap.DayImpossible]}" FontSize="11.5" Foreground="{StaticResource LmText}"/>
+                                                    <TextBlock Text="{Binding Day.ImpossibleDetail}" FontSize="10.5" Foreground="{StaticResource LmTitle}"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <DockPanel Margin="0,4,0,0">
+                                                <materialDesign:PackIcon Kind="TimerSandEmpty" Width="13" Height="13" Foreground="#7FD6B0" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Day.LooseCount}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource LmText}"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Day.L[livemap.DayLoose]}" FontSize="11.5" Foreground="{StaticResource LmText}"/>
+                                                    <TextBlock Text="{Binding Day.LooseDetail}" FontSize="10.5" Foreground="{StaticResource LmTitle}"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#FFB74D"/></Trigger></ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
                     </StackPanel>
                 </Expander>
 

@@ -60,6 +60,18 @@ namespace Raphael.Desktop.DTOs
         /// <summary>Left to route: no line and not cancelled, as Home's "without a run".</summary>
         public int Unrouted { get; set; }
 
+        /// <summary>RE-094: of those, the ones waiting for the patient to call. Null from an older server.</summary>
+        public int? UnroutedWillCall { get; set; }
+
+        /// <summary>
+        /// RE-095: the day's trips (not cancelled) that came impossible or loose from the broker, by what
+        /// was done with their hour. Null from an older server.
+        /// </summary>
+        public int? ImpossibleAdjusted { get; set; }
+        public int? ImpossibleAsReceived { get; set; }
+        public int? LooseAdjusted { get; set; }
+        public int? LooseAsReceived { get; set; }
+
         /// <summary>Sum of the charges of the trips not cancelled.</summary>
         public double Charges { get; set; }
 

@@ -58,6 +58,23 @@
                 <Button Command="{Binding AddCommand}" Style="{StaticResource MaterialDesignFlatButton}" HorizontalAlignment="Left" Foreground="#4527A0">
                     <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center"/><TextBlock Text="{Binding L[vehcfg.AddSeat]}" Margin="6,0,0,0"/></StackPanel>
                 </Button>
+                <!-- RE-093: who may ride together -->
+                <DockPanel Margin="0,6,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding LessOnBoardCommand}"><materialDesign:PackIcon Kind="MinusCircleOutline"/></Button>
+                        <TextBlock Text="{Binding MaxOnBoard}" Width="36" TextAlignment="Center" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding MoreOnBoardCommand}"><materialDesign:PackIcon Kind="PlusCircleOutline"/></Button>
+                    </StackPanel>
+                    <TextBlock Text="{Binding L[vehcfg.MaxOnBoard]}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </DockPanel>
+                <DockPanel Margin="0,6,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding LessNonAmbulatoryCommand}"><materialDesign:PackIcon Kind="MinusCircleOutline"/></Button>
+                        <TextBlock Text="{Binding MaxNonAmbulatory}" Width="36" TextAlignment="Center" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource MaterialDesignToolButton}" Command="{Binding MoreNonAmbulatoryCommand}"><materialDesign:PackIcon Kind="PlusCircleOutline"/></Button>
+                    </StackPanel>
+                    <TextBlock Text="{Binding L[vehcfg.MaxNonAmbulatory]}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </DockPanel>
                 <TextBlock Text="{Binding Error}" Foreground="#C62828" TextWrapping="Wrap"/>
             </StackPanel>
         </ScrollViewer>

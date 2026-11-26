@@ -24,5 +24,12 @@ namespace Raphael.Desktop.Views.Dispatch
         {
             InitializeComponent();
         }
+
+        // RE-094: an impossible or loose hour is explained once more before saving; Cancel keeps the dialog open.
+        private void Save_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.EditTripDialogViewModel vm && !vm.ConfirmHours()) return;
+            MaterialDesignThemes.Wpf.DialogHost.CloseDialogCommand.Execute(true, this);
+        }
     }
 }

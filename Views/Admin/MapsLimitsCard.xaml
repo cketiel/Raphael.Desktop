@@ -1,0 +1,155 @@
+<UserControl x:Class="Raphael.Desktop.Views.Admin.MapsLimitsCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+        <Style x:Key="Row" TargetType="Grid"><Setter Property="Margin" Value="0,3"/></Style>
+    </UserControl.Resources>
+    <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,12" helpers:HelpAssist.TopicId="desktop/admin/google-maps/limits"
+            Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVis}}">
+        <StackPanel>
+            <TextBlock Text="{Binding L[gmaps.limTitle]}" FontSize="15" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding L[gmaps.limIntro]}" TextWrapping="Wrap" Foreground="#5B6B7C" Margin="0,4,0,10"/>
+
+            <!-- 1. The answer first: what the saved settings can spend in a month -->
+            <Border Background="#EDE7F6" CornerRadius="8" Padding="14,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" Margin="0,0,18,0" MinWidth="190">
+                        <TextBlock Text="{Binding L[gmaps.limCapTitle]}" FontSize="12" Foreground="#4527A0" TextWrapping="Wrap" MaxWidth="200"/>
+                        <TextBlock Text="{Binding CapMonth}" FontSize="30" FontWeight="SemiBold" Foreground="#311B92"/>
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CapDetail}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ChangeText}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 2. The settings, each with what it means -->
+            <TextBlock Text="{Binding L[gmaps.limValues]}" FontWeight="SemiBold" Margin="0,14,0,2"/>
+            <TextBlock Text="{Binding WhatIsARoad}" TextWrapping="Wrap" Foreground="#5B6B7C" Margin="0,0,0,6"/>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limTop]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding Top, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="0" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Top}" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock Text="{Binding WhatIsTop}" TextWrapping="Wrap" FontSize="11.5" Foreground="#5B6B7C" Margin="0,0,0,6"/>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limLimit]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding Limit, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="0" Maximum="5000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding Limit}" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock Text="{Binding L[gmaps.limLimitTip]}" TextWrapping="Wrap" FontSize="11.5" Foreground="#5B6B7C" Margin="0,0,0,6"/>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limChecksLabel]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding Checks, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="0" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding Checks}" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock Text="{Binding L[gmaps.limChecksTip]}" TextWrapping="Wrap" FontSize="11.5" Foreground="#5B6B7C"/>
+
+            <!-- 3. The example, step by step -->
+            <DockPanel Margin="0,16,0,2">
+                <Button DockPanel.Dock="Right" Content="{Binding L[gmaps.limUndo]}" Command="{Binding UndoCommand}" ToolTip="{Binding L[gmaps.limUndoTip]}" Style="{StaticResource MaterialDesignFlatButton}" Height="28"/>
+                <Button DockPanel.Dock="Right" Content="{Binding L[gmaps.limCoverReal]}" Command="{Binding CoverRealisticCommand}" ToolTip="{Binding L[gmaps.limCoverRealTip]}" Style="{StaticResource MaterialDesignFlatButton}" Height="28"/>
+                <StackPanel>
+                    <TextBlock Text="{Binding L[gmaps.limExample]}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding L[gmaps.limExampleHint]}" Foreground="#5B6B7C" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding RealVolume}" Foreground="#5B6B7C" TextWrapping="Wrap" FontSize="11.5"/>
+                </StackPanel>
+            </DockPanel>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limTrips]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding TripsPerDay, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="0" Maximum="1000" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding TripsPerDay}" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limLines]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding LinesPerDay, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding LinesPerDay}" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limCancel]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding CancelPercent, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="0" Maximum="90" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding CancelPercent}" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid Style="{StaticResource Row}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding L[gmaps.limDays]}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBox Grid.Column="1" Text="{Binding Days, UpdateSourceTrigger=LostFocus}" TextAlignment="Center" FontWeight="SemiBold" Margin="6,0"/>
+                <Slider Grid.Column="2" Minimum="1" Maximum="31" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Days}" VerticalAlignment="Center"/>
+            </Grid>
+
+            <Border Background="#F7F9FC" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,8,0,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding ExampleTitle}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding StepTrips}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding StepLines}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    <TextBlock Text="{Binding StepMax}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    <TextBlock Text="{Binding StepReal}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    <TextBlock Text="{Binding L[gmaps.limCacheNote]}" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="11.5" Foreground="#5B6B7C"/>
+                    <TextBlock Text="{Binding StepFree}" TextWrapping="Wrap" Margin="0,2,0,0" FontSize="11.5" Foreground="#5B6B7C"/>
+                </StackPanel>
+            </Border>
+
+            <WrapPanel Margin="0,10,0,0">
+                <Border Background="#FFEBEE" CornerRadius="8" Padding="12,8" Margin="0,0,8,8" Width="230">
+                    <StackPanel>
+                        <TextBlock Text="{Binding L[gmaps.limMax]}" FontSize="11.5" Foreground="#5B6B7C" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding MaxMonth}" FontSize="22" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding MaxDayText}" FontSize="11" Foreground="#5B6B7C"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="#E8F5E9" CornerRadius="8" Padding="12,8" Margin="0,0,8,8" Width="230">
+                    <StackPanel>
+                        <TextBlock Text="{Binding L[gmaps.limReal]}" FontSize="11.5" Foreground="#5B6B7C" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding RealMonth}" FontSize="22" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding RealDayText}" FontSize="11" Foreground="#5B6B7C"/>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <ProgressBar Value="{Binding CoveredPercent, Mode=OneWay}" Maximum="100" Height="9" Margin="0,2,0,4"/>
+            <TextBlock Text="{Binding Verdict}" TextWrapping="Wrap">
+                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#2E7D32"/><Style.Triggers><DataTrigger Binding="{Binding IsShort}" Value="True"><Setter Property="Foreground" Value="#B26A00"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="{Binding NowMonth}" Foreground="#5B6B7C" TextWrapping="Wrap" Margin="0,4,0,0" FontSize="11.5"/>
+
+            <TextBlock Text="{Binding L[gmaps.limTable]}" FontWeight="SemiBold" Margin="0,14,0,4"/>
+            <DataGrid ItemsSource="{Binding Presets}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}"
+                      ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource CustomCellStyle}" SelectionUnit="FullRow" HorizontalScrollBarVisibility="Disabled">
+                <DataGrid.RowStyle><Style TargetType="DataGridRow" BasedOn="{StaticResource CustomRowStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsChosen}" Value="True"><Setter Property="FontWeight" Value="Bold"/></DataTrigger></Style.Triggers></Style></DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Choice}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limColChoice], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding PerTrip}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limColPerTrip], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding PerLine}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limColPerLine], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding RealDay}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limColRealDay], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding RealMonth}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limColRealMonth], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding MaxMonth}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limColMaxMonth], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding L[gmaps.limHistory]}" FontWeight="SemiBold" Margin="0,14,0,4"/>
+                <DataGrid ItemsSource="{Binding History}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AlternationCount="2" Style="{StaticResource CustomDataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource CustomCellStyle}" RowStyle="{StaticResource CustomRowStyle}" HorizontalScrollBarVisibility="Disabled">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Day}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limDayDay], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Suggestions}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limDaySuggestions], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Refused}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limDayRefused], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Checks}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[gmaps.limDayChecks], Source={StaticResource vmProxy}}" TextWrapping="Wrap"/></DataGridTextColumn.Header></DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+            <TextBlock Text="{Binding L[gmaps.limNote]}" TextWrapping="Wrap" FontSize="11" Foreground="#7A8794" Margin="0,10,0,0"/>
+        </StackPanel>
+    </Border>
+</UserControl>

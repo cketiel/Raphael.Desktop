@@ -645,6 +645,40 @@ namespace Raphael.Desktop.ViewModels
             {
                 Note(ImportSeverity.Warning, "Done", Text("import.log.AbortedAdvice"));
             }
+
+            // RE-095: after the import is over and saved; it neither waits for it nor can fail it.
+            _ = ReviewHoursAsync(outcome.Rows.Where(r => r.Item != null && r.Status != TripImportStatus.Failed).Select(r => r.Item).ToList());
+        }
+
+        /// <summary>
+        /// Asks what to do with the trips whose pickup hour does not fit their appointment: the impossible
+        /// and the loose ones. Importing again asks again; the file has put the broker's hours back.
+        /// </summary>
+        private async Task ReviewHoursAsync(List<TripImportItemDto> imported)
+        {
+            if (imported.Count == 0) return;
+            try
+            {
+                var days = imported.Select(i => i.Date.Date).ToList();
+                var review = await new TripFeasibilityService().ReviewImportAsync(new ImportHoursRequestDto
+                {
+                    TripNumbers = imported.Select(i => i.TripId).Where(t => !string.IsNullOrWhiteSpace(t)).ToList(),
+                    From = days.Min(), To = days.Max() < days.Min().AddDays(92) ? days.Max() : days.Min().AddDays(92),
+                });
+                if (review is null || review.Trips.Count == 0) return;
+
+                var vm = new ImportHoursViewModel(review);
+                Note(ImportSeverity.Warning, "Done", vm.Headline);
+                vm.Done += text => Note(ImportSeverity.Info, "Done", text);
+                var window = new Views.ImportHoursWindow { DataContext = vm, Owner = System.Windows.Application.Current?.MainWindow };
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                // The trips are in, with the broker's hours; the report still knows them.
+                Helpers.FileLogger.Log($"Import, hours review: {ex.Message}");
+                Note(ImportSeverity.Warning, "Done", Text("hours.ReviewFailed"));
+            }
         }
 
         private void OnProblemRowChanged(object sender, PropertyChangedEventArgs e)

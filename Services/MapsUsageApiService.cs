@@ -69,6 +69,17 @@ namespace Raphael.Desktop.Services
             }
         }
 
+        public async Task<MapsBudgetReportDto?> GetBudgetsAsync()
+        {
+            using (var client = ApiClientFactory.Create())
+            {
+                var response = await client.GetAsync($"{UsageEndpoint}/budgets");
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<MapsBudgetReportDto>();
+            }
+        }
+
         public async Task<List<SystemSettingDto>> GetSettingsAsync()
         {
             using (var client = ApiClientFactory.Create())

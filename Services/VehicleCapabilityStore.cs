@@ -62,6 +62,13 @@ namespace Raphael.Desktop.Services
 
         public int LevelOfVehicle(int vehicleId) => _vehicleLevels.GetValueOrDefault(vehicleId);
 
+        /// <summary>RE-093: minutes to board a trip of this space type; fifteen when it declares none.</summary>
+        public int BoardingMinutes(string? spaceType)
+        {
+            var load = spaceType is not null && _spaceTypes.TryGetValue(spaceType.Trim(), out var type) ? type.LoadTime : 0;
+            return load >= 0.5f ? (int)Math.Round(load, MidpointRounding.AwayFromZero) : 15;
+        }
+
         /// <summary>Why this vehicle cannot carry this space type, or null. In memory, no call.</summary>
         public string? Warning(string? route, int vehicleId, string? spaceType)
         {

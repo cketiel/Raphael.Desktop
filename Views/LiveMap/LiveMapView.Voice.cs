@@ -187,7 +187,7 @@ namespace Raphael.Desktop.Views.LiveMap
                     {
                         ok = true,
                         trips = ViewModel.Day.Rows.Sum(r => r.Count), completed = N(TripPart.Done), inProgress = N(TripPart.InProgress),
-                        notStarted = N(TripPart.NotStarted), cancelled = N(TripPart.Canceled), withoutRun = N(TripPart.NoRun), done = ViewModel.Day.DoneText
+                        notStarted = N(TripPart.NotStarted), cancelled = N(TripPart.Canceled), withoutRun = N(TripPart.NoRun), withoutRunWillCall = ViewModel.Day.WillCallCount, leftToRoute = ViewModel.Day.ToRouteCount, impossibleTrips = ViewModel.Day.ImpossibleCount, impossibleHours = ViewModel.Day.ImpossibleDetail, looseTrips = ViewModel.Day.LooseCount, looseHours = ViewModel.Day.LooseDetail, done = ViewModel.Day.DoneText
                     };
                 }
 

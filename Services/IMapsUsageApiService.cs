@@ -25,6 +25,9 @@ namespace Raphael.Desktop.Services
         /// <summary>Every setting the server holds.</summary>
         Task<List<SystemSettingDto>> GetSettingsAsync();
 
+        /// <summary>RE-099: the daily limits and their use. Null when the server does not have them.</summary>
+        Task<MapsBudgetReportDto?> GetBudgetsAsync();
+
         /// <summary>
         /// Changes one setting. Live everywhere within a minute, with no deployment.
         /// </summary>

@@ -87,6 +87,7 @@ namespace Raphael.Desktop.Views
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
             ViewModel.DiscardCustomerRequested += RestoreCustomerFields;
             InitTripNotice();
+            InitHourGuide();
 
             Loaded += HomeView_Loaded;
             Unloaded += HomeView_Unloaded;

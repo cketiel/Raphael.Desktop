@@ -80,6 +80,8 @@ namespace Raphael.Desktop.Views.Schedules
                 viewModel.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
                 viewModel.ScrollScheduleIntoViewRequest -= OnScrollScheduleIntoView;
                 viewModel.ScrollScheduleIntoViewRequest += OnScrollScheduleIntoView;
+                viewModel.SuggestedPlanChanged -= DrawSuggestedPlan;
+                viewModel.SuggestedPlanChanged += DrawSuggestedPlan;
 
                 if (!viewModel.IsInitialized)
                 {
@@ -98,6 +100,7 @@ namespace Raphael.Desktop.Views.Schedules
                 oldVm.ZoomAndCenterRequest -= OnZoomAndCenterRequest;
                 oldVm.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
                 oldVm.ScrollScheduleIntoViewRequest -= OnScrollScheduleIntoView;
+                oldVm.SuggestedPlanChanged -= DrawSuggestedPlan;
             }
 
             // Subscribe to the new ViewModel
@@ -106,6 +109,7 @@ namespace Raphael.Desktop.Views.Schedules
                 newVm.ZoomAndCenterRequest += OnZoomAndCenterRequest;
                 newVm.ScrollUnscheduledTripIntoViewRequest += OnScrollUnscheduledTripIntoView;
                 newVm.ScrollScheduleIntoViewRequest += OnScrollScheduleIntoView;
+                newVm.SuggestedPlanChanged += DrawSuggestedPlan;
             }
         }
 
@@ -206,6 +210,7 @@ namespace Raphael.Desktop.Views.Schedules
                 vm.ZoomAndCenterRequest -= OnZoomAndCenterRequest;
                 vm.ScrollUnscheduledTripIntoViewRequest -= OnScrollUnscheduledTripIntoView;
                 vm.ScrollScheduleIntoViewRequest -= OnScrollScheduleIntoView;
+                vm.SuggestedPlanChanged -= DrawSuggestedPlan;
 
                 // ⚠️ The inbox subscription is NOT released here. This fires on a tab
                 // switch as well as on a close, and a panel that stopped hearing about
@@ -242,6 +247,63 @@ namespace Raphael.Desktop.Views.Schedules
 
                 // We mark the event as handled to prevent the click from moving the map.
                 e.Handled = true;
+            }
+        }
+
+        // ---- RE-098: the suggested plan on the map ----
+
+        private readonly List<GMap.NET.WindowsPresentation.GMapMarker> _planMarkers = new();
+
+        /// <summary>
+        /// Draws a suggestion: in violet what the trip adds, in grey the rest of the line. A road
+        /// Google has drawn follows it; one only estimated is a dashed straight line.
+        /// </summary>
+        private void DrawSuggestedPlan(DTOs.RoutingSuggestionDto? plan)
+        {
+            foreach (var m in _planMarkers) MapView.Markers.Remove(m);
+            _planMarkers.Clear();
+            if (plan is null) return;
+
+            var stops = plan.Stops;
+            var firstNew = stops.FindIndex(s => s.IsNew);
+            var lastNew = stops.FindLastIndex(s => s.IsNew);
+            var violet = new SolidColorBrush(Color.FromRgb(0x67, 0x3A, 0xB7));
+            var grey = new SolidColorBrush(Color.FromRgb(0x78, 0x90, 0x9C));
+            for (var i = 1; i < stops.Count; i++)
+            {
+                if (stops[i].Done) continue;
+                var added = i >= firstNew && i <= lastNew + 1;
+                var road = Helpers.EncodedPolyline.Decode(stops[i].EncodedPolyline);
+                var known = road.Count > 1;
+                if (!known) road = new List<PointLatLng> { new(stops[i - 1].Latitude, stops[i - 1].Longitude), new(stops[i].Latitude, stops[i].Longitude) };
+                var path = new System.Windows.Shapes.Path { Stroke = added ? violet : grey, StrokeThickness = added ? 5 : 3, Opacity = added ? 0.85 : 0.55, IsHitTestVisible = false, StrokeLineJoin = PenLineJoin.Round };
+                if (!known) path.StrokeDashArray = new DoubleCollection { 3, 2 };
+                Put(new GMap.NET.WindowsPresentation.GMapRoute(road) { Shape = path, ZIndex = added ? 2 : 1 });
+            }
+
+            foreach (var s in stops.Where(s => s.IsNew))
+            {
+                var pin = new Border
+                {
+                    Width = 30, Height = 30, CornerRadius = new CornerRadius(15), Background = violet, BorderBrush = Brushes.White, BorderThickness = new Thickness(2),
+                    ToolTip = $"{s.Name} · {Helpers.FeasibilityText.Hour(s.Eta)}",
+                    Child = new TextBlock { Text = s.Kind == "PICKUP" ? "P" : "D", Foreground = Brushes.White, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                };
+                Put(new GMap.NET.WindowsPresentation.GMapMarker(new PointLatLng(s.Latitude, s.Longitude)) { Shape = pin, Offset = new Point(-15, -15), ZIndex = 5 });
+            }
+
+            var seen = stops.Skip(Math.Max(0, firstNew - 1)).Take(lastNew - firstNew + 3).ToList();
+            var (north, south) = (seen.Max(s => s.Latitude), seen.Min(s => s.Latitude));
+            var (east, west) = (seen.Max(s => s.Longitude), seen.Min(s => s.Longitude));
+            var pad = Math.Max(0.01, Math.Max(north - south, east - west) * 0.15);
+            MapView.SetZoomToFitRect(RectLatLng.FromLTRB(west - pad, north + pad, east + pad, south - pad));
+            if (DataContext is SchedulesViewModel vm)
+                Dispatcher.BeginInvoke(vm.InvalidateMapMarkers, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+
+            void Put(GMap.NET.WindowsPresentation.GMapMarker marker)
+            {
+                _planMarkers.Add(marker);
+                MapView.Markers.Add(marker);
             }
         }
 

@@ -1,0 +1,108 @@
+<Window x:Class="Raphael.Desktop.Views.ImportHoursWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
+        Title="{Binding L[hours.WindowTitle]}" Width="1080" Height="720" WindowStartupLocation="CenterOwner" Background="#F4F6FA">
+    <Window.Resources><BooleanToVisibilityConverter x:Key="BoolToVis"/><helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/></Window.Resources>
+    <Grid helpers:HelpAssist.TopicId="desktop/schedules/impossible-appointments">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Background="#4527A0" Padding="20,14">
+            <DockPanel>
+                <materialDesign:PackIcon DockPanel.Dock="Left" Kind="ClockEditOutline" Width="30" Height="30" Foreground="White" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <StackPanel>
+                    <TextBlock Text="{Binding Headline}" Foreground="White" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding L[hours.Question]}" Foreground="#D1C4E9" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,12">
+            <StackPanel>
+                <Border Background="#FFEBEE" BorderBrush="#EF9A9A" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,10" Visibility="{Binding HasCalls, Converter={StaticResource BoolToVis}}">
+                    <DockPanel><materialDesign:PackIcon Kind="PhoneAlert" Width="18" Height="18" Foreground="#C62828" Margin="0,0,8,0"/><TextBlock Text="{Binding CallsText}" TextWrapping="Wrap" Foreground="#7F1D1D"/></DockPanel>
+                </Border>
+                <StackPanel Visibility="{Binding HasImpossible, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                    <DockPanel Margin="0,0,0,4">
+                        <Button DockPanel.Dock="Right" Content="{Binding L[hours.AdjustImpossible]}" Command="{Binding AdjustImpossibleCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Height="30"/>
+                        <StackPanel>
+                            <TextBlock Text="{Binding ImpossibleTitle}" FontSize="15" FontWeight="SemiBold" Foreground="#C62828"/>
+                            <TextBlock Text="{Binding L[hours.ImpossibleHint]}" Foreground="#5B6B7C" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <DataGrid ItemsSource="{Binding Impossible}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AlternationCount="2" MaxHeight="250" SelectionUnit="FullRow"
+                              Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource TripSelectionCellStyle}">
+                        <DataGrid.RowStyle><Style TargetType="DataGridRow" BasedOn="{StaticResource ContentRowStyle}"><Setter Property="ToolTip" Value="{Binding ToolTip}"/></Style></DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding When}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColTrip], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Who}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColPatient], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Hours}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColHours], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Problem}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColProblem], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding NewHour}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColNew], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Moves}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColMoves], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTemplateColumn Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <materialDesign:PackIcon Kind="PhoneAlert" Width="16" Height="16" Foreground="#C62828" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{Binding Data.L[hours.TellTip], Source={StaticResource vmProxy}}"
+                                                                     Visibility="{Binding TellsPatient, Converter={StaticResource BoolToVis}}"/>
+                                            <Button Content="{Binding ButtonText}" Command="{Binding Data.ToggleCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" IsEnabled="{Binding CanAdjust}"
+                                                    Style="{StaticResource MaterialDesignFlatButton}" Height="24" Padding="8,0" FontSize="12"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Binding="{Binding StateText}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+                <StackPanel Visibility="{Binding HasLoose, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
+                    <DockPanel Margin="0,0,0,4">
+                        <Button DockPanel.Dock="Right" Content="{Binding L[hours.AdjustLoose]}" Command="{Binding AdjustLooseCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Height="30"/>
+                        <StackPanel>
+                            <TextBlock Text="{Binding LooseTitle}" FontSize="15" FontWeight="SemiBold" Foreground="#2E7D32"/>
+                            <TextBlock Text="{Binding L[hours.LooseHint]}" Foreground="#5B6B7C" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <DataGrid ItemsSource="{Binding Loose}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AlternationCount="2" MaxHeight="250" SelectionUnit="FullRow"
+                              Style="{StaticResource CustomDataGridStyle}" ColumnHeaderStyle="{StaticResource CenteredColumnHeaderStyle}" CellStyle="{StaticResource TripSelectionCellStyle}">
+                        <DataGrid.RowStyle><Style TargetType="DataGridRow" BasedOn="{StaticResource ContentRowStyle}"><Setter Property="ToolTip" Value="{Binding ToolTip}"/></Style></DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding When}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColTrip], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Who}" Width="*"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColPatient], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Hours}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColHours], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Problem}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColProblem], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding NewHour}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColNew], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Moves}" Width="Auto"><DataGridTextColumn.Header><TextBlock Text="{Binding Data.L[hours.ColMoves], Source={StaticResource vmProxy}}"/></DataGridTextColumn.Header></DataGridTextColumn>
+                            <DataGridTemplateColumn Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <materialDesign:PackIcon Kind="PhoneAlert" Width="16" Height="16" Foreground="#C62828" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{Binding Data.L[hours.TellTip], Source={StaticResource vmProxy}}"
+                                                                     Visibility="{Binding TellsPatient, Converter={StaticResource BoolToVis}}"/>
+                                            <Button Content="{Binding ButtonText}" Command="{Binding Data.ToggleCommand, Source={StaticResource vmProxy}}" CommandParameter="{Binding}" IsEnabled="{Binding CanAdjust}"
+                                                    Style="{StaticResource MaterialDesignFlatButton}" Height="24" Padding="8,0" FontSize="12"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Binding="{Binding StateText}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="2" Background="White" BorderBrush="#E3E8EF" BorderThickness="0,1,0,0" Padding="18,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="{Binding L[hours.UndoAll]}" Command="{Binding UndoAllCommand}" Style="{StaticResource MaterialDesignFlatButton}" Margin="0,0,8,0"/>
+                    <Button Content="{Binding L[hours.Leave]}" Command="{Binding CloseCommand}" ToolTip="{Binding L[hours.LeaveTip]}" Style="{StaticResource MaterialDesignOutlinedButton}" Margin="0,0,8,0" IsCancel="True"/>
+                    <Button Content="{Binding L[hours.AdjustAll]}" Command="{Binding AdjustAllCommand}" Background="#673AB7" BorderBrush="#673AB7"/>
+                </StackPanel>
+                <StackPanel VerticalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Height="3" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontWeight="SemiBold" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

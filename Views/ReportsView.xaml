@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Raphael.Desktop.ViewModels"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:reports="clr-namespace:Raphael.Desktop.Views.Reports"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              xmlns:minus="clr-namespace:Raphael.Desktop.Converters"
              xmlns:rep="clr-namespace:Raphael.Desktop.Views.Reports"
@@ -641,6 +642,11 @@
                         </Border>
                     </Grid>
                 </Grid>
+            </TabItem>
+
+            <!-- RE-096: impossible appointments -->
+            <TabItem x:Name="HoursTab" Header="{Binding Impossible.TitleText}" Visibility="{Binding IsNotDriver, Converter={StaticResource StandardBoolToVis}}">
+                <reports:ImpossibleAppointmentsView DataContext="{Binding Impossible}"/>
             </TabItem>
 
             <!-- GPS Report Tab -->

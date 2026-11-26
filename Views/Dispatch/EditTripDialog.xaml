@@ -10,6 +10,7 @@
              d:DesignHeight="450" d:DesignWidth="800">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="HourGuideVis"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
 
@@ -66,6 +67,30 @@
                                    ToolTip="{Binding RoutedLockFieldToolTip}" ToolTipService.ShowOnDisabled="True"
                                    ToolTipService.IsEnabled="{Binding IsRouted}"/>
 
+        <!-- RE-094: the new hour against the appointment, as the import judges it. It never stops the save. -->
+        <Border CornerRadius="6" BorderThickness="1" Padding="10,6" Margin="0,0,0,8" MaxWidth="420" HorizontalAlignment="Left"
+                Visibility="{Binding HourGuide.HasHourGuide, Converter={StaticResource HourGuideVis}, FallbackValue=Collapsed}" helpers:HelpAssist.TopicId="desktop/home/trip-hours">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#E8F5E9"/><Setter Property="BorderBrush" Value="#81C784"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="2"><Setter Property="Background" Value="#FFF8E1"/><Setter Property="BorderBrush" Value="#FFD54F"/></DataTrigger>
+                        <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="3"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#E57373"/></DataTrigger>
+                        <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="4"><Setter Property="Background" Value="#FFEBEE"/><Setter Property="BorderBrush" Value="#E57373"/></DataTrigger>
+                        <DataTrigger Binding="{Binding HourGuide.HourGuideKind}" Value="5"><Setter Property="Background" Value="#E0F2F1"/><Setter Property="BorderBrush" Value="#4DB6AC"/></DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel>
+                <TextBlock Text="{Binding HourGuide.HourGuideTitle}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding HourGuide.HourGuideWhy}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                <TextBlock Text="{Binding HourGuide.HourGuideLimits}" TextWrapping="Wrap" Margin="0,3,0,0" Foreground="#37474F"/>
+                <TextBlock Text="{Binding HourGuide.HourGuideRoad}" TextWrapping="Wrap" Margin="0,2,0,0" FontSize="11" Foreground="#78909C"/>
+                <Button Content="{Binding HourGuide.UseHourGuideText}" Command="{Binding HourGuide.UseHourGuideCommand}" HorizontalAlignment="Right" Margin="0,6,0,0" Height="28"
+                        Visibility="{Binding HourGuide.CanUseHourGuide, Converter={StaticResource HourGuideVis}, FallbackValue=Collapsed}"/>
+            </StackPanel>
+        </Border>
+
         <!-- ⚠️ Will Call is not edited here, and must not come back.
              It governs a promise to a patient — an hour to get a vehicle to them — and it
              now has exactly one door: the two buttons on the open-trips grid of Schedule,
@@ -101,9 +126,7 @@
             <Button Content="CANCEL" Style="{StaticResource MaterialDesignFlatButton}"
                     Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
                     CommandParameter="{Binding WasCancelled}"/>
-            <Button Content="SAVE" Margin="8,0,0,0"
-                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
-                    CommandParameter="{Binding WasSaved}"/>
+            <Button Content="SAVE" Margin="8,0,0,0" Click="Save_Click"/>
         </StackPanel>
     </StackPanel>
 </UserControl>

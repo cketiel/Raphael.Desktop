@@ -44,6 +44,7 @@ namespace Raphael.Desktop.ViewModels.Admin
         public GoogleMapsAdminViewModel(IMapsUsageApiService service)
         {
             _service = service;
+            Limits = new MapsLimitsViewModel(service);
 
             // Opens on the current calendar month, which is the period Google actually bills.
             var today = DateTime.Today;
@@ -479,11 +480,14 @@ namespace Raphael.Desktop.ViewModels.Admin
 
         // ---------------------------------------------------------------- settings
 
+        /// <summary>RE-099: the daily limits and their simulator.</summary>
+        public MapsLimitsViewModel Limits { get; private set; }
+
         private string _trafficMode = "MaxSavings";
         public string TrafficMode
         {
             get => _trafficMode;
-            set { SetProperty(ref _trafficMode, value); OnPropertyChanged(nameof(IsPrecision)); }
+            set { SetProperty(ref _trafficMode, value); OnPropertyChanged(nameof(IsPrecision)); if (Limits != null) Limits.Precision = IsPrecision; }
         }
 
         /// <summary>
@@ -493,7 +497,12 @@ namespace Raphael.Desktop.ViewModels.Admin
         public bool IsPrecision =>
             string.Equals(TrafficMode, "Precision", StringComparison.OrdinalIgnoreCase);
 
-        public IReadOnlyList<string> TrafficModes { get; } = new[] { "MaxSavings", "Precision" };
+        /// <summary>The code the server keeps, and its name in the language on screen.</summary>
+        public IReadOnlyList<KeyValuePair<string, string>> TrafficModes => new[]
+        {
+            new KeyValuePair<string, string>("MaxSavings", L["gmaps.ModeMaxSavings"]),
+            new KeyValuePair<string, string>("Precision", L["gmaps.ModePrecision"]),
+        };
 
         private string _cacheRetentionDays = "365";
         public string CacheRetentionDays
@@ -559,6 +568,7 @@ namespace Raphael.Desktop.ViewModels.Admin
 
                 ApplySettings(settings);
                 BuildCharts(daily);
+                await Limits.LoadAsync(pricing, IsPrecision);
 
                 OnPropertyChanged(nameof(IsSimulatedPeriod));
             }
@@ -725,6 +735,7 @@ namespace Raphael.Desktop.ViewModels.Admin
                 await Save("Routing.TrafficMode", TrafficMode);
                 await Save("Routing.CacheRetentionDays", CacheRetentionDays);
                 await Save("Routing.DefaultBufferPercent", BufferPercent);
+                await Limits.SaveAsync(Save);
 
                 if (errors.Count > 0)
                 {

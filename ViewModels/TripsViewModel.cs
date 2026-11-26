@@ -282,7 +282,7 @@ namespace Raphael.Desktop.ViewModels
 
             double dDistance = dropoffLeg.DistanceMiles;
             TimeSpan dTravelTime = TimeSpan.FromSeconds(dropoffLeg.DurationInTrafficSeconds ?? dropoffLeg.DurationSeconds);
-            TimeSpan pickupServiceTime = TimeSpan.FromMinutes(15);
+            TimeSpan pickupServiceTime = TimeSpan.FromMinutes(Services.VehicleCapabilityStore.Instance.BoardingMinutes(trip.SpaceTypeName));
             TimeSpan dFinalEta = pFinalEta + pickupServiceTime + dTravelTime;
 
             // The drive home, for the Pull-in hour. Zero if it could not be priced: the Pull-in

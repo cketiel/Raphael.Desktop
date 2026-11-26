@@ -157,6 +157,8 @@ namespace Raphael.Desktop.ViewModels
             SpaceTypes = VehicleCapabilityStore.Instance.Current?.SpaceTypes.OrderBy(s => s.Level).ThenBy(s => s.Name).ToList() ?? new();
             _name = original?.Name ?? "";
             _description = original?.Description;
+            _maxOnBoard = original?.MaxOnBoard ?? 2;
+            _maxNonAmbulatory = original?.MaxNonAmbulatory ?? 1;
             foreach (var s in original?.Seats ?? new())
                 Seats.Add(new SeatRow(Changed) { SpaceType = SpaceTypes.FirstOrDefault(t => t.Id == s.SpaceTypeId), Quantity = s.Quantity });
             if (Seats.Count == 0) Add();
@@ -172,6 +174,16 @@ namespace Raphael.Desktop.ViewModels
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(SaveCommand))] private string _name;
         [ObservableProperty] private string? _description;
         [ObservableProperty] private string? _error;
+
+        // RE-093: who may ride together. Two on board and one not ambulatory, until somebody changes it.
+        [ObservableProperty] private int _maxOnBoard = 2;
+        [ObservableProperty] private int _maxNonAmbulatory = 1;
+        partial void OnMaxOnBoardChanged(int value) => MaxOnBoard = Math.Clamp(value, 1, 20);
+        partial void OnMaxNonAmbulatoryChanged(int value) => MaxNonAmbulatory = Math.Clamp(value, 0, 20);
+        [RelayCommand] private void MoreOnBoard() => MaxOnBoard++;
+        [RelayCommand] private void LessOnBoard() => MaxOnBoard--;
+        [RelayCommand] private void MoreNonAmbulatory() => MaxNonAmbulatory++;
+        [RelayCommand] private void LessNonAmbulatory() => MaxNonAmbulatory--;
 
         private int Level => Seats.Where(s => s.Quantity > 0 && s.SpaceType != null).Select(s => s.SpaceType!.Level).DefaultIfEmpty(0).Max();
         public string? Kind => VehicleCapabilityUi.Kind(Level);
@@ -222,6 +234,8 @@ namespace Raphael.Desktop.ViewModels
                 {
                     Name = Name.Trim(),
                     Description = Description,
+                    MaxOnBoard = MaxOnBoard,
+                    MaxNonAmbulatory = MaxNonAmbulatory,
                     Seats = Seats.Select(s => new VehicleConfigurationSeatSaveDto { SpaceTypeId = s.SpaceType!.Id, Quantity = s.Quantity }).ToList()
                 });
                 await VehicleCapabilityStore.Instance.RefreshAsync();

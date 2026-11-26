@@ -5,10 +5,46 @@ The record starts at version `1.2.3`; earlier history is not reconstructed.
 
 ## [Unreleased]
 
-Slices RE-083 to RE-086 and RE-088 to RE-092. RE-083 needs Raphael.Backend 2.13.0, RE-085 the one after it (`api/vehicle-capability`); without it the screens open
-and simply have no kinds and no warnings.
+## [1.23.15] - 2026-11-25
+
+Slices RE-083 to RE-086 and RE-088 to RE-099. Needs Raphael.Backend 2.14.11; with an older server the new screens
+open and simply have nothing new to show.
 
 ### Added
+- Admin > Google Maps > Settings (RE-099): the daily limit of the suggestions explained in plain words. First, how
+  much the saved settings can spend in a month at most; then an example from today's production (300 trips and 30
+  lines a day, 30% cancelled) worked out step by step, with the maximum and the realistic month, a button for the
+  realistic limit and a table for 1 to 6 options. Traffic modes named in the screen's language; numbers in its format.
+- RE-095: after an import, a window lists impossible and loose trips separately (count and share of the file) and adjusts
+  their pickup hours on request: all, by kind, row by row, or none. The broker's hour is kept and can be put back.
+- RE-099: Overflow trips in Dispatch: marked, explained (reasons, cancel chance, until when they can wait), hideable.
+- RE-098: suggestions grouped by the appointment (fits, within the broker's 15 minutes, problem, cannot), with the day's
+  plan and the reason each row is above the next.
+- RE-094: the Home trip form and the Edit trip dialog judge the pickup against the appointment as an import does:
+  a label with the state, the limits and why, a "Use HH:MM" button, and a reminder on save. It never blocks the save.
+- RE-096: the report tells where each trip came from (file, integration, provider, typed in the office, unknown) and
+  never claims a trip typed in the office.
+- Live map Today: "Adjusted trips" (impossible and loose, adjusted or as received), opening the report.
+
+### Changed
+- RE-096: the report is now "Impossible and loose trips", with original and adjusted hours, who and when, and broker lateness.
+
+### Removed
+- The appointment marks in Home and Dispatch, the copy-note button and the booking-form warning (RE-094, never released).
+
+### Added
+- Live map Today (RE-094): without a line is split into To route and Will Call, and the impossible appointments are counted and
+  open in Home. The voice assistant knows the three figures.
+- Admin, Google Maps (RE-099): the daily limit of the suggestions, explained, with a simulator of its cost and reach.
+- Suggestions: lines already out go first, then the shortest wait; an empty line gets its trips by the hour.
+- Dispatch (RE-098, RE-099): a panel beside the map suggests lines for a trip and trips for a line, best first, with what would
+  happen, why that order and the plan drawn on the map. Routing from it uses the same process, in the suggested place, also
+  pickup-pickup-dropoff-dropoff. Needs the Raphael.Backend of RE-097; without it the panel says so and nothing else changes.
+- Impossible appointments (RE-094, RE-095): marks in Home and in the open list, a filter, the whole sum and a suggested pickup
+  hour. Only shown: no hour changes anywhere. A button copies a note for the driver. The import log counts them.
+- Reports (RE-096): Impossible appointments, with the proof of each trip, a claim in PDF per funding source (administrators) and Excel.
+- Space types (RE-093): boarding and leaving minutes are edited in the list. Vehicle configurations: how many ride at once.
+- Help: routing suggestions, impossible appointments and their report, in both languages.
 - Productivity report: the hours and the miles of a shift show their full calculation, with bars and totals.
 - Productivity report: saving the PDF or the Excel covers the screen with its progress, can be cancelled, and asks before opening the file. A second click on a row hides its details.
 - Productivity report: "miles with a patient" is miles x patients on board everywhere (screen, PDF and help); the vehicle's own distance is now "occupied miles". Figures and pay are unchanged.

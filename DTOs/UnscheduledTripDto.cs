@@ -103,6 +103,19 @@ namespace Raphael.Desktop.DTOs
         [ObservableProperty]
         private bool _isDeparting;
 
+        /// <summary>RE-099: this trip in the day's plan. Set by the screen, never sent nor compared.</summary>
+        [ObservableProperty]
+        [property: System.Text.Json.Serialization.JsonIgnore]
+        [NotifyPropertyChangedFor(nameof(IsOverflow), nameof(IsOverflowUrgent), nameof(OverflowToolTip))]
+        private PlannedTripDto? _planned;
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsOverflow => Planned?.IsOverflow == true;
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsOverflowUrgent => IsOverflow && Planned!.IsUrgent;
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? OverflowToolTip => IsOverflow ? Helpers.OverflowText.Explain(Planned!) : null;
+
         /// <summary>
         /// The trip came back to the unscheduled list from an Out of Service (RE-053). Purely
         /// visual, never sent to the server.

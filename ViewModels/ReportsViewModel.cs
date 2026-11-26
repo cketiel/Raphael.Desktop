@@ -170,6 +170,7 @@ namespace Raphael.Desktop.ViewModels
 
         /// <summary>RE-081: the fleet productivity tab.</summary>
         public ProductivityReportViewModel Productivity { get; } = new ProductivityReportViewModel();
+        public ImpossibleAppointmentsViewModel Impossible { get; } = new ImpossibleAppointmentsViewModel();
 
         public bool IsAllSelected
         {

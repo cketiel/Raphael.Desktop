@@ -15,6 +15,7 @@ namespace Raphael.Desktop.Services
         Task<VehicleCapabilityDto?> GetAsync();
         Task UpdateClassAsync(int id, CapacityClassUpdateDto dto);
         Task UpdateSpaceTypeClassAsync(int id, int capacityTypeId);
+        Task UpdateSpaceTypeTimesAsync(int id, float load, float unload);
         Task SaveConfigurationAsync(int? id, VehicleConfigurationSaveDto dto);
     }
 
@@ -36,6 +37,9 @@ namespace Raphael.Desktop.Services
 
         public async Task UpdateSpaceTypeClassAsync(int id, int capacityTypeId) =>
             await CheckAsync(await _http.PutAsJsonAsync($"{EndPoint}/space-types/{id}", new SpaceTypeClassUpdateDto { CapacityTypeId = capacityTypeId }));
+
+        public async Task UpdateSpaceTypeTimesAsync(int id, float load, float unload) =>
+            await CheckAsync(await _http.PutAsJsonAsync($"{EndPoint}/space-types/{id}/times", new SpaceTypeTimesUpdateDto { LoadTime = load, UnloadTime = unload }));
 
         public async Task SaveConfigurationAsync(int? id, VehicleConfigurationSaveDto dto) =>
             await CheckAsync(id is int existing

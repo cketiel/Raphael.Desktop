@@ -42,6 +42,10 @@ namespace Raphael.Desktop.Helpers
         /// <summary>RE-085: opens Home on a day, showing one part of it (done, canceled…).</summary>
         public static event Action<DateTime, Models.TripPart> ShowPartInHomeRequested;
 
+        /// <summary>RE-096: Reports on a day's impossible and loose trips.</summary>
+        public static event Action<DateTime> ShowHoursReportRequested;
+        public static void ShowHoursReport(DateTime date) => ShowHoursReportRequested?.Invoke(date.Date);
+
         public static void ShowPartInHome(DateTime date, Models.TripPart part) => ShowPartInHomeRequested?.Invoke(date.Date, part);
 
         /// <summary>RE-080: opens Home searching one trip by the broker's number.</summary>

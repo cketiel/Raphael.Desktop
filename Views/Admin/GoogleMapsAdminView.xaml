@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
              xmlns:vm="clr-namespace:Raphael.Desktop.ViewModels.Admin"
+             xmlns:limits="clr-namespace:Raphael.Desktop.Views.Admin"
              xmlns:helpers="clr-namespace:Raphael.Desktop.Helpers"
              mc:Ignorable="d"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -460,8 +461,8 @@
                                 <TextBlock Style="{StaticResource SectionTitle}"
                                            Text="{Binding L[gmaps.TrafficMode]}" Margin="0,0,0,8" />
 
-                                <ComboBox ItemsSource="{Binding TrafficModes}"
-                                          SelectedItem="{Binding TrafficMode, Mode=TwoWay}"
+                                <ComboBox ItemsSource="{Binding TrafficModes}" DisplayMemberPath="Value" SelectedValuePath="Key"
+                                          SelectedValue="{Binding TrafficMode, Mode=TwoWay}"
                                           Width="220" HorizontalAlignment="Left" />
 
                                 <TextBlock Style="{StaticResource HintText}"
@@ -499,6 +500,9 @@
                                            Text="{Binding L[gmaps.CacheHint]}" />
                             </StackPanel>
                         </Border>
+
+                        <!-- RE-099: the daily limits, explained and simulated. Saved with the rest. -->
+                        <limits:MapsLimitsCard DataContext="{Binding Limits}"/>
 
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>

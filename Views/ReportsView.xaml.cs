@@ -59,6 +59,13 @@ namespace Raphael.Desktop.Views
         }
 
         // RE-081: the productivity filters are read the first time the tab is opened, not with the screen.
+        /// <summary>RE-096: opens on the impossible and loose trips of a day.</summary>
+        public async void ShowHours(System.DateTime date)
+        {
+            HoursTab.IsSelected = true;
+            if (DataContext is ViewModels.ReportsViewModel vm) await vm.Impossible.ShowDayAsync(date);
+        }
+
         private async void ProductivityGrid_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
             if (DataContext is ViewModels.ReportsViewModel vm) await vm.Productivity.EnsureFiltersAsync();
